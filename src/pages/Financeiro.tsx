@@ -221,45 +221,94 @@ export default function Financeiro() {
   });
 
   // Movimentações operacionais do mês para detectar "envio operacional feito"
-  // e também para contar anexos do Cadastro (anexos_movimentacao) no badge "Anexos"
+  // e também para contar anexos do Cadastro (anexos_movimentacao) no badge "Anexos".
+  // As consultas são feitas em lotes: listas grandes de IDs estouravam o tamanho
+  // máximo da URL e a contagem voltava vazia (badge sempre 0).
+  const grupoIdPorEmpresa = useMemo(() => {
+    const m = new Map<string, string | null>();
+    empresaIds.forEach((id) => m.set(id, empresaGrupoMap?.get(id)?.grupo_id ?? null));
+    return m;
+  }, [empresaIds, empresaGrupoMap]);
+
   const { data: operacionaisData = { envioMap: {}, anexosCountMap: {} } } = useQuery({
-    queryKey: ["financeiro-operacionais-v2", mes, empresaIds.sort().join(",")],
+    queryKey: [
+      "financeiro-operacionais-v2",
+      mes,
+      empresaIds.sort().join(","),
+      Array.from(grupoIdPorEmpresa.values()).join(","),
+    ],
     queryFn: async () => {
       if (empresaIds.length === 0) return { envioMap: {}, anexosCountMap: {} };
-      const { data, error } = await supabase
-        .from("movimentacoes")
-        .select("id, empresa_id, periodo, data_envio_financeiro")
-        .eq("mes_referencia", mes)
-        .in("empresa_id", empresaIds);
-      if (error) throw error;
+
+      const lotes = <T,>(arr: T[], size = 100) => {
+        const out: T[][] = [];
+        for (let i = 0; i < arr.length; i += size) out.push(arr.slice(i, i + size));
+        return out;
+      };
+
+      const movs: any[] = [];
+      for (const ids of lotes(empresaIds)) {
+        const { data, error } = await supabase
+          .from("movimentacoes")
+          .select("id, empresa_id, periodo, data_envio_financeiro")
+          .eq("mes_referencia", mes)
+          .in("empresa_id", ids);
+        if (error) throw error;
+        movs.push(...(data || []));
+      }
+
       const envioMap: Record<string, boolean> = {};
-      const movKeyById: Record<string, string> = {};
+      const movMetaById: Record<string, { empresa_id: string; periodo: string }> = {};
       const movIdsOp: string[] = [];
-      data.forEach((m: any) => {
+      movs.forEach((m: any) => {
         const key = `${m.empresa_id}|${m.periodo}`;
         if (m.data_envio_financeiro) envioMap[key] = true;
-        movKeyById[m.id] = key;
+        movMetaById[m.id] = { empresa_id: m.empresa_id, periodo: m.periodo };
         movIdsOp.push(m.id);
       });
 
-      const anexosCountMap: Record<string, number> = {};
-      if (movIdsOp.length > 0) {
+      // Contagem por (grupo|periodo) e por (empresa|periodo)
+      const porEmpresaPeriodo: Record<string, number> = {};
+      const porGrupoPeriodo: Record<string, number> = {};
+      for (const ids of lotes(movIdsOp)) {
         const { data: anx, error: anxErr } = await supabase
           .from("anexos_movimentacao")
           .select("movimentacao_id")
-          .in("movimentacao_id", movIdsOp);
+          .in("movimentacao_id", ids);
         if (anxErr) throw anxErr;
         (anx || []).forEach((a: any) => {
-          const key = movKeyById[a.movimentacao_id];
-          if (key) anexosCountMap[key] = (anexosCountMap[key] || 0) + 1;
+          const meta = movMetaById[a.movimentacao_id];
+          if (!meta) return;
+          const key = `${meta.empresa_id}|${meta.periodo}`;
+          porEmpresaPeriodo[key] = (porEmpresaPeriodo[key] || 0) + 1;
+          const grupoId = grupoIdPorEmpresa.get(meta.empresa_id) ?? null;
+          if (grupoId) {
+            const gk = `${grupoId}|${meta.periodo}`;
+            porGrupoPeriodo[gk] = (porGrupoPeriodo[gk] || 0) + 1;
+          }
         });
       }
+
+      // Contratos de um mesmo Grupo Financeiro compartilham os anexos do
+      // Cadastro (mesma regra do diálogo "Anexos do processo").
+      const anexosCountMap: Record<string, number> = { ...porEmpresaPeriodo };
+      empresaIds.forEach((empresaId) => {
+        const grupoId = grupoIdPorEmpresa.get(empresaId);
+        if (!grupoId) return;
+        Object.entries(porGrupoPeriodo).forEach(([gk, total]) => {
+          const [gId, periodo] = gk.split("|");
+          if (gId !== grupoId) return;
+          anexosCountMap[`${empresaId}|${periodo}`] = total;
+        });
+      });
+
       return { envioMap, anexosCountMap };
     },
     enabled: empresaIds.length > 0,
   });
   const operacionaisMap = operacionaisData?.envioMap ?? {};
   const anexosCadastroCountMap = operacionaisData?.anexosCountMap ?? {};
+
 
   // Anexos de implantação (rótulo "Contrato") — contados por empresa.
   // Só contam na PRIMEIRA competência da empresa (mesma regra do visualizador).
