@@ -19,6 +19,7 @@ import { formatDateBR } from "@/lib/date-utils";
 import { ConfigFinanceiraEmpresaDialog } from "@/components/financeiro/ConfigFinanceiraEmpresaDialog";
 import { validarConfigFinanceira } from "@/lib/empresa-financeiro-config";
 import { ObservacoesHistorico } from "@/components/movimentacoes/ObservacoesHistorico";
+import { identificarContratoDoAnexo, type ContratoAlvo } from "@/lib/anexo-contrato-match";
 
 function formatDateTime(iso: string): string {
   const d = new Date(iso);
