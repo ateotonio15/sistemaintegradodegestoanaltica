@@ -1241,7 +1241,9 @@ export default function Financeiro() {
         kpiRows
           .filter((r) => r.status === "Aguardando nota")
           .forEach((r) => {
-            const lista = (pagadoresCadastradosMap[r.empresa_id] || []).filter((p: any) => p.ativo);
+            const lista = (pagadoresCadastradosMap[r.empresa_id] || []).filter(
+              (p: any) => p.ativo && vigenteNaCompetencia(p, (r as any).mes_referencia ?? mes),
+            );
             if (lista.length === 0) {
               total += 1;
             } else {
