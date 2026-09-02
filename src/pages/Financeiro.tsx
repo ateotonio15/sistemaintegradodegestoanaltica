@@ -3042,6 +3042,13 @@ export default function Financeiro() {
           canManage={!!canManageFinanceiro}
         />
 
+        <RelatorioAnaliseDialog
+          open={relatorioAnaliseOpen}
+          onOpenChange={setRelatorioAnaliseOpen}
+          mesAtual={mes}
+        />
+
+
         {canManageFinanceiro && (
           <GerarHistoricoDialog
             open={historicoDialogOpen}
