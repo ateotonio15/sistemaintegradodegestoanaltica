@@ -317,14 +317,32 @@ export function AnexosViewerDialog({
         : { data: [] as any[] };
       const movFinIrmaosIds = ((movsFinIrmaos as any[]) ?? []).map((m) => m.id);
 
-      // 2) Movimentações operacionais (cadastro) — só desta empresa
-      const { data: movsOp } = await supabase
+      // 2) Movimentações operacionais (cadastro) — desta empresa e das irmãs
+      // do grupo. Os anexos das irmãs são direcionados pelo NOME do arquivo.
+      const empresasOp = [empresaId!, ...empresasIrmas];
+      const { data: movsOpTodas } = await supabase
         .from("movimentacoes")
-        .select("id")
-        .eq("empresa_id", empresaId!)
+        .select("id, empresa_id")
+        .in("empresa_id", empresasOp)
         .eq("mes_referencia", mesReferencia)
         .eq("periodo", periodo);
-      const movOpIds = (movsOp ?? []).map((m) => m.id);
+      const empresaPorMovOp = new Map<string, string>(
+        ((movsOpTodas as any[]) ?? []).map((m) => [m.id, m.empresa_id]),
+      );
+      const movOpIds = Array.from(empresaPorMovOp.keys());
+
+      // Dados dos contratos do grupo para a leitura do nome dos anexos
+      const { data: empresasGrupoInfo } = await supabase
+        .from("empresas")
+        .select("id, nome, codigo_contrato, cnpj")
+        .in("id", empresasOp);
+      const alvosGrupo: ContratoAlvo[] = ((empresasGrupoInfo as any[]) ?? []).map((e) => ({
+        empresaId: e.id,
+        nome: e.nome,
+        codigo: e.codigo_contrato,
+        cnpj: e.cnpj,
+      }));
+
 
       // 3) Anexos da implantação — só desta empresa
       const { data: impls } = await supabase
