@@ -776,10 +776,15 @@ export default function Financeiro() {
             for (const c of cnpjsDoArquivo) if (cnpjsDoContrato.has(c)) return true;
             return false;
           }
+          // Arquivo marcado explicitamente como compartilhado do grupo
+          // (ex.: "GRUPO LENOVO - SETEMBRO2026.xlsx") vale para todos os
+          // contratos do grupo, mesmo antes de ser analisado.
+          if (a.compartilhado_grupo === true) return true;
           // Fallback: arquivo ainda não analisado — match por nome do arquivo
           // (CNPJ ou token significativo do nome da empresa).
           return matchPorNomeArquivo(a.nome_arquivo);
         }
+
         // próprio: só ignora se o CNPJ detectado pertence a OUTRO contrato
         if (cnpjsDoArquivo && cnpjsDoArquivo.size > 0) {
           for (const c of cnpjsDoArquivo) if (cnpjsDoContrato.has(c)) return true;
