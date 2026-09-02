@@ -1258,7 +1258,7 @@ export default function Financeiro() {
       pendentes: kpiRows.filter((r) => r.status === "Pendente").length,
       foraDoPrazo,
     };
-  }, [kpiRows, pagadoresCadastradosMap]);
+  }, [kpiRows, pagadoresCadastradosMap, mes]);
 
   // Provisionar movimentações financeiras do mês:
   // - Todas as empresas ATIVAS com período válido
