@@ -311,10 +311,10 @@ export default function Financeiro() {
       if (empresaIds.length === 0) return {};
       const { data, error } = await supabase
         .from("financeiro_pagadores")
-        .select("id, empresa_id, nome_pagador, cnpj, ativo")
+        .select("id, empresa_id, nome_pagador, cnpj, ativo, inativo_a_partir_de")
         .in("empresa_id", empresaIds);
       if (error) throw error;
-      const map: Record<string, Array<{ id: string; empresa_id: string; nome_pagador: string; cnpj: string | null; ativo: boolean }>> = {};
+      const map: Record<string, Array<{ id: string; empresa_id: string; nome_pagador: string; cnpj: string | null; ativo: boolean; inativo_a_partir_de?: string | null }>> = {};
       (data || []).forEach((p: any) => {
         if (!map[p.empresa_id]) map[p.empresa_id] = [];
         map[p.empresa_id].push(p);
@@ -1096,9 +1096,15 @@ export default function Financeiro() {
     // - Com pagadores cadastrados: mostra um por um. Se o CNPJ da empresa-mãe NÃO estiver
     //   entre os pagadores cadastrados, inclui também a linha-mãe (evita "sumir" o CNPJ do contrato).
     const onlyDigits = (s: string | null | undefined) => (s || "").replace(/\D/g, "");
+    // Pagador encerrado (inativo_a_partir_de) some da competência informada em diante,
+    // mas continua visível nas competências anteriores.
+    const vigenteNaCompetencia = (p: any, competencia: string | null | undefined) =>
+      !p.inativo_a_partir_de || !competencia || competencia < p.inativo_a_partir_de;
     const expanded: FinanceiroRow[] = [];
     base.forEach((r) => {
-      const pagadores = (pagadoresCadastradosMap[r.empresa_id] || []).filter((p) => p.ativo);
+      const pagadores = (pagadoresCadastradosMap[r.empresa_id] || []).filter(
+        (p) => p.ativo && vigenteNaCompetencia(p, (r as any).mes_referencia ?? mes),
+      );
 
       if (pagadores.length === 0) {
         expanded.push({ ...r, rowKey: r.id, pagador_id: null });
@@ -1132,7 +1138,7 @@ export default function Financeiro() {
       const hay = `${r.empresa_nome} ${r.empresa_codigo || ""} ${r.empresa_cnpj || ""}`.toLowerCase();
       return hay.includes(q);
     });
-  }, [allRows, busca, filtroStatus, filtroTipo, filtroPeriodo, somenteOverdue, pagadoresCadastradosMap, movIdsMatchAnexoFilters, filtroGrupo, empresaGrupoMap, filtroAcompanhamento]);
+  }, [allRows, busca, mes, filtroStatus, filtroTipo, filtroPeriodo, somenteOverdue, pagadoresCadastradosMap, movIdsMatchAnexoFilters, filtroGrupo, empresaGrupoMap, filtroAcompanhamento]);
 
   // Ordenação aplicada após filtros
   const sortedRows = useMemo(() => {
@@ -1189,13 +1195,17 @@ export default function Financeiro() {
   // KPIs
   const kpis = useMemo(() => {
     const onlyDigits = (s: string | null | undefined) => (s || "").replace(/\D/g, "");
+    const vigenteNaCompetencia = (p: any, competencia: string | null | undefined) =>
+      !p.inativo_a_partir_de || !competencia || competencia < p.inativo_a_partir_de;
     const empresasUnicas = new Map<string, string | null>();
     kpiRows.forEach((r) => {
       if (!empresasUnicas.has(r.empresa_id)) empresasUnicas.set(r.empresa_id, r.empresa_cnpj);
     });
     let totalPagadores = 0;
     empresasUnicas.forEach((cnpjMae, empId) => {
-      const lista = (pagadoresCadastradosMap[empId] || []).filter((p: any) => p.ativo);
+      const lista = (pagadoresCadastradosMap[empId] || []).filter(
+        (p: any) => p.ativo && vigenteNaCompetencia(p, mes),
+      );
       if (lista.length === 0) {
         totalPagadores += 1;
       } else {
@@ -1231,7 +1241,9 @@ export default function Financeiro() {
         kpiRows
           .filter((r) => r.status === "Aguardando nota")
           .forEach((r) => {
-            const lista = (pagadoresCadastradosMap[r.empresa_id] || []).filter((p: any) => p.ativo);
+            const lista = (pagadoresCadastradosMap[r.empresa_id] || []).filter(
+              (p: any) => p.ativo && vigenteNaCompetencia(p, (r as any).mes_referencia ?? mes),
+            );
             if (lista.length === 0) {
               total += 1;
             } else {
@@ -1246,7 +1258,7 @@ export default function Financeiro() {
       pendentes: kpiRows.filter((r) => r.status === "Pendente").length,
       foraDoPrazo,
     };
-  }, [kpiRows, pagadoresCadastradosMap]);
+  }, [kpiRows, pagadoresCadastradosMap, mes]);
 
   // Provisionar movimentações financeiras do mês:
   // - Todas as empresas ATIVAS com período válido

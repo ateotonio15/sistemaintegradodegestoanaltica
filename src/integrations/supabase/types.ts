@@ -2520,6 +2520,7 @@ export type Database = {
           created_at: string
           empresa_id: string
           id: string
+          inativo_a_partir_de: string | null
           nome_pagador: string
           updated_at: string
         }
@@ -2529,6 +2530,7 @@ export type Database = {
           created_at?: string
           empresa_id: string
           id?: string
+          inativo_a_partir_de?: string | null
           nome_pagador: string
           updated_at?: string
         }
@@ -2538,6 +2540,7 @@ export type Database = {
           created_at?: string
           empresa_id?: string
           id?: string
+          inativo_a_partir_de?: string | null
           nome_pagador?: string
           updated_at?: string
         }

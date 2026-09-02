@@ -1,0 +1,2 @@
+ALTER TABLE public.financeiro_pagadores ADD COLUMN IF NOT EXISTS inativo_a_partir_de text;
+COMMENT ON COLUMN public.financeiro_pagadores.inativo_a_partir_de IS 'Competência (YYYY-MM) a partir da qual o pagador deixa de ser cobrado. Nulo = ativo indefinidamente.';
