@@ -1096,9 +1096,15 @@ export default function Financeiro() {
     // - Com pagadores cadastrados: mostra um por um. Se o CNPJ da empresa-mãe NÃO estiver
     //   entre os pagadores cadastrados, inclui também a linha-mãe (evita "sumir" o CNPJ do contrato).
     const onlyDigits = (s: string | null | undefined) => (s || "").replace(/\D/g, "");
+    // Pagador encerrado (inativo_a_partir_de) some da competência informada em diante,
+    // mas continua visível nas competências anteriores.
+    const vigenteNaCompetencia = (p: any, competencia: string | null | undefined) =>
+      !p.inativo_a_partir_de || !competencia || competencia < p.inativo_a_partir_de;
     const expanded: FinanceiroRow[] = [];
     base.forEach((r) => {
-      const pagadores = (pagadoresCadastradosMap[r.empresa_id] || []).filter((p) => p.ativo);
+      const pagadores = (pagadoresCadastradosMap[r.empresa_id] || []).filter(
+        (p) => p.ativo && vigenteNaCompetencia(p, (r as any).mes_referencia ?? mes),
+      );
 
       if (pagadores.length === 0) {
         expanded.push({ ...r, rowKey: r.id, pagador_id: null });
