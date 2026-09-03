@@ -29,6 +29,16 @@ export interface CoparticipacaoSubstipulante {
   total: number;
 }
 
+/** Bloco de "Complemento" (proporcional cobrado à parte) da aba RESUMO. */
+export interface ComplementoResultado {
+  quantidade: number;
+  total: number;
+  /** Rótulo do período informado na planilha (ex.: "Agosto/2026"). */
+  periodoLabel?: string | null;
+  /** Descrições das linhas de complemento encontradas. */
+  itens?: { nome: string; quantidade: number; total: number }[];
+}
+
 /** Bloco de Coparticipação — Empresarial extraído do pivot da aba RESUMO. */
 export interface CoparticipacaoResultado {
   quantidade: number;
@@ -80,6 +90,8 @@ export interface AnaliseResultado {
   faixasEtarias?: FaixaEtariaResumo[];
   /** Coparticipação — Empresarial (pivot da aba RESUMO). */
   coparticipacao?: CoparticipacaoResultado;
+  /** Complemento/proporcional cobrado separadamente (aba RESUMO). */
+  complemento?: ComplementoResultado;
   /** Valor total declarado pela própria planilha (linha TOTAL do bloco). */
   totalDeclaradoExcel?: number;
   avisos: string[];
@@ -106,6 +118,8 @@ export interface AnalisePorCnpj {
   faixasEtarias?: FaixaEtariaResumo[];
   /** Coparticipação — Empresarial (pivot da aba RESUMO). */
   coparticipacao?: CoparticipacaoResultado;
+  /** Complemento/proporcional cobrado separadamente (aba RESUMO). */
+  complemento?: ComplementoResultado;
   /** Valor total declarado pela própria planilha (linha TOTAL do bloco). */
   totalDeclaradoExcel?: number;
   avisos: string[];
@@ -1304,6 +1318,8 @@ function analisarResumoSheet(wb: ExcelJS.Workbook): AnalisePorCnpj[] | null {
     devQtd: number; devTotal: number;
     permQtd: number; permTotal: number;
     adesaoQtd: number; adesaoTotal: number;
+    compQtd: number; compTotal: number; compLabel: string | null;
+    compItens: { nome: string; quantidade: number; total: number }[];
     /** Valor da linha "TOTAL" declarada na planilha para este bloco. */
     totalDecl: number | null;
     faixas: Map<string, { label: string; idadeInicial: number; idadeFinal: number | null; quantidade: number; total: number }>;
@@ -1395,6 +1411,7 @@ function analisarResumoSheet(wb: ExcelJS.Workbook): AnalisePorCnpj[] | null {
         devQtd: 0, devTotal: 0,
         permQtd: 0, permTotal: 0,
         adesaoQtd: 0, adesaoTotal: 0,
+        compQtd: 0, compTotal: 0, compLabel: null, compItens: [],
         totalDecl: null,
         faixas: new Map(),
       };
@@ -1415,6 +1432,20 @@ function analisarResumoSheet(wb: ExcelJS.Workbook): AnalisePorCnpj[] | null {
     const mensNum = isNaN(mensN) ? 0 : mensN;
     const hasValor = !isNaN(val) && val !== 0;
     const hasMensalidade = !isNaN(mensN) && mensN !== 0;
+
+    if (labelNorm.includes("complemento")) {
+      cur.compQtd += qtdNum;
+      cur.compTotal += valNum;
+      cur.compItens.push({ nome: labelRaw, quantidade: qtdNum, total: valNum });
+      const mMes = /(janeiro|fevereiro|mar[cç]o|abril|maio|junho|julho|agosto|setembro|outubro|novembro|dezembro)\s*[\/_-]?\s*(\d{4}|\d{2})(?!\d)/i.exec(labelRaw);
+      if (mMes && !cur.compLabel) {
+        const nomeMes = mMes[1].charAt(0).toUpperCase() + mMes[1].slice(1).toLowerCase();
+        const anoRaw = parseInt(mMes[2], 10);
+        const ano = mMes[2].length === 2 ? 2000 + anoRaw : anoRaw;
+        cur.compLabel = `${nomeMes}/${ano}`;
+      }
+      continue;
+    }
 
     if (labelNorm.includes("adesao") || labelNorm.includes("adesão")) {
       cur.adesaoQtd += qtdNum;
@@ -1679,6 +1710,14 @@ function analisarResumoSheet(wb: ExcelJS.Workbook): AnalisePorCnpj[] | null {
       bloco.faixasEtarias = Array.from(g.faixas.values()).sort(
         (a, b) => a.idadeInicial - b.idadeInicial,
       );
+    }
+    if (g.compQtd !== 0 || g.compTotal !== 0) {
+      bloco.complemento = {
+        quantidade: g.compQtd,
+        total: g.compTotal,
+        periodoLabel: g.compLabel,
+        itens: g.compItens,
+      };
     }
     const coparticAcc = coparticPorBloco.get(g.cnpj || g.nome);
     if (coparticAcc && (coparticAcc.quantidade !== 0 || coparticAcc.total !== 0)) {
@@ -2687,6 +2726,13 @@ function dividirBlocosPorSubBlocosDeclarados(
       const dev = escala(bloco.devolucoes, peso); if (dev) novo.devolucoes = dev;
       const perm = escala(bloco.permuta, peso); if (perm) novo.permuta = perm;
       const ade = escala(bloco.taxaAdesao, peso); if (ade) novo.taxaAdesao = ade;
+      if (bloco.complemento) {
+        novo.complemento = {
+          ...bloco.complemento,
+          quantidade: Math.round(bloco.complemento.quantidade * peso),
+          total: bloco.complemento.total * peso,
+        };
+      }
       if (bloco.coparticipacao) {
         novo.coparticipacao = {
           ...bloco.coparticipacao,
@@ -2811,6 +2857,15 @@ function mesclarBlocosPorNomeForcado(blocos: AnalisePorCnpj[]): AnalisePorCnpj[]
     const dev = somaQT(arr, "devolucoes"); if (dev) novoBloco.devolucoes = dev;
     const perm = somaQT(arr, "permuta"); if (perm) novoBloco.permuta = perm;
     const ade = somaQT(arr, "taxaAdesao"); if (ade) novoBloco.taxaAdesao = ade;
+    const complementos = arr.map((x) => x.complemento).filter(Boolean) as ComplementoResultado[];
+    if (complementos.length > 0) {
+      novoBloco.complemento = {
+        quantidade: complementos.reduce((s2, c) => s2 + c.quantidade, 0),
+        total: complementos.reduce((s2, c) => s2 + c.total, 0),
+        periodoLabel: complementos.find((c) => c.periodoLabel)?.periodoLabel ?? null,
+        itens: complementos.flatMap((c) => c.itens || []),
+      };
+    }
     // Coparticipação: soma quantidade/total e concatena substipulantes.
     const copartics = arr.map((x) => x.coparticipacao).filter(Boolean) as CoparticipacaoResultado[];
     if (copartics.length > 0) {
@@ -2886,6 +2941,7 @@ export function cruzarExcelComPdfs(
       taxaAdesao: bloco.taxaAdesao,
       faixasEtarias: bloco.faixasEtarias,
       coparticipacao: bloco.coparticipacao,
+      complemento: bloco.complemento,
       totalDeclaradoExcel: bloco.totalDeclaradoExcel,
       avisos: bloco.avisos,
 

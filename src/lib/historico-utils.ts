@@ -77,6 +77,8 @@ export interface HistoricoOpts {
   tipoAnalise?: string | null;
   /** Rótulo do período de coparticipação (geralmente mês anterior à mensalidade). Ex.: "Junho/2026". */
   coparticipacaoPeriodoLabel?: string | null;
+  /** Rótulo do período de complemento (mês anterior à cobrança). Ex.: "Agosto/2026". */
+  complementoPeriodoLabel?: string | null;
 }
 
 /** Retorna o rótulo "Mes/AAAA" do mês anterior a um label "Mes/AAAA". */
@@ -258,6 +260,54 @@ export function gerarHistoricoCoparticipacaoTexto(
   linhas.push(`Coparticipação: ${fmtBR(totalCopartic)}`);
   linhas.push("");
   linhas.push(`Data de Vencimento: ${opts.dataVencimento}.`);
+  linhas.push("");
+
+  if (opts.pagamentoViaDeposito) {
+    linhas.push(
+      "OBS.: Dados bancários para depósito: Banco Itaú, Agência: 0071, Conta Corrente: 11663-6.",
+    );
+    linhas.push("");
+    linhas.push(
+      "Dedução de base de cálculo conforme PARECER Nº02/2018 CJUR/PGM(Processo nº2018/2287/2908/00191 PGM).",
+    );
+    linhas.push(
+      "Decisão judicial conforme Processo n° 0655998-44.2022.8.04.0001 TJAM",
+    );
+  } else {
+    linhas.push("OBS.: O boleto está disponível no sistema de DDA.");
+    linhas.push("");
+    linhas.push(
+      "Dedução de base de cálculo conforme PARECER Nº02/2018 CJUR/PGM(Processo nº2018/2287/2908/00191 PGM).",
+    );
+    linhas.push(
+      "Suspensão de PIS e COFINS, trânsito em julgado conforme Processo n° 0655998-44.2022.8.04.0001 TJAM",
+    );
+  }
+
+  return linhas.join("\n");
+}
+
+/** Gera histórico dedicado para valores de complemento (proporcional). */
+export function gerarHistoricoComplementoTexto(
+  resultados: AnaliseResultado[],
+  opts: HistoricoOpts,
+): string {
+  const totalComplemento = resultados.reduce(
+    (acc, r) => acc + ((r as any).complemento?.total ?? 0),
+    0,
+  );
+  if (totalComplemento === 0) return "";
+
+  const periodoComp =
+    (opts.complementoPeriodoLabel && opts.complementoPeriodoLabel.trim()) ||
+    resultados.map((r) => (r as any).complemento?.periodoLabel).find(Boolean) ||
+    mesAnteriorLabel(opts.competenciaLabel) ||
+    opts.competenciaLabel;
+
+  const linhas: string[] = [];
+  linhas.push(`Mês de ${periodoComp} (COMPLEMENTO)`);
+  linhas.push("");
+  linhas.push(`Data de vencimento: ${opts.dataVencimento}.`);
   linhas.push("");
 
   if (opts.pagamentoViaDeposito) {

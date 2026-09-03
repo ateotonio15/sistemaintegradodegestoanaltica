@@ -65,6 +65,7 @@ interface Props {
   onReanalisar?: (row: FinanceiroRow) => void;
   onGerarHistorico?: (row: FinanceiroRow) => void;
   onGerarHistoricoCoparticipacao?: (row: FinanceiroRow) => void;
+  onGerarHistoricoComplemento?: (row: FinanceiroRow) => void;
   analiseResultados: Record<string, AnaliseResultado[]>;
   analiseLoading: Record<string, boolean>;
   analiseComparacoes?: Record<string, ComparacaoResultado[]>;
@@ -85,6 +86,7 @@ export function FinanceiroTable({
   onReanalisar,
   onGerarHistorico,
   onGerarHistoricoCoparticipacao,
+  onGerarHistoricoComplemento,
   analiseResultados,
   analiseLoading,
   analiseComparacoes,
@@ -357,6 +359,7 @@ export function FinanceiroTable({
                       onReanalisar={onReanalisar ? () => onReanalisar(row) : undefined}
                       onGerarHistorico={onGerarHistorico ? () => onGerarHistorico(row) : undefined}
                       onGerarHistoricoCoparticipacao={onGerarHistoricoCoparticipacao ? () => onGerarHistoricoCoparticipacao(row) : undefined}
+                      onGerarHistoricoComplemento={onGerarHistoricoComplemento ? () => onGerarHistoricoComplemento(row) : undefined}
                       contexto={{
                         empresaNome: row.empresa_nome,
                         empresaCnpj: row.empresa_cnpj,

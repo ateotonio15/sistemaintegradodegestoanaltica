@@ -38,6 +38,7 @@ import {
   detectarCompetencia,
   gerarHistoricoTexto,
   gerarHistoricoCoparticipacaoTexto,
+  gerarHistoricoComplementoTexto,
   isoToBR,
 } from "@/lib/historico-utils";
 import { calcularPeriodoCobranca, formatPeriodoCobranca } from "@/lib/date-utils";
@@ -80,7 +81,7 @@ interface Props {
   row: FinanceiroRow | null;
   resultados: AnaliseResultado[] | null;
   anexosNomes: string[];
-  modo?: "mensalidade" | "coparticipacao";
+  modo?: "mensalidade" | "coparticipacao" | "complemento";
 }
 
 export function GerarHistoricoDialog({
@@ -208,7 +209,12 @@ export function GerarHistoricoDialog({
     const poFixo = codigo === "571" ? "4600004172" : codigo === "2523" ? "4500083334" : null;
     const poRotulo = codigo === "2523" ? "PC" : "PO";
 
-    const gerador = modo === "coparticipacao" ? gerarHistoricoCoparticipacaoTexto : gerarHistoricoTexto;
+    const gerador =
+      modo === "coparticipacao"
+        ? gerarHistoricoCoparticipacaoTexto
+        : modo === "complemento"
+          ? gerarHistoricoComplementoTexto
+          : gerarHistoricoTexto;
     const textoGerado = gerador(resultados, {
       competenciaLabel: competencia.label,
       dataVencimento: vencimentoBR,
@@ -228,7 +234,7 @@ export function GerarHistoricoDialog({
   // Quando carregar dados, se houver histórico salvo, abre direto no preview
   useEffect(() => {
     if (!open) return;
-    if (modo === "coparticipacao") return; // coparticipação não persiste versão separada
+    if (modo !== "mensalidade") return; // coparticipação/complemento não persistem versão separada
     if (savedRecord?.texto_historico) {
       const textoCarregado = deveIncluirObsDda ? garantirObsDda(savedRecord.texto_historico) : savedRecord.texto_historico;
       setTexto(textoCarregado);
@@ -422,11 +428,14 @@ export function GerarHistoricoDialog({
   };
 
   const textoAlterado = textoFinal !== textoOriginalGerado;
-  const possuiSalvo = modo !== "coparticipacao" && !!savedRecord?.texto_historico;
-  const podeSalvar = modo !== "coparticipacao";
-  const tituloDialog = modo === "coparticipacao"
-    ? "Gerar Histórico — Coparticipação"
-    : "Gerar Histórico Automático";
+  const possuiSalvo = modo === "mensalidade" && !!savedRecord?.texto_historico;
+  const podeSalvar = modo === "mensalidade";
+  const tituloDialog =
+    modo === "coparticipacao"
+      ? "Gerar Histórico — Coparticipação"
+      : modo === "complemento"
+        ? "Gerar Histórico — Complemento"
+        : "Gerar Histórico Automático";
 
   return (
     <>

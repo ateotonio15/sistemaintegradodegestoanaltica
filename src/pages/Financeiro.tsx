@@ -120,6 +120,8 @@ export default function Financeiro() {
   const [historicoDialogOpen, setHistoricoDialogOpen] = useState(false);
   const [historicoCopRow, setHistoricoCopRow] = useState<FinanceiroRow | null>(null);
   const [historicoCopDialogOpen, setHistoricoCopDialogOpen] = useState(false);
+  const [historicoCompRow, setHistoricoCompRow] = useState<FinanceiroRow | null>(null);
+  const [historicoCompDialogOpen, setHistoricoCompDialogOpen] = useState(false);
 
   // Realtime exclusivo da aba Financeiro — refetch incremental por linha,
   // sem reload, sem reset de filtros/estado. Cleanup automático ao sair.
@@ -1693,8 +1695,13 @@ export default function Financeiro() {
     setHistoricoCopDialogOpen(true);
   };
 
+  const handleGerarHistoricoComplemento = (row: FinanceiroRow) => {
+    setHistoricoCompRow(row);
+    setHistoricoCompDialogOpen(true);
+  };
+
   // Versão do parser Excel/PDF — bumpar invalida todos os caches em memória.
-  const ANALISE_PARSER_VERSION = "34";
+  const ANALISE_PARSER_VERSION = "35";
 
   // Computa a análise no NÍVEL DO CONTRATO (financeiro_movimentacoes.id).
   // Faz download/parse dos anexos uma única vez por movimentação e devolve
@@ -2036,6 +2043,7 @@ export default function Financeiro() {
         if (b.taxaAdesao) out.taxaAdesao = b.taxaAdesao;
         if (b.faixasEtarias) out.faixasEtarias = b.faixasEtarias;
         if (b.coparticipacao) out.coparticipacao = b.coparticipacao;
+        if ((b as any).complemento) out.complemento = (b as any).complemento;
         return out;
       },
     );
@@ -3102,6 +3110,7 @@ export default function Financeiro() {
           onReanalisar={handleReanalisar}
           onGerarHistorico={canManageFinanceiro ? handleGerarHistorico : undefined}
           onGerarHistoricoCoparticipacao={canManageFinanceiro ? handleGerarHistoricoCoparticipacao : undefined}
+          onGerarHistoricoComplemento={canManageFinanceiro ? handleGerarHistoricoComplemento : undefined}
           analiseResultados={analiseResultados}
           analiseLoading={analiseLoading}
           analiseComparacoes={analiseComparacoes}
@@ -3187,6 +3196,17 @@ export default function Financeiro() {
             resultados={historicoCopRow ? (analiseResultados[historicoCopRow.rowKey ?? historicoCopRow.id] ?? analiseResultados[historicoCopRow.id] ?? null) : null}
             anexosNomes={historicoCopRow ? ((anexosMap[historicoCopRow.id] || []).map((a: any) => a.nome_arquivo).filter(Boolean) as string[]) : []}
             modo="coparticipacao"
+          />
+        )}
+
+        {canManageFinanceiro && (
+          <GerarHistoricoDialog
+            open={historicoCompDialogOpen}
+            onOpenChange={setHistoricoCompDialogOpen}
+            row={historicoCompRow}
+            resultados={historicoCompRow ? (analiseResultados[historicoCompRow.rowKey ?? historicoCompRow.id] ?? analiseResultados[historicoCompRow.id] ?? null) : null}
+            anexosNomes={historicoCompRow ? ((anexosMap[historicoCompRow.id] || []).map((a: any) => a.nome_arquivo).filter(Boolean) as string[]) : []}
+            modo="complemento"
           />
         )}
       </div>
