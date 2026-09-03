@@ -51,6 +51,7 @@ interface Props {
   onReanalisar?: () => void;
   onGerarHistorico?: () => void;
   onGerarHistoricoCoparticipacao?: () => void;
+  onGerarHistoricoComplemento?: () => void;
   contexto?: ContextoAnalise;
 }
 
@@ -94,7 +95,7 @@ function ValorComCheck({
   );
 }
 
-export function AnaliseExcelRow({ colSpan, isLoading, resultados, comparacoes, onReanalisar, onGerarHistorico, onGerarHistoricoCoparticipacao, contexto }: Props) {
+export function AnaliseExcelRow({ colSpan, isLoading, resultados, comparacoes, onReanalisar, onGerarHistorico, onGerarHistoricoCoparticipacao, onGerarHistoricoComplemento, contexto }: Props) {
   const { toast } = useToast();
   const [analiseCompletaOpen, setAnaliseCompletaOpen] = useState(false);
 
@@ -554,6 +555,58 @@ export function AnaliseExcelRow({ colSpan, isLoading, resultados, comparacoes, o
                               <td className="px-3 py-2 text-right font-bold text-primary">
                                 {formatBRL(r.faixasEtarias.reduce((s, f) => s + f.total, 0))}
                               </td>
+                            </tr>
+                          </tbody>
+                        </table>
+                      </div>
+                    )}
+
+                    {(r as any).complemento && ((r as any).complemento.quantidade !== 0 || (r as any).complemento.total !== 0) && (
+                      <div className="mt-3 rounded-lg border border-amber-300/50 dark:border-amber-700/40 bg-card overflow-hidden">
+                        <div className="bg-amber-100/60 dark:bg-amber-950/40 px-3 py-2 flex items-center justify-between gap-2">
+                          <span className="text-xs font-semibold text-amber-900 dark:text-amber-200 uppercase tracking-wide">
+                            Complemento — Proporcional
+                            {(r as any).complemento.periodoLabel ? ` · ${(r as any).complemento.periodoLabel}` : ""}
+                          </span>
+                          {onGerarHistoricoComplemento && (
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={onGerarHistoricoComplemento}
+                              className="h-7 gap-1.5 text-xs"
+                              title="Gerar histórico dedicado para os valores de complemento"
+                            >
+                              <FileText className="h-3 w-3" />
+                              Gerar Histórico Complemento
+                            </Button>
+                          )}
+                        </div>
+                        <table className="w-full text-sm">
+                          <thead>
+                            <tr className="bg-muted/30">
+                              <th className="text-left font-medium text-muted-foreground px-3 py-2">Descrição</th>
+                              <th className="text-right font-medium text-muted-foreground px-3 py-2">Qtd</th>
+                              <th className="px-3 py-2" aria-hidden="true"></th>
+                              <th className="text-right font-medium text-muted-foreground px-3 py-2">Total</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {(((r as any).complemento.itens as { nome: string; quantidade: number; total: number }[] | undefined)?.length
+                              ? ((r as any).complemento.itens as { nome: string; quantidade: number; total: number }[])
+                              : [{ nome: "Complemento", quantidade: (r as any).complemento.quantidade, total: (r as any).complemento.total }]
+                            ).map((it, i) => (
+                              <tr key={`${it.nome}-${i}`} className="border-t border-border">
+                                <td className="px-3 py-2 font-medium">{it.nome}</td>
+                                <td className="px-3 py-2 text-right tabular-nums">{it.quantidade || "—"}</td>
+                                <td className="px-3 py-2" aria-hidden="true"></td>
+                                <td className="px-3 py-2 text-right font-semibold tabular-nums">{formatBRL(it.total)}</td>
+                              </tr>
+                            ))}
+                            <tr className="border-t-2 border-border bg-muted/40">
+                              <td className="px-3 py-2 font-semibold">Total Complemento</td>
+                              <td className="px-3 py-2 text-right font-bold tabular-nums">{(r as any).complemento.quantidade || "—"}</td>
+                              <td className="px-3 py-2" aria-hidden="true"></td>
+                              <td className="px-3 py-2 text-right font-bold text-primary tabular-nums">{formatBRL((r as any).complemento.total)}</td>
                             </tr>
                           </tbody>
                         </table>
