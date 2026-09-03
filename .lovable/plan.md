@@ -13,6 +13,8 @@ Filtro: competência 08/2026, emissão dia 01, períodos 15-20, 20-25 e 25-30, e
 
 - "Notas fiscais emitidas" conta cada NF em PDF anexada na competência (ex.: Yamaha Motor da Amazônia = 1 contrato e 5 notas, uma por pagador).
 - A Technos já entrou como enviada, então os pendentes caíram para **8**.
+- Duplicidade encontrada: KTM DO BRASIL (2537) e FUJIFILM DO BRASIL (2538) têm duas movimentações cada no período 25-30 desta competência. Contando contratos únicos o total vira **146 contratos / 138 enviados / 8 pendentes**. O PDF será gerado por contratos únicos, salvo indicação em contrário.
+
 
 ## Contratos pendentes — batem 100% com a sua lista
 
