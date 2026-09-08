@@ -397,7 +397,7 @@ export function ReajusteCobrancaRetroativa({ competencia }: { competencia?: stri
       let q = supabase
         .from("financeiro_arquivos")
         .select("id, empresa_id, competencia, nome_original, storage_path, mime_type, created_at, uploaded_by_nome, status, categoria, bucket, cobranca_confirmada, cobranca_confirmada_em")
-        .eq("categoria", "Reajuste")
+        .in("categoria", ["Reajuste", "Retroativo"])
         .neq("status", "removido")
         .order("created_at", { ascending: false })
         .limit(200);
@@ -469,6 +469,7 @@ export function ReajusteCobrancaRetroativa({ competencia }: { competencia?: stri
       })
       .map((a) => ({
         kind: "reajuste" as const,
+        categoriaArquivo: (a.categoria as string) || "Reajuste",
         id: `arq-${a.id}`,
         empresa_id: a.empresa_id,
         competencia: a.competencia,
@@ -480,7 +481,9 @@ export function ReajusteCobrancaRetroativa({ competencia }: { competencia?: stri
       }));
 
     return [...deCobrancas, ...deArquivos].filter((i) => {
-      if (tipoFiltro !== "todos" && i.kind !== tipoFiltro) return false;
+      const tipoEfetivo =
+        (i as any).categoriaArquivo === "Retroativo" ? "retroativo" : i.kind;
+      if (tipoFiltro !== "todos" && tipoEfetivo !== tipoFiltro) return false;
       if (statusFiltro === "cobrado") return i.cobrado;
       if (statusFiltro === "nao_cobrado") return !i.cobrado;
       if (statusFiltro === "divergente") return i.divergente;
@@ -498,8 +501,8 @@ export function ReajusteCobrancaRetroativa({ competencia }: { competencia?: stri
     const cobr = lista as any[];
     const arq = arquivosReajuste as any[];
     return {
-      retroativo: cobr.length,
-      reajuste: arq.length,
+      retroativo: cobr.length + arq.filter((a) => a.categoria === "Retroativo").length,
+      reajuste: arq.filter((a) => a.categoria !== "Retroativo").length,
       cobrado: cobr.filter((c) => c.confirmado).length + arq.filter((a) => a.cobranca_confirmada).length,
       naoCobrado:
         cobr.filter((c) => !c.confirmado).length + arq.filter((a) => !a.cobranca_confirmada).length,
@@ -1035,9 +1038,14 @@ export function ReajusteCobrancaRetroativa({ competencia }: { competencia?: stri
                       {isReajuste ? (
                         <Badge
                           variant="outline"
-                          className="h-5 gap-1 bg-amber-500/15 text-amber-600 dark:text-amber-300 border-amber-500/30 text-[10px]"
+                          className={cn(
+                            "h-5 gap-1 text-[10px]",
+                            (item as any).categoriaArquivo === "Retroativo"
+                              ? "bg-purple-500/15 text-purple-700 dark:text-purple-300 border-purple-500/30"
+                              : "bg-amber-500/15 text-amber-600 dark:text-amber-300 border-amber-500/30",
+                          )}
                         >
-                          Reajuste
+                          {(item as any).categoriaArquivo === "Retroativo" ? "Retroativo" : "Reajuste"}
                         </Badge>
                       ) : (
                         <Badge
