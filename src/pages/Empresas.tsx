@@ -1866,6 +1866,11 @@ export default function Empresas() {
                               <Badge variant={e.status_empresa === "Ativa" ? "default" : "secondary"} className="rounded-md w-fit">
                                 {e.status_empresa ?? "Ativa"}
                               </Badge>
+                              {(e as any).data_rescisao && (
+                                <span className="text-xs font-semibold text-red-600 dark:text-red-400 whitespace-nowrap">
+                                  Rescisão: {formatDateBR((e as any).data_rescisao)}
+                                </span>
+                              )}
                               {suspenso && (
                                 <Badge variant="outline" className="rounded-md w-fit border-muted-foreground/40 text-muted-foreground">
                                   Suspenso
