@@ -501,8 +501,8 @@ export function ReajusteCobrancaRetroativa({ competencia }: { competencia?: stri
     const cobr = lista as any[];
     const arq = arquivosReajuste as any[];
     return {
-      retroativo: cobr.length,
-      reajuste: arq.length,
+      retroativo: cobr.length + arq.filter((a) => a.categoria === "Retroativo").length,
+      reajuste: arq.filter((a) => a.categoria !== "Retroativo").length,
       cobrado: cobr.filter((c) => c.confirmado).length + arq.filter((a) => a.cobranca_confirmada).length,
       naoCobrado:
         cobr.filter((c) => !c.confirmado).length + arq.filter((a) => !a.cobranca_confirmada).length,
