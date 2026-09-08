@@ -67,6 +67,7 @@ export function useFinanceiroRealtime(opts: {
       if (now - burstWindowStartRef.current > burstWindowMs) {
         burstWindowStartRef.current = now;
         burstCountRef.current = 0;
+        burstModeRef.current = false;
       }
       burstCountRef.current += 1;
 
@@ -74,19 +75,13 @@ export function useFinanceiroRealtime(opts: {
         burstModeRef.current = true;
       }
 
-      if (burstModeRef.current) {
-        // Em burst: não auto-atualiza; mostra contagem para o usuário decidir.
-        if (timerRef.current) {
-          clearTimeout(timerRef.current);
-          timerRef.current = null;
-        }
-        setPendingCount(burstCountRef.current);
-        return;
-      }
-
+      // Em burst apenas aumentamos o debounce (coalescência), mas SEMPRE
+      // atualizamos automaticamente — nunca exigimos reload manual.
+      const delay = burstModeRef.current ? Math.max(debounceMs, 1200) : debounceMs;
       if (timerRef.current) clearTimeout(timerRef.current);
-      timerRef.current = setTimeout(flush, debounceMs);
+      timerRef.current = setTimeout(flush, delay);
     };
+
 
     const channel = supabase
       .channel(`financeiro-realtime-${mesReferencia}`)
