@@ -1038,9 +1038,14 @@ export function ReajusteCobrancaRetroativa({ competencia }: { competencia?: stri
                       {isReajuste ? (
                         <Badge
                           variant="outline"
-                          className="h-5 gap-1 bg-amber-500/15 text-amber-600 dark:text-amber-300 border-amber-500/30 text-[10px]"
+                          className={cn(
+                            "h-5 gap-1 text-[10px]",
+                            (item as any).categoriaArquivo === "Retroativo"
+                              ? "bg-purple-500/15 text-purple-700 dark:text-purple-300 border-purple-500/30"
+                              : "bg-amber-500/15 text-amber-600 dark:text-amber-300 border-amber-500/30",
+                          )}
                         >
-                          Reajuste
+                          {(item as any).categoriaArquivo === "Retroativo" ? "Retroativo" : "Reajuste"}
                         </Badge>
                       ) : (
                         <Badge
