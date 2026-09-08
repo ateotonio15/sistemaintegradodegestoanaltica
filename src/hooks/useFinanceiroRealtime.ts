@@ -67,6 +67,7 @@ export function useFinanceiroRealtime(opts: {
       if (now - burstWindowStartRef.current > burstWindowMs) {
         burstWindowStartRef.current = now;
         burstCountRef.current = 0;
+        burstModeRef.current = false;
       }
       burstCountRef.current += 1;
 
@@ -74,19 +75,13 @@ export function useFinanceiroRealtime(opts: {
         burstModeRef.current = true;
       }
 
-      if (burstModeRef.current) {
-        // Em burst: não auto-atualiza; mostra contagem para o usuário decidir.
-        if (timerRef.current) {
-          clearTimeout(timerRef.current);
-          timerRef.current = null;
-        }
-        setPendingCount(burstCountRef.current);
-        return;
-      }
-
+      // Em burst apenas aumentamos o debounce (coalescência), mas SEMPRE
+      // atualizamos automaticamente — nunca exigimos reload manual.
+      const delay = burstModeRef.current ? Math.max(debounceMs, 1200) : debounceMs;
       if (timerRef.current) clearTimeout(timerRef.current);
-      timerRef.current = setTimeout(flush, debounceMs);
+      timerRef.current = setTimeout(flush, delay);
     };
+
 
     const channel = supabase
       .channel(`financeiro-realtime-${mesReferencia}`)
@@ -121,16 +116,28 @@ export function useFinanceiroRealtime(opts: {
         (payload) => {
           const row: any = payload.new ?? payload.old;
           if (!row || row.mes_referencia === mesReferencia) {
-            enqueue("financeiro-operacionais-v2");
+            enqueue("financeiro-operacionais-v3");
           }
         },
       )
       .on(
         "postgres_changes",
         { event: "*", schema: "public", table: "anexos_movimentacao" },
-        () => enqueue("financeiro-operacionais-v2"),
+        () => {
+          enqueue("financeiro-operacionais-v3");
+          enqueue("financeiro-anexos-implantacao");
+        },
+      )
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "alertas_financeiro" },
+        () => {
+          enqueue("financeiro");
+          enqueue("financeiro-operacionais-v3");
+        },
       )
       .subscribe();
+
 
     return () => {
       if (timerRef.current) {

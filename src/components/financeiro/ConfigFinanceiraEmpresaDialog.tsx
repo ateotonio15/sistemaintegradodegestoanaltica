@@ -223,7 +223,7 @@ export function ConfigFinanceiraEmpresaDialog({
       qc.invalidateQueries({ queryKey: ["empresas"] });
       qc.invalidateQueries({ queryKey: ["financeiro"] });
       qc.invalidateQueries({ queryKey: ["financeiro-empresas"] });
-      qc.invalidateQueries({ queryKey: ["financeiro-operacionais-v2"] });
+      qc.invalidateQueries({ queryKey: ["financeiro-operacionais-v3"] });
       qc.invalidateQueries({ queryKey: ["empresa-config-financeira", empresaId] });
       onOpenChange(false);
       onSaved?.();
