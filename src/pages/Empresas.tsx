@@ -1863,7 +1863,14 @@ export default function Empresas() {
                           <TableCell className="text-muted-foreground">{formatDay(diaEmissaoMap[e.id] ?? e.data_emissao_fatura)}</TableCell>
                           <TableCell>
                             <div className="flex flex-col gap-1">
-                              <Badge variant={e.status_empresa === "Ativa" ? "default" : "secondary"} className="rounded-md w-fit">
+                              <Badge
+                                variant={e.status_empresa === "Ativa" ? "default" : "outline"}
+                                className={
+                                  e.status_empresa === "Ativa"
+                                    ? "rounded-md w-fit"
+                                    : "rounded-md w-fit border-red-500/50 bg-red-500/10 text-red-600 dark:text-red-400 hover:bg-red-500/15"
+                                }
+                              >
                                 {e.status_empresa ?? "Ativa"}
                               </Badge>
                               {(e as any).data_rescisao && (
