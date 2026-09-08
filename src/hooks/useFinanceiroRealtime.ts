@@ -116,14 +116,14 @@ export function useFinanceiroRealtime(opts: {
         (payload) => {
           const row: any = payload.new ?? payload.old;
           if (!row || row.mes_referencia === mesReferencia) {
-            enqueue("financeiro-operacionais-v2");
+            enqueue("financeiro-operacionais-v3");
           }
         },
       )
       .on(
         "postgres_changes",
         { event: "*", schema: "public", table: "anexos_movimentacao" },
-        () => enqueue("financeiro-operacionais-v2"),
+        () => enqueue("financeiro-operacionais-v3"),
       )
       .subscribe();
 
