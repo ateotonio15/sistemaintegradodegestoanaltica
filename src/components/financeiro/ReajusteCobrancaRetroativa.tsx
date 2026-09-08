@@ -397,7 +397,7 @@ export function ReajusteCobrancaRetroativa({ competencia }: { competencia?: stri
       let q = supabase
         .from("financeiro_arquivos")
         .select("id, empresa_id, competencia, nome_original, storage_path, mime_type, created_at, uploaded_by_nome, status, categoria, bucket, cobranca_confirmada, cobranca_confirmada_em")
-        .eq("categoria", "Reajuste")
+        .in("categoria", ["Reajuste", "Retroativo"])
         .neq("status", "removido")
         .order("created_at", { ascending: false })
         .limit(200);
