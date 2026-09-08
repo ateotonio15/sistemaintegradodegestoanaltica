@@ -123,9 +123,21 @@ export function useFinanceiroRealtime(opts: {
       .on(
         "postgres_changes",
         { event: "*", schema: "public", table: "anexos_movimentacao" },
-        () => enqueue("financeiro-operacionais-v3"),
+        () => {
+          enqueue("financeiro-operacionais-v3");
+          enqueue("financeiro-anexos-implantacao");
+        },
+      )
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "alertas_financeiro" },
+        () => {
+          enqueue("financeiro");
+          enqueue("financeiro-operacionais-v3");
+        },
       )
       .subscribe();
+
 
     return () => {
       if (timerRef.current) {
