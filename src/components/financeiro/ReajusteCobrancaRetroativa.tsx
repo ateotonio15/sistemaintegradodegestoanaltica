@@ -469,6 +469,7 @@ export function ReajusteCobrancaRetroativa({ competencia }: { competencia?: stri
       })
       .map((a) => ({
         kind: "reajuste" as const,
+        categoriaArquivo: (a.categoria as string) || "Reajuste",
         id: `arq-${a.id}`,
         empresa_id: a.empresa_id,
         competencia: a.competencia,
@@ -480,7 +481,9 @@ export function ReajusteCobrancaRetroativa({ competencia }: { competencia?: stri
       }));
 
     return [...deCobrancas, ...deArquivos].filter((i) => {
-      if (tipoFiltro !== "todos" && i.kind !== tipoFiltro) return false;
+      const tipoEfetivo =
+        (i as any).categoriaArquivo === "Retroativo" ? "retroativo" : i.kind;
+      if (tipoFiltro !== "todos" && tipoEfetivo !== tipoFiltro) return false;
       if (statusFiltro === "cobrado") return i.cobrado;
       if (statusFiltro === "nao_cobrado") return !i.cobrado;
       if (statusFiltro === "divergente") return i.divergente;
