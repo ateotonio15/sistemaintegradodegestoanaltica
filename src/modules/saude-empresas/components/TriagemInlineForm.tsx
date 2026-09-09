@@ -275,7 +275,7 @@ export function TriagemInlineForm({ acaoId, empresaId, temPa, temGlicemia, temBi
           {temBio && realizouBio && (
             <Button variant="outline" onClick={abrirBio}>Preencher Ficha Bio…</Button>
           )}
-          <Button onClick={salvarRapido} disabled={upsertTriagem.isPending}>
+          <Button onClick={salvarRapido} disabled={upsertTriagem.isPending || !!triagemDuplicada}>
             {upsertTriagem.isPending ? "Salvando..." : "Salvar triagem"}
           </Button>
         </div>
