@@ -54,7 +54,7 @@ interface Props {
   canEdit: boolean;
   isReadOnly: boolean;
   userNome: string | null;
-  bloqueiosFn: (d: Date) => { periodo: "dia_todo" | "manha" | "tarde"; motivo: string } | null;
+  bloqueiosFn: (d: Date) => { periodo: "dia_todo" | "manha" | "tarde" | "horario"; motivo: string; hora_inicio?: string | null; hora_fim?: string | null } | null;
   onBloquearAgenda?: (d: Date | null) => void;
 }
 
@@ -172,6 +172,15 @@ export function PalestraDialog({
         }
         if (bl.periodo === "tarde" && h >= 12) {
           toast.error(`${format(d, "dd/MM")} — tarde bloqueada: ${bl.motivo}`); return;
+        }
+        if (bl.periodo === "horario" && bl.hora_inicio && bl.hora_fim) {
+          const bi = bl.hora_inicio.slice(0, 5);
+          const bf = bl.hora_fim.slice(0, 5);
+          const pi = horarioInicio.slice(0, 5);
+          const pf = (horarioFim || horarioInicio).slice(0, 5);
+          if (pi < bf && bi < pf) {
+            toast.error(`${format(d, "dd/MM")} — horário ${bi}–${bf} bloqueado: ${bl.motivo}`); return;
+          }
         }
       }
     }
