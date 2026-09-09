@@ -126,45 +126,7 @@ export function ImportarTriagensDialog({ open, onOpenChange, acaoId, empresaId }
       setProgresso({ feitos: 0, total: brutas.length });
       const validadas: LinhaValidada[] = [];
       for (const l of brutas) {
-        let match: PessoaFisicaResult | null = null;
-        try {
-          if (l.cpf.length === 11) {
-            const res = await buscarPessoaFisica(l.cpf);
-            match =
-              res.find((p) => String(p.NR_CPF ?? "").replace(/\D/g, "") === l.cpf) ??
-              (res.length === 1 ? res[0] : null);
-          }
-          if (!match && l.nome.length >= 3) {
-            const res = await buscarPessoaFisica(l.nome);
-            const alvo = l.nome.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toUpperCase().trim();
-            match =
-              res.find(
-                (p) =>
-                  String(p.NM_PESSOA_FISICA ?? "")
-                    .normalize("NFD")
-                    .replace(/[\u0300-\u036f]/g, "")
-                    .toUpperCase()
-                    .trim() === alvo,
-              ) ?? (res.length === 1 ? res[0] : null);
-          }
-        } catch {
-          match = null;
-        }
-
-        if (match) {
-          validadas.push({
-            ...l,
-            encontrado: true,
-            nomeApi: String(match.NM_PESSOA_FISICA || match.NAME || l.nome).trim(),
-            cpfApi: isCpfValido(match.NR_CPF) ? maskCpf(String(match.NR_CPF)) : l.cpf ? maskCpf(l.cpf) : "",
-            data_nascimento: toIsoDate(match.DT_NASCIMENTO),
-            sexo: normalizarSexo(match.SEXO),
-            email: String(match.DS_EMAIL || "").trim() || null,
-            telefone: String(match.NR_TELEFONE_CELULAR || match.TELEFONE_APP || "").trim() || null,
-          });
-        } else {
-          validadas.push({ ...l, encontrado: false });
-        }
+        validadas.push(await conferir(l));
         setProgresso((p) => ({ ...p, feitos: p.feitos + 1 }));
       }
 
@@ -176,8 +138,35 @@ export function ImportarTriagensDialog({ open, onOpenChange, acaoId, empresaId }
     }
   };
 
+  const atualizarLinha = (idx: number, patch: Partial<LinhaValidada>) => {
+    setLinhas((prev) => (prev ? prev.map((l, i) => (i === idx ? { ...l, ...patch } : l)) : prev));
+  };
+
+  const reconferir = async (idx: number) => {
+    const linha = linhas?.[idx];
+    if (!linha) return;
+    setConferindoIdx(idx);
+    try {
+      const res = await conferir({
+        nome: linha.nome,
+        cpf: String(linha.cpf || "").replace(/\D/g, ""),
+        pas: linha.pas,
+        pad: linha.pad,
+        glicemia: linha.glicemia,
+        jejum: linha.jejum,
+      });
+      atualizarLinha(idx, res);
+      toast[res.encontrado ? "success" : "error"](
+        res.encontrado ? "Beneficiário localizado" : "Beneficiário não localizado",
+      );
+    } finally {
+      setConferindoIdx(null);
+    }
+  };
+
   const encontrados = (linhas ?? []).filter((l) => l.encontrado);
   const descartados = (linhas ?? []).length - encontrados.length;
+
 
   const importar = async () => {
     if (encontrados.length === 0) return;
