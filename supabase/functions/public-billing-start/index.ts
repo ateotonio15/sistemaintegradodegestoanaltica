@@ -11,11 +11,14 @@ Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
   if (req.method !== "POST") return json({ ok: false, error: "Method not allowed" }, 405);
 
+  // Rota pública: não exige token de autenticação.
+  // Se a chave ORBIT_BILLING_API_KEY estiver configurada, ela continua sendo
+  // aceita (mas não é obrigatória).
   const apiKey = Deno.env.get("ORBIT_BILLING_API_KEY");
-  if (!apiKey) return json({ ok: false, error: "Endpoint não configurado" }, 500);
-
   const sent = req.headers.get("x-api-key") || "";
-  if (sent !== apiKey) return json({ ok: false, error: "Unauthorized" }, 401);
+  if (apiKey && sent && sent !== apiKey) {
+    return json({ ok: false, error: "Unauthorized" }, 401);
+  }
 
   let payload: any;
   try {
