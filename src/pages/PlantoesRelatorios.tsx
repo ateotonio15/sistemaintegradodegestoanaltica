@@ -152,22 +152,26 @@ export default function PlantoesRelatorios() {
                 <th className="text-left p-2">Empresa</th>
                 <th className="text-left p-2">Hora</th>
                 <th className="text-left p-2">Cliente</th>
+                <th className="text-left p-2">Matrícula</th>
                 <th className="text-left p-2">Assunto</th>
+                <th className="text-left p-2">Observação</th>
                 <th className="text-left p-2">Status</th>
               </tr>
             </thead>
             <tbody>
-              {rows.map((r: any) => (
+              {linhas.map((r: any) => (
                 <tr key={r.id} className="border-t">
                   <td className="p-2">{r.plantao?.data && new Date(r.plantao.data + "T00:00:00").toLocaleDateString("pt-BR")}</td>
                   <td className="p-2">{r.plantao?.empresa?.nome}</td>
                   <td className="p-2 font-mono text-xs">{r.hora ?? "—"}</td>
                   <td className="p-2">{r.nome_cliente}</td>
+                  <td className="p-2 font-mono text-xs font-semibold">{r.matricula || "—"}</td>
                   <td className="p-2">{r.assunto ?? "—"}</td>
+                  <td className="p-2 max-w-[280px] truncate" title={r.observacaoLimpa}>{r.observacaoLimpa || "—"}</td>
                   <td className="p-2">{r.resolvido ? "Resolvido" : "Em aberto"}</td>
                 </tr>
               ))}
-              {rows.length === 0 && <tr><td colSpan={6} className="p-6 text-center text-muted-foreground">Sem dados.</td></tr>}
+              {linhas.length === 0 && <tr><td colSpan={8} className="p-6 text-center text-muted-foreground">Sem dados.</td></tr>}
             </tbody>
           </table>
         </div>
