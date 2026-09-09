@@ -173,7 +173,12 @@ export default function Plantoes() {
         <div className="flex flex-wrap gap-2">
           <Button asChild variant="outline">
             <Link to="/plantoes/relatorios">
-              <BarChart3 className="h-4 w-4 mr-1" /> Ver dashboard
+              <BarChart3 className="h-4 w-4 mr-1" /> Relatório
+            </Link>
+          </Button>
+          <Button asChild variant="outline">
+            <Link to="/plantoes/dashboard">
+              <BarChart3 className="h-4 w-4 mr-1" /> Evolução
             </Link>
           </Button>
           <Button variant="outline" onClick={exportExcel}>

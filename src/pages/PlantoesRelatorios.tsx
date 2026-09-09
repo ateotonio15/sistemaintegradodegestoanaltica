@@ -114,7 +114,10 @@ export default function PlantoesRelatorios() {
   return (
     <div className="p-6 space-y-4">
       <div className="flex items-center justify-between">
-        <Button asChild variant="ghost" size="sm"><Link to="/plantoes"><ArrowLeft className="h-4 w-4 mr-1" /> Voltar</Link></Button>
+        <div className="flex gap-2">
+          <Button asChild variant="ghost" size="sm"><Link to="/plantoes"><ArrowLeft className="h-4 w-4 mr-1" /> Voltar</Link></Button>
+          <Button asChild variant="outline" size="sm"><Link to="/plantoes/dashboard">Evolução</Link></Button>
+        </div>
         <h1 className="text-xl font-bold">Relatório de Atendimentos</h1>
         <div className="flex gap-2">
           <Button variant="outline" onClick={() => exportarPdf()}><FileText className="h-4 w-4 mr-1" /> PDF</Button>

@@ -43,6 +43,7 @@ import PlantoesCalendario from "./pages/PlantoesCalendario";
 import PlantoesEmpresa from "./pages/PlantoesEmpresa";
 import PlantaoAtendimentos from "./pages/PlantaoAtendimentos";
 import PlantoesRelatorios from "./pages/PlantoesRelatorios";
+import PlantoesDashboard from "./pages/PlantoesDashboard";
 import UberCorridas from "./pages/UberCorridas";
 import UberDashboard from "./pages/UberDashboard";
 import SaudeEmpresasLista from "./modules/saude-empresas/pages/SaudeEmpresasLista";
@@ -250,6 +251,7 @@ const AppRoutes = () => (
       <Route path="/plantoes/empresa/:empresaId" element={<PlantoesEmpresa />} />
       <Route path="/plantoes/:plantaoId/atendimentos" element={<PlantaoAtendimentos />} />
       <Route path="/plantoes/relatorios" element={<PlantoesRelatorios />} />
+      <Route path="/plantoes/dashboard" element={<PlantoesDashboard />} />
 
       <Route path="/uber" element={<UberCorridas />} />
       <Route path="/uber/dashboard" element={<UberDashboard />} />
