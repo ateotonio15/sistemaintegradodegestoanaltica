@@ -43,6 +43,7 @@ import PlantoesCalendario from "./pages/PlantoesCalendario";
 import PlantoesEmpresa from "./pages/PlantoesEmpresa";
 import PlantaoAtendimentos from "./pages/PlantaoAtendimentos";
 import PlantoesRelatorios from "./pages/PlantoesRelatorios";
+import PlantoesDashboard from "./pages/PlantoesDashboard";
 import UberCorridas from "./pages/UberCorridas";
 import UberDashboard from "./pages/UberDashboard";
 import SaudeEmpresasLista from "./modules/saude-empresas/pages/SaudeEmpresasLista";
