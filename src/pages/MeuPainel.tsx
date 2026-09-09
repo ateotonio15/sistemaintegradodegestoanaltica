@@ -78,17 +78,29 @@ export default function MeuPainel() {
     },
   });
 
+  // Vidas ativas: usa a quantidade da última competência analisada (fatura),
+  // com fallback para o número informado no cadastro da empresa.
   const { data: vidasAtivas } = useQuery({
-    queryKey: ["meu-painel", "vidas", activeEmpresaId],
+    queryKey: ["meu-painel", "vidas-analise", activeEmpresaId],
     enabled: !!activeEmpresaId,
     queryFn: async () => {
-      const { count, error } = await supabase
-        .from("vidas_ativas")
-        .select("id", { count: "exact", head: true })
+      const { data, error } = await supabase
+        .from("financeiro_analises")
+        .select("mes_referencia, qtd_excel_apartamento, qtd_excel_enfermaria")
         .eq("empresa_id", activeEmpresaId!)
-        .eq("status", "ativo");
+        .order("mes_referencia", { ascending: false })
+        .limit(20);
       if (error) throw error;
-      return count ?? 0;
+      const ultima = data?.[0]?.mes_referencia;
+      if (!ultima) return null;
+      const total = (data ?? [])
+        .filter((r: any) => r.mes_referencia === ultima)
+        .reduce(
+          (s: number, r: any) =>
+            s + (r.qtd_excel_apartamento ?? 0) + (r.qtd_excel_enfermaria ?? 0),
+          0,
+        );
+      return total > 0 ? total : null;
     },
   });
 
