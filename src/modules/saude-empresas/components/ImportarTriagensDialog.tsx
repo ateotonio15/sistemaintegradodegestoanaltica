@@ -12,6 +12,7 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Loader2, Upload, FileSpreadsheet, CheckCircle2, XCircle } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
@@ -251,7 +252,7 @@ export function ImportarTriagensDialog({ open, onOpenChange, acaoId, empresaId }
         onOpenChange(v);
       }}
     >
-      <DialogContent className="max-w-3xl">
+      <DialogContent className="max-w-5xl">
         <DialogHeader>
           <DialogTitle>Importar triagens</DialogTitle>
           <DialogDescription>
@@ -400,7 +401,7 @@ export function ImportarTriagensDialog({ open, onOpenChange, acaoId, empresaId }
           </Button>
           <Button onClick={importar} disabled={salvando || encontrados.length === 0} className="gap-2">
             {salvando ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />}
-            Importar {encontrados.length > 0 ? `(${encontrados.length})` : ""}
+            Salvar {encontrados.length > 0 ? `(${encontrados.length})` : ""}
           </Button>
         </DialogFooter>
       </DialogContent>
