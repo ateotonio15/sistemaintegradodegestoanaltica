@@ -107,9 +107,22 @@ export function BloqueioDialog({ open, onOpenChange, editing, preselectDate, can
                 <SelectItem value="dia_todo">Dia todo</SelectItem>
                 <SelectItem value="manha">Manhã (antes das 12h)</SelectItem>
                 <SelectItem value="tarde">Tarde (a partir das 12h)</SelectItem>
+                <SelectItem value="horario">Horário específico</SelectItem>
               </SelectContent>
             </Select>
           </div>
+          {periodo === "horario" && (
+            <div className="grid grid-cols-2 gap-3">
+              <div className="grid gap-2">
+                <Label>Início *</Label>
+                <Input type="time" value={horaInicio} onChange={(e) => setHoraInicio(e.target.value)} disabled={!canEdit} />
+              </div>
+              <div className="grid gap-2">
+                <Label>Fim *</Label>
+                <Input type="time" value={horaFim} onChange={(e) => setHoraFim(e.target.value)} disabled={!canEdit} />
+              </div>
+            </div>
+          )}
           <div className="grid gap-2">
             <Label>Motivo *</Label>
             <Input value={motivo} onChange={(e) => setMotivo(e.target.value)} disabled={!canEdit} placeholder="Ex.: Reunião interna, congresso, etc." />

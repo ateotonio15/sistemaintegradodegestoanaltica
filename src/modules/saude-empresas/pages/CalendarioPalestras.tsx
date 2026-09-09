@@ -125,7 +125,7 @@ export default function CalendarioPalestras() {
 
   const bloqueioLookup = (d: Date) => {
     const b = bloqByDate.get(isoDate(d));
-    return b ? { periodo: b.periodo, motivo: b.motivo } : null;
+    return b ? { periodo: b.periodo, motivo: b.motivo, hora_inicio: b.hora_inicio, hora_fim: b.hora_fim } : null;
   };
 
   const openNewForDay = (d: Date) => {
@@ -341,7 +341,13 @@ export default function CalendarioPalestras() {
                         title={bl.motivo}
                       >
                         <Ban className="h-3 w-3" />
-                        {bl.periodo === "dia_todo" ? "Dia bloqueado" : bl.periodo === "manha" ? "Manhã bloqueada" : "Tarde bloqueada"}
+                        {bl.periodo === "dia_todo"
+                          ? "Dia bloqueado"
+                          : bl.periodo === "manha"
+                            ? "Manhã bloqueada"
+                            : bl.periodo === "tarde"
+                              ? "Tarde bloqueada"
+                              : `${(bl.hora_inicio ?? "").slice(0, 5)}–${(bl.hora_fim ?? "").slice(0, 5)} bloqueado`}
                       </button>
                     )}
                     <div className="space-y-1.5">

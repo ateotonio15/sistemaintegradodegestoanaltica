@@ -54,7 +54,7 @@ interface Props {
   canEdit: boolean;
   isReadOnly: boolean;
   userNome: string | null;
-  bloqueiosFn: (d: Date) => { periodo: "dia_todo" | "manha" | "tarde"; motivo: string } | null;
+  bloqueiosFn: (d: Date) => { periodo: "dia_todo" | "manha" | "tarde" | "horario"; motivo: string; hora_inicio?: string | null; hora_fim?: string | null } | null;
   onBloquearAgenda?: (d: Date | null) => void;
 }
 
