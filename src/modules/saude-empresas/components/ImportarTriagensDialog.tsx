@@ -12,6 +12,7 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Loader2, Upload, FileSpreadsheet, CheckCircle2, XCircle } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
@@ -86,6 +87,46 @@ export function ImportarTriagensDialog({ open, onOpenChange, acaoId, empresaId }
   const [progresso, setProgresso] = useState({ feitos: 0, total: 0 });
   const [linhas, setLinhas] = useState<LinhaValidada[] | null>(null);
   const [salvando, setSalvando] = useState(false);
+  const [conferindoIdx, setConferindoIdx] = useState<number | null>(null);
+
+  const conferir = async (l: LinhaBruta): Promise<LinhaValidada> => {
+    let match: PessoaFisicaResult | null = null;
+    try {
+      if (l.cpf.length === 11) {
+        const res = await buscarPessoaFisica(l.cpf);
+        match =
+          res.find((p) => String(p.NR_CPF ?? "").replace(/\D/g, "") === l.cpf) ??
+          (res.length === 1 ? res[0] : null);
+      }
+      if (!match && l.nome.trim().length >= 3) {
+        const res = await buscarPessoaFisica(l.nome.trim());
+        const alvo = l.nome.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toUpperCase().trim();
+        match =
+          res.find(
+            (p) =>
+              String(p.NM_PESSOA_FISICA ?? "")
+                .normalize("NFD")
+                .replace(/[\u0300-\u036f]/g, "")
+                .toUpperCase()
+                .trim() === alvo,
+          ) ?? (res.length === 1 ? res[0] : null);
+      }
+    } catch {
+      match = null;
+    }
+
+    if (!match) return { ...l, encontrado: false };
+    return {
+      ...l,
+      encontrado: true,
+      nomeApi: String(match.NM_PESSOA_FISICA || match.NAME || l.nome).trim(),
+      cpfApi: isCpfValido(match.NR_CPF) ? maskCpf(String(match.NR_CPF)) : l.cpf ? maskCpf(l.cpf) : "",
+      data_nascimento: toIsoDate(match.DT_NASCIMENTO),
+      sexo: normalizarSexo(match.SEXO),
+      email: String(match.DS_EMAIL || "").trim() || null,
+      telefone: String(match.NR_TELEFONE_CELULAR || match.TELEFONE_APP || "").trim() || null,
+    };
+  };
 
   const reset = () => {
     setLinhas(null);
@@ -126,45 +167,7 @@ export function ImportarTriagensDialog({ open, onOpenChange, acaoId, empresaId }
       setProgresso({ feitos: 0, total: brutas.length });
       const validadas: LinhaValidada[] = [];
       for (const l of brutas) {
-        let match: PessoaFisicaResult | null = null;
-        try {
-          if (l.cpf.length === 11) {
-            const res = await buscarPessoaFisica(l.cpf);
-            match =
-              res.find((p) => String(p.NR_CPF ?? "").replace(/\D/g, "") === l.cpf) ??
-              (res.length === 1 ? res[0] : null);
-          }
-          if (!match && l.nome.length >= 3) {
-            const res = await buscarPessoaFisica(l.nome);
-            const alvo = l.nome.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toUpperCase().trim();
-            match =
-              res.find(
-                (p) =>
-                  String(p.NM_PESSOA_FISICA ?? "")
-                    .normalize("NFD")
-                    .replace(/[\u0300-\u036f]/g, "")
-                    .toUpperCase()
-                    .trim() === alvo,
-              ) ?? (res.length === 1 ? res[0] : null);
-          }
-        } catch {
-          match = null;
-        }
-
-        if (match) {
-          validadas.push({
-            ...l,
-            encontrado: true,
-            nomeApi: String(match.NM_PESSOA_FISICA || match.NAME || l.nome).trim(),
-            cpfApi: isCpfValido(match.NR_CPF) ? maskCpf(String(match.NR_CPF)) : l.cpf ? maskCpf(l.cpf) : "",
-            data_nascimento: toIsoDate(match.DT_NASCIMENTO),
-            sexo: normalizarSexo(match.SEXO),
-            email: String(match.DS_EMAIL || "").trim() || null,
-            telefone: String(match.NR_TELEFONE_CELULAR || match.TELEFONE_APP || "").trim() || null,
-          });
-        } else {
-          validadas.push({ ...l, encontrado: false });
-        }
+        validadas.push(await conferir(l));
         setProgresso((p) => ({ ...p, feitos: p.feitos + 1 }));
       }
 
@@ -176,8 +179,35 @@ export function ImportarTriagensDialog({ open, onOpenChange, acaoId, empresaId }
     }
   };
 
+  const atualizarLinha = (idx: number, patch: Partial<LinhaValidada>) => {
+    setLinhas((prev) => (prev ? prev.map((l, i) => (i === idx ? { ...l, ...patch } : l)) : prev));
+  };
+
+  const reconferir = async (idx: number) => {
+    const linha = linhas?.[idx];
+    if (!linha) return;
+    setConferindoIdx(idx);
+    try {
+      const res = await conferir({
+        nome: linha.nome,
+        cpf: String(linha.cpf || "").replace(/\D/g, ""),
+        pas: linha.pas,
+        pad: linha.pad,
+        glicemia: linha.glicemia,
+        jejum: linha.jejum,
+      });
+      atualizarLinha(idx, res);
+      toast[res.encontrado ? "success" : "error"](
+        res.encontrado ? "Beneficiário localizado" : "Beneficiário não localizado",
+      );
+    } finally {
+      setConferindoIdx(null);
+    }
+  };
+
   const encontrados = (linhas ?? []).filter((l) => l.encontrado);
   const descartados = (linhas ?? []).length - encontrados.length;
+
 
   const importar = async () => {
     if (encontrados.length === 0) return;
@@ -222,7 +252,7 @@ export function ImportarTriagensDialog({ open, onOpenChange, acaoId, empresaId }
         onOpenChange(v);
       }}
     >
-      <DialogContent className="max-w-3xl">
+      <DialogContent className="max-w-5xl">
         <DialogHeader>
           <DialogTitle>Importar triagens</DialogTitle>
           <DialogDescription>
@@ -266,33 +296,93 @@ export function ImportarTriagensDialog({ open, onOpenChange, acaoId, empresaId }
                   </Badge>
                 )}
               </div>
-              <ScrollArea className="h-64 rounded-md border">
+              <p className="text-xs text-muted-foreground">
+                Revise os dados antes de salvar. Nas linhas não localizadas, corrija o nome ou o CPF e clique em
+                "Conferir".
+              </p>
+              <ScrollArea className="h-72 rounded-md border">
                 <table className="w-full text-sm">
                   <thead className="sticky top-0 bg-muted/60">
                     <tr className="text-left">
-                      <th className="p-2 font-medium">Nome</th>
-                      <th className="p-2 font-medium">CPF</th>
-                      <th className="p-2 font-medium">PA</th>
-                      <th className="p-2 font-medium">Glicemia</th>
-                      <th className="p-2 font-medium">Status</th>
+                      <th className="p-2 font-medium min-w-[200px]">Nome</th>
+                      <th className="p-2 font-medium w-36">CPF</th>
+                      <th className="p-2 font-medium w-20">PAS</th>
+                      <th className="p-2 font-medium w-20">PAD</th>
+                      <th className="p-2 font-medium w-24">Glicemia</th>
+                      <th className="p-2 font-medium w-44">Status</th>
                     </tr>
                   </thead>
                   <tbody>
                     {linhas.map((l, i) => (
-                      <tr key={i} className="border-t border-border">
-                        <td className="p-2">{l.nomeApi || l.nome || "—"}</td>
-                        <td className="p-2">{l.cpfApi || (l.cpf ? maskCpf(l.cpf) : "—")}</td>
-                        <td className="p-2">{l.pas && l.pad ? `${l.pas}/${l.pad}` : "—"}</td>
-                        <td className="p-2">{l.glicemia ?? "—"}</td>
-                        <td className="p-2">
+                      <tr key={i} className={`border-t border-border ${l.encontrado ? "" : "bg-muted/30"}`}>
+                        <td className="p-1.5">
+                          <Input
+                            className="h-8"
+                            value={l.nomeApi ?? l.nome}
+                            onChange={(e) =>
+                              atualizarLinha(i, { nome: e.target.value, nomeApi: l.encontrado ? e.target.value : undefined })
+                            }
+                          />
+                        </td>
+                        <td className="p-1.5">
+                          <Input
+                            className="h-8"
+                            value={l.cpfApi ?? (l.cpf ? maskCpf(l.cpf) : "")}
+                            onChange={(e) => {
+                              const v = maskCpf(e.target.value);
+                              atualizarLinha(i, { cpf: v.replace(/\D/g, ""), cpfApi: l.encontrado ? v : undefined });
+                            }}
+                            placeholder="000.000.000-00"
+                          />
+                        </td>
+                        <td className="p-1.5">
+                          <Input
+                            className="h-8"
+                            inputMode="numeric"
+                            value={l.pas ?? ""}
+                            onChange={(e) => atualizarLinha(i, { pas: num(e.target.value) })}
+                          />
+                        </td>
+                        <td className="p-1.5">
+                          <Input
+                            className="h-8"
+                            inputMode="numeric"
+                            value={l.pad ?? ""}
+                            onChange={(e) => atualizarLinha(i, { pad: num(e.target.value) })}
+                          />
+                        </td>
+                        <td className="p-1.5">
+                          <Input
+                            className="h-8"
+                            inputMode="decimal"
+                            value={l.glicemia ?? ""}
+                            onChange={(e) => atualizarLinha(i, { glicemia: num(e.target.value) })}
+                          />
+                        </td>
+                        <td className="p-1.5">
                           {l.encontrado ? (
                             <span className="inline-flex items-center gap-1 text-emerald-600 dark:text-emerald-400">
                               <CheckCircle2 className="h-4 w-4" /> Localizado
                             </span>
                           ) : (
-                            <span className="inline-flex items-center gap-1 text-muted-foreground">
-                              <XCircle className="h-4 w-4" /> Descartado
-                            </span>
+                            <div className="flex items-center gap-2">
+                              <span className="inline-flex items-center gap-1 text-muted-foreground text-xs">
+                                <XCircle className="h-4 w-4" /> Não localizado
+                              </span>
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                className="h-7 px-2"
+                                disabled={conferindoIdx === i}
+                                onClick={() => reconferir(i)}
+                              >
+                                {conferindoIdx === i ? (
+                                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                                ) : (
+                                  "Conferir"
+                                )}
+                              </Button>
+                            </div>
                           )}
                         </td>
                       </tr>
@@ -300,6 +390,7 @@ export function ImportarTriagensDialog({ open, onOpenChange, acaoId, empresaId }
                   </tbody>
                 </table>
               </ScrollArea>
+
             </>
           )}
         </div>
@@ -310,7 +401,7 @@ export function ImportarTriagensDialog({ open, onOpenChange, acaoId, empresaId }
           </Button>
           <Button onClick={importar} disabled={salvando || encontrados.length === 0} className="gap-2">
             {salvando ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />}
-            Importar {encontrados.length > 0 ? `(${encontrados.length})` : ""}
+            Salvar {encontrados.length > 0 ? `(${encontrados.length})` : ""}
           </Button>
         </DialogFooter>
       </DialogContent>
