@@ -315,13 +315,13 @@ export function ImportarTriagensDialog({ open, onOpenChange, acaoId, empresaId }
                   </thead>
                   <tbody>
                     {linhas.map((l, i) => (
-                      <tr key={i} className={`border-t border-border ${l.encontrado ? "" : "bg-muted/30"}`}>
+                      <tr key={i} className="border-t border-border">
                         <td className="p-1.5">
                           <Input
                             className="h-8"
                             value={l.nomeApi ?? l.nome}
                             onChange={(e) =>
-                              atualizarLinha(i, { nome: e.target.value, nomeApi: l.encontrado ? e.target.value : undefined })
+                              atualizarLinha(i, { nome: e.target.value, nomeApi: e.target.value })
                             }
                           />
                         </td>
@@ -331,7 +331,7 @@ export function ImportarTriagensDialog({ open, onOpenChange, acaoId, empresaId }
                             value={l.cpfApi ?? (l.cpf ? maskCpf(l.cpf) : "")}
                             onChange={(e) => {
                               const v = maskCpf(e.target.value);
-                              atualizarLinha(i, { cpf: v.replace(/\D/g, ""), cpfApi: l.encontrado ? v : undefined });
+                              atualizarLinha(i, { cpf: v.replace(/\D/g, ""), cpfApi: v });
                             }}
                             placeholder="000.000.000-00"
                           />
