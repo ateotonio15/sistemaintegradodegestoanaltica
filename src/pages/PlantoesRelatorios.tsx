@@ -116,7 +116,10 @@ export default function PlantoesRelatorios() {
       <div className="flex items-center justify-between">
         <Button asChild variant="ghost" size="sm"><Link to="/plantoes"><ArrowLeft className="h-4 w-4 mr-1" /> Voltar</Link></Button>
         <h1 className="text-xl font-bold">Relatório de Atendimentos</h1>
-        <Button onClick={exportar}><Download className="h-4 w-4 mr-1" /> Exportar</Button>
+        <div className="flex gap-2">
+          <Button variant="outline" onClick={() => exportarPdf()}><FileText className="h-4 w-4 mr-1" /> PDF</Button>
+          <Button onClick={exportar}><Download className="h-4 w-4 mr-1" /> Exportar</Button>
+        </div>
       </div>
 
       <Card><CardContent className="p-4 grid grid-cols-1 sm:grid-cols-4 gap-3">
