@@ -202,6 +202,11 @@ export function TriagemInlineForm({ acaoId, empresaId, temPa, temGlicemia, temBi
               <Loader2 className="absolute right-2.5 top-1/2 h-4 w-4 -translate-y-1/2 animate-spin text-muted-foreground" />
             )}
           </div>
+          {triagemDuplicada && (
+            <span className="flex items-center gap-1 text-xs font-medium text-amber-600 dark:text-amber-400">
+              <AlertTriangle className="h-3.5 w-3.5" /> Beneficiário já está na base
+            </span>
+          )}
           {dadosBeneficiario && (
             <span className="text-xs text-muted-foreground truncate">
               {[
