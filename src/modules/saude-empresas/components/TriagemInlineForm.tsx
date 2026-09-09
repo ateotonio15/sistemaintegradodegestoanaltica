@@ -116,8 +116,18 @@ export function TriagemInlineForm({ acaoId, empresaId, temPa, temGlicemia, temBi
   const paCat = classificarPa(pas ? Number(pas) : null, pad ? Number(pad) : null);
   const paGrave = PA_GRAVE.includes(paCat);
 
+  // Duplicidade: CPF já registrado nas triagens desta ação.
+  const cpfDigits = String(cpf || "").replace(/\D/g, "");
+  const triagemDuplicada =
+    cpfDigits.length === 11
+      ? (triagensExistentes ?? []).find(
+          (t) => String(t.cpf || "").replace(/\D/g, "") === cpfDigits,
+        ) ?? null
+      : null;
+
   const validate = (): string | null => {
     if (!nome.trim()) return "Informe o nome.";
+    if (triagemDuplicada) return "Beneficiário já está na base de triagens registradas.";
     if (cpf && cpf.replace(/\D/g, "").length !== 11) return "CPF inválido (11 dígitos).";
     if (temGlicemia && glicemia && jejum === "") return "Informe se a glicemia foi coletada em jejum.";
     return null;
