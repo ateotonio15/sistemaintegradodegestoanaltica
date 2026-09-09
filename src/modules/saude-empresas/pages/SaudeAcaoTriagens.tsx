@@ -269,11 +269,23 @@ export default function SaudeAcaoTriagens() {
 
       {/* Tabela */}
       <section className="rounded-xl border border-border bg-card overflow-hidden">
-        <div className="px-4 md:px-6 py-3 border-b border-border flex items-center gap-2">
-          <Users className="h-4 w-4 text-primary" />
-          <h2 className="text-xs md:text-sm font-semibold uppercase tracking-wider text-muted-foreground">
-            Triagens registradas ({triagens.length})
-          </h2>
+        <div className="px-4 md:px-6 py-3 border-b border-border flex flex-col sm:flex-row sm:items-center gap-3 justify-between">
+          <div className="flex items-center gap-2">
+            <Users className="h-4 w-4 text-primary" />
+            <h2 className="text-xs md:text-sm font-semibold uppercase tracking-wider text-muted-foreground">
+              Triagens registradas ({filteredTriagens.length}/{triagens.length})
+            </h2>
+          </div>
+          <div className="relative w-full sm:w-72">
+            <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <input
+              type="text"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="Buscar por nome ou CPF..."
+              className="w-full h-9 pl-9 pr-3 rounded-md border border-input bg-background text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:border-ring"
+            />
+          </div>
         </div>
         <div className="p-0 overflow-x-auto">
           {isLoading ? (
