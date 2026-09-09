@@ -69,7 +69,8 @@ export default function SaudeAcaoTriagens() {
       const nome = (t.nome || "").toLowerCase();
       const cpfRaw = (t.cpf || "").replace(/\D/g, "");
       const cpfFmt = (t.cpf || "").toLowerCase();
-      return nome.includes(termRaw) || cpfRaw.includes(term) || cpfFmt.includes(termRaw);
+      if (nome.includes(termRaw) || cpfFmt.includes(termRaw)) return true;
+      return term.length > 0 && cpfRaw.includes(term);
     });
     return list.sort((a, b) => (a.nome || "").localeCompare(b.nome || "", "pt-BR", { sensitivity: "base" }));
   }, [triagens, search]);
