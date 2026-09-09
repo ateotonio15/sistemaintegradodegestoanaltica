@@ -55,6 +55,20 @@ export default function SaudeAcaoTriagens() {
   const [edit, setEdit] = useState<Triagem | null>(null);
   const [bioOpen, setBioOpen] = useState(false);
   const [toDelete, setToDelete] = useState<Triagem | null>(null);
+  const [search, setSearch] = useState("");
+
+  const filteredTriagens = useMemo(() => {
+    const term = search.trim().toLowerCase().replace(/\D/g, "");
+    const termRaw = search.trim().toLowerCase();
+    const list = triagens.filter((t) => {
+      if (!termRaw) return true;
+      const nome = (t.nome || "").toLowerCase();
+      const cpfRaw = (t.cpf || "").replace(/\D/g, "");
+      const cpfFmt = (t.cpf || "").toLowerCase();
+      return nome.includes(termRaw) || cpfRaw.includes(term) || cpfFmt.includes(termRaw);
+    });
+    return list.sort((a, b) => (a.nome || "").localeCompare(b.nome || "", "pt-BR", { sensitivity: "base" }));
+  }, [triagens, search]);
 
   const { data: acao } = useAcao(acaoId);
   const { data: triagens = [], isLoading } = useTriagens(acaoId);
