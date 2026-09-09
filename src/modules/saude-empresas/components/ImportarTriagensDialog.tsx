@@ -193,30 +193,10 @@ export function ImportarTriagensDialog({ open, onOpenChange, acaoId, empresaId }
     setLinhas((prev) => (prev ? prev.map((l, i) => (i === idx ? { ...l, ...patch } : l)) : prev));
   };
 
-  const reconferir = async (idx: number) => {
-    const linha = linhas?.[idx];
-    if (!linha) return;
-    setConferindoIdx(idx);
-    try {
-      const res = await conferir({
-        nome: linha.nome,
-        cpf: String(linha.cpf || "").replace(/\D/g, ""),
-        pas: linha.pas,
-        pad: linha.pad,
-        glicemia: linha.glicemia,
-        jejum: linha.jejum,
-      });
-      atualizarLinha(idx, res);
-      toast[res.encontrado ? "success" : "error"](
-        res.encontrado ? "Beneficiário localizado" : "Beneficiário não localizado",
-      );
-    } finally {
-      setConferindoIdx(null);
-    }
-  };
+  // A prévia exibe apenas os beneficiários localizados pela API.
+  const encontrados = linhas ?? [];
+  const descartados = descartadosNomes.length;
 
-  const encontrados = (linhas ?? []).filter((l) => l.encontrado);
-  const descartados = (linhas ?? []).length - encontrados.length;
 
 
   const importar = async () => {
