@@ -18,6 +18,8 @@ export interface CalBloqueio {
   data: string;
   periodo: string;
   motivo: string;
+  hora_inicio?: string | null;
+  hora_fim?: string | null;
 }
 
 const STATUS_HEX: Record<string, string> = {
@@ -261,7 +263,11 @@ export async function renderCalendarioCanvas(
     if (fer) chip(fer.nome, "#b91c1c", "#fee2e2");
     if (bl)
       chip(
-        bl.periodo === "dia_todo" ? `Bloqueado: ${bl.motivo}` : `${bl.periodo === "manha" ? "Manhã" : "Tarde"} bloqueada`,
+        bl.periodo === "dia_todo"
+          ? `Bloqueado: ${bl.motivo}`
+          : bl.periodo === "horario"
+            ? `${(bl.hora_inicio ?? "").slice(0, 5)}–${(bl.hora_fim ?? "").slice(0, 5)} bloqueado`
+            : `${bl.periodo === "manha" ? "Manhã" : "Tarde"} bloqueada`,
         "#c2410c",
         "#ffedd5",
       );
