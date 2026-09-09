@@ -14,7 +14,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Loader2, Upload, FileSpreadsheet, CheckCircle2, XCircle } from "lucide-react";
+import { Loader2, Upload, FileSpreadsheet, CheckCircle2, Trash2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { buscarPessoaFisica, isCpfValido, type PessoaFisicaResult } from "@/lib/pessoa-fisica-lookup";
@@ -86,8 +86,8 @@ export function ImportarTriagensDialog({ open, onOpenChange, acaoId, empresaId }
   const [processando, setProcessando] = useState(false);
   const [progresso, setProgresso] = useState({ feitos: 0, total: 0 });
   const [linhas, setLinhas] = useState<LinhaValidada[] | null>(null);
+  const [descartadosNomes, setDescartadosNomes] = useState<string[]>([]);
   const [salvando, setSalvando] = useState(false);
-  const [conferindoIdx, setConferindoIdx] = useState<number | null>(null);
 
   const conferir = async (l: LinhaBruta): Promise<LinhaValidada> => {
     let match: PessoaFisicaResult | null = null;
@@ -130,6 +130,7 @@ export function ImportarTriagensDialog({ open, onOpenChange, acaoId, empresaId }
 
   const reset = () => {
     setLinhas(null);
+    setDescartadosNomes([]);
     setProgresso({ feitos: 0, total: 0 });
     if (inputRef.current) inputRef.current.value = "";
   };
@@ -166,11 +167,20 @@ export function ImportarTriagensDialog({ open, onOpenChange, acaoId, empresaId }
 
       setProgresso({ feitos: 0, total: brutas.length });
       const validadas: LinhaValidada[] = [];
+      const descartados: string[] = [];
       for (const l of brutas) {
-        validadas.push(await conferir(l));
+        const v = await conferir(l);
+        // Quem não for localizado na API é descartado automaticamente.
+        if (v.encontrado) validadas.push(v);
+        else descartados.push(v.nome || v.cpf || "—");
         setProgresso((p) => ({ ...p, feitos: p.feitos + 1 }));
       }
 
+      if (validadas.length === 0) {
+        toast.error("Nenhum beneficiário da planilha foi localizado na base.");
+        return;
+      }
+      setDescartadosNomes(descartados);
       setLinhas(validadas);
     } catch (e: any) {
       toast.error(e?.message || "Não foi possível ler o arquivo.");
@@ -183,30 +193,10 @@ export function ImportarTriagensDialog({ open, onOpenChange, acaoId, empresaId }
     setLinhas((prev) => (prev ? prev.map((l, i) => (i === idx ? { ...l, ...patch } : l)) : prev));
   };
 
-  const reconferir = async (idx: number) => {
-    const linha = linhas?.[idx];
-    if (!linha) return;
-    setConferindoIdx(idx);
-    try {
-      const res = await conferir({
-        nome: linha.nome,
-        cpf: String(linha.cpf || "").replace(/\D/g, ""),
-        pas: linha.pas,
-        pad: linha.pad,
-        glicemia: linha.glicemia,
-        jejum: linha.jejum,
-      });
-      atualizarLinha(idx, res);
-      toast[res.encontrado ? "success" : "error"](
-        res.encontrado ? "Beneficiário localizado" : "Beneficiário não localizado",
-      );
-    } finally {
-      setConferindoIdx(null);
-    }
-  };
+  // A prévia exibe apenas os beneficiários localizados pela API.
+  const encontrados = linhas ?? [];
+  const descartados = descartadosNomes.length;
 
-  const encontrados = (linhas ?? []).filter((l) => l.encontrado);
-  const descartados = (linhas ?? []).length - encontrados.length;
 
 
   const importar = async () => {
@@ -297,9 +287,20 @@ export function ImportarTriagensDialog({ open, onOpenChange, acaoId, empresaId }
                 )}
               </div>
               <p className="text-xs text-muted-foreground">
-                Revise os dados antes de salvar. Nas linhas não localizadas, corrija o nome ou o CPF e clique em
-                "Conferir".
+                Somente os beneficiários localizados na base aparecem abaixo. Revise os dados antes de salvar.
               </p>
+              {descartados > 0 && (
+                <details className="text-xs text-muted-foreground">
+                  <summary className="cursor-pointer select-none">
+                    Ver {descartados} descartado(s) (não localizados na base)
+                  </summary>
+                  <ul className="mt-1 max-h-24 overflow-auto list-disc pl-5 space-y-0.5">
+                    {descartadosNomes.map((n, i) => (
+                      <li key={i}>{n}</li>
+                    ))}
+                  </ul>
+                </details>
+              )}
               <ScrollArea className="h-72 rounded-md border">
                 <table className="w-full text-sm">
                   <thead className="sticky top-0 bg-muted/60">
@@ -314,13 +315,13 @@ export function ImportarTriagensDialog({ open, onOpenChange, acaoId, empresaId }
                   </thead>
                   <tbody>
                     {linhas.map((l, i) => (
-                      <tr key={i} className={`border-t border-border ${l.encontrado ? "" : "bg-muted/30"}`}>
+                      <tr key={i} className="border-t border-border">
                         <td className="p-1.5">
                           <Input
                             className="h-8"
                             value={l.nomeApi ?? l.nome}
                             onChange={(e) =>
-                              atualizarLinha(i, { nome: e.target.value, nomeApi: l.encontrado ? e.target.value : undefined })
+                              atualizarLinha(i, { nome: e.target.value, nomeApi: e.target.value })
                             }
                           />
                         </td>
@@ -330,7 +331,7 @@ export function ImportarTriagensDialog({ open, onOpenChange, acaoId, empresaId }
                             value={l.cpfApi ?? (l.cpf ? maskCpf(l.cpf) : "")}
                             onChange={(e) => {
                               const v = maskCpf(e.target.value);
-                              atualizarLinha(i, { cpf: v.replace(/\D/g, ""), cpfApi: l.encontrado ? v : undefined });
+                              atualizarLinha(i, { cpf: v.replace(/\D/g, ""), cpfApi: v });
                             }}
                             placeholder="000.000.000-00"
                           />
@@ -360,30 +361,22 @@ export function ImportarTriagensDialog({ open, onOpenChange, acaoId, empresaId }
                           />
                         </td>
                         <td className="p-1.5">
-                          {l.encontrado ? (
-                            <span className="inline-flex items-center gap-1 text-emerald-600 dark:text-emerald-400">
+                          <div className="flex items-center justify-between gap-2">
+                            <span className="inline-flex items-center gap-1 text-emerald-600 dark:text-emerald-400 text-xs">
                               <CheckCircle2 className="h-4 w-4" /> Localizado
                             </span>
-                          ) : (
-                            <div className="flex items-center gap-2">
-                              <span className="inline-flex items-center gap-1 text-muted-foreground text-xs">
-                                <XCircle className="h-4 w-4" /> Não localizado
-                              </span>
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                className="h-7 px-2"
-                                disabled={conferindoIdx === i}
-                                onClick={() => reconferir(i)}
-                              >
-                                {conferindoIdx === i ? (
-                                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                                ) : (
-                                  "Conferir"
-                                )}
-                              </Button>
-                            </div>
-                          )}
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              className="h-7 w-7 p-0 text-muted-foreground hover:text-red-600"
+                              title="Descartar linha"
+                              onClick={() =>
+                                setLinhas((prev) => (prev ? prev.filter((_, j) => j !== i) : prev))
+                              }
+                            >
+                              <Trash2 className="h-3.5 w-3.5" />
+                            </Button>
+                          </div>
                         </td>
                       </tr>
                     ))}
