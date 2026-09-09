@@ -30,6 +30,7 @@ interface Props {
 type LinhaBruta = {
   nome: string;
   cpf: string;
+  nascimento: string | null;
   pas: number | null;
   pad: number | null;
   glicemia: number | null;
