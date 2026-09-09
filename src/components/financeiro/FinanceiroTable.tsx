@@ -214,7 +214,7 @@ export function FinanceiroTable({
                           )}
                           {((row as any).tipo_lancamento === "normal" || !(row as any).tipo_lancamento) &&
                             empresasComPrimeiraMensalidade.has(`${row.empresa_id}|${row.mes_referencia}`) && (
-                              <Badge variant="outline" className="text-[10px] px-1.5 py-0 h-5 border-success/50 text-success">
+                              <Badge variant="outline" className="text-[10px] px-1.5 py-0 h-5 border-info/50 text-info">
                                 Primeira Movimentação
                               </Badge>
                             )}
