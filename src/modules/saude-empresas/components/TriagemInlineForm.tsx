@@ -11,7 +11,7 @@ import { PaBadge } from "./PaBadge";
 import { BioimpedanciaDialog } from "./BioimpedanciaDialog";
 import { ImportarTriagensDialog } from "./ImportarTriagensDialog";
 import { classificarPa, maskCpf, PA_GRAVE } from "../lib/saude-rules";
-import { useSaudeMutations, type Triagem } from "../hooks/useSaudeEmpresas";
+import { useSaudeMutations, useTriagens, type Triagem } from "../hooks/useSaudeEmpresas";
 import PessoaFisicaAutocomplete from "@/components/demandas/PessoaFisicaAutocomplete";
 import { buscarPessoaFisica, isCpfValido, type PessoaFisicaResult } from "@/lib/pessoa-fisica-lookup";
 
@@ -44,6 +44,7 @@ function normalizarSexo(v?: string | null): string | null {
 
 export function TriagemInlineForm({ acaoId, empresaId, temPa, temGlicemia, temBio }: Props) {
   const { upsertTriagem } = useSaudeMutations();
+  const { data: triagensExistentes } = useTriagens(acaoId);
   const [bioOpen, setBioOpen] = useState(false);
   const [importOpen, setImportOpen] = useState(false);
   const [bioBase, setBioBase] = useState<Partial<Triagem> | null>(null);
@@ -115,8 +116,18 @@ export function TriagemInlineForm({ acaoId, empresaId, temPa, temGlicemia, temBi
   const paCat = classificarPa(pas ? Number(pas) : null, pad ? Number(pad) : null);
   const paGrave = PA_GRAVE.includes(paCat);
 
+  // Duplicidade: CPF já registrado nas triagens desta ação.
+  const cpfDigits = String(cpf || "").replace(/\D/g, "");
+  const triagemDuplicada =
+    cpfDigits.length === 11
+      ? (triagensExistentes ?? []).find(
+          (t) => String(t.cpf || "").replace(/\D/g, "") === cpfDigits,
+        ) ?? null
+      : null;
+
   const validate = (): string | null => {
     if (!nome.trim()) return "Informe o nome.";
+    if (triagemDuplicada) return "Beneficiário já está na base de triagens registradas.";
     if (cpf && cpf.replace(/\D/g, "").length !== 11) return "CPF inválido (11 dígitos).";
     if (temGlicemia && glicemia && jejum === "") return "Informe se a glicemia foi coletada em jejum.";
     return null;
@@ -191,6 +202,11 @@ export function TriagemInlineForm({ acaoId, empresaId, temPa, temGlicemia, temBi
               <Loader2 className="absolute right-2.5 top-1/2 h-4 w-4 -translate-y-1/2 animate-spin text-muted-foreground" />
             )}
           </div>
+          {triagemDuplicada && (
+            <span className="flex items-center gap-1 text-xs font-medium text-amber-600 dark:text-amber-400">
+              <AlertTriangle className="h-3.5 w-3.5" /> Beneficiário já está na base
+            </span>
+          )}
           {dadosBeneficiario && (
             <span className="text-xs text-muted-foreground truncate">
               {[
@@ -259,7 +275,7 @@ export function TriagemInlineForm({ acaoId, empresaId, temPa, temGlicemia, temBi
           {temBio && realizouBio && (
             <Button variant="outline" onClick={abrirBio}>Preencher Ficha Bio…</Button>
           )}
-          <Button onClick={salvarRapido} disabled={upsertTriagem.isPending}>
+          <Button onClick={salvarRapido} disabled={upsertTriagem.isPending || !!triagemDuplicada}>
             {upsertTriagem.isPending ? "Salvando..." : "Salvar triagem"}
           </Button>
         </div>
