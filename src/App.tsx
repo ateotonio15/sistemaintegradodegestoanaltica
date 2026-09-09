@@ -251,6 +251,7 @@ const AppRoutes = () => (
       <Route path="/plantoes/empresa/:empresaId" element={<PlantoesEmpresa />} />
       <Route path="/plantoes/:plantaoId/atendimentos" element={<PlantaoAtendimentos />} />
       <Route path="/plantoes/relatorios" element={<PlantoesRelatorios />} />
+      <Route path="/plantoes/dashboard" element={<PlantoesDashboard />} />
 
       <Route path="/uber" element={<UberCorridas />} />
       <Route path="/uber/dashboard" element={<UberDashboard />} />
