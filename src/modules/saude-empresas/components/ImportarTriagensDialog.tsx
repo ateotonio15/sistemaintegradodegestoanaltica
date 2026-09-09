@@ -167,11 +167,20 @@ export function ImportarTriagensDialog({ open, onOpenChange, acaoId, empresaId }
 
       setProgresso({ feitos: 0, total: brutas.length });
       const validadas: LinhaValidada[] = [];
+      const descartados: string[] = [];
       for (const l of brutas) {
-        validadas.push(await conferir(l));
+        const v = await conferir(l);
+        // Quem não for localizado na API é descartado automaticamente.
+        if (v.encontrado) validadas.push(v);
+        else descartados.push(v.nome || v.cpf || "—");
         setProgresso((p) => ({ ...p, feitos: p.feitos + 1 }));
       }
 
+      if (validadas.length === 0) {
+        toast.error("Nenhum beneficiário da planilha foi localizado na base.");
+        return;
+      }
+      setDescartadosNomes(descartados);
       setLinhas(validadas);
     } catch (e: any) {
       toast.error(e?.message || "Não foi possível ler o arquivo.");
