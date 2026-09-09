@@ -7,7 +7,7 @@ import { toast } from "sonner";
 const sb = supabase as any;
 
 export type PalestraStatus = "a_confirmar" | "confirmado" | "concluido" | "cancelado";
-export type BloqueioPeriodo = "dia_todo" | "manha" | "tarde";
+export type BloqueioPeriodo = "dia_todo" | "manha" | "tarde" | "horario";
 
 export interface Palestra {
   id: string;
@@ -31,6 +31,8 @@ export interface Bloqueio {
   id: string;
   data: string;
   periodo: BloqueioPeriodo;
+  hora_inicio: string | null;
+  hora_fim: string | null;
   motivo: string;
   criado_por: string | null;
   created_at: string;
@@ -165,15 +167,19 @@ export function useBloqueioMutations() {
   const qc = useQueryClient();
 
   const upsert = useMutation({
-    mutationFn: async (payload: { id?: string; data: string; periodo: BloqueioPeriodo; motivo: string; userNome: string | null }) => {
+    mutationFn: async (payload: { id?: string; data: string; periodo: BloqueioPeriodo; hora_inicio?: string | null; hora_fim?: string | null; motivo: string; userNome: string | null }) => {
+      const horas = {
+        hora_inicio: payload.periodo === "horario" ? (payload.hora_inicio || null) : null,
+        hora_fim: payload.periodo === "horario" ? (payload.hora_fim || null) : null,
+      };
       if (payload.id) {
         const { error } = await sb.from("bloqueios_calendario")
-          .update({ data: payload.data, periodo: payload.periodo, motivo: payload.motivo })
+          .update({ data: payload.data, periodo: payload.periodo, motivo: payload.motivo, ...horas })
           .eq("id", payload.id);
         if (error) throw error;
       } else {
         const { error } = await sb.from("bloqueios_calendario").insert({
-          data: payload.data, periodo: payload.periodo, motivo: payload.motivo,
+          data: payload.data, periodo: payload.periodo, motivo: payload.motivo, ...horas,
           criado_por: payload.userNome,
         });
         if (error) throw error;
