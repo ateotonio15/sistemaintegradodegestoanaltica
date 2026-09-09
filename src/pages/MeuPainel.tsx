@@ -233,12 +233,17 @@ export default function MeuPainel() {
                 <p className="text-xs md:text-sm font-medium text-muted-foreground mb-1.5 md:mb-2">Vidas ativas</p>
                 <div className="flex items-baseline gap-2 flex-wrap">
                   <h3 className="text-3xl md:text-4xl font-bold tracking-tight">
-                    {(empresa as any)?.vidas ?? "—"}
+                    {vidasAnalise?.total ?? (empresa as any)?.vidas ?? "—"}
                   </h3>
                   <span className="text-[10px] md:text-xs font-medium text-primary bg-primary/10 px-2 py-0.5 rounded-full">
                     beneficiários
                   </span>
                 </div>
+                <p className="mt-1.5 text-[10px] md:text-xs text-muted-foreground">
+                  {vidasAnalise
+                    ? `Última fatura: ${vidasAnalise.competencia.slice(5)}/${vidasAnalise.competencia.slice(0, 4)}`
+                    : "Conforme cadastro do contrato"}
+                </p>
               </div>
             )}
 
