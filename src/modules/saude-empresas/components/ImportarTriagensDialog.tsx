@@ -86,8 +86,8 @@ export function ImportarTriagensDialog({ open, onOpenChange, acaoId, empresaId }
   const [processando, setProcessando] = useState(false);
   const [progresso, setProgresso] = useState({ feitos: 0, total: 0 });
   const [linhas, setLinhas] = useState<LinhaValidada[] | null>(null);
+  const [descartadosNomes, setDescartadosNomes] = useState<string[]>([]);
   const [salvando, setSalvando] = useState(false);
-  const [conferindoIdx, setConferindoIdx] = useState<number | null>(null);
 
   const conferir = async (l: LinhaBruta): Promise<LinhaValidada> => {
     let match: PessoaFisicaResult | null = null;
@@ -130,6 +130,7 @@ export function ImportarTriagensDialog({ open, onOpenChange, acaoId, empresaId }
 
   const reset = () => {
     setLinhas(null);
+    setDescartadosNomes([]);
     setProgresso({ feitos: 0, total: 0 });
     if (inputRef.current) inputRef.current.value = "";
   };
