@@ -11,7 +11,8 @@ import { PaBadge } from "./PaBadge";
 import { BioimpedanciaDialog } from "./BioimpedanciaDialog";
 import { classificarPa, maskCpf, PA_GRAVE } from "../lib/saude-rules";
 import { useSaudeMutations, type Triagem } from "../hooks/useSaudeEmpresas";
-import { fetchBeneficiarioByCpf } from "@/lib/beneficiario-lookup";
+import PessoaFisicaAutocomplete from "@/components/demandas/PessoaFisicaAutocomplete";
+import { buscarPessoaFisica, isCpfValido, type PessoaFisicaResult } from "@/lib/pessoa-fisica-lookup";
 
 interface Props {
   acaoId: string;
@@ -19,6 +20,25 @@ interface Props {
   temPa: boolean;
   temGlicemia: boolean;
   temBio: boolean;
+}
+
+/** Converte DD/MM/AAAA (ou variações ISO) em AAAA-MM-DD. */
+function toIsoDate(v?: string | null): string | null {
+  const s = String(v ?? "").trim();
+  if (!s) return null;
+  const br = s.match(/^(\d{2})\/(\d{2})\/(\d{4})/);
+  if (br) return `${br[3]}-${br[2]}-${br[1]}`;
+  const iso = s.match(/^(\d{4})-(\d{2})-(\d{2})/);
+  if (iso) return `${iso[1]}-${iso[2]}-${iso[3]}`;
+  return null;
+}
+
+function normalizarSexo(v?: string | null): string | null {
+  const s = String(v ?? "").trim().toUpperCase();
+  if (!s) return null;
+  if (s.startsWith("M")) return "M";
+  if (s.startsWith("F")) return "F";
+  return null;
 }
 
 export function TriagemInlineForm({ acaoId, empresaId, temPa, temGlicemia, temBio }: Props) {
@@ -34,24 +54,42 @@ export function TriagemInlineForm({ acaoId, empresaId, temPa, temGlicemia, temBi
   const [glicemia, setGlicemia] = useState("");
   const [realizouBio, setRealizouBio] = useState(false);
   const [cpfLookupLoading, setCpfLookupLoading] = useState(false);
-  const [empresaDetectada, setEmpresaDetectada] = useState("");
+  const [dadosBeneficiario, setDadosBeneficiario] = useState<{
+    data_nascimento: string | null;
+    sexo: string | null;
+    email: string | null;
+    telefone: string | null;
+  } | null>(null);
 
+  const aplicarPessoa = (p: PessoaFisicaResult) => {
+    const nomeApi = String(p.NM_PESSOA_FISICA || p.NAME || "").trim();
+    if (nomeApi) setNome(nomeApi);
+    if (isCpfValido(p.NR_CPF)) setCpf(maskCpf(String(p.NR_CPF)));
+    setDadosBeneficiario({
+      data_nascimento: toIsoDate(p.DT_NASCIMENTO),
+      sexo: normalizarSexo(p.SEXO),
+      email: String(p.DS_EMAIL || "").trim() || null,
+      telefone: String(p.NR_TELEFONE_CELULAR || p.TELEFONE_APP || "").trim() || null,
+    });
+    toast.success("Dados do beneficiário carregados");
+  };
+
+  // Busca automática pelo CPF (11 dígitos) usando a API de pessoa física.
   useEffect(() => {
     const digits = String(cpf || "").replace(/\D/g, "");
-    if (digits.length !== 11) {
-      setEmpresaDetectada("");
-      return;
-    }
+    if (digits.length !== 11) return;
 
     const ctrl = new AbortController();
     const timer = setTimeout(async () => {
       try {
         setCpfLookupLoading(true);
-        const res = await fetchBeneficiarioByCpf(digits, ctrl.signal);
-        if (!res) return;
-        if (res.nome && !nome.trim()) setNome(res.nome);
-        if (res.empresa) setEmpresaDetectada(res.empresa);
-        if (res.nome || res.empresa) toast.success("Dados do beneficiário carregados");
+        const res = await buscarPessoaFisica(digits, ctrl.signal);
+        const match =
+          res.find((p) => String(p.NR_CPF ?? "").replace(/\D/g, "") === digits) ??
+          (res.length === 1 ? res[0] : null);
+        // Não localizado → descarta, mantém o que foi digitado.
+        if (!match) return;
+        aplicarPessoa(match);
       } catch {
         // Busca silenciosa para não interromper a triagem.
       } finally {
@@ -69,7 +107,7 @@ export function TriagemInlineForm({ acaoId, empresaId, temPa, temGlicemia, temBi
   const reset = () => {
     setNome(""); setCpf(""); setPas(""); setPad("");
     setJejum(""); setGlicemia(""); setRealizouBio(false);
-    setEmpresaDetectada("");
+    setDadosBeneficiario(null);
   };
 
   const paCat = classificarPa(pas ? Number(pas) : null, pad ? Number(pad) : null);
@@ -87,6 +125,10 @@ export function TriagemInlineForm({ acaoId, empresaId, temPa, temGlicemia, temBi
     empresa_id: empresaId,
     nome: nome.trim(),
     cpf: cpf || null,
+    data_nascimento: dadosBeneficiario?.data_nascimento ?? null,
+    sexo: dadosBeneficiario?.sexo ?? null,
+    email: dadosBeneficiario?.email ?? null,
+    telefone: dadosBeneficiario?.telefone ?? null,
     pas_mmhg: temPa && pas ? Number(pas) : null,
     pad_mmhg: temPa && pad ? Number(pad) : null,
     jejum: jejum === "sim",
@@ -123,7 +165,12 @@ export function TriagemInlineForm({ acaoId, empresaId, temPa, temGlicemia, temBi
       <div className="grid grid-cols-1 md:grid-cols-12 gap-3">
         <div className="md:col-span-4 grid gap-1.5">
           <Label>Nome *</Label>
-          <Input value={nome} onChange={(e) => setNome(e.target.value)} placeholder="Nome completo" />
+          <PessoaFisicaAutocomplete
+            value={nome}
+            onChange={setNome}
+            onSelect={aplicarPessoa}
+            placeholder="Buscar por nome ou CPF"
+          />
         </div>
         <div className="md:col-span-3 grid gap-1.5">
           <Label>CPF *</Label>
@@ -138,10 +185,19 @@ export function TriagemInlineForm({ acaoId, empresaId, temPa, temGlicemia, temBi
               <Loader2 className="absolute right-2.5 top-1/2 h-4 w-4 -translate-y-1/2 animate-spin text-muted-foreground" />
             )}
           </div>
-          {empresaDetectada && (
-            <span className="text-xs text-muted-foreground truncate">Empresa: {empresaDetectada}</span>
+          {dadosBeneficiario && (
+            <span className="text-xs text-muted-foreground truncate">
+              {[
+                dadosBeneficiario.data_nascimento &&
+                  `Nasc.: ${dadosBeneficiario.data_nascimento.split("-").reverse().join("/")}`,
+                dadosBeneficiario.sexo && `Sexo: ${dadosBeneficiario.sexo}`,
+              ]
+                .filter(Boolean)
+                .join(" · ")}
+            </span>
           )}
         </div>
+
 
         {temPa && (
           <>
