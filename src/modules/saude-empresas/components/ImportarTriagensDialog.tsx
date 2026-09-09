@@ -295,33 +295,93 @@ export function ImportarTriagensDialog({ open, onOpenChange, acaoId, empresaId }
                   </Badge>
                 )}
               </div>
-              <ScrollArea className="h-64 rounded-md border">
+              <p className="text-xs text-muted-foreground">
+                Revise os dados antes de salvar. Nas linhas não localizadas, corrija o nome ou o CPF e clique em
+                "Conferir".
+              </p>
+              <ScrollArea className="h-72 rounded-md border">
                 <table className="w-full text-sm">
                   <thead className="sticky top-0 bg-muted/60">
                     <tr className="text-left">
-                      <th className="p-2 font-medium">Nome</th>
-                      <th className="p-2 font-medium">CPF</th>
-                      <th className="p-2 font-medium">PA</th>
-                      <th className="p-2 font-medium">Glicemia</th>
-                      <th className="p-2 font-medium">Status</th>
+                      <th className="p-2 font-medium min-w-[200px]">Nome</th>
+                      <th className="p-2 font-medium w-36">CPF</th>
+                      <th className="p-2 font-medium w-20">PAS</th>
+                      <th className="p-2 font-medium w-20">PAD</th>
+                      <th className="p-2 font-medium w-24">Glicemia</th>
+                      <th className="p-2 font-medium w-44">Status</th>
                     </tr>
                   </thead>
                   <tbody>
                     {linhas.map((l, i) => (
-                      <tr key={i} className="border-t border-border">
-                        <td className="p-2">{l.nomeApi || l.nome || "—"}</td>
-                        <td className="p-2">{l.cpfApi || (l.cpf ? maskCpf(l.cpf) : "—")}</td>
-                        <td className="p-2">{l.pas && l.pad ? `${l.pas}/${l.pad}` : "—"}</td>
-                        <td className="p-2">{l.glicemia ?? "—"}</td>
-                        <td className="p-2">
+                      <tr key={i} className={`border-t border-border ${l.encontrado ? "" : "bg-muted/30"}`}>
+                        <td className="p-1.5">
+                          <Input
+                            className="h-8"
+                            value={l.nomeApi ?? l.nome}
+                            onChange={(e) =>
+                              atualizarLinha(i, { nome: e.target.value, nomeApi: l.encontrado ? e.target.value : undefined })
+                            }
+                          />
+                        </td>
+                        <td className="p-1.5">
+                          <Input
+                            className="h-8"
+                            value={l.cpfApi ?? (l.cpf ? maskCpf(l.cpf) : "")}
+                            onChange={(e) => {
+                              const v = maskCpf(e.target.value);
+                              atualizarLinha(i, { cpf: v.replace(/\D/g, ""), cpfApi: l.encontrado ? v : undefined });
+                            }}
+                            placeholder="000.000.000-00"
+                          />
+                        </td>
+                        <td className="p-1.5">
+                          <Input
+                            className="h-8"
+                            inputMode="numeric"
+                            value={l.pas ?? ""}
+                            onChange={(e) => atualizarLinha(i, { pas: num(e.target.value) })}
+                          />
+                        </td>
+                        <td className="p-1.5">
+                          <Input
+                            className="h-8"
+                            inputMode="numeric"
+                            value={l.pad ?? ""}
+                            onChange={(e) => atualizarLinha(i, { pad: num(e.target.value) })}
+                          />
+                        </td>
+                        <td className="p-1.5">
+                          <Input
+                            className="h-8"
+                            inputMode="decimal"
+                            value={l.glicemia ?? ""}
+                            onChange={(e) => atualizarLinha(i, { glicemia: num(e.target.value) })}
+                          />
+                        </td>
+                        <td className="p-1.5">
                           {l.encontrado ? (
                             <span className="inline-flex items-center gap-1 text-emerald-600 dark:text-emerald-400">
                               <CheckCircle2 className="h-4 w-4" /> Localizado
                             </span>
                           ) : (
-                            <span className="inline-flex items-center gap-1 text-muted-foreground">
-                              <XCircle className="h-4 w-4" /> Descartado
-                            </span>
+                            <div className="flex items-center gap-2">
+                              <span className="inline-flex items-center gap-1 text-muted-foreground text-xs">
+                                <XCircle className="h-4 w-4" /> Não localizado
+                              </span>
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                className="h-7 px-2"
+                                disabled={conferindoIdx === i}
+                                onClick={() => reconferir(i)}
+                              >
+                                {conferindoIdx === i ? (
+                                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                                ) : (
+                                  "Conferir"
+                                )}
+                              </Button>
+                            </div>
                           )}
                         </td>
                       </tr>
@@ -329,6 +389,7 @@ export function ImportarTriagensDialog({ open, onOpenChange, acaoId, empresaId }
                   </tbody>
                 </table>
               </ScrollArea>
+
             </>
           )}
         </div>
