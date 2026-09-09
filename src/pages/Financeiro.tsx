@@ -3104,7 +3104,7 @@ export default function Financeiro() {
           rows={sortedRows}
           onEdit={handleEdit}
           onCobranca={handleCobranca}
-          isLoading={isLoading}
+          isLoading={isLoading || (empresaIds.length > 0 && empresasLoading)}
           expandedRowId={expandedRowId}
           onToggleExpand={handleToggleExpand}
           onReanalisar={handleReanalisar}
