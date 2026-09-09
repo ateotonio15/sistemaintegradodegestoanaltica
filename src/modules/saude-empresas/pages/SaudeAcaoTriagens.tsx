@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { Link, useParams } from "react-router-dom";
-import { ArrowLeft, Users, HeartPulse, Droplets, Scale, AlertTriangle, FileSpreadsheet, FileType, Pencil, Trash2, Mail, RefreshCw } from "lucide-react";
+import { ArrowLeft, Users, HeartPulse, Droplets, Scale, AlertTriangle, FileSpreadsheet, FileType, Pencil, Trash2, Mail, RefreshCw, Search } from "lucide-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
