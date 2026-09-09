@@ -361,30 +361,22 @@ export function ImportarTriagensDialog({ open, onOpenChange, acaoId, empresaId }
                           />
                         </td>
                         <td className="p-1.5">
-                          {l.encontrado ? (
-                            <span className="inline-flex items-center gap-1 text-emerald-600 dark:text-emerald-400">
+                          <div className="flex items-center justify-between gap-2">
+                            <span className="inline-flex items-center gap-1 text-emerald-600 dark:text-emerald-400 text-xs">
                               <CheckCircle2 className="h-4 w-4" /> Localizado
                             </span>
-                          ) : (
-                            <div className="flex items-center gap-2">
-                              <span className="inline-flex items-center gap-1 text-muted-foreground text-xs">
-                                <XCircle className="h-4 w-4" /> Não localizado
-                              </span>
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                className="h-7 px-2"
-                                disabled={conferindoIdx === i}
-                                onClick={() => reconferir(i)}
-                              >
-                                {conferindoIdx === i ? (
-                                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                                ) : (
-                                  "Conferir"
-                                )}
-                              </Button>
-                            </div>
-                          )}
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              className="h-7 w-7 p-0 text-muted-foreground hover:text-red-600"
+                              title="Descartar linha"
+                              onClick={() =>
+                                setLinhas((prev) => (prev ? prev.filter((_, j) => j !== i) : prev))
+                              }
+                            >
+                              <Trash2 className="h-3.5 w-3.5" />
+                            </Button>
+                          </div>
                         </td>
                       </tr>
                     ))}
