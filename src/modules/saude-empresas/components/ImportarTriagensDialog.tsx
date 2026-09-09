@@ -68,17 +68,6 @@ function num(v: any): number | null {
   return Number.isFinite(n) && n > 0 ? n : null;
 }
 
-function achaCampo(row: Record<string, any>, alvos: string[]): any {
-  for (const k of Object.keys(row)) {
-    const norm = k
-      .normalize("NFD")
-      .replace(/[\u0300-\u036f]/g, "")
-      .toLowerCase()
-      .trim();
-    if (alvos.some((a) => norm === a || norm.startsWith(a))) return row[k];
-  }
-  return undefined;
-}
 
 export function ImportarTriagensDialog({ open, onOpenChange, acaoId, empresaId }: Props) {
   const { user } = useAuth();
