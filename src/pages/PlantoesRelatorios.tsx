@@ -1,8 +1,9 @@
 import { useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
-import { ArrowLeft, Download } from "lucide-react";
+import { ArrowLeft, Download, FileText } from "lucide-react";
 import * as XLSX from "xlsx";
+import { parseObservacaoPlantao } from "@/lib/plantoes-observacao";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
