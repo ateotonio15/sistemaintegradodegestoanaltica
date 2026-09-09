@@ -46,8 +46,17 @@ export default function PlantoesRelatorios() {
     abertos: rows.filter((r: any) => !r.resolvido).length,
   }), [rows]);
 
+  const linhas = useMemo(
+    () =>
+      rows.map((r: any) => {
+        const { matricula, observacao } = parseObservacaoPlantao(r.observacao);
+        return { ...r, matricula, observacaoLimpa: observacao };
+      }),
+    [rows],
+  );
+
   const exportar = () => {
-    const data = rows.map((r: any) => ({
+    const data = linhas.map((r: any) => ({
       Data: r.plantao?.data,
       Empresa: r.plantao?.empresa?.nome,
       Turno: r.plantao?.turno,
@@ -55,14 +64,51 @@ export default function PlantoesRelatorios() {
       Hora: r.hora,
       Cliente: r.nome_cliente,
       CPF: r.cpf,
+      Matrícula: r.matricula || "—",
       Assunto: r.assunto,
       Resolvido: r.resolvido ? "Sim" : "Não",
-      Observação: r.observacao,
+      Observação: r.observacaoLimpa,
     }));
     const wb = XLSX.utils.book_new();
     const ws = XLSX.utils.json_to_sheet(data);
     XLSX.utils.book_append_sheet(wb, ws, "Atendimentos");
     XLSX.writeFile(wb, `plantoes-${from}-a-${to}.xlsx`);
+  };
+
+  const exportarPdf = async () => {
+    const { default: jsPDF } = await import("jspdf");
+    const { default: autoTable } = await import("jspdf-autotable");
+    const doc = new jsPDF({ orientation: "landscape", unit: "pt", format: "a4" });
+    const fmt = (d?: string) => (d ? new Date(d + "T00:00:00").toLocaleDateString("pt-BR") : "—");
+    doc.setFontSize(14);
+    doc.text("Relatório de Atendimentos - Plantões", 40, 40);
+    doc.setFontSize(10);
+    doc.text(`Período: ${fmt(from)} a ${fmt(to)}  ·  Total: ${kpis.total}  ·  Resolvidos: ${kpis.resolvidos}  ·  Em aberto: ${kpis.abertos}`, 40, 58);
+    autoTable(doc, {
+      startY: 74,
+      styles: { fontSize: 8, cellPadding: 4, overflow: "linebreak" },
+      headStyles: { fillColor: [22, 101, 52], textColor: 255 },
+      columnStyles: {
+        7: { fontStyle: "bold" },
+      },
+      head: [[
+        "Data", "Empresa", "Turno", "Plantonista", "Hora", "Cliente", "CPF", "Matrícula", "Assunto", "Resolvido", "Observação",
+      ]],
+      body: linhas.map((r: any) => [
+        fmt(r.plantao?.data),
+        r.plantao?.empresa?.nome ?? "—",
+        r.plantao?.turno ?? "—",
+        r.plantao?.plantonista ?? "—",
+        r.hora ?? "—",
+        r.nome_cliente ?? "—",
+        r.cpf ?? "—",
+        r.matricula || "—",
+        r.assunto ?? "—",
+        r.resolvido ? "Sim" : "Não",
+        r.observacaoLimpa || "—",
+      ]),
+    });
+    doc.save(`plantoes-${from}-a-${to}.pdf`);
   };
 
   return (
