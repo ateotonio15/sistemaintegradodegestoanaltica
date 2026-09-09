@@ -197,7 +197,7 @@ export default function Financeiro() {
     enabled: !!user && canViewFinanceiro && empresaIds.length > 0,
   });
 
-  const { data: empresasMap = {} } = useQuery({
+  const { data: empresasMap = {}, isLoading: empresasLoading } = useQuery({
     queryKey: ["financeiro-empresas", empresaIds.sort().join(",")],
     queryFn: async () => {
       if (empresaIds.length === 0) return {};
