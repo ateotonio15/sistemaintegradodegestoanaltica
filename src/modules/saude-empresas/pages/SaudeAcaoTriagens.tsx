@@ -292,6 +292,8 @@ export default function SaudeAcaoTriagens() {
             <div className="text-center py-8 text-muted-foreground">Carregando...</div>
           ) : triagens.length === 0 ? (
             <div className="text-center py-8 text-muted-foreground">Nenhuma triagem registrada</div>
+          ) : filteredTriagens.length === 0 ? (
+            <div className="text-center py-8 text-muted-foreground">Nenhuma triagem encontrada para a busca</div>
           ) : (
             <Table>
               <TableHeader>
@@ -306,7 +308,7 @@ export default function SaudeAcaoTriagens() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {triagens.map((t, i) => {
+                {filteredTriagens.map((t, i) => {
                   const gliCat = classificarGlicemia(t.glicemia_mg_dl, t.jejum);
                   return (
                     <TableRow key={t.id}>
