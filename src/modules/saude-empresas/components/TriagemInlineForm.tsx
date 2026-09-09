@@ -156,11 +156,15 @@ export function TriagemInlineForm({ acaoId, empresaId, temPa, temGlicemia, temBi
         <Stethoscope className="h-5 w-5 text-primary" />
         <h3 className="font-semibold">Nova triagem</h3>
         {paGrave && (
-          <span className="ml-auto flex items-center gap-1 text-xs font-medium text-red-600 dark:text-red-400 animate-pulse">
+          <span className="flex items-center gap-1 text-xs font-medium text-red-600 dark:text-red-400 animate-pulse">
             <AlertTriangle className="h-4 w-4" /> Encaminhar imediatamente
           </span>
         )}
+        <Button variant="outline" size="sm" className="ml-auto gap-1.5" onClick={() => setImportOpen(true)}>
+          <Upload className="h-4 w-4" /> Importar planilha
+        </Button>
       </div>
+
 
       <div className="grid grid-cols-1 md:grid-cols-12 gap-3">
         <div className="md:col-span-4 grid gap-1.5">
