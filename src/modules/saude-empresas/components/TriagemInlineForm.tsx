@@ -11,7 +11,7 @@ import { PaBadge } from "./PaBadge";
 import { BioimpedanciaDialog } from "./BioimpedanciaDialog";
 import { ImportarTriagensDialog } from "./ImportarTriagensDialog";
 import { classificarPa, maskCpf, PA_GRAVE } from "../lib/saude-rules";
-import { useSaudeMutations, type Triagem } from "../hooks/useSaudeEmpresas";
+import { useSaudeMutations, useTriagens, type Triagem } from "../hooks/useSaudeEmpresas";
 import PessoaFisicaAutocomplete from "@/components/demandas/PessoaFisicaAutocomplete";
 import { buscarPessoaFisica, isCpfValido, type PessoaFisicaResult } from "@/lib/pessoa-fisica-lookup";
 
@@ -44,6 +44,7 @@ function normalizarSexo(v?: string | null): string | null {
 
 export function TriagemInlineForm({ acaoId, empresaId, temPa, temGlicemia, temBio }: Props) {
   const { upsertTriagem } = useSaudeMutations();
+  const { data: triagensExistentes } = useTriagens(acaoId);
   const [bioOpen, setBioOpen] = useState(false);
   const [importOpen, setImportOpen] = useState(false);
   const [bioBase, setBioBase] = useState<Partial<Triagem> | null>(null);
