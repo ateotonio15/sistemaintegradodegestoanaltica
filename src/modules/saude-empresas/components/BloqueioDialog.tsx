@@ -30,6 +30,8 @@ export function BloqueioDialog({ open, onOpenChange, editing, preselectDate, can
 
   const [data, setData] = useState<Date | null>(null);
   const [periodo, setPeriodo] = useState<BloqueioPeriodo>("dia_todo");
+  const [horaInicio, setHoraInicio] = useState("08:00");
+  const [horaFim, setHoraFim] = useState("09:00");
   const [motivo, setMotivo] = useState("");
   const [popOpen, setPopOpen] = useState(false);
 
@@ -39,18 +41,34 @@ export function BloqueioDialog({ open, onOpenChange, editing, preselectDate, can
       const [y, m, d] = editing.data.split("-").map(Number);
       setData(new Date(y, m - 1, d));
       setPeriodo(editing.periodo);
+      setHoraInicio((editing.hora_inicio ?? "08:00").slice(0, 5));
+      setHoraFim((editing.hora_fim ?? "09:00").slice(0, 5));
       setMotivo(editing.motivo);
     } else {
       setData(preselectDate ?? null);
       setPeriodo("dia_todo");
+      setHoraInicio("08:00");
+      setHoraFim("09:00");
       setMotivo("");
     }
   }, [open, editing, preselectDate]);
 
   const handleSubmit = async () => {
     if (!data) { toast.error("Selecione a data"); return; }
+    if (periodo === "horario") {
+      if (!horaInicio || !horaFim) { toast.error("Informe o horário de início e fim"); return; }
+      if (horaFim <= horaInicio) { toast.error("O horário final deve ser maior que o inicial"); return; }
+    }
     if (!motivo.trim()) { toast.error("Informe o motivo"); return; }
-    await upsert.mutateAsync({ id: editing?.id, data: isoDate(data), periodo, motivo, userNome });
+    await upsert.mutateAsync({
+      id: editing?.id,
+      data: isoDate(data),
+      periodo,
+      hora_inicio: horaInicio,
+      hora_fim: horaFim,
+      motivo,
+      userNome,
+    });
     onOpenChange(false);
   };
 
