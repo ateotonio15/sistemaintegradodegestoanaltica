@@ -6,9 +6,10 @@ import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Card } from "@/components/ui/card";
-import { AlertTriangle, Loader2, Stethoscope } from "lucide-react";
+import { AlertTriangle, Loader2, Stethoscope, Upload } from "lucide-react";
 import { PaBadge } from "./PaBadge";
 import { BioimpedanciaDialog } from "./BioimpedanciaDialog";
+import { ImportarTriagensDialog } from "./ImportarTriagensDialog";
 import { classificarPa, maskCpf, PA_GRAVE } from "../lib/saude-rules";
 import { useSaudeMutations, type Triagem } from "../hooks/useSaudeEmpresas";
 import PessoaFisicaAutocomplete from "@/components/demandas/PessoaFisicaAutocomplete";
@@ -44,6 +45,7 @@ function normalizarSexo(v?: string | null): string | null {
 export function TriagemInlineForm({ acaoId, empresaId, temPa, temGlicemia, temBio }: Props) {
   const { upsertTriagem } = useSaudeMutations();
   const [bioOpen, setBioOpen] = useState(false);
+  const [importOpen, setImportOpen] = useState(false);
   const [bioBase, setBioBase] = useState<Partial<Triagem> | null>(null);
 
   const [nome, setNome] = useState("");
@@ -267,6 +269,13 @@ export function TriagemInlineForm({ acaoId, empresaId, temPa, temGlicemia, temBi
         open={bioOpen}
         onOpenChange={(v) => { setBioOpen(v); if (!v) reset(); }}
         triagemBase={bioBase}
+      />
+
+      <ImportarTriagensDialog
+        open={importOpen}
+        onOpenChange={setImportOpen}
+        acaoId={acaoId}
+        empresaId={empresaId}
       />
     </Card>
   );
