@@ -122,7 +122,7 @@ export function ImportarTriagensDialog({ open, onOpenChange, acaoId, empresaId }
       encontrado: true,
       nomeApi: String(match.NM_PESSOA_FISICA || match.NAME || l.nome).trim(),
       cpfApi: isCpfValido(match.NR_CPF) ? maskCpf(String(match.NR_CPF)) : l.cpf ? maskCpf(l.cpf) : "",
-      data_nascimento: toIsoDate(match.DT_NASCIMENTO),
+      data_nascimento: toIsoDate(match.DT_NASCIMENTO) ?? l.nascimento,
       sexo: normalizarSexo(match.SEXO),
       email: String(match.DS_EMAIL || "").trim() || null,
       telefone: String(match.NR_TELEFONE_CELULAR || match.TELEFONE_APP || "").trim() || null,
