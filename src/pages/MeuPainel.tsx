@@ -78,17 +78,43 @@ export default function MeuPainel() {
     },
   });
 
-  const { data: vidasAtivas } = useQuery({
-    queryKey: ["meu-painel", "vidas", activeEmpresaId],
-    enabled: !!activeEmpresaId,
+  // Vidas ativas: usa a quantidade da última competência analisada (fatura) do
+  // próprio contrato, com fallback para o número informado no cadastro.
+  const { data: vidasAnalise } = useQuery({
+    queryKey: ["meu-painel", "vidas-analise", activeEmpresaId, (empresa as any)?.nome],
+    enabled: !!activeEmpresaId && !!empresa,
     queryFn: async () => {
-      const { count, error } = await supabase
-        .from("vidas_ativas")
-        .select("id", { count: "exact", head: true })
+      const { data, error } = await supabase
+        .from("financeiro_analises")
+        .select("mes_referencia, pagador_nome, qtd_excel_apartamento, qtd_excel_enfermaria")
         .eq("empresa_id", activeEmpresaId!)
-        .eq("status", "ativo");
+        .order("mes_referencia", { ascending: false })
+        .limit(50);
       if (error) throw error;
-      return count ?? 0;
+      const ultima = data?.[0]?.mes_referencia;
+      if (!ultima) return null;
+
+      const norm = (v?: string | null) =>
+        (v ?? "")
+          .normalize("NFD")
+          .replace(/[\u0300-\u036f]/g, "")
+          .toUpperCase()
+          .replace(/[^A-Z0-9]+/g, " ")
+          .trim();
+      const nomeEmpresa = norm((empresa as any)?.nome);
+      const primeirasPalavras = nomeEmpresa.split(" ").slice(0, 2).join(" ");
+
+      const doMes = (data ?? []).filter((r: any) => r.mes_referencia === ultima);
+      const doContrato = doMes.filter((r: any) => {
+        const p = norm(r.pagador_nome);
+        return !p || p.startsWith(primeirasPalavras) || nomeEmpresa.startsWith(p.split(" ").slice(0, 2).join(" "));
+      });
+      const linhas = doContrato.length ? doContrato : doMes;
+      const total = linhas.reduce(
+        (s: number, r: any) => s + (r.qtd_excel_apartamento ?? 0) + (r.qtd_excel_enfermaria ?? 0),
+        0,
+      );
+      return total > 0 ? { total, competencia: ultima as string } : null;
     },
   });
 
@@ -207,12 +233,17 @@ export default function MeuPainel() {
                 <p className="text-xs md:text-sm font-medium text-muted-foreground mb-1.5 md:mb-2">Vidas ativas</p>
                 <div className="flex items-baseline gap-2 flex-wrap">
                   <h3 className="text-3xl md:text-4xl font-bold tracking-tight">
-                    {(empresa as any)?.vidas ?? "—"}
+                    {vidasAnalise?.total ?? (empresa as any)?.vidas ?? "—"}
                   </h3>
                   <span className="text-[10px] md:text-xs font-medium text-primary bg-primary/10 px-2 py-0.5 rounded-full">
                     beneficiários
                   </span>
                 </div>
+                <p className="mt-1.5 text-[10px] md:text-xs text-muted-foreground">
+                  {vidasAnalise
+                    ? `Última fatura: ${vidasAnalise.competencia.slice(5)}/${vidasAnalise.competencia.slice(0, 4)}`
+                    : "Conforme cadastro do contrato"}
+                </p>
               </div>
             )}
 
