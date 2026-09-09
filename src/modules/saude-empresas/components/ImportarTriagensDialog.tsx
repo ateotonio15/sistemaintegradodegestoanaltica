@@ -30,6 +30,7 @@ interface Props {
 type LinhaBruta = {
   nome: string;
   cpf: string;
+  nascimento: string | null;
   pas: number | null;
   pad: number | null;
   glicemia: number | null;
@@ -67,17 +68,6 @@ function num(v: any): number | null {
   return Number.isFinite(n) && n > 0 ? n : null;
 }
 
-function achaCampo(row: Record<string, any>, alvos: string[]): any {
-  for (const k of Object.keys(row)) {
-    const norm = k
-      .normalize("NFD")
-      .replace(/[\u0300-\u036f]/g, "")
-      .toLowerCase()
-      .trim();
-    if (alvos.some((a) => norm === a || norm.startsWith(a))) return row[k];
-  }
-  return undefined;
-}
 
 export function ImportarTriagensDialog({ open, onOpenChange, acaoId, empresaId }: Props) {
   const { user } = useAuth();
@@ -121,7 +111,7 @@ export function ImportarTriagensDialog({ open, onOpenChange, acaoId, empresaId }
       encontrado: true,
       nomeApi: String(match.NM_PESSOA_FISICA || match.NAME || l.nome).trim(),
       cpfApi: isCpfValido(match.NR_CPF) ? maskCpf(String(match.NR_CPF)) : l.cpf ? maskCpf(l.cpf) : "",
-      data_nascimento: toIsoDate(match.DT_NASCIMENTO),
+      data_nascimento: toIsoDate(match.DT_NASCIMENTO) ?? l.nascimento,
       sexo: normalizarSexo(match.SEXO),
       email: String(match.DS_EMAIL || "").trim() || null,
       telefone: String(match.NR_TELEFONE_CELULAR || match.TELEFONE_APP || "").trim() || null,
@@ -141,24 +131,50 @@ export function ImportarTriagensDialog({ open, onOpenChange, acaoId, empresaId }
     try {
       const buf = await file.arrayBuffer();
       const wb = XLSX.read(buf, { type: "array" });
-      const ws = wb.Sheets[wb.SheetNames[0]];
-      const rows = XLSX.utils.sheet_to_json<Record<string, any>>(ws, { defval: "" });
 
-      const brutas: LinhaBruta[] = rows
-        .map((r) => {
-          const nome = String(achaCampo(r, ["nome", "beneficiario", "paciente"]) ?? "").trim();
-          const cpf = String(achaCampo(r, ["cpf", "documento"]) ?? "").replace(/\D/g, "");
-          const jejumRaw = String(achaCampo(r, ["jejum"]) ?? "").trim().toLowerCase();
-          return {
+      // Layout "Programa Saúde nas Empresas": cabeçalho não é a 1ª linha
+      // (título, Empresa/Data, linha em branco e só depois Tipo|Nome|...).
+      // Lê todas as abas, exceto o "Consolidado" (evita duplicar).
+      const norm = (s: string) =>
+        s.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().trim();
+      const abas = wb.SheetNames.filter((n) => !norm(n).startsWith("consolidado"));
+      const nomesAbas = abas.length > 0 ? abas : wb.SheetNames;
+
+      const brutas: LinhaBruta[] = [];
+      for (const sheetName of nomesAbas) {
+        const ws = wb.Sheets[sheetName];
+        const grid = XLSX.utils.sheet_to_json<any[]>(ws, { header: 1, defval: "" });
+        const headerIdx = grid.findIndex((row) =>
+          row.some((c) => norm(String(c)) === "nome") && row.some((c) => norm(String(c)).startsWith("cpf")),
+        );
+        if (headerIdx < 0) continue;
+        const header = grid[headerIdx].map((c) => norm(String(c)));
+        const col = (alvos: string[]) => header.findIndex((h) => alvos.some((a) => h === a || h.startsWith(a)));
+
+        const cNome = col(["nome", "beneficiario", "paciente"]);
+        const cCpf = col(["cpf", "documento"]);
+        const cNasc = col(["data de nascimento", "nascimento"]);
+        const cPas = col(["pressao sistolica", "pas", "sistolica"]);
+        const cPad = col(["pressao diastolica", "pad", "diastolica"]);
+        const cGlic = col(["glicemia", "glicose"]);
+        const cJejum = col(["jejum"]);
+
+        for (const row of grid.slice(headerIdx + 1)) {
+          const nome = String(row[cNome] ?? "").trim();
+          const cpf = String(row[cCpf] ?? "").replace(/\D/g, "");
+          if (!nome && !cpf) continue;
+          const jejumRaw = String(row[cJejum] ?? "").trim().toLowerCase();
+          brutas.push({
             nome,
             cpf,
-            pas: num(achaCampo(r, ["pas", "pressao sistolica", "sistolica"])),
-            pad: num(achaCampo(r, ["pad", "pressao diastolica", "diastolica"])),
-            glicemia: num(achaCampo(r, ["glicemia", "glicose"])),
+            nascimento: toIsoDate(String(row[cNasc] ?? "")),
+            pas: num(row[cPas]),
+            pad: num(row[cPad]),
+            glicemia: num(row[cGlic]),
             jejum: jejumRaw.startsWith("s") || jejumRaw === "1" || jejumRaw === "true",
-          };
-        })
-        .filter((l) => l.nome || l.cpf);
+          });
+        }
+      }
 
       if (brutas.length === 0) {
         toast.error("Nenhuma linha com nome ou CPF encontrada na planilha.");
