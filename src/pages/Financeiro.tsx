@@ -197,7 +197,7 @@ export default function Financeiro() {
     enabled: !!user && canViewFinanceiro && empresaIds.length > 0,
   });
 
-  const { data: empresasMap = {} } = useQuery({
+  const { data: empresasMap = {}, isLoading: empresasLoading } = useQuery({
     queryKey: ["financeiro-empresas", empresaIds.sort().join(",")],
     queryFn: async () => {
       if (empresaIds.length === 0) return {};
@@ -3104,7 +3104,7 @@ export default function Financeiro() {
           rows={sortedRows}
           onEdit={handleEdit}
           onCobranca={handleCobranca}
-          isLoading={isLoading}
+          isLoading={isLoading || (empresaIds.length > 0 && empresasLoading)}
           expandedRowId={expandedRowId}
           onToggleExpand={handleToggleExpand}
           onReanalisar={handleReanalisar}
