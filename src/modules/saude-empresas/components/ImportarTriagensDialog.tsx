@@ -287,9 +287,20 @@ export function ImportarTriagensDialog({ open, onOpenChange, acaoId, empresaId }
                 )}
               </div>
               <p className="text-xs text-muted-foreground">
-                Revise os dados antes de salvar. Nas linhas não localizadas, corrija o nome ou o CPF e clique em
-                "Conferir".
+                Somente os beneficiários localizados na base aparecem abaixo. Revise os dados antes de salvar.
               </p>
+              {descartados > 0 && (
+                <details className="text-xs text-muted-foreground">
+                  <summary className="cursor-pointer select-none">
+                    Ver {descartados} descartado(s) (não localizados na base)
+                  </summary>
+                  <ul className="mt-1 max-h-24 overflow-auto list-disc pl-5 space-y-0.5">
+                    {descartadosNomes.map((n, i) => (
+                      <li key={i}>{n}</li>
+                    ))}
+                  </ul>
+                </details>
+              )}
               <ScrollArea className="h-72 rounded-md border">
                 <table className="w-full text-sm">
                   <thead className="sticky top-0 bg-muted/60">
