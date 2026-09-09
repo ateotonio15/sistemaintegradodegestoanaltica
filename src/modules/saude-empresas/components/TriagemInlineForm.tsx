@@ -6,9 +6,10 @@ import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Card } from "@/components/ui/card";
-import { AlertTriangle, Loader2, Stethoscope } from "lucide-react";
+import { AlertTriangle, Loader2, Stethoscope, Upload } from "lucide-react";
 import { PaBadge } from "./PaBadge";
 import { BioimpedanciaDialog } from "./BioimpedanciaDialog";
+import { ImportarTriagensDialog } from "./ImportarTriagensDialog";
 import { classificarPa, maskCpf, PA_GRAVE } from "../lib/saude-rules";
 import { useSaudeMutations, type Triagem } from "../hooks/useSaudeEmpresas";
 import PessoaFisicaAutocomplete from "@/components/demandas/PessoaFisicaAutocomplete";
@@ -44,6 +45,7 @@ function normalizarSexo(v?: string | null): string | null {
 export function TriagemInlineForm({ acaoId, empresaId, temPa, temGlicemia, temBio }: Props) {
   const { upsertTriagem } = useSaudeMutations();
   const [bioOpen, setBioOpen] = useState(false);
+  const [importOpen, setImportOpen] = useState(false);
   const [bioBase, setBioBase] = useState<Partial<Triagem> | null>(null);
 
   const [nome, setNome] = useState("");
@@ -156,11 +158,15 @@ export function TriagemInlineForm({ acaoId, empresaId, temPa, temGlicemia, temBi
         <Stethoscope className="h-5 w-5 text-primary" />
         <h3 className="font-semibold">Nova triagem</h3>
         {paGrave && (
-          <span className="ml-auto flex items-center gap-1 text-xs font-medium text-red-600 dark:text-red-400 animate-pulse">
+          <span className="flex items-center gap-1 text-xs font-medium text-red-600 dark:text-red-400 animate-pulse">
             <AlertTriangle className="h-4 w-4" /> Encaminhar imediatamente
           </span>
         )}
+        <Button variant="outline" size="sm" className="ml-auto gap-1.5" onClick={() => setImportOpen(true)}>
+          <Upload className="h-4 w-4" /> Importar planilha
+        </Button>
       </div>
+
 
       <div className="grid grid-cols-1 md:grid-cols-12 gap-3">
         <div className="md:col-span-4 grid gap-1.5">
@@ -263,6 +269,13 @@ export function TriagemInlineForm({ acaoId, empresaId, temPa, temGlicemia, temBi
         open={bioOpen}
         onOpenChange={(v) => { setBioOpen(v); if (!v) reset(); }}
         triagemBase={bioBase}
+      />
+
+      <ImportarTriagensDialog
+        open={importOpen}
+        onOpenChange={setImportOpen}
+        acaoId={acaoId}
+        empresaId={empresaId}
       />
     </Card>
   );
