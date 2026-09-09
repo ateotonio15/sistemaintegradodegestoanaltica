@@ -86,6 +86,46 @@ export function ImportarTriagensDialog({ open, onOpenChange, acaoId, empresaId }
   const [progresso, setProgresso] = useState({ feitos: 0, total: 0 });
   const [linhas, setLinhas] = useState<LinhaValidada[] | null>(null);
   const [salvando, setSalvando] = useState(false);
+  const [conferindoIdx, setConferindoIdx] = useState<number | null>(null);
+
+  const conferir = async (l: LinhaBruta): Promise<LinhaValidada> => {
+    let match: PessoaFisicaResult | null = null;
+    try {
+      if (l.cpf.length === 11) {
+        const res = await buscarPessoaFisica(l.cpf);
+        match =
+          res.find((p) => String(p.NR_CPF ?? "").replace(/\D/g, "") === l.cpf) ??
+          (res.length === 1 ? res[0] : null);
+      }
+      if (!match && l.nome.trim().length >= 3) {
+        const res = await buscarPessoaFisica(l.nome.trim());
+        const alvo = l.nome.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toUpperCase().trim();
+        match =
+          res.find(
+            (p) =>
+              String(p.NM_PESSOA_FISICA ?? "")
+                .normalize("NFD")
+                .replace(/[\u0300-\u036f]/g, "")
+                .toUpperCase()
+                .trim() === alvo,
+          ) ?? (res.length === 1 ? res[0] : null);
+      }
+    } catch {
+      match = null;
+    }
+
+    if (!match) return { ...l, encontrado: false };
+    return {
+      ...l,
+      encontrado: true,
+      nomeApi: String(match.NM_PESSOA_FISICA || match.NAME || l.nome).trim(),
+      cpfApi: isCpfValido(match.NR_CPF) ? maskCpf(String(match.NR_CPF)) : l.cpf ? maskCpf(l.cpf) : "",
+      data_nascimento: toIsoDate(match.DT_NASCIMENTO),
+      sexo: normalizarSexo(match.SEXO),
+      email: String(match.DS_EMAIL || "").trim() || null,
+      telefone: String(match.NR_TELEFONE_CELULAR || match.TELEFONE_APP || "").trim() || null,
+    };
+  };
 
   const reset = () => {
     setLinhas(null);
