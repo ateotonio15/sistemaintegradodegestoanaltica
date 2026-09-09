@@ -643,6 +643,8 @@ export type Database = {
           created_at: string
           criado_por: string | null
           data: string
+          hora_fim: string | null
+          hora_inicio: string | null
           id: string
           motivo: string
           periodo: Database["public"]["Enums"]["bloqueio_periodo"]
@@ -651,6 +653,8 @@ export type Database = {
           created_at?: string
           criado_por?: string | null
           data: string
+          hora_fim?: string | null
+          hora_inicio?: string | null
           id?: string
           motivo: string
           periodo: Database["public"]["Enums"]["bloqueio_periodo"]
@@ -659,6 +663,8 @@ export type Database = {
           created_at?: string
           criado_por?: string | null
           data?: string
+          hora_fim?: string | null
+          hora_inicio?: string | null
           id?: string
           motivo?: string
           periodo?: Database["public"]["Enums"]["bloqueio_periodo"]
@@ -5173,7 +5179,7 @@ export type Database = {
         | "executivo_externo"
         | "admin_interno"
         | "tec_enfermagem"
-      bloqueio_periodo: "dia_todo" | "manha" | "tarde"
+      bloqueio_periodo: "dia_todo" | "manha" | "tarde" | "horario"
       ferias_empresa_status:
         | "pendente_inicio"
         | "redistribuida"
@@ -5361,7 +5367,7 @@ export const Constants = {
         "admin_interno",
         "tec_enfermagem",
       ],
-      bloqueio_periodo: ["dia_todo", "manha", "tarde"],
+      bloqueio_periodo: ["dia_todo", "manha", "tarde", "horario"],
       ferias_empresa_status: [
         "pendente_inicio",
         "redistribuida",
