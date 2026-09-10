@@ -257,6 +257,7 @@ function ConversaDialog({
   const [loading, setLoading] = useState(false);
   const [currentAtdId, setCurrentAtdId] = useState<string | null>(null);
   const [currentSetor, setCurrentSetor] = useState<string | null>(null);
+  const [setorEscolhido, setSetorEscolhido] = useState<string | null>(null);
   const [pendingImages, setPendingImages] = useState<{ url: string; name: string }[]>([]);
   const [uploading, setUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
