@@ -45,7 +45,7 @@ Deno.serve(async (req) => {
     const userId = claimsData?.claims?.sub;
     if (claimsError || !userId) return json({ error: "Não autorizado" }, 401);
 
-    const { mensagem, empresa_id } = await req.json();
+    const { mensagem, empresa_id, setor: setorForcado } = await req.json();
     if (!mensagem || typeof mensagem !== "string" || !mensagem.trim()) {
       return json({ error: "Mensagem obrigatória" }, 400);
     }
@@ -136,10 +136,13 @@ Deno.serve(async (req) => {
       aiJson?.choices?.[0]?.message?.tool_calls?.[0]?.function?.arguments;
     let setor: "cadastro" | "relacionamento" | "financeiro" = "relacionamento";
     let resumo = mensagem.slice(0, 140);
+    const setorValido = ["cadastro", "relacionamento", "financeiro"].includes(
+      setorForcado,
+    );
     if (toolCall) {
       try {
         const parsed = JSON.parse(toolCall);
-        if (["cadastro", "relacionamento", "financeiro"].includes(parsed.setor)) {
+        if (!setorValido && ["cadastro", "relacionamento", "financeiro"].includes(parsed.setor)) {
           setor = parsed.setor;
         }
         if (typeof parsed.resumo === "string" && parsed.resumo.trim()) {
@@ -149,6 +152,8 @@ Deno.serve(async (req) => {
         // fallback: relacionamento
       }
     }
+
+    if (setorValido) setor = setorForcado;
 
     // Salvar registro (RLS via user_pode_ver_empresa)
     const { data: novoAtd, error: insErr } = await userClient

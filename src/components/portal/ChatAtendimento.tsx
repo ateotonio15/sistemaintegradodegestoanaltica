@@ -257,6 +257,7 @@ function ConversaDialog({
   const [loading, setLoading] = useState(false);
   const [currentAtdId, setCurrentAtdId] = useState<string | null>(null);
   const [currentSetor, setCurrentSetor] = useState<string | null>(null);
+  const [setorEscolhido, setSetorEscolhido] = useState<string | null>(null);
   const [pendingImages, setPendingImages] = useState<{ url: string; name: string }[]>([]);
   const [uploading, setUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -280,6 +281,7 @@ function ConversaDialog({
       ]);
       setCurrentAtdId(null);
       setCurrentSetor(null);
+      setSetorEscolhido(null);
     } else if (atendimento) {
       setCurrentAtdId(atendimento.id);
       setCurrentSetor(atendimento.setor_destino);
@@ -446,7 +448,12 @@ function ConversaDialog({
         // Nova conversa → classificar via edge function
         const mensagemClass = texto || (imgs.length > 0 ? "[Imagem enviada]" : "");
         const { data, error } = await supabase.functions.invoke("classificar-atendimento", {
-          body: { mensagem: mensagemClass, empresa_id: empresaId, mensagem_completa: body },
+          body: {
+            mensagem: mensagemClass,
+            empresa_id: empresaId,
+            mensagem_completa: body,
+            setor: setorEscolhido ?? undefined,
+          },
         });
         if (error) throw error;
         if ((data as any)?.error) throw new Error((data as any).error);
@@ -642,6 +649,38 @@ function ConversaDialog({
           </div>
         ) : (
         <div className="bg-background p-3">
+          {isNew && !currentAtdId && (
+            <div className="mb-2 flex flex-wrap items-center gap-1.5">
+              <span className="mr-1 text-[11px] font-medium text-muted-foreground">
+                Setor destino:
+              </span>
+              {[
+                { v: null as string | null, label: "Automático" },
+                { v: "cadastro", label: "Cadastro" },
+                { v: "relacionamento", label: "Relacionamento" },
+                { v: "financeiro", label: "Financeiro" },
+              ].map((o) => {
+                const ativo = setorEscolhido === o.v;
+                return (
+                  <button
+                    key={o.label}
+                    type="button"
+                    onClick={() => setSetorEscolhido(o.v)}
+                    className={cn(
+                      "rounded-full border px-2.5 py-1 text-[11px] font-medium transition-colors",
+                      ativo
+                        ? o.v
+                          ? setorClasses[o.v]
+                          : "bg-primary/10 text-primary border-primary/20"
+                        : "border-border/60 bg-muted/40 text-muted-foreground hover:bg-muted",
+                    )}
+                  >
+                    {o.label}
+                  </button>
+                );
+              })}
+            </div>
+          )}
           {pendingImages.length > 0 && (
             <div className="mb-2 flex flex-wrap gap-2">
               {pendingImages.map((img, i) => (
