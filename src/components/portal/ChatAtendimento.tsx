@@ -448,7 +448,12 @@ function ConversaDialog({
         // Nova conversa → classificar via edge function
         const mensagemClass = texto || (imgs.length > 0 ? "[Imagem enviada]" : "");
         const { data, error } = await supabase.functions.invoke("classificar-atendimento", {
-          body: { mensagem: mensagemClass, empresa_id: empresaId, mensagem_completa: body },
+          body: {
+            mensagem: mensagemClass,
+            empresa_id: empresaId,
+            mensagem_completa: body,
+            setor: setorEscolhido ?? undefined,
+          },
         });
         if (error) throw error;
         if ((data as any)?.error) throw new Error((data as any).error);
