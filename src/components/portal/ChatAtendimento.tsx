@@ -281,6 +281,7 @@ function ConversaDialog({
       ]);
       setCurrentAtdId(null);
       setCurrentSetor(null);
+      setSetorEscolhido(null);
     } else if (atendimento) {
       setCurrentAtdId(atendimento.id);
       setCurrentSetor(atendimento.setor_destino);
