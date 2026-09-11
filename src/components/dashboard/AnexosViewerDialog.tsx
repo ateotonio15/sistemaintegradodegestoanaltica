@@ -298,14 +298,19 @@ export function AnexosViewerDialog({
           .filter((id) => id && id !== empresaId);
       }
 
-      // 1) Movimentações financeiras da empresa atual
-      const { data: movsFin } = await supabase
-        .from("financeiro_movimentacoes")
-        .select("id")
-        .eq("empresa_id", empresaId!)
-        .eq("mes_referencia", mesReferencia)
-        .eq("periodo", periodo);
-      const movFinIds = (movsFin ?? []).map((m) => m.id);
+      // 1) Anexos financeiros pertencem à linha clicada. Uma empresa pode ter
+      // uma linha normal e outra de primeira mensalidade no mesmo período;
+      // misturá-las fazia arquivos já removidos da linha atual continuarem visíveis.
+      let movFinIds: string[] = movimentacaoId ? [movimentacaoId] : [];
+      if (!movFinIds.length) {
+        const { data: movsFin } = await supabase
+          .from("financeiro_movimentacoes")
+          .select("id")
+          .eq("empresa_id", empresaId!)
+          .eq("mes_referencia", mesReferencia)
+          .eq("periodo", periodo);
+        movFinIds = (movsFin ?? []).map((m) => m.id);
+      }
 
       // 1b) Movimentações financeiras das empresas irmãs (mesmo período)
       const { data: movsFinIrmaos } = empresasIrmas.length
