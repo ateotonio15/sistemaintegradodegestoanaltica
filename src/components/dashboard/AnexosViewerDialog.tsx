@@ -264,7 +264,14 @@ export function AnexosViewerDialog({
 
 
   const { data: anexos = [], isLoading, isError, error } = useQuery<AnexoRow[]>({
-    queryKey: ["anexos-viewer-merged", empresaId, mesReferencia, periodo, permitirAnexosContrato],
+    queryKey: [
+      "anexos-viewer-merged",
+      empresaId,
+      mesReferencia,
+      periodo,
+      movimentacaoId,
+      permitirAnexosContrato,
+    ],
     enabled: open && !!empresaId,
     // Sempre busca dados frescos ao abrir: o badge da tabela pode ter sido
     // atualizado depois do último cache deste diálogo (anexo novo do Cadastro).
