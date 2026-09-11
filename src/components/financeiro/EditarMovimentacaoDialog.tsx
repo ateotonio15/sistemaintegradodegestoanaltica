@@ -813,6 +813,7 @@ export function EditarMovimentacaoDialog({ open, onOpenChange, movimentacao, emp
       if (error) throw error;
       queryClient.invalidateQueries({ queryKey: ["financeiro-anexos", movimentacao?.id] });
       queryClient.invalidateQueries({ queryKey: ["financeiro-anexos-list"] });
+      queryClient.invalidateQueries({ queryKey: ["financeiro"] });
       toast.success("Anexo excluído");
     } catch (e: any) {
       toast.error("Erro ao excluir: " + e.message);
