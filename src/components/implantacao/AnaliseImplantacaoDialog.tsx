@@ -296,6 +296,31 @@ export function AnaliseImplantacaoDialog({ implantacaoId, open, onClose, readOnl
                         value={divergencias != null ? String(divergencias) : null}
                         tom={divergencias == null ? "cinza" : divergencias > 0 ? "vermelho" : "verde"}
                       />
+                      <ItemResumo
+                        label="Validação cruzada"
+                        value={
+                          itensValidacao.length === 0
+                            ? null
+                            : `${resumoCruzado.compativeis}/${resumoCruzado.total} compatíveis`
+                        }
+                        tom={
+                          itensValidacao.length === 0
+                            ? "cinza"
+                            : resumoCruzado.criticas > 0
+                            ? "vermelho"
+                            : resumoCruzado.divergentes > 0
+                            ? "amarelo"
+                            : "verde"
+                        }
+                      />
+                      <ItemResumo
+                        label="Divergências críticas"
+                        value={itensValidacao.length === 0 ? null : String(resumoCruzado.criticas)}
+                        tom={
+                          itensValidacao.length === 0 ? "cinza" : resumoCruzado.criticas > 0 ? "vermelho" : "verde"
+                        }
+                      />
+
                       <ItemResumo label="Vigência" value={formatDateBR(impl.data_vigencia)} tom={impl.data_vigencia ? "verde" : "cinza"} />
                       <ItemResumo label="Previsão de implantação" value={formatDateBR(impl.inicio_atendimento)} tom={impl.inicio_atendimento ? "amarelo" : "cinza"} />
                       <ItemResumo label="Última atualização" value={dataHoraCurta(processo?.ultima_movimentacao_em || impl.updated_at)} tom="verde" />
