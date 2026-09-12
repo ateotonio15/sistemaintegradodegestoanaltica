@@ -1,0 +1,1 @@
+REVOKE EXECUTE ON FUNCTION public.encaminhar_contrato_processo(uuid, text, text, uuid, text, text, text) FROM anon;
