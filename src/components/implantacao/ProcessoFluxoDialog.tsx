@@ -30,6 +30,7 @@ import {
   type ProcessoStatus,
 } from "@/lib/contrato-processo";
 import { PendenciasProcessoSection } from "./PendenciasProcessoSection";
+import { ValidacaoCruzadaSection } from "./ValidacaoCruzadaSection";
 
 interface Props {
   open: boolean;
@@ -207,6 +208,8 @@ export function ProcessoFluxoDialog({ open, onClose, implantacaoId, nomeEmpresa,
                 </CardContent>
               </Card>
             )}
+
+            <ValidacaoCruzadaSection processoId={processo.id} implantacaoId={processo.implantacao_id} />
 
             <PendenciasProcessoSection processoId={processo.id} readOnly={readOnly} />
 
