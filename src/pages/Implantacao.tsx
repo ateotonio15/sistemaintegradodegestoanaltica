@@ -53,7 +53,17 @@ export default function Implantacao() {
         .select("*")
         .order("created_at", { ascending: false });
       if (error) throw error;
-      return data as any[];
+      const implantacoes = (data || []) as any[];
+      const empresaIds = [...new Set(implantacoes.map((item) => item.empresa_id).filter(Boolean))];
+      if (empresaIds.length === 0) return implantacoes;
+
+      const { data: empresas, error: empresasError } = await supabase
+        .from("empresas")
+        .select("id, data_implantacao, data_vencimento_fatura, periodo_movimentacao, email_empresa, email_financeiro_cliente, telefone_empresa, vidas")
+        .in("id", empresaIds);
+      if (empresasError) throw empresasError;
+      const empresasPorId = new Map((empresas || []).map((empresa) => [empresa.id, empresa]));
+      return implantacoes.map((item) => ({ ...item, empresa: empresasPorId.get(item.empresa_id) }));
     },
   });
 
@@ -303,10 +313,18 @@ export default function Implantacao() {
 }
 
 function ImplantadoResumo({ implantacao: i }: { implantacao: any }) {
-  const vidasTotal = i.total_vidas ?? ((i.vidas_enfermaria || 0) + (i.vidas_apartamento || 0));
-  const movimentacao = i.periodo_movimentacao === "Diário"
+  const empresa = i.empresa || {};
+  const vidasTotal = i.total_vidas ?? empresa.vidas ?? ((i.vidas_enfermaria || 0) + (i.vidas_apartamento || 0));
+  const periodoMovimentacao = i.periodo_movimentacao || empresa.periodo_movimentacao;
+  const movimentacao = periodoMovimentacao === "Diário"
     ? `Diário${i.data_corte ? ` · corte dia ${String(i.data_corte).padStart(2, "0")}` : ""}`
-    : i.periodo_movimentacao;
+    : periodoMovimentacao?.replace("-", " a ").concat(" dias");
+  const emails = i.emails_contrato || [empresa.email_empresa, empresa.email_financeiro_cliente].filter(Boolean).join(" · ");
+  const vencimento = i.data_vencimento
+    ? formatDay(i.data_vencimento)
+    : empresa.data_vencimento_fatura != null
+      ? String(empresa.data_vencimento_fatura).padStart(2, "0")
+      : "—";
 
   const detalhe = (label: string, value: React.ReactNode) => (
     <div className="grid grid-cols-[minmax(7rem,auto)_1fr] gap-2 leading-5">
@@ -318,11 +336,11 @@ function ImplantadoResumo({ implantacao: i }: { implantacao: any }) {
   return (
     <div className="space-y-1.5">
       {detalhe("Código", i.codigo_contrato || "—")}
-      {detalhe("Data de ativação", i.inicio_atendimento ? formatDateBR(i.inicio_atendimento) : (i.data_vigencia ? formatDateBR(i.data_vigencia) : "—"))}
-      {detalhe("Vencimento", i.data_vencimento ? formatDay(i.data_vencimento) : "—")}
+      {detalhe("Data de ativação", i.inicio_atendimento ? formatDateBR(i.inicio_atendimento) : (empresa.data_implantacao ? formatDateBR(empresa.data_implantacao) : (i.data_vigencia ? formatDateBR(i.data_vigencia) : "—")))}
+      {detalhe("Vencimento", vencimento)}
       {detalhe("Movimentações", movimentacao || "—")}
-      {detalhe("E-mail do contrato", i.emails_contrato || "—")}
-      {detalhe("Telefone", i.telefone || "—")}
+      {detalhe("E-mail do contrato", emails || "—")}
+      {detalhe("Telefone", i.telefone || empresa.telefone_empresa || "—")}
       <div className="grid grid-cols-3 gap-2 py-2">
         <div className="rounded-md bg-muted/60 p-2 text-center">
           <p className="font-bold text-base">{vidasTotal || 0}</p>
