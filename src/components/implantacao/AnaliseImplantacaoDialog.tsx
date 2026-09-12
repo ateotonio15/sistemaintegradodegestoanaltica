@@ -11,6 +11,53 @@ import { useToast } from "@/hooks/use-toast";
 import { SelecionarResponsavelCadastroDialog } from "./SelecionarResponsavelCadastroDialog";
 import { formatDateBR, formatDay } from "@/lib/date-utils";
 import { formatCentavosBRL } from "@/lib/reajuste-utils";
+import { useContratoProcessoPorImplantacao } from "@/hooks/useContratoProcessos";
+import {
+  setorLabel, statusGeralLabel, statusLabel, statusBadge,
+  STATUS_GERAL_BADGE, type ProcessoStatusGeral,
+} from "@/lib/contrato-processo";
+
+type Tom = "verde" | "amarelo" | "vermelho" | "cinza";
+const TOM_DOT: Record<Tom, string> = {
+  verde: "bg-emerald-500",
+  amarelo: "bg-amber-500",
+  vermelho: "bg-red-500",
+  cinza: "bg-muted-foreground/40",
+};
+const TOM_TXT: Record<Tom, string> = {
+  verde: "text-emerald-600",
+  amarelo: "text-amber-600",
+  vermelho: "text-red-600",
+  cinza: "text-muted-foreground",
+};
+
+function ItemResumo({ label, value, tom = "cinza" }: { label: string; value: React.ReactNode; tom?: Tom }) {
+  const vazio = value == null || value === "" || value === "—";
+  const t = vazio ? "cinza" : tom;
+  return (
+    <div className="rounded-lg border bg-muted/30 p-2.5">
+      <p className="text-[10px] uppercase tracking-wide text-muted-foreground">{label}</p>
+      <p className={`mt-0.5 flex items-center gap-1.5 text-sm font-medium ${TOM_TXT[t]}`}>
+        <span className={`h-2 w-2 shrink-0 rounded-full ${TOM_DOT[t]}`} />
+        <span className="break-words text-foreground">{vazio ? "—" : value}</span>
+      </p>
+    </div>
+  );
+}
+
+function tomResultado(r?: string | null): Tom {
+  if (!r || r === "Em análise") return "cinza";
+  if (r === "Aprovado" || r === "Implantado") return "verde";
+  if (r === "Aprovado com ressalva") return "amarelo";
+  return "vermelho";
+}
+
+function dataHoraCurta(iso?: string | null) {
+  if (!iso) return "—";
+  const d = new Date(iso);
+  if (isNaN(d.getTime())) return "—";
+  return `${formatDateBR(d)} ${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`;
+}
 
 
 interface Props {
