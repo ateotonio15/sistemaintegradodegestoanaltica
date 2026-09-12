@@ -361,6 +361,18 @@ export default function Implantacao() {
           />
         ) : null}
 
+        {fluxoTarget && (
+          <ProcessoFluxoDialog
+            open={!!fluxoTarget}
+            onClose={() => setFluxoTarget(null)}
+            implantacaoId={fluxoTarget.id}
+            nomeEmpresa={fluxoTarget.nome_empresa}
+            cnpj={fluxoTarget.cnpj}
+            empresaId={fluxoTarget.empresa_id}
+            readOnly={!canEdit}
+          />
+        )}
+
         <AlertDialog open={!!deleteTarget} onOpenChange={(o) => !o && setDeleteTarget(null)}>
           <AlertDialogContent>
             <AlertDialogHeader>
