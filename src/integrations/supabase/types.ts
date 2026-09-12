@@ -5329,6 +5329,14 @@ export type Database = {
         Args: { p_id: string }
         Returns: undefined
       }
+      map_implantacao_processo: {
+        Args: { p_status: string }
+        Returns: {
+          proxima_acao: string
+          setor: string
+          status: string
+        }[]
+      }
       marcar_prioridade_maxima: {
         Args: { p_empresa_id: string; p_motivo: string; p_observacoes?: string }
         Returns: string
