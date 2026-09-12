@@ -553,6 +553,10 @@ function Step2Extracao({ data, update, onExtrair, extracting, hasAnexo1, readOnl
           error={data.cnpj && !isValidCNPJ(data.cnpj) ? "CNPJ inválido" : undefined}
         />
         <Field label="Telefone" v={data.telefone} onChange={(v: string) => update({ telefone: v })} readOnly={readOnly} />
+        <div className="md:col-span-2">
+          <Field label="E-mails do contrato" v={data.emails_contrato} onChange={(v: string) => update({ emails_contrato: v })} readOnly={readOnly} />
+          <p className="text-xs text-muted-foreground mt-1">Informe os destinatários e quem deve receber em cópia.</p>
+        </div>
         <Field label="Inscrição Municipal" v={data.inscricao_municipal} onChange={(v: string) => update({ inscricao_municipal: v })} readOnly={readOnly} />
         <Field label="Inscrição Estadual" v={data.inscricao_estadual} onChange={(v: string) => update({ inscricao_estadual: v })} readOnly={readOnly} />
         <Field label="CEP" v={data.cep} onChange={(v: string) => update({ cep: v })} readOnly={readOnly} />
@@ -860,6 +864,20 @@ function Step5Vidas({ data, update, readOnly, relAnexo }: any) {
         </>
       )}
 
+      <div className="space-y-2">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+          <Field label="Vidas total" type="number" v={data.total_vidas} onChange={(v: string) => update({ total_vidas: v === "" ? null : Number(v) })} readOnly={readOnly} />
+          <Field label="Vidas enfermaria" type="number" v={data.vidas_enfermaria} onChange={(v: string) => update({ vidas_enfermaria: v === "" ? null : Number(v) })} readOnly={readOnly} />
+          <Field label="Vidas apartamento" type="number" v={data.vidas_apartamento} onChange={(v: string) => update({ vidas_apartamento: v === "" ? null : Number(v) })} readOnly={readOnly} />
+        </div>
+        {data.total_vidas != null && (data.vidas_enfermaria != null || data.vidas_apartamento != null) &&
+          Number(data.total_vidas) !== Number(data.vidas_enfermaria || 0) + Number(data.vidas_apartamento || 0) && (
+            <p className="text-xs text-destructive flex items-center gap-1">
+              <AlertTriangle className="h-3.5 w-3.5" /> A soma de enfermaria e apartamento deve ser igual ao total de vidas.
+            </p>
+          )}
+      </div>
+
       <div>
         <Label>Faixas etárias (observações)</Label>
         <Textarea
@@ -898,6 +916,7 @@ function Step6Revisao({ data, anexos }: any) {
         <Row k="Nome" v={data.nome_empresa} />
         <Row k="CNPJ" v={data.cnpj} />
         <Row k="Telefone" v={data.telefone} />
+        <Row k="E-mails do contrato" v={data.emails_contrato} />
         <Row k="Endereço" v={data.endereco} />
         <Row k="CEP" v={data.cep} />
       </CardContent></Card>
@@ -922,6 +941,8 @@ function Step6Revisao({ data, anexos }: any) {
       <Card><CardContent className="p-4">
         <h4 className="font-semibold mb-2 flex items-center gap-2"><Users className="h-4 w-4" /> Vidas Ativas & Documentos</h4>
         <Row k="Total Vidas Ativas" v={data.total_vidas} />
+        <Row k="Vidas Enfermaria" v={data.vidas_enfermaria} />
+        <Row k="Vidas Apartamento" v={data.vidas_apartamento} />
         <Row k="Titulares" v={data.vidas_titulares} />
         <Row k="Dependentes" v={data.vidas_dependentes} />
         <Row k="Layout Validado" v={data.relatorio_validacao?.valido ? "Sim" : "Não"} />

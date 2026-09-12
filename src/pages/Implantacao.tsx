@@ -15,6 +15,7 @@ import { toast } from "sonner";
 import { useAuth } from "@/hooks/useAuth";
 import { ImplantacaoWizard } from "@/components/implantacao/ImplantacaoWizard";
 import { AnaliseImplantacaoDialog } from "@/components/implantacao/AnaliseImplantacaoDialog";
+import { formatDateBR, formatDay } from "@/lib/date-utils";
 
 const STATUS_LABEL: Record<string, string> = {
   em_implantacao: "Em implantação",
@@ -190,7 +191,7 @@ export default function Implantacao() {
             </CardContent>
           </Card>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 items-start">
             {filtered.map((i) => (
               <Card
                 key={i.id}
@@ -224,8 +225,14 @@ export default function Implantacao() {
                   </div>
                 </CardHeader>
                 <CardContent className="space-y-2 text-sm">
-                  <p className="text-muted-foreground">CNPJ: {i.cnpj || "—"}</p>
-                  <p className="text-muted-foreground">Código: {i.codigo_contrato || "—"}</p>
+                  {i.status === "implantado" ? (
+                    <ImplantadoResumo implantacao={i} />
+                  ) : (
+                    <>
+                      <p className="text-muted-foreground">CNPJ: {i.cnpj || "—"}</p>
+                      <p className="text-muted-foreground">Código: {i.codigo_contrato || "—"}</p>
+                    </>
+                  )}
                   <div className="flex items-center justify-between pt-2 border-t">
                     <span className="text-xs text-muted-foreground flex items-center gap-1">
                       <Clock className="h-3 w-3" />
@@ -292,5 +299,46 @@ export default function Implantacao() {
         </AlertDialog>
       </div>
     </>
+  );
+}
+
+function ImplantadoResumo({ implantacao: i }: { implantacao: any }) {
+  const vidasTotal = i.total_vidas ?? ((i.vidas_enfermaria || 0) + (i.vidas_apartamento || 0));
+  const movimentacao = i.periodo_movimentacao === "Diário"
+    ? `Diário${i.data_corte ? ` · corte dia ${String(i.data_corte).padStart(2, "0")}` : ""}`
+    : i.periodo_movimentacao;
+
+  const detalhe = (label: string, value: React.ReactNode) => (
+    <div className="grid grid-cols-[minmax(7rem,auto)_1fr] gap-2 leading-5">
+      <span className="text-muted-foreground">{label}</span>
+      <span className="font-medium text-foreground break-words text-right">{value ?? "—"}</span>
+    </div>
+  );
+
+  return (
+    <div className="space-y-1.5">
+      {detalhe("Código", i.codigo_contrato || "—")}
+      {detalhe("Data de ativação", i.inicio_atendimento ? formatDateBR(i.inicio_atendimento) : (i.data_vigencia ? formatDateBR(i.data_vigencia) : "—"))}
+      {detalhe("Vencimento", i.data_vencimento ? formatDay(i.data_vencimento) : "—")}
+      {detalhe("Movimentações", movimentacao || "—")}
+      {detalhe("E-mail do contrato", i.emails_contrato || "—")}
+      {detalhe("Telefone", i.telefone || "—")}
+      <div className="grid grid-cols-3 gap-2 py-2">
+        <div className="rounded-md bg-muted/60 p-2 text-center">
+          <p className="font-bold text-base">{vidasTotal || 0}</p>
+          <p className="text-[10px] text-muted-foreground">Vidas total</p>
+        </div>
+        <div className="rounded-md bg-muted/60 p-2 text-center">
+          <p className="font-bold text-base">{i.vidas_enfermaria || 0}</p>
+          <p className="text-[10px] text-muted-foreground">Enfermaria</p>
+        </div>
+        <div className="rounded-md bg-muted/60 p-2 text-center">
+          <p className="font-bold text-base">{i.vidas_apartamento || 0}</p>
+          <p className="text-[10px] text-muted-foreground">Apartamento</p>
+        </div>
+      </div>
+      {detalhe("Corretora", i.corretora || "—")}
+      {detalhe("Comissão", `Agenciamento de ${i.percentual_agenciamento ?? 0}% com ${i.percentual_vitalicio ?? 0}%`)}
+    </div>
   );
 }
