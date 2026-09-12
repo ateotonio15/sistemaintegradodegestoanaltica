@@ -97,6 +97,8 @@ export function AnaliseImplantacaoDialog({ implantacaoId, open, onClose, readOnl
     enabled: open && !!implantacaoId,
   });
 
+  const { data: processo } = useContratoProcessoPorImplantacao(open ? implantacaoId : null);
+
   const { data: anexos = [] } = useQuery({
     queryKey: ["impl-anexos", implantacaoId],
     queryFn: async () => {
