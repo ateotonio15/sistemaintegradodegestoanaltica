@@ -258,6 +258,15 @@ export default function Implantacao() {
                           <Badge variant="outline" className={STATUS_COLOR[i.status]}>
                             {STATUS_LABEL[i.status]}
                           </Badge>
+                          <Button
+                            size="icon"
+                            variant="ghost"
+                            className="h-7 w-7 text-muted-foreground hover:text-primary hover:bg-primary/10"
+                            onClick={(e) => { e.stopPropagation(); setFluxoTarget(i); }}
+                            title="Fluxo entre setores"
+                          >
+                            <GitBranch className="h-4 w-4" />
+                          </Button>
                           {canDelete && (
                             <Button
                               size="icon"
@@ -278,6 +287,19 @@ export default function Implantacao() {
                         <p>CNPJ: {i.cnpj || "—"}</p>
                         <p>Código: {i.codigo_contrato || "—"}</p>
                       </div>
+                      {processoPorImplantacao.get(i.id) && (
+                        <div className="mt-2 flex flex-wrap items-center gap-1.5">
+                          <Badge variant="outline" className={statusBadge(processoPorImplantacao.get(i.id)!.status)}>
+                            {statusLabel(processoPorImplantacao.get(i.id)!.status)}
+                          </Badge>
+                          <span className="text-xs text-muted-foreground">
+                            {setorLabel(processoPorImplantacao.get(i.id)!.setor_atual)}
+                            {(processoPorImplantacao.get(i.id)!.pendencias_abertas ?? 0) > 0
+                              ? ` · ${processoPorImplantacao.get(i.id)!.pendencias_abertas} pendência(s)`
+                              : ""}
+                          </span>
+                        </div>
+                      )}
                     </div>
 
                     {/* Coluna de detalhes */}
