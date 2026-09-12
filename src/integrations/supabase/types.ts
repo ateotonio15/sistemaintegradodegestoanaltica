@@ -956,6 +956,8 @@ export type Database = {
           setor_destino: string | null
           setor_origem: string | null
           status_anterior: string | null
+          status_detalhado_anterior: string | null
+          status_detalhado_novo: string | null
           status_novo: string | null
           user_id: string | null
           user_nome: string | null
@@ -974,6 +976,8 @@ export type Database = {
           setor_destino?: string | null
           setor_origem?: string | null
           status_anterior?: string | null
+          status_detalhado_anterior?: string | null
+          status_detalhado_novo?: string | null
           status_novo?: string | null
           user_id?: string | null
           user_nome?: string | null
@@ -992,6 +996,8 @@ export type Database = {
           setor_destino?: string | null
           setor_origem?: string | null
           status_anterior?: string | null
+          status_detalhado_anterior?: string | null
+          status_detalhado_novo?: string | null
           status_novo?: string | null
           user_id?: string | null
           user_nome?: string | null
@@ -1075,16 +1081,19 @@ export type Database = {
           created_at: string
           created_by: string | null
           created_by_nome: string | null
+          data_entrada_setor: string
           empresa_id: string | null
           id: string
           implantacao_id: string | null
           nome_empresa: string | null
           observacao: string | null
           pendencias_abertas: number
+          proxima_acao: string | null
           responsavel_atual_id: string | null
           responsavel_atual_nome: string | null
           resultado_final: string
           setor_atual: string
+          status: string
           status_geral: string
           ultima_movimentacao_em: string
           updated_at: string
@@ -1095,16 +1104,19 @@ export type Database = {
           created_at?: string
           created_by?: string | null
           created_by_nome?: string | null
+          data_entrada_setor?: string
           empresa_id?: string | null
           id?: string
           implantacao_id?: string | null
           nome_empresa?: string | null
           observacao?: string | null
           pendencias_abertas?: number
+          proxima_acao?: string | null
           responsavel_atual_id?: string | null
           responsavel_atual_nome?: string | null
           resultado_final?: string
           setor_atual?: string
+          status?: string
           status_geral?: string
           ultima_movimentacao_em?: string
           updated_at?: string
@@ -1115,16 +1127,19 @@ export type Database = {
           created_at?: string
           created_by?: string | null
           created_by_nome?: string | null
+          data_entrada_setor?: string
           empresa_id?: string | null
           id?: string
           implantacao_id?: string | null
           nome_empresa?: string | null
           observacao?: string | null
           pendencias_abertas?: number
+          proxima_acao?: string | null
           responsavel_atual_id?: string | null
           responsavel_atual_nome?: string | null
           resultado_final?: string
           setor_atual?: string
+          status?: string
           status_geral?: string
           ultima_movimentacao_em?: string
           updated_at?: string
@@ -5153,16 +5168,19 @@ export type Database = {
           created_at: string
           created_by: string | null
           created_by_nome: string | null
+          data_entrada_setor: string
           empresa_id: string | null
           id: string
           implantacao_id: string | null
           nome_empresa: string | null
           observacao: string | null
           pendencias_abertas: number
+          proxima_acao: string | null
           responsavel_atual_id: string | null
           responsavel_atual_nome: string | null
           resultado_final: string
           setor_atual: string
+          status: string
           status_geral: string
           ultima_movimentacao_em: string
           updated_at: string
@@ -5200,6 +5218,18 @@ export type Database = {
         }[]
       }
       demanda_can_edit: { Args: { _executiva: string }; Returns: boolean }
+      encaminhar_contrato_processo: {
+        Args: {
+          p_observacao?: string
+          p_processo_id: string
+          p_proxima_acao?: string
+          p_responsavel_id?: string
+          p_responsavel_nome?: string
+          p_setor_destino: string
+          p_status?: string
+        }
+        Returns: string
+      }
       ensure_plantao_empresa:
         | { Args: { _id: string; _nome: string }; Returns: undefined }
         | { Args: { p_nome: string }; Returns: string }
@@ -5309,20 +5339,37 @@ export type Database = {
         Args: { p_fce_id: string; p_new_user_id: string }
         Returns: Json
       }
-      registrar_movimentacao_processo: {
-        Args: {
-          p_acao: string
-          p_detalhes?: Json
-          p_observacao?: string
-          p_processo_id: string
-          p_responsavel_id?: string
-          p_responsavel_nome?: string
-          p_resultado_novo?: string
-          p_setor_destino?: string
-          p_status_novo?: string
-        }
-        Returns: string
-      }
+      registrar_movimentacao_processo:
+        | {
+            Args: {
+              p_acao: string
+              p_detalhes?: Json
+              p_observacao?: string
+              p_processo_id: string
+              p_responsavel_id?: string
+              p_responsavel_nome?: string
+              p_resultado_novo?: string
+              p_setor_destino?: string
+              p_status_novo?: string
+            }
+            Returns: string
+          }
+        | {
+            Args: {
+              p_acao: string
+              p_detalhes?: Json
+              p_observacao?: string
+              p_processo_id: string
+              p_proxima_acao?: string
+              p_responsavel_id?: string
+              p_responsavel_nome?: string
+              p_resultado_novo?: string
+              p_setor_destino?: string
+              p_status_detalhado?: string
+              p_status_novo?: string
+            }
+            Returns: string
+          }
       rejeitar_implantacao: {
         Args: { p_impl: string; p_motivo: string }
         Returns: string
