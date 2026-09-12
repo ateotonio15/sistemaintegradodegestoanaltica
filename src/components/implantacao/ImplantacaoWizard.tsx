@@ -286,13 +286,16 @@ export function ImplantacaoWizard({ id, open, onClose, readOnly }: Props) {
   const tiposObrigatorios = ["anexo_1", "contrato", "relatorio_vidas", "primeira_cobranca", "complementar"];
   const todosAnexosOk = tiposObrigatorios.every((t) => anexos.some((a: any) => a.tipo === t));
   const validacao: ValidacaoResultado | null = data?.relatorio_validacao || null;
+  const vidasPorAcomodacaoInformadas = data?.vidas_enfermaria != null || data?.vidas_apartamento != null;
+  const vidasPorAcomodacaoCoerentes = !vidasPorAcomodacaoInformadas ||
+    Number(data?.total_vidas || 0) === Number(data?.vidas_enfermaria || 0) + Number(data?.vidas_apartamento || 0);
 
   const valid: Record<number, boolean> = {
     1: todosAnexosOk,
     2: !!data?.nome_empresa && !!data?.cnpj && isValidCNPJ(data.cnpj || ""),
     3: !!data?.data_vigencia && !!data?.codigo_contrato && !!data?.modalidade && !!data?.acomodacao && !!data?.tipo_contrato && !!data?.periodo_movimentacao && (data?.periodo_movimentacao !== "Diário" || (!!data?.data_corte && data.data_corte >= 1 && data.data_corte <= 31)),
     4: data?.percentual_agenciamento != null && data?.percentual_vitalicio != null,
-    5: !!validacao && validacao.valido === true && (data?.total_vidas || 0) > 0,
+    5: !!validacao && validacao.valido === true && (data?.total_vidas || 0) > 0 && vidasPorAcomodacaoCoerentes,
     6: true,
   };
 
