@@ -73,6 +73,10 @@ export default function Implantacao() {
 
   const filtered = useMemo(() => {
     return items.filter((i) => {
+      const emAndamento = i.status !== "implantado";
+      const implantado = i.status === "implantado";
+      if (etapa === "em_andamento" && !emAndamento) return false;
+      if (etapa === "implantados" && !implantado) return false;
       if (statusFilter !== "todos" && i.status !== statusFilter) return false;
       if (!search) return true;
       const s = search.toLowerCase();
@@ -82,7 +86,7 @@ export default function Implantacao() {
         (i.codigo_contrato || "").toLowerCase().includes(s)
       );
     });
-  }, [items, search, statusFilter]);
+  }, [items, search, statusFilter, etapa]);
 
   const counts = useMemo(() => {
     const c: Record<string, number> = {};
