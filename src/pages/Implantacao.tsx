@@ -51,6 +51,15 @@ export default function Implantacao() {
   const [openId, setOpenId] = useState<string | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<{ id: string; nome: string } | null>(null);
   const [deleting, setDeleting] = useState(false);
+  const [fluxoTarget, setFluxoTarget] = useState<any | null>(null);
+
+  const { data: processos = [] } = useContratoProcessos();
+  const processoPorImplantacao = useMemo(() => {
+    const m = new Map<string, (typeof processos)[number]>();
+    processos.forEach((p) => { if (p.implantacao_id) m.set(p.implantacao_id, p); });
+    return m;
+  }, [processos]);
+
 
   const { data: items = [], isLoading } = useQuery({
     queryKey: ["implantacoes"],
