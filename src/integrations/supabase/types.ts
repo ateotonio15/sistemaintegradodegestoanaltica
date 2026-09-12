@@ -3201,6 +3201,7 @@ export type Database = {
           data_vencimento: string | null
           data_vigencia: string | null
           dia_movimentacao: number | null
+          emails_contrato: string | null
           empresa_id: string | null
           endereco: string | null
           enviado_cadastro_em: string | null
@@ -3237,7 +3238,9 @@ export type Database = {
           updated_at: string
           valor_apartamento_centavos: number | null
           valor_enfermaria_centavos: number | null
+          vidas_apartamento: number | null
           vidas_dependentes: number | null
+          vidas_enfermaria: number | null
           vidas_titulares: number | null
         }
         Insert: {
@@ -3256,6 +3259,7 @@ export type Database = {
           data_vencimento?: string | null
           data_vigencia?: string | null
           dia_movimentacao?: number | null
+          emails_contrato?: string | null
           empresa_id?: string | null
           endereco?: string | null
           enviado_cadastro_em?: string | null
@@ -3292,7 +3296,9 @@ export type Database = {
           updated_at?: string
           valor_apartamento_centavos?: number | null
           valor_enfermaria_centavos?: number | null
+          vidas_apartamento?: number | null
           vidas_dependentes?: number | null
+          vidas_enfermaria?: number | null
           vidas_titulares?: number | null
         }
         Update: {
@@ -3311,6 +3317,7 @@ export type Database = {
           data_vencimento?: string | null
           data_vigencia?: string | null
           dia_movimentacao?: number | null
+          emails_contrato?: string | null
           empresa_id?: string | null
           endereco?: string | null
           enviado_cadastro_em?: string | null
@@ -3347,7 +3354,9 @@ export type Database = {
           updated_at?: string
           valor_apartamento_centavos?: number | null
           valor_enfermaria_centavos?: number | null
+          vidas_apartamento?: number | null
           vidas_dependentes?: number | null
+          vidas_enfermaria?: number | null
           vidas_titulares?: number | null
         }
         Relationships: []
