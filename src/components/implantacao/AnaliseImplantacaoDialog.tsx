@@ -210,6 +210,92 @@ export function AnaliseImplantacaoDialog({ implantacaoId, open, onClose, readOnl
           <p className="text-muted-foreground">Carregando…</p>
         ) : (
           <div className="space-y-5">
+            {/* Resumo da Análise */}
+            {(() => {
+              const validacao: any = impl.relatorio_validacao || null;
+              const divergencias = validacao ? Number(validacao.erros ?? 0) : null;
+              const pendencias = processo?.pendencias_abertas ?? 0;
+              const statusProc = processo?.status || "";
+              let risco: { label: string; tom: Tom };
+              if (
+                processo?.resultado_final === "Reprovado" ||
+                statusProc.startsWith("pendencia") ||
+                (divergencias ?? 0) > 0
+              ) {
+                risco = { label: "Alto", tom: "vermelho" };
+              } else if (
+                pendencias > 0 ||
+                statusProc === "aguardando_documento_empresa" ||
+                statusProc === "aprovado_ressalva" ||
+                (validacao && Number(validacao.alertas ?? 0) > 0)
+              ) {
+                risco = { label: "Médio", tom: "amarelo" };
+              } else if (!processo) {
+                risco = { label: "Não analisado", tom: "cinza" };
+              } else {
+                risco = { label: "Baixo", tom: "verde" };
+              }
+              const sg = (processo?.status_geral || null) as ProcessoStatusGeral | null;
+              return (
+                <Card className="border-primary/20">
+                  <CardContent className="p-4 space-y-3">
+                    <div className="flex items-center justify-between gap-2">
+                      <h4 className="text-sm font-semibold">Resumo da Análise</h4>
+                      <div className="flex items-center gap-1.5">
+                        {processo?.status && (
+                          <Badge variant="outline" className={`text-[11px] ${statusBadge(processo.status)}`}>
+                            {statusLabel(processo.status)}
+                          </Badge>
+                        )}
+                        <Badge variant="outline" className={`text-[11px] ${
+                          risco.tom === "verde" ? "bg-emerald-500/15 text-emerald-600 border-emerald-500/30"
+                          : risco.tom === "amarelo" ? "bg-amber-500/15 text-amber-600 border-amber-500/30"
+                          : risco.tom === "vermelho" ? "bg-red-500/15 text-red-600 border-red-500/30"
+                          : "bg-muted text-muted-foreground border-border"
+                        }`}>
+                          Risco {risco.label}
+                        </Badge>
+                      </div>
+                    </div>
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+                      <ItemResumo label="Nº do contrato / ID" value={processo?.codigo || impl.codigo_contrato} tom="verde" />
+                      <ItemResumo label="Empresa" value={impl.nome_empresa} tom="verde" />
+                      <ItemResumo label="CNPJ" value={impl.cnpj} tom="verde" />
+                      <ItemResumo label="Contratado" value={impl.nome_empresa} tom="verde" />
+                      <ItemResumo label="Tipo de vínculo" value={impl.tipo_contrato} tom="verde" />
+                      <ItemResumo
+                        label="Status geral"
+                        value={sg ? statusGeralLabel(sg) : (processo ? null : "—")}
+                        tom={sg === "concluido" ? "verde" : sg === "aguardando_pendencia" ? "amarelo" : sg === "cancelado" ? "vermelho" : sg ? "amarelo" : "cinza"}
+                      />
+                      <ItemResumo label="Setor atual" value={processo ? setorLabel(processo.setor_atual) : null} tom={processo ? "amarelo" : "cinza"} />
+                      <ItemResumo label="Responsável atual" value={processo?.responsavel_atual_nome} tom={processo?.responsavel_atual_nome ? "verde" : "cinza"} />
+                      <ItemResumo
+                        label="Resultado da elegibilidade"
+                        value={processo?.resultado_final}
+                        tom={tomResultado(processo?.resultado_final)}
+                      />
+                      <ItemResumo label="Nível de risco" value={risco.label} tom={risco.tom} />
+                      <ItemResumo
+                        label="Pendências"
+                        value={processo ? String(pendencias) : null}
+                        tom={pendencias > 0 ? "amarelo" : processo ? "verde" : "cinza"}
+                      />
+                      <ItemResumo
+                        label="Divergências"
+                        value={divergencias != null ? String(divergencias) : null}
+                        tom={divergencias == null ? "cinza" : divergencias > 0 ? "vermelho" : "verde"}
+                      />
+                      <ItemResumo label="Vigência" value={formatDateBR(impl.data_vigencia)} tom={impl.data_vigencia ? "verde" : "cinza"} />
+                      <ItemResumo label="Previsão de implantação" value={formatDateBR(impl.inicio_atendimento)} tom={impl.inicio_atendimento ? "amarelo" : "cinza"} />
+                      <ItemResumo label="Última atualização" value={dataHoraCurta(processo?.ultima_movimentacao_em || impl.updated_at)} tom="verde" />
+                      <ItemResumo label="Próxima ação" value={processo?.proxima_acao} tom={processo?.proxima_acao ? "amarelo" : "cinza"} />
+                    </div>
+                  </CardContent>
+                </Card>
+              );
+            })()}
+
             {/* Cabeçalho */}
             <Card className="bg-gradient-to-br from-primary/5 to-transparent border-primary/20">
               <CardContent className="p-4 space-y-2">
