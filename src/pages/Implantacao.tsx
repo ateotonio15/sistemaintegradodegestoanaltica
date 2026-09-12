@@ -11,11 +11,14 @@ import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { FileSignature, Plus, Search, FileText, Clock, Trash2 } from "lucide-react";
+import { FileSignature, Plus, Search, FileText, Clock, Trash2, GitBranch } from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "@/hooks/useAuth";
 import { ImplantacaoWizard } from "@/components/implantacao/ImplantacaoWizard";
 import { AnaliseImplantacaoDialog } from "@/components/implantacao/AnaliseImplantacaoDialog";
+import { ProcessoFluxoDialog } from "@/components/implantacao/ProcessoFluxoDialog";
+import { useContratoProcessos } from "@/hooks/useContratoProcessos";
+import { setorLabel, statusBadge, statusLabel } from "@/lib/contrato-processo";
 import { formatDateBR, formatDay } from "@/lib/date-utils";
 
 type EtapaFiltro = "em_andamento" | "implantados";
@@ -48,6 +51,15 @@ export default function Implantacao() {
   const [openId, setOpenId] = useState<string | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<{ id: string; nome: string } | null>(null);
   const [deleting, setDeleting] = useState(false);
+  const [fluxoTarget, setFluxoTarget] = useState<any | null>(null);
+
+  const { data: processos = [] } = useContratoProcessos();
+  const processoPorImplantacao = useMemo(() => {
+    const m = new Map<string, (typeof processos)[number]>();
+    processos.forEach((p) => { if (p.implantacao_id) m.set(p.implantacao_id, p); });
+    return m;
+  }, [processos]);
+
 
   const { data: items = [], isLoading } = useQuery({
     queryKey: ["implantacoes"],
@@ -246,6 +258,15 @@ export default function Implantacao() {
                           <Badge variant="outline" className={STATUS_COLOR[i.status]}>
                             {STATUS_LABEL[i.status]}
                           </Badge>
+                          <Button
+                            size="icon"
+                            variant="ghost"
+                            className="h-7 w-7 text-muted-foreground hover:text-primary hover:bg-primary/10"
+                            onClick={(e) => { e.stopPropagation(); setFluxoTarget(i); }}
+                            title="Fluxo entre setores"
+                          >
+                            <GitBranch className="h-4 w-4" />
+                          </Button>
                           {canDelete && (
                             <Button
                               size="icon"
@@ -266,6 +287,19 @@ export default function Implantacao() {
                         <p>CNPJ: {i.cnpj || "—"}</p>
                         <p>Código: {i.codigo_contrato || "—"}</p>
                       </div>
+                      {processoPorImplantacao.get(i.id) && (
+                        <div className="mt-2 flex flex-wrap items-center gap-1.5">
+                          <Badge variant="outline" className={statusBadge(processoPorImplantacao.get(i.id)!.status)}>
+                            {statusLabel(processoPorImplantacao.get(i.id)!.status)}
+                          </Badge>
+                          <span className="text-xs text-muted-foreground">
+                            {setorLabel(processoPorImplantacao.get(i.id)!.setor_atual)}
+                            {(processoPorImplantacao.get(i.id)!.pendencias_abertas ?? 0) > 0
+                              ? ` · ${processoPorImplantacao.get(i.id)!.pendencias_abertas} pendência(s)`
+                              : ""}
+                          </span>
+                        </div>
+                      )}
                     </div>
 
                     {/* Coluna de detalhes */}
@@ -326,6 +360,18 @@ export default function Implantacao() {
             readOnly={!canEdit}
           />
         ) : null}
+
+        {fluxoTarget && (
+          <ProcessoFluxoDialog
+            open={!!fluxoTarget}
+            onClose={() => setFluxoTarget(null)}
+            implantacaoId={fluxoTarget.id}
+            nomeEmpresa={fluxoTarget.nome_empresa}
+            cnpj={fluxoTarget.cnpj}
+            empresaId={fluxoTarget.empresa_id}
+            readOnly={!canEdit}
+          />
+        )}
 
         <AlertDialog open={!!deleteTarget} onOpenChange={(o) => !o && setDeleteTarget(null)}>
           <AlertDialogContent>
