@@ -273,3 +273,108 @@ export function acaoLabel(acao?: string | null) {
   if (!acao) return "—";
   return ACAO_LABEL[acao] ?? acao;
 }
+
+// ============ Gestão de pendências ============
+
+export type PendenciaCategoria =
+  | "Jurídica"
+  | "Cadastral"
+  | "Financeira"
+  | "Documental"
+  | "Divergência de dados"
+  | "Assinatura"
+  | "Vigência"
+  | "Elegibilidade"
+  | "Outros";
+
+export type PendenciaCriticidade = "Baixa" | "Média" | "Alta" | "Crítica";
+
+export type PendenciaStatus =
+  | "Aberta"
+  | "Em análise"
+  | "Aguardando documento"
+  | "Resolvida"
+  | "Cancelada";
+
+export const PENDENCIA_CATEGORIAS: PendenciaCategoria[] = [
+  "Jurídica",
+  "Cadastral",
+  "Financeira",
+  "Documental",
+  "Divergência de dados",
+  "Assinatura",
+  "Vigência",
+  "Elegibilidade",
+  "Outros",
+];
+
+export const PENDENCIA_CRITICIDADES: PendenciaCriticidade[] = ["Baixa", "Média", "Alta", "Crítica"];
+
+export const PENDENCIA_STATUS_LISTA: PendenciaStatus[] = [
+  "Aberta",
+  "Em análise",
+  "Aguardando documento",
+  "Resolvida",
+  "Cancelada",
+];
+
+export const PENDENCIA_CRITICIDADE_BADGE: Record<PendenciaCriticidade, string> = {
+  Baixa: "bg-muted text-muted-foreground border-border",
+  Média: "bg-amber-500/15 text-amber-600 border-amber-500/30",
+  Alta: "bg-orange-500/15 text-orange-600 border-orange-500/30",
+  Crítica: "bg-red-500/15 text-red-600 border-red-500/30",
+};
+
+export const PENDENCIA_STATUS_BADGE: Record<PendenciaStatus, string> = {
+  Aberta: "bg-red-500/15 text-red-600 border-red-500/30",
+  "Em análise": "bg-blue-500/15 text-blue-600 border-blue-500/30",
+  "Aguardando documento": "bg-orange-500/15 text-orange-600 border-orange-500/30",
+  Resolvida: "bg-emerald-500/15 text-emerald-600 border-emerald-500/30",
+  Cancelada: "bg-muted text-muted-foreground border-border",
+};
+
+/** Setor responsável sugerido por categoria (regras de direcionamento). */
+export const SETOR_POR_CATEGORIA: Record<PendenciaCategoria, ProcessoSetor> = {
+  Jurídica: "juridico",
+  Assinatura: "juridico",
+  Vigência: "juridico",
+  Elegibilidade: "juridico",
+  Cadastral: "cadastro",
+  "Divergência de dados": "cadastro",
+  Financeira: "financeiro",
+  Documental: "documentos",
+  Outros: "comercial",
+};
+
+/** Motivos padronizados e o setor responsável (regras de direcionamento). */
+export const MOTIVOS_PENDENCIA: {
+  motivo: string;
+  categoria: PendenciaCategoria;
+  setor: ProcessoSetor;
+}[] = [
+  { motivo: "Vínculo não comprovado", categoria: "Jurídica", setor: "juridico" },
+  { motivo: "Exclusividade não comprovada", categoria: "Jurídica", setor: "juridico" },
+  { motivo: "Modalidade PJ duvidosa", categoria: "Jurídica", setor: "juridico" },
+  { motivo: "Contrato vencido", categoria: "Vigência", setor: "juridico" },
+  { motivo: "Vigência incompatível", categoria: "Vigência", setor: "juridico" },
+  { motivo: "Assinatura ausente", categoria: "Assinatura", setor: "juridico" },
+  { motivo: "Cláusula incompatível", categoria: "Jurídica", setor: "juridico" },
+  { motivo: 'Modalidade "Pejotizada vinculada à Futura" não comprovada', categoria: "Elegibilidade", setor: "juridico" },
+  { motivo: "CNPJ ausente", categoria: "Cadastral", setor: "cadastro" },
+  { motivo: "Nome da empresa divergente", categoria: "Divergência de dados", setor: "cadastro" },
+  { motivo: "Grupo/contrato ausente", categoria: "Cadastral", setor: "cadastro" },
+  { motivo: "Início de atendimento ausente", categoria: "Cadastral", setor: "cadastro" },
+  { motivo: "Quantidade de vidas ausente", categoria: "Cadastral", setor: "cadastro" },
+  { motivo: "Informações cadastrais divergentes", categoria: "Divergência de dados", setor: "cadastro" },
+  { motivo: "Valores divergentes", categoria: "Financeira", setor: "financeiro" },
+  { motivo: "Honorários divergentes", categoria: "Financeira", setor: "financeiro" },
+  { motivo: "Valor de plano incompatível", categoria: "Financeira", setor: "financeiro" },
+  { motivo: "Necessidade de validação financeira", categoria: "Financeira", setor: "financeiro" },
+  { motivo: "Documento ausente", categoria: "Documental", setor: "documentos" },
+  { motivo: "Documento ilegível", categoria: "Documental", setor: "documentos" },
+  { motivo: "Documento incompleto", categoria: "Documental", setor: "documentos" },
+];
+
+export function pendenciaEmAberto(status?: string | null) {
+  return status !== "Resolvida" && status !== "Cancelada";
+}
