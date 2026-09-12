@@ -941,6 +941,211 @@ export type Database = {
           },
         ]
       }
+      contrato_processo_movimentacoes: {
+        Row: {
+          acao: string
+          created_at: string
+          detalhes: Json
+          id: string
+          observacao: string | null
+          processo_id: string
+          responsavel_id: string | null
+          responsavel_nome: string | null
+          resultado_anterior: string | null
+          resultado_novo: string | null
+          setor_destino: string | null
+          setor_origem: string | null
+          status_anterior: string | null
+          status_novo: string | null
+          user_id: string | null
+          user_nome: string | null
+        }
+        Insert: {
+          acao: string
+          created_at?: string
+          detalhes?: Json
+          id?: string
+          observacao?: string | null
+          processo_id: string
+          responsavel_id?: string | null
+          responsavel_nome?: string | null
+          resultado_anterior?: string | null
+          resultado_novo?: string | null
+          setor_destino?: string | null
+          setor_origem?: string | null
+          status_anterior?: string | null
+          status_novo?: string | null
+          user_id?: string | null
+          user_nome?: string | null
+        }
+        Update: {
+          acao?: string
+          created_at?: string
+          detalhes?: Json
+          id?: string
+          observacao?: string | null
+          processo_id?: string
+          responsavel_id?: string | null
+          responsavel_nome?: string | null
+          resultado_anterior?: string | null
+          resultado_novo?: string | null
+          setor_destino?: string | null
+          setor_origem?: string | null
+          status_anterior?: string | null
+          status_novo?: string | null
+          user_id?: string | null
+          user_nome?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "contrato_processo_movimentacoes_processo_id_fkey"
+            columns: ["processo_id"]
+            isOneToOne: false
+            referencedRelation: "contrato_processos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      contrato_processo_pendencias: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          created_by_nome: string | null
+          descricao: string
+          id: string
+          prazo: string | null
+          processo_id: string
+          resolvida: boolean
+          resolvida_em: string | null
+          resolvida_por: string | null
+          resolvida_por_nome: string | null
+          responsavel_id: string | null
+          responsavel_nome: string | null
+          setor: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          created_by_nome?: string | null
+          descricao: string
+          id?: string
+          prazo?: string | null
+          processo_id: string
+          resolvida?: boolean
+          resolvida_em?: string | null
+          resolvida_por?: string | null
+          resolvida_por_nome?: string | null
+          responsavel_id?: string | null
+          responsavel_nome?: string | null
+          setor?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          created_by_nome?: string | null
+          descricao?: string
+          id?: string
+          prazo?: string | null
+          processo_id?: string
+          resolvida?: boolean
+          resolvida_em?: string | null
+          resolvida_por?: string | null
+          resolvida_por_nome?: string | null
+          responsavel_id?: string | null
+          responsavel_nome?: string | null
+          setor?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "contrato_processo_pendencias_processo_id_fkey"
+            columns: ["processo_id"]
+            isOneToOne: false
+            referencedRelation: "contrato_processos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      contrato_processos: {
+        Row: {
+          cnpj: string | null
+          codigo: string
+          created_at: string
+          created_by: string | null
+          created_by_nome: string | null
+          empresa_id: string | null
+          id: string
+          implantacao_id: string | null
+          nome_empresa: string | null
+          observacao: string | null
+          pendencias_abertas: number
+          responsavel_atual_id: string | null
+          responsavel_atual_nome: string | null
+          resultado_final: string
+          setor_atual: string
+          status_geral: string
+          ultima_movimentacao_em: string
+          updated_at: string
+        }
+        Insert: {
+          cnpj?: string | null
+          codigo?: string
+          created_at?: string
+          created_by?: string | null
+          created_by_nome?: string | null
+          empresa_id?: string | null
+          id?: string
+          implantacao_id?: string | null
+          nome_empresa?: string | null
+          observacao?: string | null
+          pendencias_abertas?: number
+          responsavel_atual_id?: string | null
+          responsavel_atual_nome?: string | null
+          resultado_final?: string
+          setor_atual?: string
+          status_geral?: string
+          ultima_movimentacao_em?: string
+          updated_at?: string
+        }
+        Update: {
+          cnpj?: string | null
+          codigo?: string
+          created_at?: string
+          created_by?: string | null
+          created_by_nome?: string | null
+          empresa_id?: string | null
+          id?: string
+          implantacao_id?: string | null
+          nome_empresa?: string | null
+          observacao?: string | null
+          pendencias_abertas?: number
+          responsavel_atual_id?: string | null
+          responsavel_atual_nome?: string | null
+          resultado_final?: string
+          setor_atual?: string
+          status_geral?: string
+          ultima_movimentacao_em?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "contrato_processos_empresa_id_fkey"
+            columns: ["empresa_id"]
+            isOneToOne: false
+            referencedRelation: "empresas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "contrato_processos_implantacao_id_fkey"
+            columns: ["implantacao_id"]
+            isOneToOne: false
+            referencedRelation: "implantacoes_contratos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       contratos: {
         Row: {
           created_at: string
@@ -4926,6 +5131,40 @@ export type Database = {
         Args: { p_id: string }
         Returns: undefined
       }
+      criar_contrato_processo: {
+        Args: {
+          p_cnpj?: string
+          p_empresa_id?: string
+          p_implantacao_id?: string
+          p_nome_empresa?: string
+        }
+        Returns: {
+          cnpj: string | null
+          codigo: string
+          created_at: string
+          created_by: string | null
+          created_by_nome: string | null
+          empresa_id: string | null
+          id: string
+          implantacao_id: string | null
+          nome_empresa: string | null
+          observacao: string | null
+          pendencias_abertas: number
+          responsavel_atual_id: string | null
+          responsavel_atual_nome: string | null
+          resultado_final: string
+          setor_atual: string
+          status_geral: string
+          ultima_movimentacao_em: string
+          updated_at: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "contrato_processos"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       criar_ferias_cadastro: {
         Args: {
           p_atribuicoes: Json
@@ -4972,6 +5211,7 @@ export type Database = {
         Args: { p_impl: string }
         Returns: string
       }
+      gerar_codigo_contrato_processo: { Args: never; Returns: string }
       gerar_feriados_ano: { Args: { _ano: number }; Returns: undefined }
       gerar_primeira_cobranca_financeira: {
         Args: { p_empresa_id: string }
@@ -5059,6 +5299,20 @@ export type Database = {
       reatribuir_ferias_empresa: {
         Args: { p_fce_id: string; p_new_user_id: string }
         Returns: Json
+      }
+      registrar_movimentacao_processo: {
+        Args: {
+          p_acao: string
+          p_detalhes?: Json
+          p_observacao?: string
+          p_processo_id: string
+          p_responsavel_id?: string
+          p_responsavel_nome?: string
+          p_resultado_novo?: string
+          p_setor_destino?: string
+          p_status_novo?: string
+        }
+        Returns: string
       }
       rejeitar_implantacao: {
         Args: { p_impl: string; p_motivo: string }
