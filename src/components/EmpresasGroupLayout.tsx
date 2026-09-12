@@ -20,8 +20,6 @@ type Tab = {
 };
 
 const TABS: Tab[] = [
-  { to: "/empresas", label: "Empresas", icon: Building2, show: () => true },
-  { to: "/movimentacoes", label: "Movimentações", icon: ArrowLeftRight, show: () => true },
   {
     to: "/implantacao",
     label: "Implantação",
@@ -29,6 +27,8 @@ const TABS: Tab[] = [
     show: ({ isAdmin, role }) =>
       isAdmin || ["comum", "administradoras", "visualizacao", "diretora"].includes(role as string),
   },
+  { to: "/empresas", label: "Empresas", icon: Building2, show: () => true },
+  { to: "/movimentacoes", label: "Movimentações", icon: ArrowLeftRight, show: () => true },
   {
     to: "/contratos-recem-implantados",
     label: "Primeira Vigencia",
