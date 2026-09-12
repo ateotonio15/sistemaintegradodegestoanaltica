@@ -24,8 +24,7 @@ const TABS: Tab[] = [
     to: "/implantacao",
     label: "Implantação",
     icon: FileSignature,
-    show: ({ isAdmin, role }) =>
-      isAdmin || ["comum", "administradoras", "visualizacao", "diretora"].includes(role as string),
+    show: () => true,
   },
   { to: "/empresas", label: "Empresas", icon: Building2, show: () => true },
   { to: "/movimentacoes", label: "Movimentações", icon: ArrowLeftRight, show: () => true },
