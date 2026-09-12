@@ -11,11 +11,14 @@ import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { FileSignature, Plus, Search, FileText, Clock, Trash2 } from "lucide-react";
+import { FileSignature, Plus, Search, FileText, Clock, Trash2, GitBranch } from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "@/hooks/useAuth";
 import { ImplantacaoWizard } from "@/components/implantacao/ImplantacaoWizard";
 import { AnaliseImplantacaoDialog } from "@/components/implantacao/AnaliseImplantacaoDialog";
+import { ProcessoFluxoDialog } from "@/components/implantacao/ProcessoFluxoDialog";
+import { useContratoProcessos } from "@/hooks/useContratoProcessos";
+import { setorLabel, statusBadge, statusLabel } from "@/lib/contrato-processo";
 import { formatDateBR, formatDay } from "@/lib/date-utils";
 
 type EtapaFiltro = "em_andamento" | "implantados";
