@@ -95,6 +95,11 @@ export interface ContratoProcessoPendencia {
   id: string;
   processo_id: string;
   setor: ProcessoSetor;
+  titulo: string;
+  categoria: string;
+  criticidade: string;
+  status: string;
+  observacao_resolucao: string | null;
   descricao: string;
   responsavel_id: string | null;
   responsavel_nome: string | null;
