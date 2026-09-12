@@ -341,37 +341,23 @@ function ImplantadoResumo({ implantacao: i }: { implantacao: any }) {
       ? String(empresa.data_vencimento_fatura).padStart(2, "0")
       : "—";
 
-  const detalhe = (label: string, value: React.ReactNode) => (
-    <div className="grid grid-cols-[minmax(7rem,auto)_1fr] gap-2 leading-5">
-      <span className="text-muted-foreground">{label}</span>
-      <span className="font-medium text-foreground break-words text-right">{value ?? "—"}</span>
+  const secao = (label: string, value: React.ReactNode) => (
+    <div className="space-y-0.5">
+      <p className="text-xs text-muted-foreground">{label}</p>
+      <p className="text-sm font-medium text-foreground break-words">{value ?? "—"}</p>
     </div>
   );
 
   return (
-    <div className="space-y-1.5">
-      {detalhe("Código", i.codigo_contrato || "—")}
-      {detalhe("Data de ativação", i.inicio_atendimento ? formatDateBR(i.inicio_atendimento) : (empresa.data_implantacao ? formatDateBR(empresa.data_implantacao) : (i.data_vigencia ? formatDateBR(i.data_vigencia) : "—")))}
-      {detalhe("Vencimento", vencimento)}
-      {detalhe("Movimentações", movimentacao || "—")}
-      {detalhe("E-mail do contrato", emails || "—")}
-      {detalhe("Telefone", i.telefone || empresa.telefone_empresa || "—")}
-      <div className="grid grid-cols-3 gap-2 py-2">
-        <div className="rounded-md bg-muted/60 p-2 text-center">
-          <p className="font-bold text-base">{vidasTotal || 0}</p>
-          <p className="text-[10px] text-muted-foreground">Vidas total</p>
-        </div>
-        <div className="rounded-md bg-muted/60 p-2 text-center">
-          <p className="font-bold text-base">{i.vidas_enfermaria || 0}</p>
-          <p className="text-[10px] text-muted-foreground">Enfermaria</p>
-        </div>
-        <div className="rounded-md bg-muted/60 p-2 text-center">
-          <p className="font-bold text-base">{i.vidas_apartamento || 0}</p>
-          <p className="text-[10px] text-muted-foreground">Apartamento</p>
-        </div>
-      </div>
-      {detalhe("Corretora", i.corretora || "—")}
-      {detalhe("Comissão", `Agenciamento de ${i.percentual_agenciamento ?? 0}% com ${i.percentual_vitalicio ?? 0}%`)}
+    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-x-6 gap-y-3">
+      {secao("Data de ativação", i.inicio_atendimento ? formatDateBR(i.inicio_atendimento) : (empresa.data_implantacao ? formatDateBR(empresa.data_implantacao) : (i.data_vigencia ? formatDateBR(i.data_vigencia) : "—")))}
+      {secao("Vencimento", vencimento)}
+      {secao("Movimentações", movimentacao || "—")}
+      {secao("E-mail do contrato", emails || "—")}
+      {secao("Telefone", i.telefone || empresa.telefone_empresa || "—")}
+      {secao("Vidas total", `${vidasTotal || 0} (${i.vidas_enfermaria || 0} enferm. / ${i.vidas_apartamento || 0} apart.)`)}
+      {secao("Corretora", i.corretora || "—")}
+      {secao("Comissão", `Agenciamento ${i.percentual_agenciamento ?? 0}% com ${i.percentual_vitalicio ?? 0}%`)}
     </div>
   );
 }
