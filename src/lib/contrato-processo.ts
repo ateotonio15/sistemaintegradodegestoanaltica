@@ -78,6 +78,8 @@ export interface ContratoProcessoMovimentacao {
   setor_destino: string | null;
   status_anterior: string | null;
   status_novo: string | null;
+  status_detalhado_anterior: string | null;
+  status_detalhado_novo: string | null;
   resultado_anterior: string | null;
   resultado_novo: string | null;
   responsavel_id: string | null;
