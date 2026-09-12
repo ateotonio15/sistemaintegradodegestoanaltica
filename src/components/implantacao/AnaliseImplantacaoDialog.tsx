@@ -12,6 +12,9 @@ import { SelecionarResponsavelCadastroDialog } from "./SelecionarResponsavelCada
 import { formatDateBR, formatDay } from "@/lib/date-utils";
 import { formatCentavosBRL } from "@/lib/reajuste-utils";
 import { useContratoProcessoPorImplantacao } from "@/hooks/useContratoProcessos";
+import { useBloqueioValidacaoCruzada, useValidacaoCruzada } from "@/hooks/useValidacaoCruzada";
+import { ValidacaoCruzadaSection } from "./ValidacaoCruzadaSection";
+import { resumoValidacao } from "@/lib/validacao-cruzada";
 import {
   setorLabel, statusGeralLabel, statusLabel, statusBadge,
   STATUS_GERAL_BADGE, type ProcessoStatusGeral,
