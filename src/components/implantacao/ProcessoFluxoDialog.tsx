@@ -46,7 +46,9 @@ function dataHora(iso?: string | null) {
   return new Date(iso).toLocaleString("pt-BR", { day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit" });
 }
 
-export function ProcessoFluxoDialog({ open, onClose, implantacaoId, nomeEmpresa, cnpj, empresaId, readOnly }: Props) {
+export function ProcessoFluxoDialog({ open, onClose, implantacaoId, nomeEmpresa, cnpj, empresaId }: Props) {
+  // O fluxo entre setores é automático: visível para todos, alterável por ninguém.
+  const readOnly = true;
   const { data: processo, isLoading } = useContratoProcessoPorImplantacao(open ? implantacaoId : null);
   const { data: historico = [] } = useContratoProcessoHistorico(processo?.id);
   const criar = useCriarContratoProcesso();
