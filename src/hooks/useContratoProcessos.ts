@@ -6,6 +6,7 @@ import type {
   ContratoProcessoPendencia,
   ProcessoResultado,
   ProcessoSetor,
+  ProcessoStatus,
   ProcessoStatusGeral,
 } from "@/lib/contrato-processo";
 
