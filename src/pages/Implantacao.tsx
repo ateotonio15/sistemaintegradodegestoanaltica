@@ -201,62 +201,77 @@ export default function Implantacao() {
             </CardContent>
           </Card>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 items-start">
+          <div className="space-y-3">
             {filtered.map((i) => (
               <Card
                 key={i.id}
                 className="cursor-pointer hover:shadow-md transition-shadow"
                 onClick={() => setOpenId(i.id)}
               >
-                <CardHeader className="pb-3">
-                  <div className="flex items-start justify-between gap-2">
-                    <CardTitle className="text-base truncate">
-                      {i.nome_empresa || "Sem nome"}
-                    </CardTitle>
-                    <div className="flex items-center gap-1 shrink-0">
-                      <Badge variant="outline" className={STATUS_COLOR[i.status]}>
-                        {STATUS_LABEL[i.status]}
-                      </Badge>
-                      {canDelete && (
-                        <Button
-                          size="icon"
-                          variant="ghost"
-                          className="h-7 w-7 text-muted-foreground hover:text-red-600 hover:bg-red-500/10"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setDeleteTarget({ id: i.id, nome: i.nome_empresa || "Sem nome" });
-                          }}
-                          title="Excluir implantação"
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
+                <CardContent className="p-4">
+                  <div className="flex flex-col lg:flex-row lg:items-start gap-4">
+                    {/* Coluna principal: nome, status, código */}
+                    <div className="min-w-0 flex-1 lg:flex-[0_0_22rem]">
+                      <div className="flex items-start justify-between gap-2">
+                        <CardTitle className="text-base truncate">
+                          {i.nome_empresa || "Sem nome"}
+                        </CardTitle>
+                        <div className="flex items-center gap-1 shrink-0">
+                          <Badge variant="outline" className={STATUS_COLOR[i.status]}>
+                            {STATUS_LABEL[i.status]}
+                          </Badge>
+                          {canDelete && (
+                            <Button
+                              size="icon"
+                              variant="ghost"
+                              className="h-7 w-7 text-muted-foreground hover:text-red-600 hover:bg-red-500/10"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setDeleteTarget({ id: i.id, nome: i.nome_empresa || "Sem nome" });
+                              }}
+                              title="Excluir implantação"
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          )}
+                        </div>
+                      </div>
+                      <div className="mt-2 text-sm text-muted-foreground">
+                        <p>CNPJ: {i.cnpj || "—"}</p>
+                        <p>Código: {i.codigo_contrato || "—"}</p>
+                      </div>
+                    </div>
+
+                    {/* Coluna de detalhes */}
+                    <div className="flex-1 min-w-0">
+                      {i.status === "implantado" ? (
+                        <ImplantadoResumo implantacao={i} />
+                      ) : (
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-1 text-sm text-muted-foreground">
+                          <p>Vigência: {i.data_vigencia ? formatDateBR(i.data_vigencia) : "—"}</p>
+                          <p>Vencimento: {i.data_vencimento ? formatDay(i.data_vencimento) : "—"}</p>
+                          <p>Corretora: {i.corretora || "—"}</p>
+                          <p>Vidas: {i.total_vidas ?? 0}</p>
+                        </div>
                       )}
                     </div>
-                  </div>
-                </CardHeader>
-                <CardContent className="space-y-2 text-sm">
-                  {i.status === "implantado" ? (
-                    <ImplantadoResumo implantacao={i} />
-                  ) : (
-                    <>
-                      <p className="text-muted-foreground">CNPJ: {i.cnpj || "—"}</p>
-                      <p className="text-muted-foreground">Código: {i.codigo_contrato || "—"}</p>
-                    </>
-                  )}
-                  <div className="flex items-center justify-between pt-2 border-t">
-                    <span className="text-xs text-muted-foreground flex items-center gap-1">
-                      <Clock className="h-3 w-3" />
-                      Etapa {i.etapa_atual}/6
-                    </span>
-                    <div className="flex gap-1">
-                      {[1, 2, 3, 4, 5, 6].map((n) => (
-                        <span
-                          key={n}
-                          className={`h-1.5 w-4 rounded-full ${
-                            n <= (i.etapa_atual || 1) ? "bg-primary" : "bg-muted"
-                          }`}
-                        />
-                      ))}
+
+                    {/* Coluna de etapa */}
+                    <div className="lg:flex-[0_0_auto] lg:text-right">
+                      <span className="text-xs text-muted-foreground flex items-center gap-1 lg:justify-end">
+                        <Clock className="h-3 w-3" />
+                        Etapa {i.etapa_atual}/6
+                      </span>
+                      <div className="flex gap-1 mt-1.5 lg:justify-end">
+                        {[1, 2, 3, 4, 5, 6].map((n) => (
+                          <span
+                            key={n}
+                            className={`h-1.5 w-5 rounded-full ${
+                              n <= (i.etapa_atual || 1) ? "bg-primary" : "bg-muted"
+                            }`}
+                          />
+                        ))}
+                      </div>
                     </div>
                   </div>
                 </CardContent>
@@ -326,37 +341,23 @@ function ImplantadoResumo({ implantacao: i }: { implantacao: any }) {
       ? String(empresa.data_vencimento_fatura).padStart(2, "0")
       : "—";
 
-  const detalhe = (label: string, value: React.ReactNode) => (
-    <div className="grid grid-cols-[minmax(7rem,auto)_1fr] gap-2 leading-5">
-      <span className="text-muted-foreground">{label}</span>
-      <span className="font-medium text-foreground break-words text-right">{value ?? "—"}</span>
+  const secao = (label: string, value: React.ReactNode) => (
+    <div className="space-y-0.5">
+      <p className="text-xs text-muted-foreground">{label}</p>
+      <p className="text-sm font-medium text-foreground break-words">{value ?? "—"}</p>
     </div>
   );
 
   return (
-    <div className="space-y-1.5">
-      {detalhe("Código", i.codigo_contrato || "—")}
-      {detalhe("Data de ativação", i.inicio_atendimento ? formatDateBR(i.inicio_atendimento) : (empresa.data_implantacao ? formatDateBR(empresa.data_implantacao) : (i.data_vigencia ? formatDateBR(i.data_vigencia) : "—")))}
-      {detalhe("Vencimento", vencimento)}
-      {detalhe("Movimentações", movimentacao || "—")}
-      {detalhe("E-mail do contrato", emails || "—")}
-      {detalhe("Telefone", i.telefone || empresa.telefone_empresa || "—")}
-      <div className="grid grid-cols-3 gap-2 py-2">
-        <div className="rounded-md bg-muted/60 p-2 text-center">
-          <p className="font-bold text-base">{vidasTotal || 0}</p>
-          <p className="text-[10px] text-muted-foreground">Vidas total</p>
-        </div>
-        <div className="rounded-md bg-muted/60 p-2 text-center">
-          <p className="font-bold text-base">{i.vidas_enfermaria || 0}</p>
-          <p className="text-[10px] text-muted-foreground">Enfermaria</p>
-        </div>
-        <div className="rounded-md bg-muted/60 p-2 text-center">
-          <p className="font-bold text-base">{i.vidas_apartamento || 0}</p>
-          <p className="text-[10px] text-muted-foreground">Apartamento</p>
-        </div>
-      </div>
-      {detalhe("Corretora", i.corretora || "—")}
-      {detalhe("Comissão", `Agenciamento de ${i.percentual_agenciamento ?? 0}% com ${i.percentual_vitalicio ?? 0}%`)}
+    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-x-6 gap-y-3">
+      {secao("Data de ativação", i.inicio_atendimento ? formatDateBR(i.inicio_atendimento) : (empresa.data_implantacao ? formatDateBR(empresa.data_implantacao) : (i.data_vigencia ? formatDateBR(i.data_vigencia) : "—")))}
+      {secao("Vencimento", vencimento)}
+      {secao("Movimentações", movimentacao || "—")}
+      {secao("E-mail do contrato", emails || "—")}
+      {secao("Telefone", i.telefone || empresa.telefone_empresa || "—")}
+      {secao("Vidas total", `${vidasTotal || 0} (${i.vidas_enfermaria || 0} enferm. / ${i.vidas_apartamento || 0} apart.)`)}
+      {secao("Corretora", i.corretora || "—")}
+      {secao("Comissão", `Agenciamento ${i.percentual_agenciamento ?? 0}% com ${i.percentual_vitalicio ?? 0}%`)}
     </div>
   );
 }
