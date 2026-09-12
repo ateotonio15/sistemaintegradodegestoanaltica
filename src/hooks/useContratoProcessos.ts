@@ -182,7 +182,11 @@ export function useCriarPendenciaProcesso() {
     mutationFn: async (input: {
       processoId: string;
       setor: ProcessoSetor;
-      descricao: string;
+      titulo: string;
+      descricao?: string | null;
+      categoria: string;
+      criticidade: string;
+      status?: string;
       responsavelId?: string | null;
       responsavelNome?: string | null;
       prazo?: string | null;
@@ -191,7 +195,11 @@ export function useCriarPendenciaProcesso() {
       const { error } = await supabase.from("contrato_processo_pendencias" as any).insert({
         processo_id: input.processoId,
         setor: input.setor,
-        descricao: input.descricao,
+        titulo: input.titulo,
+        descricao: input.descricao?.trim() || input.titulo,
+        categoria: input.categoria,
+        criticidade: input.criticidade,
+        status: input.status ?? "Aberta",
         responsavel_id: input.responsavelId ?? null,
         responsavel_nome: input.responsavelNome ?? null,
         prazo: input.prazo ?? null,
@@ -206,18 +214,54 @@ export function useCriarPendenciaProcesso() {
   });
 }
 
-/** Marca uma pendência como resolvida. */
+/**
+ * Atualiza o status de uma pendência. Ao resolver/cancelar, o banco grava
+ * automaticamente o usuário e a data/hora e recalcula as pendências abertas.
+ * Pendências nunca são excluídas — permanecem no histórico.
+ */
+export function useAtualizarPendenciaProcesso() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (input: {
+      id: string;
+      processoId: string;
+      status?: string;
+      criticidade?: string;
+      categoria?: string;
+      setor?: ProcessoSetor;
+      responsavelNome?: string | null;
+      observacaoResolucao?: string | null;
+    }) => {
+      const patch: Record<string, unknown> = {};
+      if (input.status) patch.status = input.status;
+      if (input.criticidade) patch.criticidade = input.criticidade;
+      if (input.categoria) patch.categoria = input.categoria;
+      if (input.setor) patch.setor = input.setor;
+      if (input.responsavelNome !== undefined) patch.responsavel_nome = input.responsavelNome;
+      if (input.observacaoResolucao !== undefined) patch.observacao_resolucao = input.observacaoResolucao;
+      const { error } = await supabase
+        .from("contrato_processo_pendencias" as any)
+        .update(patch as any)
+        .eq("id", input.id);
+      if (error) throw error;
+    },
+    onSuccess: (_r, vars) => {
+      qc.invalidateQueries({ queryKey: ["contrato-processo-pendencias", vars.processoId] });
+      qc.invalidateQueries({ queryKey: ["contrato-processos"] });
+    },
+  });
+}
+
+/** Marca uma pendência como resolvida (com observação obrigatória de resolução). */
 export function useResolverPendenciaProcesso() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: async (input: { id: string; processoId: string }) => {
-      const { data: auth } = await supabase.auth.getUser();
+    mutationFn: async (input: { id: string; processoId: string; observacao?: string | null }) => {
       const { error } = await supabase
         .from("contrato_processo_pendencias" as any)
         .update({
-          resolvida: true,
-          resolvida_em: new Date().toISOString(),
-          resolvida_por: auth.user?.id ?? null,
+          status: "Resolvida",
+          observacao_resolucao: input.observacao?.trim() || null,
         } as any)
         .eq("id", input.id);
       if (error) throw error;

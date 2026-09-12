@@ -1014,11 +1014,14 @@ export type Database = {
       }
       contrato_processo_pendencias: {
         Row: {
+          categoria: string
           created_at: string
           created_by: string | null
           created_by_nome: string | null
+          criticidade: string
           descricao: string
           id: string
+          observacao_resolucao: string | null
           prazo: string | null
           processo_id: string
           resolvida: boolean
@@ -1028,14 +1031,19 @@ export type Database = {
           responsavel_id: string | null
           responsavel_nome: string | null
           setor: string
+          status: string
+          titulo: string
           updated_at: string
         }
         Insert: {
+          categoria?: string
           created_at?: string
           created_by?: string | null
           created_by_nome?: string | null
+          criticidade?: string
           descricao: string
           id?: string
+          observacao_resolucao?: string | null
           prazo?: string | null
           processo_id: string
           resolvida?: boolean
@@ -1045,14 +1053,19 @@ export type Database = {
           responsavel_id?: string | null
           responsavel_nome?: string | null
           setor?: string
+          status?: string
+          titulo: string
           updated_at?: string
         }
         Update: {
+          categoria?: string
           created_at?: string
           created_by?: string | null
           created_by_nome?: string | null
+          criticidade?: string
           descricao?: string
           id?: string
+          observacao_resolucao?: string | null
           prazo?: string | null
           processo_id?: string
           resolvida?: boolean
@@ -1062,6 +1075,8 @@ export type Database = {
           responsavel_id?: string | null
           responsavel_nome?: string | null
           setor?: string
+          status?: string
+          titulo?: string
           updated_at?: string
         }
         Relationships: [

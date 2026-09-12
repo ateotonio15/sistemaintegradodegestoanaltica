@@ -29,6 +29,7 @@ import {
   type ProcessoSetor,
   type ProcessoStatus,
 } from "@/lib/contrato-processo";
+import { PendenciasProcessoSection } from "./PendenciasProcessoSection";
 
 interface Props {
   open: boolean;
@@ -204,6 +205,8 @@ export function ProcessoFluxoDialog({ open, onClose, implantacaoId, nomeEmpresa,
                 </CardContent>
               </Card>
             )}
+
+            <PendenciasProcessoSection processoId={processo.id} readOnly={readOnly} />
 
             <div className="space-y-2">
               <p className="text-sm font-medium flex items-center gap-2">
