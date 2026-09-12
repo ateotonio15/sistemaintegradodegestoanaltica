@@ -109,6 +109,8 @@ export function useRegistrarMovimentacaoProcesso() {
       acao: string;
       setorDestino?: ProcessoSetor | null;
       statusNovo?: ProcessoStatusGeral | null;
+      statusDetalhado?: ProcessoStatus | null;
+      proximaAcao?: string | null;
       resultadoNovo?: ProcessoResultado | null;
       responsavelId?: string | null;
       responsavelNome?: string | null;
@@ -125,6 +127,41 @@ export function useRegistrarMovimentacaoProcesso() {
         p_responsavel_nome: input.responsavelNome ?? null,
         p_observacao: input.observacao ?? null,
         p_detalhes: input.detalhes ?? {},
+        p_status_detalhado: input.statusDetalhado ?? null,
+        p_proxima_acao: input.proximaAcao ?? null,
+      });
+      if (error) throw error;
+      return data as unknown as string;
+    },
+    onSuccess: (_id, vars) => {
+      qc.invalidateQueries({ queryKey: ["contrato-processos"] });
+      qc.invalidateQueries({ queryKey: ["contrato-processo-historico", vars.processoId] });
+      qc.invalidateQueries({ queryKey: ["contrato-processo-impl"] });
+    },
+  });
+}
+
+/** Encaminha o processo de um setor para outro, registrando o histórico. */
+export function useEncaminharContratoProcesso() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (input: {
+      processoId: string;
+      setorDestino: ProcessoSetor;
+      status?: ProcessoStatus | null;
+      responsavelId?: string | null;
+      responsavelNome?: string | null;
+      proximaAcao?: string | null;
+      observacao?: string | null;
+    }) => {
+      const { data, error } = await supabase.rpc("encaminhar_contrato_processo" as any, {
+        p_processo_id: input.processoId,
+        p_setor_destino: input.setorDestino,
+        p_status: input.status ?? null,
+        p_responsavel_id: input.responsavelId ?? null,
+        p_responsavel_nome: input.responsavelNome ?? null,
+        p_proxima_acao: input.proximaAcao ?? null,
+        p_observacao: input.observacao ?? null,
       });
       if (error) throw error;
       return data as unknown as string;
