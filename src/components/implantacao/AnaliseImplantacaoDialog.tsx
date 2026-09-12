@@ -101,6 +101,9 @@ export function AnaliseImplantacaoDialog({ implantacaoId, open, onClose, readOnl
   });
 
   const { data: processo } = useContratoProcessoPorImplantacao(open ? implantacaoId : null);
+  const { data: itensValidacao = [] } = useValidacaoCruzada(open ? processo?.id : null);
+  const { bloqueado: bloqueioCritico } = useBloqueioValidacaoCruzada(open ? processo?.id : null);
+  const resumoCruzado = resumoValidacao(itensValidacao);
 
   const { data: anexos = [] } = useQuery({
     queryKey: ["impl-anexos", implantacaoId],
@@ -216,7 +219,11 @@ export function AnaliseImplantacaoDialog({ implantacaoId, open, onClose, readOnl
             {/* Resumo da Análise */}
             {(() => {
               const validacao: any = impl.relatorio_validacao || null;
-              const divergencias = validacao ? Number(validacao.erros ?? 0) : null;
+              const divergenciasRelatorio = validacao ? Number(validacao.erros ?? 0) : null;
+              const divergencias =
+                divergenciasRelatorio == null && itensValidacao.length === 0
+                  ? null
+                  : (divergenciasRelatorio ?? 0) + resumoCruzado.divergentes;
               const pendencias = processo?.pendencias_abertas ?? 0;
               const statusProc = processo?.status || "";
               let risco: { label: string; tom: Tom };
