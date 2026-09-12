@@ -110,16 +110,18 @@ export interface ContratoProcessoPendencia {
 }
 
 export const SETOR_LABEL: Record<ProcessoSetor, string> = {
+  comercial: "Comercial",
   documentos: "Documentos",
   analise_automatica: "Análise automática",
-  juridico: "Análise jurídica",
-  cadastro: "Análise cadastral",
-  financeiro: "Análise financeira",
+  juridico: "Jurídico",
+  cadastro: "Cadastro / Implantação",
+  financeiro: "Financeiro",
   diretoria: "Diretoria",
   concluido: "Concluído",
 };
 
 export const SETOR_ORDEM: ProcessoSetor[] = [
+  "comercial",
   "documentos",
   "analise_automatica",
   "juridico",
@@ -128,6 +130,80 @@ export const SETOR_ORDEM: ProcessoSetor[] = [
   "diretoria",
   "concluido",
 ];
+
+/** Setores principais do fluxo (destinos de encaminhamento). */
+export const SETORES_PRINCIPAIS: ProcessoSetor[] = [
+  "comercial",
+  "juridico",
+  "cadastro",
+  "financeiro",
+  "concluido",
+];
+
+export const STATUS_LABEL: Record<ProcessoStatus, string> = {
+  recebido: "Recebido",
+  em_extracao: "Em extração",
+  analise_automatica: "Em análise automática",
+  aguardando_juridico: "Aguardando Jurídico",
+  analise_juridica: "Em análise Jurídica",
+  pendencia_juridica: "Pendência Jurídica",
+  aguardando_cadastro: "Aguardando Cadastro",
+  analise_cadastro: "Em análise pelo Cadastro",
+  pendencia_cadastral: "Pendência Cadastral",
+  aguardando_financeiro: "Aguardando Financeiro",
+  analise_financeira: "Em análise Financeira",
+  pendencia_financeira: "Pendência Financeira",
+  aguardando_documento_empresa: "Aguardando documento da empresa",
+  em_revisao: "Em revisão",
+  aprovado: "Aprovado",
+  aprovado_ressalva: "Aprovado com ressalva",
+  reprovado: "Reprovado",
+  implantado: "Implantado",
+};
+
+export const STATUS_ORDEM: ProcessoStatus[] = Object.keys(STATUS_LABEL) as ProcessoStatus[];
+
+/** Classes de badge por status, no padrão visual do sistema. */
+export const STATUS_BADGE: Record<ProcessoStatus, string> = {
+  recebido: "bg-muted text-muted-foreground border-border",
+  em_extracao: "bg-sky-500/15 text-sky-600 border-sky-500/30",
+  analise_automatica: "bg-sky-500/15 text-sky-600 border-sky-500/30",
+  aguardando_juridico: "bg-indigo-500/15 text-indigo-600 border-indigo-500/30",
+  analise_juridica: "bg-blue-500/15 text-blue-600 border-blue-500/30",
+  pendencia_juridica: "bg-amber-500/15 text-amber-600 border-amber-500/30",
+  aguardando_cadastro: "bg-indigo-500/15 text-indigo-600 border-indigo-500/30",
+  analise_cadastro: "bg-blue-500/15 text-blue-600 border-blue-500/30",
+  pendencia_cadastral: "bg-amber-500/15 text-amber-600 border-amber-500/30",
+  aguardando_financeiro: "bg-indigo-500/15 text-indigo-600 border-indigo-500/30",
+  analise_financeira: "bg-blue-500/15 text-blue-600 border-blue-500/30",
+  pendencia_financeira: "bg-amber-500/15 text-amber-600 border-amber-500/30",
+  aguardando_documento_empresa: "bg-orange-500/15 text-orange-600 border-orange-500/30",
+  em_revisao: "bg-violet-500/15 text-violet-600 border-violet-500/30",
+  aprovado: "bg-emerald-500/15 text-emerald-600 border-emerald-500/30",
+  aprovado_ressalva: "bg-amber-500/15 text-amber-600 border-amber-500/30",
+  reprovado: "bg-red-500/15 text-red-600 border-red-500/30",
+  implantado: "bg-emerald-600/15 text-emerald-700 border-emerald-600/30",
+};
+
+/** Status sugeridos para cada setor destino ao encaminhar. */
+export const STATUS_POR_SETOR: Record<ProcessoSetor, ProcessoStatus[]> = {
+  comercial: ["recebido", "em_extracao", "analise_automatica", "aguardando_documento_empresa"],
+  documentos: ["recebido", "em_extracao", "aguardando_documento_empresa"],
+  analise_automatica: ["analise_automatica", "em_extracao"],
+  juridico: ["aguardando_juridico", "analise_juridica", "pendencia_juridica"],
+  cadastro: ["aguardando_cadastro", "analise_cadastro", "pendencia_cadastral"],
+  financeiro: ["aguardando_financeiro", "analise_financeira", "pendencia_financeira"],
+  diretoria: ["em_revisao", "aprovado", "aprovado_ressalva", "reprovado"],
+  concluido: ["aprovado", "aprovado_ressalva", "reprovado", "implantado"],
+};
+
+export function statusLabel(status?: string | null) {
+  return STATUS_LABEL[(status || "") as ProcessoStatus] ?? "—";
+}
+
+export function statusBadge(status?: string | null) {
+  return STATUS_BADGE[(status || "") as ProcessoStatus] ?? "bg-muted text-muted-foreground border-border";
+}
 
 export const STATUS_GERAL_LABEL: Record<ProcessoStatusGeral, string> = {
   aberto: "Aberto",
