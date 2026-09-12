@@ -2,6 +2,7 @@
 // Etapa 1: apenas tipos, rótulos e helpers — não altera as telas existentes.
 
 export type ProcessoSetor =
+  | "comercial"
   | "documentos"
   | "analise_automatica"
   | "juridico"
@@ -9,6 +10,27 @@ export type ProcessoSetor =
   | "financeiro"
   | "diretoria"
   | "concluido";
+
+/** Status detalhado do fluxo de análise entre setores. */
+export type ProcessoStatus =
+  | "recebido"
+  | "em_extracao"
+  | "analise_automatica"
+  | "aguardando_juridico"
+  | "analise_juridica"
+  | "pendencia_juridica"
+  | "aguardando_cadastro"
+  | "analise_cadastro"
+  | "pendencia_cadastral"
+  | "aguardando_financeiro"
+  | "analise_financeira"
+  | "pendencia_financeira"
+  | "aguardando_documento_empresa"
+  | "em_revisao"
+  | "aprovado"
+  | "aprovado_ressalva"
+  | "reprovado"
+  | "implantado";
 
 export type ProcessoStatusGeral =
   | "aberto"
