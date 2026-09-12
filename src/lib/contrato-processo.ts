@@ -54,7 +54,10 @@ export interface ContratoProcesso {
   nome_empresa: string | null;
   cnpj: string | null;
   status_geral: ProcessoStatusGeral;
+  status: ProcessoStatus;
   setor_atual: ProcessoSetor;
+  data_entrada_setor: string;
+  proxima_acao: string | null;
   responsavel_atual_id: string | null;
   responsavel_atual_nome: string | null;
   pendencias_abertas: number;
