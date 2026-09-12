@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
@@ -16,6 +17,8 @@ import { useAuth } from "@/hooks/useAuth";
 import { ImplantacaoWizard } from "@/components/implantacao/ImplantacaoWizard";
 import { AnaliseImplantacaoDialog } from "@/components/implantacao/AnaliseImplantacaoDialog";
 import { formatDateBR, formatDay } from "@/lib/date-utils";
+
+type EtapaFiltro = "em_andamento" | "implantados";
 
 const STATUS_LABEL: Record<string, string> = {
   em_implantacao: "Em implantação",
@@ -41,6 +44,7 @@ export default function Implantacao() {
 
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("todos");
+  const [etapa, setEtapa] = useState<EtapaFiltro>("em_andamento");
   const [openId, setOpenId] = useState<string | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<{ id: string; nome: string } | null>(null);
   const [deleting, setDeleting] = useState(false);
@@ -69,6 +73,10 @@ export default function Implantacao() {
 
   const filtered = useMemo(() => {
     return items.filter((i) => {
+      const emAndamento = i.status !== "implantado";
+      const implantado = i.status === "implantado";
+      if (etapa === "em_andamento" && !emAndamento) return false;
+      if (etapa === "implantados" && !implantado) return false;
       if (statusFilter !== "todos" && i.status !== statusFilter) return false;
       if (!search) return true;
       const s = search.toLowerCase();
@@ -78,7 +86,7 @@ export default function Implantacao() {
         (i.codigo_contrato || "").toLowerCase().includes(s)
       );
     });
-  }, [items, search, statusFilter]);
+  }, [items, search, statusFilter, etapa]);
 
   const counts = useMemo(() => {
     const c: Record<string, number> = {};
@@ -189,6 +197,24 @@ export default function Implantacao() {
             </Select>
           </CardContent>
         </Card>
+
+        {/* Etapas */}
+        <Tabs value={etapa} onValueChange={(v) => { setEtapa(v as EtapaFiltro); setStatusFilter("todos"); }} className="w-full">
+          <TabsList className="w-full md:w-auto">
+            <TabsTrigger value="em_andamento" className="gap-2">
+              Em implantação
+              <Badge variant="secondary" className="text-xs px-1.5 py-0">
+                {items.filter((i) => i.status !== "implantado").length}
+              </Badge>
+            </TabsTrigger>
+            <TabsTrigger value="implantados" className="gap-2">
+              Implantados
+              <Badge variant="secondary" className="text-xs px-1.5 py-0">
+                {items.filter((i) => i.status === "implantado").length}
+              </Badge>
+            </TabsTrigger>
+          </TabsList>
+        </Tabs>
 
         {/* List */}
         {isLoading ? (
