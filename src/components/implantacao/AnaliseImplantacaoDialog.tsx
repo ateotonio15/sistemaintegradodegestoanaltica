@@ -35,20 +35,6 @@ const TOM_TXT: Record<Tom, string> = {
   cinza: "text-muted-foreground",
 };
 
-function ItemResumo({ label, value, tom = "cinza" }: { label: string; value: React.ReactNode; tom?: Tom }) {
-  const vazio = value == null || value === "" || value === "—";
-  const t = vazio ? "cinza" : tom;
-  return (
-    <div className="rounded-lg border bg-muted/30 p-2.5">
-      <p className="text-[10px] uppercase tracking-wide text-muted-foreground">{label}</p>
-      <p className={`mt-0.5 flex items-center gap-1.5 text-sm font-medium ${TOM_TXT[t]}`}>
-        <span className={`h-2 w-2 shrink-0 rounded-full ${TOM_DOT[t]}`} />
-        <span className="break-words text-foreground">{vazio ? "—" : value}</span>
-      </p>
-    </div>
-  );
-}
-
 const TOM_SURFACE: Record<Tom, string> = {
   verde: "border-emerald-500/30 bg-emerald-500/10",
   amarelo: "border-amber-500/30 bg-amber-500/10",
@@ -56,7 +42,26 @@ const TOM_SURFACE: Record<Tom, string> = {
   cinza: "border-border bg-muted/30",
 };
 
-function MetricaExecutiva({
+function BlocoResumo({
+  titulo,
+  children,
+  className,
+}: {
+  titulo: string;
+  children: React.ReactNode;
+  className?: string;
+}) {
+  return (
+    <div className={cn("flex min-w-0 flex-col", className)}>
+      <div className="border-b border-border bg-muted/20 px-4 py-2.5">
+        <h5 className="text-[10px] font-bold uppercase tracking-wide text-muted-foreground">{titulo}</h5>
+      </div>
+      <div className="flex-1 space-y-4 p-4">{children}</div>
+    </div>
+  );
+}
+
+function CampoPrimario({
   label,
   value,
   tom = "cinza",
@@ -65,27 +70,68 @@ function MetricaExecutiva({
   value: React.ReactNode;
   tom?: Tom;
 }) {
+  const vazio = value == null || value === "" || value === "—";
+  const t = vazio ? "cinza" : tom;
   return (
-    <div className="min-w-0 border-l-2 border-border/70 pl-3 first:border-l-0 first:pl-0 md:first:border-l-2 md:first:pl-3">
-      <p className="text-[10px] font-medium uppercase text-muted-foreground">{label}</p>
-      <div className="mt-1 flex min-w-0 items-center gap-2">
-        <span className={cn("h-2 w-2 shrink-0 rounded-full", TOM_DOT[tom])} />
-        <span className={cn("truncate text-sm font-semibold", TOM_TXT[tom])}>{value || "—"}</span>
+    <div className="min-w-0">
+      <p className="text-[10px] uppercase tracking-wide text-muted-foreground">{label}</p>
+      <p className={cn("mt-0.5 break-words text-base font-semibold leading-snug", TOM_TXT[t])}>
+        {vazio ? "—" : value}
+      </p>
+    </div>
+  );
+}
+
+function CampoSecundario({ label, value }: { label: string; value: React.ReactNode }) {
+  const vazio = value == null || value === "" || value === "—";
+  return (
+    <div className="min-w-0">
+      <p className="text-[10px] uppercase tracking-wide text-muted-foreground/80">{label}</p>
+      <p className="mt-0.5 break-words text-sm text-muted-foreground">{vazio ? "—" : value}</p>
+    </div>
+  );
+}
+
+function MetricaResumo({
+  label,
+  value,
+  tom = "cinza",
+}: {
+  label: string;
+  value: React.ReactNode;
+  tom?: Tom;
+}) {
+  const vazio = value == null || value === "" || value === "—";
+  const t = vazio ? "cinza" : tom;
+  return (
+    <div className="min-w-0 rounded-md border border-border bg-muted/20 p-2.5">
+      <p className="text-[10px] uppercase tracking-wide text-muted-foreground">{label}</p>
+      <div className="mt-1 flex items-center gap-2">
+        <span className={cn("h-2 w-2 shrink-0 rounded-full", TOM_DOT[t])} />
+        <span className={cn("truncate text-sm font-bold", TOM_TXT[t])}>{vazio ? "—" : value}</span>
       </div>
     </div>
   );
 }
 
-function ResultadoExecutivo({ label, tom }: { label: string; tom: Tom }) {
+function ResultadoExecutivo({
+  label,
+  tom,
+  title = "Resultado da elegibilidade",
+}: {
+  label: string;
+  tom: Tom;
+  title?: string;
+}) {
   const Icon = tom === "verde" ? CheckCircle2 : tom === "vermelho" ? XCircle : AlertTriangle;
   return (
-    <div className={cn("flex min-h-28 items-center gap-4 border p-4 sm:p-5", TOM_SURFACE[tom])}>
-      <div className={cn("flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-card/70", TOM_TXT[tom])}>
-        <Icon className="h-6 w-6" />
+    <div className={cn("flex min-h-24 items-center gap-3.5 border p-3.5 sm:gap-4 sm:p-4", TOM_SURFACE[tom])}>
+      <div className={cn("flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-card/70", TOM_TXT[tom])}>
+        <Icon className="h-5 w-5" />
       </div>
       <div className="min-w-0">
-        <p className="text-[10px] font-semibold uppercase text-muted-foreground">Resultado da análise</p>
-        <p className={cn("mt-1 text-lg font-bold leading-tight sm:text-xl", TOM_TXT[tom])}>{label}</p>
+        <p className="text-[10px] font-semibold uppercase text-muted-foreground">{title}</p>
+        <p className={cn("mt-1 text-base font-bold leading-tight sm:text-lg", TOM_TXT[tom])}>{label}</p>
       </div>
     </div>
   );
