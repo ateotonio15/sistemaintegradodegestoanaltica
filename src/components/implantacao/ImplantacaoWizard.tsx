@@ -517,8 +517,30 @@ export function ImplantacaoWizard({ id, open, onClose, readOnly }: Props) {
 }
 
 // ============= STEP 1 =============
-function Step1Upload({ anexos, onUpload, onDelete, onDownload, uploading, readOnly, attempted }: any) {
+function formatFileSize(bytes?: number | null) {
+  if (!bytes && bytes !== 0) return "";
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toLocaleString("pt-BR", { maximumFractionDigits: 0 })} KB`;
+  return `${(bytes / (1024 * 1024)).toLocaleString("pt-BR", { maximumFractionDigits: 1 })} MB`;
+}
+
+function timeAgo(iso?: string | null) {
+  if (!iso) return "";
+  const diff = Date.now() - new Date(iso).getTime();
+  if (diff < 60_000) return "Enviado agora";
+  if (diff < 3_600_000) return `Enviado há ${Math.floor(diff / 60_000)} min`;
+  if (diff < 86_400_000) return `Enviado há ${Math.floor(diff / 3_600_000)} h`;
+  return `Enviado em ${new Date(iso).toLocaleDateString("pt-BR")}`;
+}
+
+function fileExtLabel(a: any) {
+  const ext = (a.nome_arquivo?.split(".").pop() || "").toUpperCase();
+  return ext || "ARQUIVO";
+}
+
+function Step1Upload({ anexos, onUpload, onDelete, onDownload, onView, uploadingTipo, uploadErrors = {}, readOnly, attempted }: any) {
   const tipos = ["anexo_1", "contrato", "relatorio_vidas", "primeira_cobranca", "complementar"];
+  const [expanded, setExpanded] = useState<Record<string, boolean>>({});
   return (
     <div className="space-y-4">
       <div className="rounded-lg border border-primary/30 bg-primary/5 p-3 text-sm text-primary">
@@ -529,7 +551,12 @@ function Step1Upload({ anexos, onUpload, onDelete, onDownload, uploading, readOn
         const list = anexos.filter((a: any) => a.tipo === tipo);
         const isAnexo1 = tipo === "anexo_1";
         const isEmpty = list.length === 0;
-        const showError = attempted && isEmpty;
+        const isValidating = uploadingTipo === tipo;
+        const errorMsg: string | undefined = uploadErrors[tipo];
+        const showRequiredError = attempted && isEmpty && !isValidating;
+        const hasError = !!errorMsg;
+        const isOpen = !!expanded[tipo];
+        const visible = isOpen ? list : list.slice(0, 1);
 
         return (
           <Card
@@ -539,8 +566,8 @@ function Step1Upload({ anexos, onUpload, onDelete, onDownload, uploading, readOn
               isAnexo1
                 ? "border-primary/40 bg-primary/[0.03]"
                 : "border-border bg-background",
-              showError && "border-destructive/50 bg-destructive/[0.03]",
-              !isEmpty && !showError && "border-success/40 bg-success/[0.02]"
+              !isEmpty && !hasError && "border-success/40 bg-success/[0.02]",
+              (showRequiredError || hasError) && "border-destructive/50 bg-destructive/[0.03]"
             )}
           >
             <CardContent className="p-4 space-y-3">
@@ -548,14 +575,20 @@ function Step1Upload({ anexos, onUpload, onDelete, onDownload, uploading, readOn
                 <div className="flex items-center gap-3 min-w-0">
                   <div className={cn(
                     "h-9 w-9 rounded-full flex items-center justify-center shrink-0 border",
-                    isEmpty
-                      ? showError
+                    isValidating
+                      ? "border-primary/40 bg-primary/10 text-primary"
+                      : hasError || showRequiredError
                         ? "border-destructive/40 bg-destructive/10 text-destructive"
-                        : "border-muted bg-muted/50 text-muted-foreground"
-                      : "border-success/40 bg-success/10 text-success"
+                        : isEmpty
+                          ? "border-muted bg-muted/50 text-muted-foreground"
+                          : "border-success/40 bg-success/10 text-success"
                   )}>
-                    {isEmpty ? (
-                      showError ? <AlertCircle className="h-4 w-4" /> : <FileText className="h-4 w-4" />
+                    {isValidating ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : hasError || showRequiredError ? (
+                      <AlertCircle className="h-4 w-4" />
+                    ) : isEmpty ? (
+                      <FileText className="h-4 w-4" />
                     ) : (
                       <CheckCircle2 className="h-4 w-4" />
                     )}
@@ -568,9 +601,6 @@ function Step1Upload({ anexos, onUpload, onDelete, onDownload, uploading, readOn
                       )}>
                         {TIPO_LABEL[tipo]}
                       </span>
-                      <Badge variant="outline" className="h-5 text-[10px]">
-                        {list.length}
-                      </Badge>
                       {isAnexo1 && (
                         <Badge variant="default" className="h-5 text-[10px] gap-1">
                           <Sparkles className="h-3 w-3" />
@@ -581,18 +611,30 @@ function Step1Upload({ anexos, onUpload, onDelete, onDownload, uploading, readOn
                         Obrigatório
                       </Badge>
                     </div>
-                    {isEmpty ? (
-                      <p className={cn(
-                        "text-xs mt-0.5",
-                        showError ? "text-destructive" : "text-muted-foreground"
-                      )}>
-                        {showError
-                          ? "Documento obrigatório — anexe ao menos 1 arquivo desta categoria."
-                          : "Documento ainda não anexado"}
+                    {/* ESTADO 3 — Validando */}
+                    {isValidating ? (
+                      <p className="text-xs text-primary mt-0.5 flex items-center gap-1.5">
+                        Validando documento...
                       </p>
+                    ) : hasError ? (
+                      /* ESTADO 5 — Erro */
+                      <p className="text-xs text-destructive mt-0.5">{errorMsg}</p>
+                    ) : showRequiredError ? (
+                      <p className="text-xs text-destructive mt-0.5">
+                        Documento obrigatório — anexe ao menos 1 arquivo desta categoria.
+                      </p>
+                    ) : isEmpty ? (
+                      /* ESTADO 1 — Não anexado */
+                      <p className="text-xs text-muted-foreground mt-0.5">Documento ainda não anexado</p>
                     ) : (
-                      <p className="text-xs text-success mt-0.5">
-                        {list.length === 1 ? "1 arquivo anexado" : `${list.length} arquivos anexados`}
+                      /* ESTADO 4 — Válido */
+                      <p className="text-xs text-success mt-0.5 flex items-center gap-1">
+                        <CheckCircle2 className="h-3 w-3" />
+                        {isAnexo1 && data?.extracao_anexo1_em
+                          ? "Documento reconhecido"
+                          : list.length === 1
+                            ? "Documento anexado"
+                            : `${list.length} arquivos anexados`}
                       </p>
                     )}
                   </div>
@@ -611,41 +653,71 @@ function Step1Upload({ anexos, onUpload, onDelete, onDownload, uploading, readOn
                         }
                         e.target.value = "";
                       }}
-                      disabled={uploading}
+                      disabled={isValidating}
                     />
-                    <Button asChild size="sm" variant={isAnexo1 ? "default" : "outline"}>
+                    <Button asChild size="sm" variant={isAnexo1 ? "default" : "outline"} disabled={isValidating}>
                       <span>
-                        <Upload className="h-3.5 w-3.5 mr-1.5" />
-                        {tipo === "complementar" || tipo === "primeira_cobranca" ? "Anexar (vários)" : "Anexar"}
+                        {isValidating ? (
+                          <Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" />
+                        ) : (
+                          <Upload className="h-3.5 w-3.5 mr-1.5" />
+                        )}
+                        {isEmpty
+                          ? tipo === "complementar" || tipo === "primeira_cobranca" ? "Anexar (vários)" : "Anexar"
+                          : "Substituir"}
                       </span>
                     </Button>
                   </label>
                 )}
               </div>
 
+              {/* ESTADO 2 — Arquivo(s) anexado(s) */}
               {list.length > 0 && (
                 <div className="space-y-1.5">
-                  {list.map((a: any) => (
+                  {visible.map((a: any) => (
                     <div
                       key={a.id}
-                      className="flex items-center justify-between rounded-md border bg-muted/30 px-3 py-2 text-sm"
+                      className="flex items-center justify-between gap-2 rounded-md border bg-muted/30 px-3 py-2 text-sm"
                     >
-                      <span className="flex items-center gap-2 truncate min-w-0">
-                        <FileText className="h-4 w-4 shrink-0 text-muted-foreground" />
-                        <span className="truncate" title={a.nome_arquivo}>{a.nome_arquivo}</span>
-                      </span>
+                      <div className="flex items-center gap-2 truncate min-w-0">
+                        <CheckCircle2 className="h-4 w-4 shrink-0 text-success" />
+                        <div className="min-w-0">
+                          <p className="truncate font-medium" title={a.nome_arquivo}>{a.nome_arquivo}</p>
+                          <p className="text-[11px] text-muted-foreground">
+                            {fileExtLabel(a)}{a.tamanho_bytes ? ` • ${formatFileSize(a.tamanho_bytes)}` : ""}
+                            {a.created_at ? ` • ${timeAgo(a.created_at)}` : ""}
+                          </p>
+                        </div>
+                      </div>
                       <div className="flex gap-0.5 shrink-0">
-                        <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => onDownload(a)}>
+                        <Button size="icon" variant="ghost" className="h-7 w-7" title="Visualizar" onClick={() => onView(a)}>
+                          <Eye className="h-3.5 w-3.5" />
+                        </Button>
+                        <Button size="icon" variant="ghost" className="h-7 w-7" title="Baixar" onClick={() => onDownload(a)}>
                           <Download className="h-3.5 w-3.5" />
                         </Button>
                         {!readOnly && (
-                          <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => onDelete(a)}>
+                          <Button size="icon" variant="ghost" className="h-7 w-7" title="Excluir" onClick={() => onDelete(a)}>
                             <Trash2 className="h-3.5 w-3.5 text-destructive" />
                           </Button>
                         )}
                       </div>
                     </div>
                   ))}
+                  {list.length > 1 && (
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      className="h-7 w-full text-xs text-muted-foreground"
+                      onClick={() => setExpanded((p: any) => ({ ...p, [tipo]: !isOpen }))}
+                    >
+                      {isOpen ? (
+                        <><ChevronUp className="h-3.5 w-3.5 mr-1" /> Recolher</>
+                      ) : (
+                        <><ChevronDown className="h-3.5 w-3.5 mr-1" /> Ver todos os {list.length} arquivos</>
+                      )}
+                    </Button>
+                  )}
                 </div>
               )}
             </CardContent>
