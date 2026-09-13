@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
@@ -6,17 +6,17 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
-import { CheckCircle2, AlertTriangle, XCircle, FileText, Building2, Users, Calendar, Paperclip, Rocket, Loader2, ShieldCheck, Check } from "lucide-react";
+import { CheckCircle2, AlertTriangle, XCircle, FileText, Building2, Users, Calendar, Paperclip, Rocket, Loader2, ShieldCheck, Check, Gavel, TrendingUp } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { SelecionarResponsavelCadastroDialog } from "./SelecionarResponsavelCadastroDialog";
 import { formatDateBR, formatDay } from "@/lib/date-utils";
 import { formatCentavosBRL } from "@/lib/reajuste-utils";
-import { useContratoProcessoPorImplantacao } from "@/hooks/useContratoProcessos";
+import { useContratoProcessoPorImplantacao, useContratoProcessoPendencias, useContratoProcessoHistorico } from "@/hooks/useContratoProcessos";
 import { useBloqueioValidacaoCruzada, useExecutarValidacaoCruzada, useValidacaoCruzada } from "@/hooks/useValidacaoCruzada";
 import { resumoValidacao, validarCruzado } from "@/lib/validacao-cruzada";
 import { cn } from "@/lib/utils";
 import {
-  setorLabel, statusGeralLabel, statusLabel,
+  setorLabel, statusGeralLabel, statusLabel, pendenciaEmAberto,
   type ProcessoStatusGeral,
 } from "@/lib/contrato-processo";
 
@@ -280,6 +280,7 @@ function PontosAtencaoSection({
               return (
                 <div
                   key={i.id || i.campo}
+                  id={`problema-${i.id || i.campo}`}
                   className={cn(
                     "rounded-lg border p-3",
                     isCritica ? "border-red-500/20 bg-red-500/5" : "border-amber-500/20 bg-amber-500/5"
@@ -339,6 +340,176 @@ function PontosAtencaoSection({
   );
 }
 
+interface DecisaoItem {
+  id: string;
+  tipo: "divergencia" | "pendencia" | "parecer";
+  titulo: string;
+  subtitulo?: string;
+  acao: string;
+  alvo?: string;
+  tom: Tom;
+  icone: React.ReactNode;
+  detalhes?: React.ReactNode;
+}
+
+function scrollToElement(id: string) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  el.scrollIntoView({ behavior: "smooth", block: "center" });
+  el.classList.add("ring-2", "ring-primary", "ring-offset-2", "ring-offset-background", "rounded-lg");
+  setTimeout(() => {
+    el.classList.remove("ring-2", "ring-primary", "ring-offset-2", "ring-offset-background", "rounded-lg");
+  }, 1800);
+}
+
+function DecisaoDiretoriaSection({
+  itens,
+  pendenciasList,
+  historico,
+}: {
+  itens: any[];
+  pendenciasList: any[];
+  historico: any[];
+}) {
+  const decisoes = useMemo(() => {
+    const list: DecisaoItem[] = [];
+
+    itens.forEach((i) => {
+      if (i.resultado !== "compativel" && (i.criticidade === "Alta" || i.criticidade === "Crítica")) {
+        list.push({
+          id: `div-${i.id || i.campo}`,
+          tipo: "divergencia",
+          titulo: `${i.rotulo} diverge entre Contrato e Anexo I.`,
+          subtitulo: `Contrato: ${i.valor_contrato || "—"} · Anexo I: ${i.valor_anexo || "—"}`,
+          acao: "Ver divergência",
+          alvo: `problema-${i.id || i.campo}`,
+          tom: i.criticidade === "Crítica" ? "vermelho" : "amarelo",
+          icone: <AlertTriangle className="h-5 w-5" />,
+        });
+      }
+    });
+
+    pendenciasList.forEach((p) => {
+      if (pendenciaEmAberto(p.status) && (p.criticidade === "Alta" || p.criticidade === "Crítica")) {
+        list.push({
+          id: `pend-${p.id}`,
+          tipo: "pendencia",
+          titulo: p.titulo,
+          subtitulo: `${setorLabel(p.setor)} · ${p.categoria} · ${p.criticidade}`,
+          acao: "Ver pendência",
+          alvo: undefined,
+          tom: p.criticidade === "Crítica" ? "vermelho" : "amarelo",
+          icone: <AlertTriangle className="h-5 w-5" />,
+          detalhes: p.descricao ? <p>{p.descricao}</p> : undefined,
+        });
+      }
+    });
+
+    const pareceres = historico.filter((m) =>
+      ["parecer_juridico", "parecer_cadastro", "parecer_financeiro"].includes(m.acao)
+    );
+    const latestByAcao: Record<string, any> = {};
+    pareceres.forEach((m) => {
+      latestByAcao[m.acao] = m;
+    });
+
+    Object.values(latestByAcao).forEach((m) => {
+      const isRessalva = m.resultado_novo === "Aprovado com ressalva";
+      const isAprovado = m.resultado_novo === "Aprovado";
+      if (!isRessalva && !isAprovado) return;
+
+      const setorNome = m.acao === "parecer_juridico" ? "Jurídico" : m.acao === "parecer_financeiro" ? "Financeiro" : "Cadastro";
+      const titulo =
+        m.acao === "parecer_financeiro" && isAprovado
+          ? "Financeiro validou o valor divergente e recomenda prosseguir."
+          : `${setorNome} aprovou com ressalva${m.observacao ? ` devido à ${m.observacao}` : "."}`;
+
+      list.push({
+        id: `parecer-${m.id}`,
+        tipo: "parecer",
+        titulo,
+        subtitulo: `${setorNome} · ${dataHoraCurta(m.created_at)}`,
+        acao: m.acao === "parecer_juridico" ? "Ver análise jurídica" : "Ver parecer",
+        alvo: undefined,
+        tom: isRessalva ? "amarelo" : "verde",
+        icone: m.acao === "parecer_juridico" ? <Gavel className="h-5 w-5" /> : <TrendingUp className="h-5 w-5" />,
+        detalhes: (
+          <div className="space-y-1">
+            {m.observacao && (
+              <p>
+                <span className="font-medium">Observação:</span> {m.observacao}
+              </p>
+            )}
+            {m.responsavel_nome && (
+              <p>
+                <span className="font-medium">Responsável:</span> {m.responsavel_nome}
+              </p>
+            )}
+            {m.detalhes &&
+              Object.entries(m.detalhes).map(([k, v]) => (
+                <p key={k}>
+                  <span className="font-medium">{k}:</span> {String(v)}
+                </p>
+              ))}
+          </div>
+        ),
+      });
+    });
+
+    const ordem: Record<Tom, number> = { vermelho: 0, amarelo: 1, verde: 2, cinza: 3 };
+    return list.sort((a, b) => ordem[a.tom] - ordem[b.tom]);
+  }, [itens, pendenciasList, historico]);
+
+  return (
+    <section aria-labelledby="decisao-diretoria-title" className="overflow-hidden rounded-lg border border-border bg-card shadow-sm">
+      <div className="border-b border-border bg-muted/30 px-4 py-3 sm:px-5">
+        <h4 id="decisao-diretoria-title" className="text-sm font-semibold">O que precisa da sua decisão?</h4>
+      </div>
+      <div className="space-y-3 p-4">
+        {decisoes.length === 0 ? (
+          <p className="flex items-center gap-2 text-sm font-medium text-emerald-600">
+            <Check className="h-4 w-4" /> Nenhuma ação da diretoria pendente
+          </p>
+        ) : (
+          decisoes.map((d) => <DecisaoCard key={d.id} item={d} />)
+        )}
+      </div>
+    </section>
+  );
+}
+
+function DecisaoCard({ item }: { item: DecisaoItem }) {
+  const [expanded, setExpanded] = useState(false);
+
+  const handleClick = () => {
+    if (item.alvo) {
+      scrollToElement(item.alvo);
+    } else {
+      setExpanded((v) => !v);
+    }
+  };
+
+  return (
+    <div className={cn("rounded-lg border p-3", TOM_SURFACE[item.tom])}>
+      <div className="flex items-start gap-3">
+        <div className={cn("mt-0.5 shrink-0", TOM_TXT[item.tom])}>{item.icone}</div>
+        <div className="min-w-0 flex-1">
+          <p className="text-sm font-semibold leading-snug">{item.titulo}</p>
+          {item.subtitulo && <p className="mt-0.5 text-xs text-muted-foreground">{item.subtitulo}</p>}
+          {expanded && item.detalhes && (
+            <div className="mt-2 space-y-1 border-t border-border pt-2 text-xs text-muted-foreground">
+              {item.detalhes}
+            </div>
+          )}
+        </div>
+        <Button size="sm" variant="outline" onClick={handleClick}>
+          {item.acao}
+        </Button>
+      </div>
+    </div>
+  );
+}
+
 
 interface Props {
   implantacaoId: string;
@@ -379,6 +550,8 @@ export function AnaliseImplantacaoDialog({ implantacaoId, open, onClose, readOnl
 
   const { data: processo } = useContratoProcessoPorImplantacao(open ? implantacaoId : null);
   const { data: itensValidacao = [], isLoading: validacaoLoading } = useValidacaoCruzada(open ? processo?.id : null);
+  const { data: pendenciasList = [] } = useContratoProcessoPendencias(open ? processo?.id : null);
+  const { data: historico = [] } = useContratoProcessoHistorico(open ? processo?.id : null);
   const { bloqueado: bloqueioCritico } = useBloqueioValidacaoCruzada(open ? processo?.id : null);
   const resumoCruzado = resumoValidacao(itensValidacao);
 
@@ -646,6 +819,12 @@ export function AnaliseImplantacaoDialog({ implantacaoId, open, onClose, readOnl
               resumo={resumoCruzado}
               pendencias={processo?.pendencias_abertas ?? 0}
               isLoading={validacaoLoading}
+            />
+
+            <DecisaoDiretoriaSection
+              itens={itensValidacao}
+              pendenciasList={pendenciasList}
+              historico={historico}
             />
 
             {/* Cabeçalho */}
