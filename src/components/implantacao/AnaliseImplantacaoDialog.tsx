@@ -15,7 +15,7 @@ import { formatDateBR, formatDay } from "@/lib/date-utils";
 import { formatCentavosBRL } from "@/lib/reajuste-utils";
 import { useContratoProcessoPorImplantacao, useContratoProcessoPendencias, useContratoProcessoHistorico } from "@/hooks/useContratoProcessos";
 import { useBloqueioValidacaoCruzada, useExecutarValidacaoCruzada, useValidacaoCruzada } from "@/hooks/useValidacaoCruzada";
-import { resumoValidacao, validarCruzado } from "@/lib/validacao-cruzada";
+import { resumoValidacao, validarCruzado, type ValidacaoCruzadaRow } from "@/lib/validacao-cruzada";
 import { cn } from "@/lib/utils";
 import {
   setorLabel, statusGeralLabel, statusLabel, pendenciaEmAberto,
