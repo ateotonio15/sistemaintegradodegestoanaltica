@@ -541,15 +541,42 @@ function fileExtLabel(a: any) {
 
 const OBRIGATORIOS = ["anexo_1", "contrato", "relatorio_vidas", "primeira_cobranca"];
 
+const ACCEPT_HINT: Record<string, { label: string; maxMb: number; multi: boolean }> = {
+  anexo_1: { label: "PDF, JPG ou PNG", maxMb: 20, multi: false },
+  contrato: { label: "PDF, JPG ou PNG", maxMb: 20, multi: false },
+  relatorio_vidas: { label: "PDF, Excel ou CSV", maxMb: 20, multi: false },
+  primeira_cobranca: { label: "PDF, imagem, Excel, CSV ou XML", maxMb: 20, multi: true },
+  complementar: { label: "PDF, imagem, Excel, CSV ou Word", maxMb: 20, multi: true },
+};
+
 function Step1Upload({ anexos, data, onUpload, onDelete, onDownload, onView, uploadingTipo, uploadErrors = {}, readOnly, attempted }: any) {
   const tipos = ["anexo_1", "contrato", "relatorio_vidas", "primeira_cobranca", "complementar"];
   const [expanded, setExpanded] = useState<Record<string, boolean>>({});
+  const [dragOver, setDragOver] = useState<Record<string, boolean>>({});
+  const fileRefs = useMemo(() => {
+    const refs: Record<string, React.RefObject<HTMLInputElement>> = {};
+    tipos.forEach((t) => { refs[t] = { current: null }; });
+    return refs;
+  }, []);
 
   const totalObrigatorios = OBRIGATORIOS.length;
   const concluidos = OBRIGATORIOS.filter((t) => anexos.some((a: any) => a.tipo === t)).length;
   const pendentes = totalObrigatorios - concluidos;
   const progresso = totalObrigatorios === 0 ? 0 : (concluidos / totalObrigatorios) * 100;
   const todosConcluidos = concluidos === totalObrigatorios;
+
+  const handleFiles = async (files: FileList | null, tipo: string) => {
+    if (!files || readOnly) return;
+    const rule = ACCEPT_HINT[tipo];
+    const arr = Array.from(files);
+    for (const f of arr) {
+      const ext = (f.name.split(".").pop() || "").toLowerCase();
+      if (rule && !rule.label.toLowerCase().includes(ext)) {
+        // deixa a validação real do onUpload rejeitar com mensagem apropriada
+      }
+      await onUpload(f, tipo);
+    }
+  };
 
   return (
     <div className="space-y-4">
@@ -607,17 +634,56 @@ function Step1Upload({ anexos, data, onUpload, onDelete, onDownload, onView, upl
         const hasError = !!errorMsg;
         const isOpen = !!expanded[tipo];
         const visible = isOpen ? list : list.slice(0, 1);
+        const isOver = !!dragOver[tipo];
+        const hint = ACCEPT_HINT[tipo];
+        const multi = hint?.multi;
+
+        const cardClick = (e: React.MouseEvent) => {
+          if (readOnly || isValidating) return;
+          const target = e.target as HTMLElement;
+          if (target.closest("button") || target.closest("a") || target.closest("input")) return;
+          fileRefs[tipo].current?.click();
+        };
 
         return (
           <Card
             key={tipo}
+            onClick={cardClick}
+            onDragOver={(e) => {
+              if (readOnly || isValidating) return;
+              e.preventDefault();
+              e.stopPropagation();
+            }}
+            onDragEnter={(e) => {
+              if (readOnly || isValidating) return;
+              e.preventDefault();
+              e.stopPropagation();
+              setDragOver((p) => ({ ...p, [tipo]: true }));
+            }}
+            onDragLeave={(e) => {
+              if (readOnly || isValidating) return;
+              e.preventDefault();
+              e.stopPropagation();
+              if (!e.currentTarget.contains(e.relatedTarget as Node)) {
+                setDragOver((p) => ({ ...p, [tipo]: false }));
+              }
+            }}
+            onDrop={(e) => {
+              if (readOnly || isValidating) return;
+              e.preventDefault();
+              e.stopPropagation();
+              setDragOver((p) => ({ ...p, [tipo]: false }));
+              handleFiles(e.dataTransfer.files, tipo);
+            }}
             className={cn(
-              "transition-colors",
+              "transition-colors select-none",
+              readOnly || isValidating ? "cursor-default" : "cursor-pointer",
               isAnexo1
                 ? "border-primary/40 bg-primary/[0.03]"
                 : "border-border bg-background",
               !isEmpty && !hasError && "border-success/40 bg-success/[0.02]",
-              (showRequiredError || hasError) && "border-destructive/50 bg-destructive/[0.03]"
+              (showRequiredError || hasError) && "border-destructive/50 bg-destructive/[0.03]",
+              isOver && "border-primary/70 bg-primary/[0.08] ring-1 ring-primary/30"
             )}
           >
             <CardContent className="p-4 space-y-3">
@@ -625,15 +691,19 @@ function Step1Upload({ anexos, data, onUpload, onDelete, onDownload, onView, upl
                 <div className="flex items-center gap-3 min-w-0">
                   <div className={cn(
                     "h-9 w-9 rounded-full flex items-center justify-center shrink-0 border",
-                    isValidating
-                      ? "border-primary/40 bg-primary/10 text-primary"
-                      : hasError || showRequiredError
-                        ? "border-destructive/40 bg-destructive/10 text-destructive"
-                        : isEmpty
-                          ? "border-muted bg-muted/50 text-muted-foreground"
-                          : "border-success/40 bg-success/10 text-success"
+                    isOver
+                      ? "border-primary/50 bg-primary/15 text-primary"
+                      : isValidating
+                        ? "border-primary/40 bg-primary/10 text-primary"
+                        : hasError || showRequiredError
+                          ? "border-destructive/40 bg-destructive/10 text-destructive"
+                          : isEmpty
+                            ? "border-muted bg-muted/50 text-muted-foreground"
+                            : "border-success/40 bg-success/10 text-success"
                   )}>
-                    {isValidating ? (
+                    {isOver ? (
+                      <Upload className="h-4 w-4" />
+                    ) : isValidating ? (
                       <Loader2 className="h-4 w-4 animate-spin" />
                     ) : hasError || showRequiredError ? (
                       <AlertCircle className="h-4 w-4" />
@@ -673,6 +743,10 @@ function Step1Upload({ anexos, data, onUpload, onDelete, onDownload, onView, upl
                       <p className="text-xs text-destructive mt-0.5">
                         Documento obrigatório — anexe ao menos 1 arquivo desta categoria.
                       </p>
+                    ) : isOver ? (
+                      <p className="text-xs text-primary mt-0.5 font-medium flex items-center gap-1">
+                        <Upload className="h-3 w-3" /> Solte o arquivo aqui
+                      </p>
                     ) : isEmpty ? (
                       /* ESTADO 1 — Não anexado */
                       <p className="text-xs text-muted-foreground mt-0.5">Documento ainda não anexado</p>
@@ -691,11 +765,12 @@ function Step1Upload({ anexos, data, onUpload, onDelete, onDownload, onView, upl
                 </div>
 
                 {!readOnly && (
-                  <label className="cursor-pointer shrink-0">
+                  <label className="cursor-pointer shrink-0" onClick={(e) => e.stopPropagation()}>
                     <input
+                      ref={fileRefs[tipo]}
                       type="file"
                       className="hidden"
-                      multiple={tipo === "complementar" || tipo === "primeira_cobranca"}
+                      multiple={multi}
                       onChange={async (e) => {
                         const files = Array.from(e.target.files || []);
                         for (const f of files) {
@@ -712,14 +787,20 @@ function Step1Upload({ anexos, data, onUpload, onDelete, onDownload, onView, upl
                         ) : (
                           <Upload className="h-3.5 w-3.5 mr-1.5" />
                         )}
-                        {isEmpty
-                          ? tipo === "complementar" || tipo === "primeira_cobranca" ? "Anexar (vários)" : "Anexar"
-                          : "Substituir"}
+                        {isEmpty ? "Anexar" : "Substituir"}
                       </span>
                     </Button>
                   </label>
                 )}
               </div>
+
+              {/* Hints de formato e múltiplos arquivos */}
+              {!readOnly && hint && (
+                <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] text-muted-foreground">
+                  <span>{hint.label} • máximo {hint.maxMb} MB</span>
+                  {multi && <span className="text-primary">Você pode anexar vários arquivos</span>}
+                </div>
+              )}
 
               {/* ESTADO 2 — Arquivo(s) anexado(s) */}
               {list.length > 0 && (
