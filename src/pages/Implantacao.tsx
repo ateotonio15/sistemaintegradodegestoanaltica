@@ -2,22 +2,21 @@ import { useMemo, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { FileSignature, Plus, Search, FileText, Clock, Trash2, GitBranch, Rows3, Table2 } from "lucide-react";
+import { FileSignature, Plus, FileText, Clock, Trash2, GitBranch, Rows3, Table2 } from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "@/hooks/useAuth";
 import { ImplantacaoWizard } from "@/components/implantacao/ImplantacaoWizard";
 import { AnaliseImplantacaoDialog } from "@/components/implantacao/AnaliseImplantacaoDialog";
 import { ProcessoFluxoDialog } from "@/components/implantacao/ProcessoFluxoDialog";
 import { ContratosTabela } from "@/components/implantacao/ContratosTabela";
+import { ContratosFiltrosBar, useContratosFiltros } from "@/components/implantacao/ContratosFiltros";
 import { useContratoProcessos } from "@/hooks/useContratoProcessos";
 import { setorLabel, statusBadge, statusLabel } from "@/lib/contrato-processo";
 import { formatDateBR, formatDay } from "@/lib/date-utils";
@@ -46,8 +45,6 @@ export default function Implantacao() {
   const canEdit = isVendas || isAdmin;
   const canDelete = isAdmin || isVendas;
 
-  const [search, setSearch] = useState("");
-  const [statusFilter, setStatusFilter] = useState<string>("todos");
   const [etapa, setEtapa] = useState<EtapaFiltro>("em_andamento");
   const [openId, setOpenId] = useState<string | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<{ id: string; nome: string } | null>(null);
@@ -110,22 +107,17 @@ export default function Implantacao() {
     return faltando;
   };
 
-  const filtered = useMemo(() => {
-    return items.filter((i) => {
-      const emAndamento = i.status !== "implantado";
-      const implantado = i.status === "implantado";
-      if (etapa === "em_andamento" && !emAndamento) return false;
-      if (etapa === "implantados" && !implantado) return false;
-      if (statusFilter !== "todos" && i.status !== statusFilter) return false;
-      if (!search) return true;
-      const s = search.toLowerCase();
-      return (
-        (i.nome_empresa || "").toLowerCase().includes(s) ||
-        (i.cnpj || "").toLowerCase().includes(s) ||
-        (i.codigo_contrato || "").toLowerCase().includes(s)
-      );
-    });
-  }, [items, search, statusFilter, etapa]);
+  const itensEtapa = useMemo(() => {
+    return items.filter((i) =>
+      etapa === "em_andamento" ? i.status !== "implantado" : i.status === "implantado",
+    );
+  }, [items, etapa]);
+
+  const { filtradas, barProps } = useContratosFiltros({
+    items: itensEtapa,
+    processoPorImplantacao,
+    anexosPorImplantacao,
+  });
 
   const counts = useMemo(() => {
     const c: Record<string, number> = {};
