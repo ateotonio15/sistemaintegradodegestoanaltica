@@ -390,7 +390,7 @@ export function ImplantacaoWizard({ id, open, onClose, readOnly }: Props) {
     onClose();
   };
 
-  return (
+  return (<>
     <Dialog open={open} onOpenChange={onClose}>
       <DialogContent className="max-w-5xl max-h-[90vh] flex flex-col overflow-hidden p-0">
         <div className="flex flex-col h-full min-h-0">
