@@ -214,7 +214,6 @@ function PontosAtencaoSection({
     }
   };
 
-  const problemas = itens.filter((i) => i.resultado !== "compativel");
   const semProblema = !isLoading && !!processo && itens.length > 0 && problemas.length === 0 && pendencias === 0;
   const naoExecutada = !isLoading && (!processo || itens.length === 0);
 
