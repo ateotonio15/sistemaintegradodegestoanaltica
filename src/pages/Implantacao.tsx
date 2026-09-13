@@ -83,6 +83,31 @@ export default function Implantacao() {
     },
   });
 
+  // Anexos por implantação (para saber se há documentos anexados)
+  const { data: anexosPorImplantacao = new Set<string>() } = useQuery({
+    queryKey: ["implantacao-anexos-existentes"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("implantacao_anexos" as any)
+        .select("implantacao_id");
+      if (error) throw error;
+      return new Set(((data || []) as any[]).map((a) => a.implantacao_id as string));
+    },
+  });
+
+  // Campos mínimos para o contrato poder aparecer com o status do fluxo
+  const pendenciasCadastro = (i: any) => {
+    const faltando: string[] = [];
+    if (!i.nome_empresa) faltando.push("nome");
+    if (!i.cnpj) faltando.push("CNPJ");
+    if (!i.codigo_contrato) faltando.push("código do contrato");
+    if (!i.data_vigencia) faltando.push("vigência");
+    if (!i.data_vencimento) faltando.push("vencimento");
+    if (!i.total_vidas) faltando.push("vidas");
+    if (!anexosPorImplantacao.has(i.id)) faltando.push("documentos anexados");
+    return faltando;
+  };
+
   const filtered = useMemo(() => {
     return items.filter((i) => {
       const emAndamento = i.status !== "implantado";
@@ -287,19 +312,35 @@ export default function Implantacao() {
                         <p>CNPJ: {i.cnpj || "—"}</p>
                         <p>Código: {i.codigo_contrato || "—"}</p>
                       </div>
-                      {processoPorImplantacao.get(i.id) && (
-                        <div className="mt-2 flex flex-wrap items-center gap-1.5">
-                          <Badge variant="outline" className={statusBadge(processoPorImplantacao.get(i.id)!.status)}>
-                            {statusLabel(processoPorImplantacao.get(i.id)!.status)}
-                          </Badge>
-                          <span className="text-xs text-muted-foreground">
-                            {setorLabel(processoPorImplantacao.get(i.id)!.setor_atual)}
-                            {(processoPorImplantacao.get(i.id)!.pendencias_abertas ?? 0) > 0
-                              ? ` · ${processoPorImplantacao.get(i.id)!.pendencias_abertas} pendência(s)`
-                              : ""}
-                          </span>
-                        </div>
-                      )}
+                      {processoPorImplantacao.get(i.id) && (() => {
+                        const proc = processoPorImplantacao.get(i.id)!;
+                        const faltando = i.status === "implantado" ? [] : pendenciasCadastro(i);
+                        if (faltando.length > 0) {
+                          return (
+                            <div className="mt-2 flex flex-wrap items-center gap-1.5">
+                              <Badge variant="outline" className={statusBadge("aguardando_documento_empresa")}>
+                                {statusLabel("aguardando_documento_empresa")}
+                              </Badge>
+                              <span className="text-xs text-muted-foreground">
+                                Falta: {faltando.join(", ")}
+                              </span>
+                            </div>
+                          );
+                        }
+                        return (
+                          <div className="mt-2 flex flex-wrap items-center gap-1.5">
+                            <Badge variant="outline" className={statusBadge(proc.status)}>
+                              {statusLabel(proc.status)}
+                            </Badge>
+                            <span className="text-xs text-muted-foreground">
+                              {setorLabel(proc.setor_atual)}
+                              {(proc.pendencias_abertas ?? 0) > 0
+                                ? ` · ${proc.pendencias_abertas} pendência(s)`
+                                : ""}
+                            </span>
+                          </div>
+                        );
+                      })()}
                     </div>
 
                     {/* Coluna de detalhes */}
