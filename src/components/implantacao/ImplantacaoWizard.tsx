@@ -80,7 +80,6 @@ export function ImplantacaoWizard({ id, open, onClose, readOnly }: Props) {
   const [data, setData] = useState<any>(null);
   const [step, setStep] = useState(1);
   const [extracting, setExtracting] = useState(false);
-  const [uploading, setUploading] = useState(false);
   const [uploadAttempted, setUploadAttempted] = useState(false);
 
   const { data: impl } = useQuery({
