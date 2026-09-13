@@ -355,10 +355,10 @@ export function ContratosFiltrosBar(p: FiltrosBarProps) {
               ))}
             </SelectContent>
           </Select>
-          <div className="flex items-center gap-2 col-span-2 md:col-span-1">
-            <Input type="date" value={p.de} onChange={(e) => p.setDe(e.target.value)} aria-label="Movimentação de" />
-            <span className="text-muted-foreground text-sm">a</span>
-            <Input type="date" value={p.ate} onChange={(e) => p.setAte(e.target.value)} aria-label="Movimentação até" />
+          <div className="flex items-center gap-2 col-span-2 md:col-span-3 lg:col-span-2 min-w-0">
+            <Input type="date" className="min-w-0 flex-1" value={p.de} onChange={(e) => p.setDe(e.target.value)} aria-label="Movimentação de" />
+            <span className="text-muted-foreground text-sm shrink-0">a</span>
+            <Input type="date" className="min-w-0 flex-1" value={p.ate} onChange={(e) => p.setAte(e.target.value)} aria-label="Movimentação até" />
           </div>
         </div>
 
