@@ -83,6 +83,31 @@ export default function Implantacao() {
     },
   });
 
+  // Anexos por implantação (para saber se há documentos anexados)
+  const { data: anexosPorImplantacao = new Set<string>() } = useQuery({
+    queryKey: ["implantacao-anexos-existentes"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("implantacao_anexos" as any)
+        .select("implantacao_id");
+      if (error) throw error;
+      return new Set(((data || []) as any[]).map((a) => a.implantacao_id as string));
+    },
+  });
+
+  // Campos mínimos para o contrato poder aparecer com o status do fluxo
+  const pendenciasCadastro = (i: any) => {
+    const faltando: string[] = [];
+    if (!i.nome_empresa) faltando.push("nome");
+    if (!i.cnpj) faltando.push("CNPJ");
+    if (!i.codigo_contrato) faltando.push("código do contrato");
+    if (!i.data_vigencia) faltando.push("vigência");
+    if (!i.data_vencimento) faltando.push("vencimento");
+    if (!i.total_vidas) faltando.push("vidas");
+    if (!anexosPorImplantacao.has(i.id)) faltando.push("documentos anexados");
+    return faltando;
+  };
+
   const filtered = useMemo(() => {
     return items.filter((i) => {
       const emAndamento = i.status !== "implantado";
