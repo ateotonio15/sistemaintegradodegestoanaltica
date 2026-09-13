@@ -430,14 +430,29 @@ export function AnaliseImplantacaoDialog({ implantacaoId, open, onClose, readOnl
               </div>
             </div>
 
+            {/* Validação Cruzada das análises do contrato */}
+            {processo && (
+              <div className="pt-2 border-t">
+                <ValidacaoCruzadaSection processoId={processo.id} implantacaoId={implantacaoId} />
+              </div>
+            )}
 
+            {bloqueioCritico && (
+              <div className="flex items-start gap-2 rounded-lg border border-red-500/30 bg-red-500/10 p-3 text-xs text-red-600">
+                <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
+                <span>
+                  Conclusão bloqueada: há divergência crítica na validação cruzada. Resolva a pendência gerada no setor
+                  responsável para liberar a aprovação.
+                </span>
+              </div>
+            )}
 
             {/* Ação Cadastro: Liberar contrato */}
             {readOnly && impl.status !== "implantado" && impl.status !== "rejeitado" && (
               <div className="pt-2 border-t">
                 <Button
                   onClick={() => liberar.mutate()}
-                  disabled={liberar.isPending}
+                  disabled={liberar.isPending || bloqueioCritico}
                   className="w-full gap-2 bg-emerald-600 hover:bg-emerald-700"
                 >
                   <Rocket className="h-4 w-4" /> {liberar.isPending ? "Liberando…" : "Liberar contrato"}
@@ -452,7 +467,7 @@ export function AnaliseImplantacaoDialog({ implantacaoId, open, onClose, readOnl
                   <Textarea value={obs} onChange={(e) => setObs(e.target.value)} placeholder="Comentário para o cadastro…" rows={2} />
                 </div>
                 <div className="flex flex-col sm:flex-row gap-2">
-                  <Button onClick={() => setAtribuirOpen(true)} disabled={aprovar.isPending} className="flex-1 gap-2 bg-emerald-600 hover:bg-emerald-700">
+                  <Button onClick={() => setAtribuirOpen(true)} disabled={aprovar.isPending || bloqueioCritico} className="flex-1 gap-2 bg-emerald-600 hover:bg-emerald-700">
                     <CheckCircle2 className="h-4 w-4" /> Aprovar e enviar ao Cadastro
                   </Button>
                   <Button onClick={() => setMode("correcao")} variant="outline" className="gap-2 border-amber-500/50 text-amber-600 hover:bg-amber-500/10">
