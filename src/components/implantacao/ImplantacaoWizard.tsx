@@ -645,13 +645,9 @@ function AnexoPreviewDialog({ anexo, open, onOpenChange }: { anexo: any | null; 
           )}
           {!loading && !error && url && (
             <>
-              {isPdf ? (
-                <iframe
-                  src={url}
-                  title={nomeArquivo}
-                  className="w-full h-full border-0"
-                />
-              ) : isImage ? (
+              {isPdf && pdfDoc ? (
+                <PdfCanvasViewer pdfDoc={pdfDoc} />
+              ) : isPdf ? null : isImage ? (
                 <div className="w-full h-full overflow-auto flex items-center justify-center p-4">
                   <img
                     src={url}
