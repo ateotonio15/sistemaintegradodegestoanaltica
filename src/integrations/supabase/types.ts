@@ -5129,6 +5129,15 @@ export type Database = {
         Args: { _acao: string; _detalhes: Json; _impl: string }
         Returns: undefined
       }
+      _log_processo_evento: {
+        Args: {
+          p_acao: string
+          p_detalhes?: Json
+          p_observacao?: string
+          p_processo_id: string
+        }
+        Returns: undefined
+      }
       _log_reajuste: {
         Args: {
           p_dados?: Json
