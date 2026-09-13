@@ -255,6 +255,25 @@ export default function Implantacao() {
             </TabsTrigger>
           </TabsList>
         </Tabs>
+          <div className="flex items-center gap-1 shrink-0">
+            <Button
+              size="sm"
+              variant={visao === "fileiras" ? "default" : "outline"}
+              className="gap-1.5"
+              onClick={() => setVisao("fileiras")}
+            >
+              <Rows3 className="h-4 w-4" /> Fileiras
+            </Button>
+            <Button
+              size="sm"
+              variant={visao === "tabela" ? "default" : "outline"}
+              className="gap-1.5"
+              onClick={() => setVisao("tabela")}
+            >
+              <Table2 className="h-4 w-4" /> Tabela detalhada
+            </Button>
+          </div>
+        </div>
 
         {/* List */}
         {isLoading ? (
