@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { extrairTextoContrato } from "@/lib/contrato-text-extract";
 import { Button } from "@/components/ui/button";
@@ -7,10 +8,11 @@ import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
 import {
   FileSearch, Upload, Loader2, Plus, Trash2, CheckCircle2, XCircle,
-  AlertTriangle, Download, ClipboardCopy,
+  AlertTriangle, Download, ClipboardCopy, Link2,
 } from "lucide-react";
 
 type Criterio = { criterio: string; atendido: boolean | "indeterminado" | null; observacao?: string | null };
