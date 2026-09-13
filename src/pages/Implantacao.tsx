@@ -53,6 +53,7 @@ export default function Implantacao() {
   const [deleteTarget, setDeleteTarget] = useState<{ id: string; nome: string } | null>(null);
   const [deleting, setDeleting] = useState(false);
   const [fluxoTarget, setFluxoTarget] = useState<any | null>(null);
+  const [visao, setVisao] = useState<"fileiras" | "tabela">("fileiras");
 
   const { data: processos = [] } = useContratoProcessos();
   const processoPorImplantacao = useMemo(() => {
