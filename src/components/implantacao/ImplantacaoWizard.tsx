@@ -760,7 +760,29 @@ function Step1Upload({ anexos, data, onUpload, onDelete, onDownload, onView, upl
                     <Badge variant="secondary" className="h-4 text-[10px] px-1.5">
                       Obrigatório
                     </Badge>
+                    {isAnexo1 && (
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <button
+                            type="button"
+                            className="inline-flex items-center justify-center rounded-full text-muted-foreground hover:text-primary transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/50"
+                            aria-label="Saiba mais sobre o Anexo 1"
+                            onClick={(e) => e.stopPropagation()}
+                          >
+                            <Info className="h-3.5 w-3.5" />
+                          </button>
+                        </TooltipTrigger>
+                        <TooltipContent side="top" className="max-w-xs">
+                          <p>O sistema utilizará primeiro o Anexo 1 para extrair empresa, CNPJ, valores, grupo/contrato, início de atendimento e demais informações disponíveis.</p>
+                        </TooltipContent>
+                      </Tooltip>
+                    )}
                   </div>
+                  {isAnexo1 && (
+                    <p className="text-[11px] text-muted-foreground mt-0.5 leading-snug">
+                      Este documento será usado como fonte principal para preencher automaticamente os dados da implantação.
+                    </p>
+                  )}
                 </div>
 
                 <div className="flex items-center gap-2 shrink-0">
