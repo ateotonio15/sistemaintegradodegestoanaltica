@@ -213,40 +213,7 @@ export function ProcessoFluxoDialog({ open, onClose, implantacaoId, nomeEmpresa,
 
             <PendenciasProcessoSection processoId={processo.id} readOnly={readOnly} />
 
-            <div className="space-y-2">
-              <p className="text-sm font-medium flex items-center gap-2">
-                <History className="h-4 w-4 text-primary" /> Histórico de movimentações
-              </p>
-              {historico.length === 0 ? (
-                <p className="text-sm text-muted-foreground">Nenhuma movimentação registrada.</p>
-              ) : (
-                <div className="space-y-2">
-                  {[...historico].reverse().map((m) => (
-                    <Card key={m.id}>
-                      <CardContent className="p-3 space-y-1">
-                        <div className="flex flex-wrap items-center gap-2 text-sm">
-                          <Badge variant="outline">{acaoLabel(m.acao)}</Badge>
-                          <span className="text-xs text-muted-foreground">{dataHora(m.created_at)}</span>
-                          <span className="text-xs text-muted-foreground">· {m.user_nome || "—"}</span>
-                        </div>
-                        <p className="text-xs text-muted-foreground">
-                          Setor: {setorLabel(m.setor_origem)} → {m.setor_destino ? setorLabel(m.setor_destino) : "sem alteração"}
-                        </p>
-                        <p className="text-xs text-muted-foreground">
-                          Status: {statusLabel(m.status_detalhado_anterior)} → {m.status_detalhado_novo ? statusLabel(m.status_detalhado_novo) : "sem alteração"}
-                        </p>
-                        {m.observacao && (
-                          <>
-                            <Separator className="my-1" />
-                            <p className="text-xs">{m.observacao}</p>
-                          </>
-                        )}
-                      </CardContent>
-                    </Card>
-                  ))}
-                </div>
-              )}
-            </div>
+            <HistoricoProcessoTimeline processoId={processo.id} />
           </div>
         )}
       </DialogContent>
