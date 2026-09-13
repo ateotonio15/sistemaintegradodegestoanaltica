@@ -1,4 +1,7 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import * as pdfjsLib from "pdfjs-dist";
+import pdfWorkerUrl from "pdfjs-dist/build/pdf.worker.min.mjs?url";
+import type { PDFDocumentProxy } from "pdfjs-dist";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -23,6 +26,8 @@ import { cn } from "@/lib/utils";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { useAuth } from "@/hooks/useAuth";
 import { validarRelatorioVidas, type ValidacaoResultado } from "@/lib/relatorio-vidas-validator";
+
+pdfjsLib.GlobalWorkerOptions.workerSrc = pdfWorkerUrl;
 
 interface Props {
   id: string;
@@ -541,11 +546,16 @@ function AnexoPreviewDialog({ anexo, open, onOpenChange }: { anexo: any | null; 
   const mimeType = anexo?.mime_type || "";
   const isPdf = ext === "pdf" || mimeType.includes("pdf");
   const isImage = ["png", "jpg", "jpeg", "webp", "gif", "bmp"].includes(ext) || mimeType.startsWith("image/");
+  const [pdfDoc, setPdfDoc] = useState<PDFDocumentProxy | null>(null);
 
   useEffect(() => {
     if (!open || !anexo) {
       setUrl((prev) => {
         if (prev && prev.startsWith("blob:")) URL.revokeObjectURL(prev);
+        return null;
+      });
+      setPdfDoc((prev) => {
+        prev?.destroy();
         return null;
       });
       setError(null);
@@ -554,9 +564,14 @@ function AnexoPreviewDialog({ anexo, open, onOpenChange }: { anexo: any | null; 
     }
     let cancelled = false;
     let createdUrl: string | null = null;
+    let loadedPdf: PDFDocumentProxy | null = null;
     (async () => {
       setLoading(true);
       setError(null);
+      setPdfDoc((prev) => {
+        prev?.destroy();
+        return null;
+      });
       try {
         const { data: arquivo, error: e } = await supabase.storage
           .from("anexos-implantacao")
@@ -565,7 +580,14 @@ function AnexoPreviewDialog({ anexo, open, onOpenChange }: { anexo: any | null; 
         const mime = mimeType || (isPdf ? "application/pdf" : arquivo.type || "application/octet-stream");
         const blob = arquivo.type ? arquivo : new Blob([arquivo], { type: mime });
         createdUrl = URL.createObjectURL(blob);
-        if (!cancelled) setUrl(createdUrl);
+        if (isPdf) {
+          const buffer = await blob.arrayBuffer();
+          loadedPdf = await pdfjsLib.getDocument({ data: new Uint8Array(buffer) }).promise;
+        }
+        if (!cancelled) {
+          setUrl(createdUrl);
+          if (loadedPdf) setPdfDoc(loadedPdf);
+        }
       } catch (err: any) {
         if (!cancelled) setError(err?.message ?? "Não foi possível carregar o arquivo.");
       } finally {
@@ -574,6 +596,7 @@ function AnexoPreviewDialog({ anexo, open, onOpenChange }: { anexo: any | null; 
     })();
     return () => {
       cancelled = true;
+      loadedPdf?.destroy();
       if (createdUrl) URL.revokeObjectURL(createdUrl);
     };
   }, [open, anexo, isPdf, mimeType]);
@@ -622,13 +645,9 @@ function AnexoPreviewDialog({ anexo, open, onOpenChange }: { anexo: any | null; 
           )}
           {!loading && !error && url && (
             <>
-              {isPdf ? (
-                <iframe
-                  src={url}
-                  title={nomeArquivo}
-                  className="w-full h-full border-0"
-                />
-              ) : isImage ? (
+              {isPdf && pdfDoc ? (
+                <PdfCanvasViewer pdfDoc={pdfDoc} />
+              ) : isPdf ? null : isImage ? (
                 <div className="w-full h-full overflow-auto flex items-center justify-center p-4">
                   <img
                     src={url}
@@ -660,6 +679,68 @@ function AnexoPreviewDialog({ anexo, open, onOpenChange }: { anexo: any | null; 
         </div>
       </DialogContent>
     </Dialog>
+  );
+}
+
+// Renderiza todas as páginas do PDF em canvas (evita bloqueio do Chrome em iframes blob)
+function PdfCanvasViewer({ pdfDoc }: { pdfDoc: PDFDocumentProxy }) {
+  const containerRef = useRef<HTMLDivElement | null>(null);
+  const [numPages, setNumPages] = useState(0);
+
+  useEffect(() => {
+    setNumPages(pdfDoc.numPages);
+  }, [pdfDoc]);
+
+  useEffect(() => {
+    if (!numPages) return;
+    let cancelled = false;
+    const tasks: { cancel: () => void }[] = [];
+    const renderAll = async () => {
+      // espera os canvases existirem no DOM
+      await new Promise((r) => requestAnimationFrame(r));
+      const container = containerRef.current;
+      if (!container || cancelled) return;
+      const availableWidth = Math.max(320, container.clientWidth - 48);
+      const outputScale = window.devicePixelRatio || 1;
+      for (let p = 1; p <= numPages; p++) {
+        if (cancelled) return;
+        const canvas = container.querySelector<HTMLCanvasElement>(`canvas[data-page="${p}"]`);
+        if (!canvas) continue;
+        try {
+          const page = await pdfDoc.getPage(p);
+          const base = page.getViewport({ scale: 1 });
+          const scale = Math.max(0.6, Math.min(2.2, availableWidth / base.width));
+          const viewport = page.getViewport({ scale });
+          const ctx = canvas.getContext("2d");
+          if (!ctx) continue;
+          canvas.width = Math.floor(viewport.width * outputScale);
+          canvas.height = Math.floor(viewport.height * outputScale);
+          canvas.style.width = `${Math.floor(viewport.width)}px`;
+          canvas.style.height = `${Math.floor(viewport.height)}px`;
+          if (cancelled) return;
+          const task = page.render({ canvas, canvasContext: ctx, viewport, background: "hsl(0 0% 100%)" });
+          tasks.push(task);
+          await task.promise;
+        } catch {
+          // página ignorada em caso de erro de renderização
+        }
+      }
+    };
+    renderAll();
+    return () => {
+      cancelled = true;
+      tasks.forEach((t) => t.cancel());
+    };
+  }, [pdfDoc, numPages]);
+
+  return (
+    <div ref={containerRef} className="h-full overflow-auto bg-card p-4">
+      <div className="flex flex-col items-center gap-4 pb-6">
+        {Array.from({ length: numPages }, (_, i) => (
+          <canvas key={i + 1} data-page={i + 1} className="rounded-sm shadow-sm bg-card" />
+        ))}
+      </div>
+    </div>
   );
 }
 
