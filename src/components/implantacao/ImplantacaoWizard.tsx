@@ -553,7 +553,7 @@ function fileExtLabel(a: any) {
   return ext || "ARQUIVO";
 }
 
-const OBRIGATORIOS = ["anexo_1", "contrato", "relatorio_vidas", "primeira_cobranca"];
+const OBRIGATORIOS = ["anexo_1", "contrato", "relatorio_vidas", "primeira_cobranca", "complementar"];
 
 const ACCEPT_HINT: Record<string, { label: string; maxMb: number; multi: boolean }> = {
   anexo_1: { label: "PDF, JPG ou PNG", maxMb: 20, multi: false },
