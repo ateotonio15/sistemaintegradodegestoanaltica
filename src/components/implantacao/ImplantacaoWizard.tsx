@@ -659,9 +659,7 @@ function Step1Upload({ anexos, data, onUpload, onDelete, onDownload, onView, upl
                 : isEmpty
                   ? isAnexo1 ? "Documento ainda não anexado" : "Nenhum arquivo"
                   : isAnexo1
-                    ? anexo1Extraido
-                      ? "Anexo 1 pronto para extração"
-                      : "Anexo 1 anexado"
+                    ? "Anexo 1 pronto para extração"
                     : list.length === 1
                       ? "1 arquivo"
                       : `${list.length} arquivos`;
