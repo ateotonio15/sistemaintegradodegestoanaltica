@@ -697,14 +697,16 @@ function Step1Upload({ anexos, data, onUpload, onDelete, onDownload, onView, upl
               handleFiles(e.dataTransfer.files, tipo);
             }}
             className={cn(
-              "transition-colors select-none",
+              "transition-colors select-none relative overflow-hidden",
               readOnly || isValidating ? "cursor-default" : "cursor-pointer",
               isAnexo1
-                ? "border-primary/40 bg-primary/[0.03]"
+                ? "border-primary/30 bg-primary/[0.03] ring-1 ring-primary/10"
                 : "border-border bg-background",
-              !isEmpty && !hasError && "border-success/40 bg-success/[0.02]",
+              isAnexo1 && !isEmpty && !hasError && "border-primary/40 bg-primary/[0.05] ring-1 ring-primary/20",
+              !isAnexo1 && !isEmpty && !hasError && "border-success/40 bg-success/[0.02]",
               (showRequiredError || hasError) && "border-destructive/50 bg-destructive/[0.03]",
-              isOver && "border-primary/70 bg-primary/[0.08] ring-1 ring-primary/30"
+              isOver && "border-primary/70 bg-primary/[0.08] ring-1 ring-primary/30",
+              isAnexo1 && "before:absolute before:left-0 before:top-0 before:bottom-0 before:w-[3px] before:bg-primary/60"
             )}
           >
             <CardContent className="p-3 space-y-2">
