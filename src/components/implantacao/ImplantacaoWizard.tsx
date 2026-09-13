@@ -692,11 +692,14 @@ function PdfCanvasViewer({ pdfDoc }: { pdfDoc: PDFDocumentProxy }) {
   }, [pdfDoc]);
 
   useEffect(() => {
-    if (!numPages || !containerRef.current) return;
+    if (!numPages) return;
     let cancelled = false;
+    const tasks: { cancel: () => void }[] = [];
     const renderAll = async () => {
+      // espera os canvases existirem no DOM
+      await new Promise((r) => requestAnimationFrame(r));
       const container = containerRef.current;
-      if (!container) return;
+      if (!container || cancelled) return;
       const availableWidth = Math.max(320, container.clientWidth - 48);
       const outputScale = window.devicePixelRatio || 1;
       for (let p = 1; p <= numPages; p++) {
@@ -714,18 +717,19 @@ function PdfCanvasViewer({ pdfDoc }: { pdfDoc: PDFDocumentProxy }) {
           canvas.height = Math.floor(viewport.height * outputScale);
           canvas.style.width = `${Math.floor(viewport.width)}px`;
           canvas.style.height = `${Math.floor(viewport.height)}px`;
-          await page.render({ canvas, canvasContext: ctx, viewport, background: "hsl(0 0% 100%)" }).promise;
+          if (cancelled) return;
+          const task = page.render({ canvas, canvasContext: ctx, viewport, background: "hsl(0 0% 100%)" });
+          tasks.push(task);
+          await task.promise;
         } catch {
           // página ignorada em caso de erro de renderização
         }
       }
     };
     renderAll();
-    const observer = new ResizeObserver(() => renderAll());
-    if (containerRef.current) observer.observe(containerRef.current);
     return () => {
       cancelled = true;
-      observer.disconnect();
+      tasks.forEach((t) => t.cancel());
     };
   }, [pdfDoc, numPages]);
 
