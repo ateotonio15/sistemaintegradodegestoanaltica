@@ -776,23 +776,12 @@ export function AnaliseImplantacaoDialog({ implantacaoId, open, onClose, readOnl
     onError: (e: any) => toast({ title: e?.message || "Erro ao liberar contrato", variant: "destructive" }),
   });
 
-  const handleDownload = async (path: string, name: string) => {
+  const handleVisualizarAnexo = (path: string, name: string) => {
     if (!path) {
       toast({ title: "Anexo sem caminho de arquivo", variant: "destructive" });
       return;
     }
-    setLoadingAnexo(path);
-    const { data, error } = await supabase.storage
-      .from("anexos-implantacao")
-      .download(path);
-    setLoadingAnexo(null);
-    if (error || !data) {
-      toast({ title: "Erro ao carregar anexo", description: error?.message, variant: "destructive" });
-      return;
-    }
-    const type = data.type || "application/octet-stream";
-    const url = URL.createObjectURL(data);
-    setPreview({ url, name, type });
+    setPreviewAnexo({ storage_path: path, nome_arquivo: name });
   };
 
 
