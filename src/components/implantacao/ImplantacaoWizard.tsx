@@ -714,12 +714,12 @@ function PdfCanvasViewer({ pdfDoc }: { pdfDoc: PDFDocumentProxy }) {
           canvas.height = Math.floor(viewport.height * outputScale);
           canvas.style.width = `${Math.floor(viewport.width)}px`;
           canvas.style.height = `${Math.floor(viewport.height)}px`;
+          ctx.fillStyle = "hsl(0 0% 100%)";
+          ctx.fillRect(0, 0, canvas.width, canvas.height);
           await page.render({
-            canvas,
             canvasContext: ctx,
             viewport,
             transform: outputScale !== 1 ? [outputScale, 0, 0, outputScale, 0, 0] : undefined,
-            background: "hsl(0 0% 100%)",
           }).promise;
         } catch {
           // página ignorada em caso de erro de renderização
