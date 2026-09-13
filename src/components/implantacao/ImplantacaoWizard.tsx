@@ -580,10 +580,11 @@ function Step1Upload({ anexos, data, onUpload, onDelete, onDownload, onView, upl
   };
 
   return (
-    <div className="space-y-4">
-      <div className="rounded-lg border border-primary/30 bg-primary/5 p-3 text-sm text-primary">
-        <strong>Importante:</strong> O <strong>Anexo 1</strong> é prioridade total para a extração automática.
-      </div>
+    <TooltipProvider delayDuration={100}>
+      <div className="space-y-4">
+        <div className="rounded-lg border border-primary/30 bg-primary/5 p-3 text-sm text-primary">
+          <strong>Importante:</strong> O <strong>Anexo 1</strong> é prioridade total para a extração automática.
+        </div>
 
       {/* Resumo de documentos obrigatórios */}
       <Card className="border-border bg-background">
