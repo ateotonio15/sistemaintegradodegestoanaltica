@@ -676,14 +676,8 @@ export function AnaliseImplantacaoDialog({ implantacaoId, open, onClose, readOnl
   const [motivo, setMotivo] = useState("");
   const [mode, setMode] = useState<"view" | "correcao" | "rejeicao">("view");
   const [atribuirOpen, setAtribuirOpen] = useState(false);
-  const [preview, setPreview] = useState<{ url: string; name: string; type: string } | null>(null);
+  const [previewAnexo, setPreviewAnexo] = useState<{ storage_path: string; nome_arquivo: string; mime_type?: string } | null>(null);
   const [loadingAnexo, setLoadingAnexo] = useState<string | null>(null);
-
-  useEffect(() => {
-    return () => {
-      if (preview?.url) URL.revokeObjectURL(preview.url);
-    };
-  }, [preview?.url]);
 
   const { data: impl } = useQuery({
     queryKey: ["impl-analise", implantacaoId],
