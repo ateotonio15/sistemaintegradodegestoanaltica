@@ -11,12 +11,13 @@ import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { FileSignature, Plus, Search, FileText, Clock, Trash2, GitBranch } from "lucide-react";
+import { FileSignature, Plus, Search, FileText, Clock, Trash2, GitBranch, Rows3, Table2 } from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "@/hooks/useAuth";
 import { ImplantacaoWizard } from "@/components/implantacao/ImplantacaoWizard";
 import { AnaliseImplantacaoDialog } from "@/components/implantacao/AnaliseImplantacaoDialog";
 import { ProcessoFluxoDialog } from "@/components/implantacao/ProcessoFluxoDialog";
+import { ContratosTabela } from "@/components/implantacao/ContratosTabela";
 import { useContratoProcessos } from "@/hooks/useContratoProcessos";
 import { setorLabel, statusBadge, statusLabel } from "@/lib/contrato-processo";
 import { formatDateBR, formatDay } from "@/lib/date-utils";
@@ -52,6 +53,7 @@ export default function Implantacao() {
   const [deleteTarget, setDeleteTarget] = useState<{ id: string; nome: string } | null>(null);
   const [deleting, setDeleting] = useState(false);
   const [fluxoTarget, setFluxoTarget] = useState<any | null>(null);
+  const [visao, setVisao] = useState<"fileiras" | "tabela">("fileiras");
 
   const { data: processos = [] } = useContratoProcessos();
   const processoPorImplantacao = useMemo(() => {
@@ -212,7 +214,7 @@ export default function Implantacao() {
         </div>
 
         {/* Filters */}
-        <Card>
+        <Card className={visao === "tabela" ? "hidden" : ""}>
           <CardContent className="p-4 flex flex-col md:flex-row gap-3">
             <div className="relative flex-1">
               <Search className="h-4 w-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
@@ -236,7 +238,8 @@ export default function Implantacao() {
         </Card>
 
         {/* Etapas */}
-        <Tabs value={etapa} onValueChange={(v) => { setEtapa(v as EtapaFiltro); setStatusFilter("todos"); }} className="w-full">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
+        <Tabs value={etapa} onValueChange={(v) => { setEtapa(v as EtapaFiltro); setStatusFilter("todos"); }} className="w-full md:w-auto">
           <TabsList className="w-full md:w-auto">
             <TabsTrigger value="em_andamento" className="gap-2">
               Em implantação
@@ -252,10 +255,37 @@ export default function Implantacao() {
             </TabsTrigger>
           </TabsList>
         </Tabs>
+          <div className="flex items-center gap-1 shrink-0">
+            <Button
+              size="sm"
+              variant={visao === "fileiras" ? "default" : "outline"}
+              className="gap-1.5"
+              onClick={() => setVisao("fileiras")}
+            >
+              <Rows3 className="h-4 w-4" /> Fileiras
+            </Button>
+            <Button
+              size="sm"
+              variant={visao === "tabela" ? "default" : "outline"}
+              className="gap-1.5"
+              onClick={() => setVisao("tabela")}
+            >
+              <Table2 className="h-4 w-4" /> Tabela detalhada
+            </Button>
+          </div>
+        </div>
 
         {/* List */}
         {isLoading ? (
           <p className="text-muted-foreground text-center py-8">Carregando...</p>
+        ) : visao === "tabela" ? (
+          <ContratosTabela
+            items={filtered}
+            processoPorImplantacao={processoPorImplantacao}
+            anexosPorImplantacao={anexosPorImplantacao}
+            onOpen={(id) => setOpenId(id)}
+            onFluxo={(item) => setFluxoTarget(item)}
+          />
         ) : filtered.length === 0 ? (
           <Card>
             <CardContent className="p-12 text-center text-muted-foreground">
