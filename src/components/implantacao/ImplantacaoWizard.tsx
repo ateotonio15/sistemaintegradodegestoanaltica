@@ -788,9 +788,7 @@ function Step1Upload({ anexos, data, onUpload, onDelete, onDownload, onView, upl
                         ? "text-primary"
                         : isEmpty
                           ? "text-muted-foreground"
-                          : isAnexo1 && !anexo1Extraido
-                            ? "text-primary"
-                            : "text-success"
+                          : "text-success"
                   )}>
                     {statusText}
                   </span>
