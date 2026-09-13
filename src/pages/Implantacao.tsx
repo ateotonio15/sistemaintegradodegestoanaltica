@@ -238,7 +238,8 @@ export default function Implantacao() {
         </Card>
 
         {/* Etapas */}
-        <Tabs value={etapa} onValueChange={(v) => { setEtapa(v as EtapaFiltro); setStatusFilter("todos"); }} className="w-full">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
+        <Tabs value={etapa} onValueChange={(v) => { setEtapa(v as EtapaFiltro); setStatusFilter("todos"); }} className="w-full md:w-auto">
           <TabsList className="w-full md:w-auto">
             <TabsTrigger value="em_andamento" className="gap-2">
               Em implantação
