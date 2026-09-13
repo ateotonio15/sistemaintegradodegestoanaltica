@@ -214,7 +214,7 @@ export default function Implantacao() {
         </div>
 
         {/* Filters */}
-        <Card>
+        <Card className={visao === "tabela" ? "hidden" : ""}>
           <CardContent className="p-4 flex flex-col md:flex-row gap-3">
             <div className="relative flex-1">
               <Search className="h-4 w-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
