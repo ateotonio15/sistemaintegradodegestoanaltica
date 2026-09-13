@@ -51,12 +51,14 @@ function CampoGridItem({
   estado = "ok",
   financeiro = false,
   title,
+  className,
 }: {
   label: string;
   value: ReactNode;
   estado?: CampoEstado;
   financeiro?: boolean;
   title?: string;
+  className?: string;
 }) {
   const vazio = estado === "vazio";
   const divergente = estado === "divergente";
@@ -68,7 +70,8 @@ function CampoGridItem({
         "rounded-md p-2 transition-colors",
         divergente && "border border-amber-500/40 bg-amber-500/10",
         vazio && "bg-amber-500/5",
-        financeiro && !divergente && !vazio && !naoAplicavel && "bg-emerald-500/5"
+        financeiro && !divergente && !vazio && !naoAplicavel && "bg-emerald-500/5",
+        className
       )}
     >
       <p className="text-[11px] uppercase tracking-wide text-muted-foreground">{label}</p>
