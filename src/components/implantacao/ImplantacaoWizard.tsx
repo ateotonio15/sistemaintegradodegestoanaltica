@@ -563,7 +563,7 @@ const ACCEPT_HINT: Record<string, { label: string; maxMb: number; multi: boolean
   complementar: { label: "PDF, imagem, Excel, CSV ou Word", maxMb: 20, multi: true },
 };
 
-function Step1Upload({ anexos, data, onUpload, onDelete, onDownload, onView, uploadingTipo, uploadErrors = {}, readOnly, attempted }: any) {
+function Step1Upload({ anexos, data, onUpload, onDelete, onDownload, onView, uploadingTipo, uploadErrors = {}, readOnly, attempted, setAttempted, onSaveDraft, onContinue }: any) {
   const tipos = ["anexo_1", "contrato", "relatorio_vidas", "primeira_cobranca", "complementar"];
   const [expanded, setExpanded] = useState<Record<string, boolean>>({});
   const [dragOver, setDragOver] = useState<Record<string, boolean>>({});
@@ -592,315 +592,355 @@ function Step1Upload({ anexos, data, onUpload, onDelete, onDownload, onView, upl
     }
   };
 
+  const handleContinuar = () => {
+    if (!todosConcluidos) {
+      setAttempted(true);
+      return;
+    }
+    onContinue();
+  };
+
   return (
     <TooltipProvider delayDuration={100}>
-      <div className="space-y-4">
-        <div className="rounded-lg border border-primary/30 bg-primary/5 p-3 text-sm text-primary">
-          <strong>Importante:</strong> O <strong>Anexo 1</strong> é prioridade total para a extração automática.
-        </div>
-
-      {/* Resumo de documentos obrigatórios */}
-      <Card className="border-border bg-background">
-        <CardContent className="p-4 space-y-3">
-          <div className="flex items-center justify-between gap-3">
-            <div>
-              <h3 className="font-semibold text-sm text-foreground">Documentos da implantação</h3>
-              <p className="text-xs text-muted-foreground mt-0.5">
-                {todosConcluidos ? (
-                  <span className="flex items-center gap-1.5 text-success">
-                    <CheckCircle2 className="h-3.5 w-3.5" />
-                    Documentação obrigatória completa
-                  </span>
-                ) : concluidos === 0 ? (
-                  <>
-                    <strong>{totalObrigatorios}</strong> documentos obrigatórios ainda precisam ser anexados.
-                  </>
-                ) : (
-                  <>
-                    <strong>{concluidos}</strong> concluídos <span className="mx-1">•</span> <strong>{pendentes}</strong> pendentes
-                  </>
-                )}
-              </p>
-            </div>
-            <div className="text-right shrink-0">
-              <span className="text-lg font-bold tabular-nums text-foreground">
-                {concluidos}/{totalObrigatorios}
-              </span>
-            </div>
+      <div className="flex flex-col min-h-full">
+        <div className="flex-1 space-y-4 overflow-y-auto pr-1 pb-2">
+          <div className="rounded-lg border border-primary/30 bg-primary/5 p-3 text-sm text-primary">
+            <strong>Importante:</strong> O <strong>Anexo 1</strong> é prioridade total para a extração automática.
           </div>
-          <div className="space-y-1">
-            <Progress value={progresso} className="h-2" />
-            {todosConcluidos && (
-              <p className="text-xs text-muted-foreground text-right">
-                {totalObrigatorios}/{totalObrigatorios} documentos enviados.
-              </p>
-            )}
-          </div>
-        </CardContent>
-      </Card>
 
-      {tipos.map((tipo) => {
-        const list = anexos.filter((a: any) => a.tipo === tipo);
-        const isAnexo1 = tipo === "anexo_1";
-        const isEmpty = list.length === 0;
-        const isValidating = uploadingTipo === tipo;
-        const errorMsg: string | undefined = uploadErrors[tipo];
-        const showRequiredError = attempted && isEmpty && !isValidating;
-        const hasError = !!errorMsg;
-        const isOpen = !!expanded[tipo];
-        const visible = isOpen ? list : list.slice(0, 1);
-        const isOver = !!dragOver[tipo];
-        const hint = ACCEPT_HINT[tipo];
-        const multi = hint?.multi;
-
-        const cardClick = (e: React.MouseEvent) => {
-          if (readOnly || isValidating) return;
-          const target = e.target as HTMLElement;
-          if (target.closest("button") || target.closest("a") || target.closest("input")) return;
-          fileRefs[tipo].current?.click();
-        };
-
-        const statusText = isValidating
-          ? isAnexo1 ? "Validando documento..." : "Validando..."
-          : hasError
-            ? isAnexo1 ? "Não foi possível identificar corretamente o Anexo 1." : errorMsg
-            : showRequiredError
-              ? "Obrigatório"
-              : isOver
-                ? "Solte o arquivo aqui"
-                : isEmpty
-                  ? isAnexo1 ? "Documento ainda não anexado" : "Nenhum arquivo"
-                  : isAnexo1
-                    ? "Anexo 1 pronto para extração"
-                    : list.length === 1
-                      ? "1 arquivo"
-                      : `${list.length} arquivos`;
-
-        return (
-          <Card
-            key={tipo}
-            onClick={cardClick}
-            onDragOver={(e) => {
-              if (readOnly || isValidating) return;
-              e.preventDefault();
-              e.stopPropagation();
-            }}
-            onDragEnter={(e) => {
-              if (readOnly || isValidating) return;
-              e.preventDefault();
-              e.stopPropagation();
-              setDragOver((p) => ({ ...p, [tipo]: true }));
-            }}
-            onDragLeave={(e) => {
-              if (readOnly || isValidating) return;
-              e.preventDefault();
-              e.stopPropagation();
-              if (!e.currentTarget.contains(e.relatedTarget as Node)) {
-                setDragOver((p) => ({ ...p, [tipo]: false }));
-              }
-            }}
-            onDrop={(e) => {
-              if (readOnly || isValidating) return;
-              e.preventDefault();
-              e.stopPropagation();
-              setDragOver((p) => ({ ...p, [tipo]: false }));
-              handleFiles(e.dataTransfer.files, tipo);
-            }}
-            className={cn(
-              "transition-colors select-none relative overflow-hidden",
-              readOnly || isValidating ? "cursor-default" : "cursor-pointer",
-              isAnexo1
-                ? "border-primary/30 bg-primary/[0.03] ring-1 ring-primary/10"
-                : "border-border bg-background",
-              isAnexo1 && !isEmpty && !hasError && "border-primary/40 bg-primary/[0.05] ring-1 ring-primary/20",
-              !isAnexo1 && !isEmpty && !hasError && "border-success/40 bg-success/[0.02]",
-              (showRequiredError || hasError) && "border-destructive/50 bg-destructive/[0.03]",
-              isOver && "border-primary/70 bg-primary/[0.08] ring-1 ring-primary/30",
-              isAnexo1 && "before:absolute before:left-0 before:top-0 before:bottom-0 before:w-[3px] before:bg-primary/60"
-            )}
-          >
-            <CardContent className="p-3 space-y-2">
-              {/* Linha principal */}
-              <div className="flex items-center gap-2.5">
-                <div className={cn(
-                  "h-7 w-7 rounded-full flex items-center justify-center shrink-0 border",
-                  isOver
-                    ? "border-primary/50 bg-primary/15 text-primary"
-                    : isValidating
-                      ? "border-primary/40 bg-primary/10 text-primary"
-                      : hasError || showRequiredError
-                        ? "border-destructive/40 bg-destructive/10 text-destructive"
-                        : isEmpty
-                          ? isAnexo1
-                            ? "border-primary/40 bg-primary/10 text-primary"
-                            : "border-muted bg-muted/50 text-muted-foreground"
-                          : "border-success/40 bg-success/10 text-success"
-                )}>
-                  {isOver ? (
-                    <Upload className="h-3.5 w-3.5" />
-                  ) : isValidating ? (
-                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                  ) : hasError || showRequiredError ? (
-                    <AlertCircle className="h-3.5 w-3.5" />
-                  ) : isEmpty ? (
-                    isAnexo1 ? <Sparkles className="h-3.5 w-3.5" /> : <FileText className="h-3.5 w-3.5" />
-                  ) : (
-                    <CheckCircle2 className="h-3.5 w-3.5" />
-                  )}
-                </div>
-
-                <div className="min-w-0 flex-1">
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <span className={cn(
-                      "font-semibold text-sm",
-                      isAnexo1 ? "text-primary" : "text-foreground"
-                    )}>
-                      {TIPO_LABEL[tipo]}
-                    </span>
-                    {isAnexo1 && (
-                      <Badge variant="default" className="h-4 text-[10px] gap-1 px-1.5">
-                        <Sparkles className="h-2.5 w-2.5" />
-                        Prioritário
-                      </Badge>
+          {/* Resumo de documentos obrigatórios */}
+          <Card className="border-border bg-background">
+            <CardContent className="p-4 space-y-3">
+              <div className="flex items-center justify-between gap-3">
+                <div>
+                  <h3 className="font-semibold text-sm text-foreground">Documentos da implantação</h3>
+                  <p className="text-xs text-muted-foreground mt-0.5">
+                    {todosConcluidos ? (
+                      <span className="flex items-center gap-1.5 text-success">
+                        <CheckCircle2 className="h-3.5 w-3.5" />
+                        Documentação obrigatória completa
+                      </span>
+                    ) : concluidos === 0 ? (
+                      <>
+                        <strong>{totalObrigatorios}</strong> documentos obrigatórios ainda precisam ser anexados.
+                      </>
+                    ) : (
+                      <>
+                        <strong>{concluidos}</strong> concluídos <span className="mx-1">•</span> <strong>{pendentes}</strong> pendentes
+                      </>
                     )}
-                    <Badge variant="secondary" className="h-4 text-[10px] px-1.5">
-                      Obrigatório
-                    </Badge>
-                    {isAnexo1 && (
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <button
-                            type="button"
-                            className="inline-flex items-center justify-center rounded-full text-muted-foreground hover:text-primary transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/50"
-                            aria-label="Saiba mais sobre o Anexo 1"
-                            onClick={(e) => e.stopPropagation()}
-                          >
-                            <Info className="h-3.5 w-3.5" />
-                          </button>
-                        </TooltipTrigger>
-                        <TooltipContent side="top" className="max-w-xs">
-                          <p>O sistema utilizará primeiro o Anexo 1 para extrair empresa, CNPJ, valores, grupo/contrato, início de atendimento e demais informações disponíveis.</p>
-                        </TooltipContent>
-                      </Tooltip>
-                    )}
-                  </div>
-                  {isAnexo1 && (
-                    <p className="text-[11px] text-muted-foreground mt-0.5 leading-snug">
-                      Este documento será usado como fonte principal para preencher automaticamente os dados da implantação.
-                    </p>
-                  )}
+                  </p>
                 </div>
-
-                <div className="flex items-center gap-2 shrink-0">
-                  <span className={cn(
-                    "text-xs tabular-nums",
-                    hasError || showRequiredError
-                      ? "text-destructive"
-                      : isOver
-                        ? "text-primary"
-                        : isEmpty
-                          ? "text-muted-foreground"
-                          : "text-success"
-                  )}>
-                    {statusText}
+                <div className="text-right shrink-0">
+                  <span className="text-lg font-bold tabular-nums text-foreground">
+                    {concluidos}/{totalObrigatorios}
                   </span>
-                  {!readOnly && (
-                    <label className="cursor-pointer shrink-0" onClick={(e) => e.stopPropagation()}>
-                      <input
-                        ref={fileRefs[tipo]}
-                        type="file"
-                        className="hidden"
-                        multiple={multi}
-                        onChange={async (e) => {
-                          const files = Array.from(e.target.files || []);
-                          for (const f of files) {
-                            await onUpload(f, tipo);
-                          }
-                          e.target.value = "";
-                        }}
-                        disabled={isValidating}
-                      />
-                      <Button size="sm" variant={isAnexo1 ? "default" : "outline"} disabled={isValidating} className="h-7 text-xs px-2.5">
-                        {isValidating ? (
-                          <Loader2 className="h-3.5 w-3.5 mr-1 animate-spin" />
-                        ) : (
-                          <Upload className="h-3.5 w-3.5 mr-1" />
-                        )}
-                        {isEmpty ? "Anexar" : "Substituir"}
-                      </Button>
-                    </label>
-                  )}
                 </div>
               </div>
-
-              {/* Linha secundária: orientação / erro / hints */}
-              {!readOnly && (hasError || showRequiredError || hint) && (
-                <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] pl-10">
-                  {hasError && <span className="text-destructive">{errorMsg}</span>}
-                  {showRequiredError && !hasError && (
-                    <span className="text-destructive">Documento obrigatório — anexe ao menos 1 arquivo.</span>
-                  )}
-                  {!showRequiredError && !hasError && hint && (
-                    <>
-                      <span className="text-muted-foreground">{hint.label} • máximo {hint.maxMb} MB</span>
-                      {multi && <span className="text-primary">Você pode anexar vários arquivos</span>}
-                    </>
-                  )}
-                </div>
-              )}
-
-              {/* Arquivo(s) anexado(s) */}
-              {list.length > 0 && (
-                <div className="space-y-1.5 pl-10">
-                  {visible.map((a: any) => (
-                    <div
-                      key={a.id}
-                      className="flex items-center justify-between gap-2 rounded-md border bg-muted/30 px-2.5 py-1.5 text-sm"
-                    >
-                      <div className="flex items-center gap-2 truncate min-w-0">
-                        <div className="min-w-0">
-                          <p className="truncate text-sm font-medium" title={a.nome_arquivo}>{a.nome_arquivo}</p>
-                          <p className="text-[11px] text-muted-foreground">
-                            {fileExtLabel(a)}{a.tamanho_bytes ? ` • ${formatFileSize(a.tamanho_bytes)}` : ""}
-                            {a.created_at ? ` • ${timeAgo(a.created_at)}` : ""}
-                          </p>
-                        </div>
-                      </div>
-                      <div className="flex items-center gap-0.5 shrink-0">
-                        <Button size="sm" variant="ghost" className="h-6 px-1.5 text-xs" title="Visualizar" onClick={() => onView(a)}>
-                          Visualizar
-                        </Button>
-                        <Button size="sm" variant="ghost" className="h-6 px-1.5 text-xs" title="Baixar" onClick={() => onDownload(a)}>
-                          Baixar
-                        </Button>
-                        {!readOnly && (
-                          <Button size="sm" variant="ghost" className="h-6 px-1.5 text-xs text-destructive" title="Excluir" onClick={() => onDelete(a)}>
-                            Excluir
-                          </Button>
-                        )}
-                      </div>
-                    </div>
-                  ))}
-                  {list.length > 1 && (
-                    <Button
-                      size="sm"
-                      variant="ghost"
-                      className="h-6 w-full text-xs text-muted-foreground"
-                      onClick={() => setExpanded((p: any) => ({ ...p, [tipo]: !isOpen }))}
-                    >
-                      {isOpen ? (
-                        <><ChevronUp className="h-3 w-3 mr-1" /> Recolher</>
-                      ) : (
-                        <><ChevronDown className="h-3 w-3 mr-1" /> Ver todos os {list.length} arquivos</>
-                      )}
-                    </Button>
-                  )}
-                </div>
-              )}
+              <div className="space-y-1">
+                <Progress value={progresso} className="h-2" />
+                {todosConcluidos && (
+                  <p className="text-xs text-muted-foreground text-right">
+                    {totalObrigatorios}/{totalObrigatorios} documentos enviados.
+                  </p>
+                )}
+              </div>
             </CardContent>
           </Card>
-        );
-      })}
+
+          {tipos.map((tipo) => {
+            const list = anexos.filter((a: any) => a.tipo === tipo);
+            const isAnexo1 = tipo === "anexo_1";
+            const isEmpty = list.length === 0;
+            const isValidating = uploadingTipo === tipo;
+            const errorMsg: string | undefined = uploadErrors[tipo];
+            const showRequiredError = attempted && isEmpty && !isValidating;
+            const hasError = !!errorMsg;
+            const isOpen = !!expanded[tipo];
+            const visible = isOpen ? list : list.slice(0, 1);
+            const isOver = !!dragOver[tipo];
+            const hint = ACCEPT_HINT[tipo];
+            const multi = hint?.multi;
+
+            const cardClick = (e: React.MouseEvent) => {
+              if (readOnly || isValidating) return;
+              const target = e.target as HTMLElement;
+              if (target.closest("button") || target.closest("a") || target.closest("input")) return;
+              fileRefs[tipo].current?.click();
+            };
+
+            const statusText = isValidating
+              ? isAnexo1 ? "Validando documento..." : "Validando..."
+              : hasError
+                ? isAnexo1 ? "Não foi possível identificar corretamente o Anexo 1." : errorMsg
+                : showRequiredError
+                  ? "Obrigatório"
+                  : isOver
+                    ? "Solte o arquivo aqui"
+                    : isEmpty
+                      ? isAnexo1 ? "Documento ainda não anexado" : "Nenhum arquivo"
+                      : isAnexo1
+                        ? "Anexo 1 pronto para extração"
+                        : list.length === 1
+                          ? "1 arquivo"
+                          : `${list.length} arquivos`;
+
+            return (
+              <Card
+                key={tipo}
+                onClick={cardClick}
+                onDragOver={(e) => {
+                  if (readOnly || isValidating) return;
+                  e.preventDefault();
+                  e.stopPropagation();
+                }}
+                onDragEnter={(e) => {
+                  if (readOnly || isValidating) return;
+                  e.preventDefault();
+                  e.stopPropagation();
+                  setDragOver((p) => ({ ...p, [tipo]: true }));
+                }}
+                onDragLeave={(e) => {
+                  if (readOnly || isValidating) return;
+                  e.preventDefault();
+                  e.stopPropagation();
+                  if (!e.currentTarget.contains(e.relatedTarget as Node)) {
+                    setDragOver((p) => ({ ...p, [tipo]: false }));
+                  }
+                }}
+                onDrop={(e) => {
+                  if (readOnly || isValidating) return;
+                  e.preventDefault();
+                  e.stopPropagation();
+                  setDragOver((p) => ({ ...p, [tipo]: false }));
+                  handleFiles(e.dataTransfer.files, tipo);
+                }}
+                className={cn(
+                  "transition-colors select-none relative overflow-hidden",
+                  readOnly || isValidating ? "cursor-default" : "cursor-pointer",
+                  isAnexo1
+                    ? "border-primary/30 bg-primary/[0.03] ring-1 ring-primary/10"
+                    : "border-border bg-background",
+                  isAnexo1 && !isEmpty && !hasError && "border-primary/40 bg-primary/[0.05] ring-1 ring-primary/20",
+                  !isAnexo1 && !isEmpty && !hasError && "border-success/40 bg-success/[0.02]",
+                  (showRequiredError || hasError) && "border-destructive/50 bg-destructive/[0.03]",
+                  isOver && "border-primary/70 bg-primary/[0.08] ring-1 ring-primary/30",
+                  isAnexo1 && "before:absolute before:left-0 before:top-0 before:bottom-0 before:w-[3px] before:bg-primary/60"
+                )}
+              >
+                <CardContent className="p-3 space-y-2">
+                  {/* Linha principal */}
+                  <div className="flex items-center gap-2.5">
+                    <div className={cn(
+                      "h-7 w-7 rounded-full flex items-center justify-center shrink-0 border",
+                      isOver
+                        ? "border-primary/50 bg-primary/15 text-primary"
+                        : isValidating
+                          ? "border-primary/40 bg-primary/10 text-primary"
+                          : hasError || showRequiredError
+                            ? "border-destructive/40 bg-destructive/10 text-destructive"
+                            : isEmpty
+                              ? isAnexo1
+                                ? "border-primary/40 bg-primary/10 text-primary"
+                                : "border-muted bg-muted/50 text-muted-foreground"
+                              : "border-success/40 bg-success/10 text-success"
+                    )}>
+                      {isOver ? (
+                        <Upload className="h-3.5 w-3.5" />
+                      ) : isValidating ? (
+                        <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                      ) : hasError || showRequiredError ? (
+                        <AlertCircle className="h-3.5 w-3.5" />
+                      ) : isEmpty ? (
+                        isAnexo1 ? <Sparkles className="h-3.5 w-3.5" /> : <FileText className="h-3.5 w-3.5" />
+                      ) : (
+                        <CheckCircle2 className="h-3.5 w-3.5" />
+                      )}
+                    </div>
+
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className={cn(
+                          "font-semibold text-sm",
+                          isAnexo1 ? "text-primary" : "text-foreground"
+                        )}>
+                          {TIPO_LABEL[tipo]}
+                        </span>
+                        {isAnexo1 && (
+                          <Badge variant="default" className="h-4 text-[10px] gap-1 px-1.5">
+                            <Sparkles className="h-2.5 w-2.5" />
+                            Prioritário
+                          </Badge>
+                        )}
+                        <Badge variant="secondary" className="h-4 text-[10px] px-1.5">
+                          Obrigatório
+                        </Badge>
+                        {isAnexo1 && (
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <button
+                                type="button"
+                                className="inline-flex items-center justify-center rounded-full text-muted-foreground hover:text-primary transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/50"
+                                aria-label="Saiba mais sobre o Anexo 1"
+                                onClick={(e) => e.stopPropagation()}
+                              >
+                                <Info className="h-3.5 w-3.5" />
+                              </button>
+                            </TooltipTrigger>
+                            <TooltipContent side="top" className="max-w-xs">
+                              <p>O sistema utilizará primeiro o Anexo 1 para extrair empresa, CNPJ, valores, grupo/contrato, início de atendimento e demais informações disponíveis.</p>
+                            </TooltipContent>
+                          </Tooltip>
+                        )}
+                      </div>
+                      {isAnexo1 && (
+                        <p className="text-[11px] text-muted-foreground mt-0.5 leading-snug">
+                          Este documento será usado como fonte principal para preencher automaticamente os dados da implantação.
+                        </p>
+                      )}
+                    </div>
+
+                    <div className="flex items-center gap-2 shrink-0">
+                      <span className={cn(
+                        "text-xs tabular-nums",
+                        hasError || showRequiredError
+                          ? "text-destructive"
+                          : isOver
+                            ? "text-primary"
+                            : isEmpty
+                              ? "text-muted-foreground"
+                              : "text-success"
+                      )}>
+                        {statusText}
+                      </span>
+                      {!readOnly && (
+                        <label className="cursor-pointer shrink-0" onClick={(e) => e.stopPropagation()}>
+                          <input
+                            ref={fileRefs[tipo]}
+                            type="file"
+                            className="hidden"
+                            multiple={multi}
+                            onChange={async (e) => {
+                              const files = Array.from(e.target.files || []);
+                              for (const f of files) {
+                                await onUpload(f, tipo);
+                              }
+                              e.target.value = "";
+                            }}
+                            disabled={isValidating}
+                          />
+                          <Button size="sm" variant={isAnexo1 ? "default" : "outline"} disabled={isValidating} className="h-7 text-xs px-2.5">
+                            {isValidating ? (
+                              <Loader2 className="h-3.5 w-3.5 mr-1 animate-spin" />
+                            ) : (
+                              <Upload className="h-3.5 w-3.5 mr-1" />
+                            )}
+                            {isEmpty ? "Anexar" : "Substituir"}
+                          </Button>
+                        </label>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Linha secundária: orientação / erro / hints */}
+                  {!readOnly && (hasError || showRequiredError || hint) && (
+                    <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] pl-10">
+                      {hasError && <span className="text-destructive">{errorMsg}</span>}
+                      {showRequiredError && !hasError && (
+                        <span className="text-destructive">Documento obrigatório — anexe ao menos 1 arquivo.</span>
+                      )}
+                      {!showRequiredError && !hasError && hint && (
+                        <>
+                          <span className="text-muted-foreground">{hint.label} • máximo {hint.maxMb} MB</span>
+                          {multi && <span className="text-primary">Você pode anexar vários arquivos</span>}
+                        </>
+                      )}
+                    </div>
+                  )}
+
+                  {/* Arquivo(s) anexado(s) */}
+                  {list.length > 0 && (
+                    <div className="space-y-1.5 pl-10">
+                      {visible.map((a: any) => (
+                        <div
+                          key={a.id}
+                          className="flex items-center justify-between gap-2 rounded-md border bg-muted/30 px-2.5 py-1.5 text-sm"
+                        >
+                          <div className="flex items-center gap-2 truncate min-w-0">
+                            <div className="min-w-0">
+                              <p className="truncate text-sm font-medium" title={a.nome_arquivo}>{a.nome_arquivo}</p>
+                              <p className="text-[11px] text-muted-foreground">
+                                {fileExtLabel(a)}{a.tamanho_bytes ? ` • ${formatFileSize(a.tamanho_bytes)}` : ""}
+                                {a.created_at ? ` • ${timeAgo(a.created_at)}` : ""}
+                              </p>
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-0.5 shrink-0">
+                            <Button size="sm" variant="ghost" className="h-6 px-1.5 text-xs" title="Visualizar" onClick={() => onView(a)}>
+                              Visualizar
+                            </Button>
+                            <Button size="sm" variant="ghost" className="h-6 px-1.5 text-xs" title="Baixar" onClick={() => onDownload(a)}>
+                              Baixar
+                            </Button>
+                            {!readOnly && (
+                              <Button size="sm" variant="ghost" className="h-6 px-1.5 text-xs text-destructive" title="Excluir" onClick={() => onDelete(a)}>
+                                Excluir
+                              </Button>
+                            )}
+                          </div>
+                        </div>
+                      ))}
+                      {list.length > 1 && (
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          className="h-6 w-full text-xs text-muted-foreground"
+                          onClick={() => setExpanded((p: any) => ({ ...p, [tipo]: !isOpen }))}
+                        >
+                          {isOpen ? (
+                            <><ChevronUp className="h-3 w-3 mr-1" /> Recolher</>
+                          ) : (
+                            <><ChevronDown className="h-3 w-3 mr-1" /> Ver todos os {list.length} arquivos</>
+                          )}
+                        </Button>
+                      )}
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            );
+          })}
+        </div>
+
+        {/* Rodapé fixo da etapa Upload */}
+        <div className="sticky bottom-0 shrink-0 border-t bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 px-1 pt-4 pb-1 mt-2">
+          <div className="flex items-center justify-between gap-4">
+            <div className="text-sm">
+              {todosConcluidos ? (
+                <span className="flex items-center gap-2 text-success">
+                  <CheckCircle2 className="h-4 w-4" />
+                  Documentação completa
+                </span>
+              ) : (
+                <span className="text-muted-foreground">
+                  <strong className="text-foreground">{concluidos}</strong> de <strong className="text-foreground">{totalObrigatorios}</strong> documentos obrigatórios enviados
+                </span>
+              )}
+            </div>
+            <div className="flex items-center gap-2">
+              <Button variant="outline" size="sm" onClick={onSaveDraft} disabled={readOnly}>
+                Salvar rascunho
+              </Button>
+              <Button size="sm" onClick={handleContinuar} disabled={readOnly}>
+                {todosConcluidos ? (
+                  <>Continuar para Extração <ArrowRight className="h-4 w-4 ml-1" /></>
+                ) : (
+                  <>Continuar</>
+                )}
+              </Button>
+            </div>
+          </div>
+        </div>
       </div>
     </TooltipProvider>
   );
