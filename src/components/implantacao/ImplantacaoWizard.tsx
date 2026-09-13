@@ -725,7 +725,7 @@ function PdfCanvasViewer({ pdfDoc }: { pdfDoc: PDFDocumentProxy }) {
     };
     renderAll();
     const observer = new ResizeObserver(() => renderAll());
-    observer.observe(container);
+    if (containerRef.current) observer.observe(containerRef.current);
     return () => {
       cancelled = true;
       observer.disconnect();
