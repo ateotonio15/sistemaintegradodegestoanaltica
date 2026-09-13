@@ -16,6 +16,7 @@ import {
   Upload, FileText, Sparkles, ArrowLeft, ArrowRight, CheckCircle2, AlertCircle,
   Loader2, Trash2, Download, Building2, FileSignature, DollarSign, Users,
   ShieldCheck, XCircle, AlertTriangle, Send, Eye, ChevronDown, ChevronUp, Info,
+  ExternalLink,
 } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
@@ -82,6 +83,7 @@ export function ImplantacaoWizard({ id, open, onClose, readOnly }: Props) {
   const [step, setStep] = useState(1);
   const [extracting, setExtracting] = useState(false);
   const [uploadAttempted, setUploadAttempted] = useState(false);
+  const [previewAnexo, setPreviewAnexo] = useState<any | null>(null);
 
   const { data: impl } = useQuery({
     queryKey: ["impl", id],
@@ -263,17 +265,8 @@ export function ImplantacaoWizard({ id, open, onClose, readOnly }: Props) {
     window.setTimeout(() => URL.revokeObjectURL(url), 1000);
   };
 
-  const handleView = async (a: any) => {
-    const { data: arquivo, error } = await supabase.storage
-      .from("anexos-implantacao")
-      .download(a.storage_path);
-    if (error || !arquivo) {
-      toast.error("Não foi possível abrir o arquivo. Tente baixar o documento.");
-      return;
-    }
-    const url = URL.createObjectURL(arquivo);
-    window.open(url, "_blank", "noopener,noreferrer");
-    window.setTimeout(() => URL.revokeObjectURL(url), 60_000);
+  const handleView = (a: any) => {
+    setPreviewAnexo(a);
   };
 
   const anexo1 = useMemo(() => anexos.find((a) => a.tipo === "anexo_1"), [anexos]);
@@ -397,7 +390,7 @@ export function ImplantacaoWizard({ id, open, onClose, readOnly }: Props) {
     onClose();
   };
 
-  return (
+  return (<>
     <Dialog open={open} onOpenChange={onClose}>
       <DialogContent className="max-w-5xl max-h-[90vh] flex flex-col overflow-hidden p-0">
         <div className="flex flex-col h-full min-h-0">
@@ -525,6 +518,145 @@ export function ImplantacaoWizard({ id, open, onClose, readOnly }: Props) {
               )}
             </div>
           )}
+        </div>
+      </DialogContent>
+    </Dialog>
+
+    <AnexoPreviewDialog
+      anexo={previewAnexo}
+      open={!!previewAnexo}
+      onOpenChange={(v) => { if (!v) setPreviewAnexo(null); }}
+    />
+  </>);
+}
+
+// ============= ANEXO PREVIEW DIALOG =============
+function AnexoPreviewDialog({ anexo, open, onOpenChange }: { anexo: any | null; open: boolean; onOpenChange: (v: boolean) => void }) {
+  const [url, setUrl] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const nomeArquivo = anexo?.nome_arquivo || "Documento";
+  const ext = (nomeArquivo.split(".").pop() || "").toLowerCase();
+  const mimeType = anexo?.mime_type || "";
+  const isPdf = ext === "pdf" || mimeType.includes("pdf");
+  const isImage = ["png", "jpg", "jpeg", "webp", "gif", "bmp"].includes(ext) || mimeType.startsWith("image/");
+
+  useEffect(() => {
+    if (!open || !anexo) {
+      setUrl((prev) => {
+        if (prev && prev.startsWith("blob:")) URL.revokeObjectURL(prev);
+        return null;
+      });
+      setError(null);
+      setLoading(false);
+      return;
+    }
+    let cancelled = false;
+    let createdUrl: string | null = null;
+    (async () => {
+      setLoading(true);
+      setError(null);
+      try {
+        const { data: arquivo, error: e } = await supabase.storage
+          .from("anexos-implantacao")
+          .download(anexo.storage_path);
+        if (e || !arquivo) throw e ?? new Error("Falha ao baixar arquivo");
+        const mime = mimeType || (isPdf ? "application/pdf" : arquivo.type || "application/octet-stream");
+        const blob = arquivo.type ? arquivo : new Blob([arquivo], { type: mime });
+        createdUrl = URL.createObjectURL(blob);
+        if (!cancelled) setUrl(createdUrl);
+      } catch (err: any) {
+        if (!cancelled) setError(err?.message ?? "Não foi possível carregar o arquivo.");
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+      if (createdUrl) URL.revokeObjectURL(createdUrl);
+    };
+  }, [open, anexo, isPdf, mimeType]);
+
+  const handleOpenWindow = () => {
+    if (!url) {
+      toast.error("Arquivo ainda não está pronto para abrir.");
+      return;
+    }
+    const win = window.open(url, "_blank", "noopener,noreferrer");
+    if (!win) {
+      toast.error("O navegador bloqueou a abertura da janela. Tente baixar o arquivo.");
+      return;
+    }
+    // Mantém o blob URL vivo por um tempo para a nova aba carregar
+    window.setTimeout(() => {
+      setUrl((prev) => {
+        if (prev && prev.startsWith("blob:")) URL.revokeObjectURL(prev);
+        return null;
+      });
+      onOpenChange(false);
+    }, 500);
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-4xl w-[95vw] h-[85vh] flex flex-col p-0 gap-0">
+        <DialogHeader className="px-4 py-3 border-b flex-row items-center justify-between space-y-0 shrink-0">
+          <DialogTitle className="truncate text-base pr-4" title={nomeArquivo}>
+            {nomeArquivo}
+          </DialogTitle>
+        </DialogHeader>
+
+        <div className="flex-1 min-h-0 bg-card overflow-hidden">
+          {loading && (
+            <div className="h-full flex items-center justify-center text-muted-foreground">
+              <Loader2 className="h-5 w-5 animate-spin mr-2" /> Carregando documento...
+            </div>
+          )}
+          {!loading && error && (
+            <div className="h-full flex flex-col items-center justify-center gap-2 text-sm text-muted-foreground p-6 text-center">
+              <AlertCircle className="h-6 w-6 text-destructive" />
+              <p>Não foi possível carregar este documento.</p>
+              <p className="text-xs">{error}</p>
+            </div>
+          )}
+          {!loading && !error && url && (
+            <>
+              {isPdf ? (
+                <iframe
+                  src={url}
+                  title={nomeArquivo}
+                  className="w-full h-full border-0"
+                />
+              ) : isImage ? (
+                <div className="w-full h-full overflow-auto flex items-center justify-center p-4">
+                  <img
+                    src={url}
+                    alt={nomeArquivo}
+                    className="max-w-full max-h-full object-contain rounded-sm shadow-sm"
+                  />
+                </div>
+              ) : (
+                <div className="h-full flex flex-col items-center justify-center gap-3 text-sm text-muted-foreground p-6 text-center">
+                  <FileText className="h-10 w-10 text-muted-foreground/60" />
+                  <p>
+                    Visualização direta não disponível para este tipo de arquivo.
+                    <br />
+                    Clique em <strong>Abrir janela</strong> para visualizar ou baixar.
+                  </p>
+                </div>
+              )}
+            </>
+          )}
+        </div>
+
+        <div className="shrink-0 border-t px-4 py-3 flex items-center justify-between gap-3 bg-background">
+          <Button variant="outline" onClick={() => onOpenChange(false)} className="gap-2">
+            <ArrowLeft className="h-4 w-4" /> Voltar
+          </Button>
+          <Button onClick={handleOpenWindow} disabled={!url || loading} className="gap-2">
+            <ExternalLink className="h-4 w-4" /> Abrir janela
+          </Button>
         </div>
       </DialogContent>
     </Dialog>
