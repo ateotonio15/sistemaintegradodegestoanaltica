@@ -35,20 +35,6 @@ const TOM_TXT: Record<Tom, string> = {
   cinza: "text-muted-foreground",
 };
 
-function ItemResumo({ label, value, tom = "cinza" }: { label: string; value: React.ReactNode; tom?: Tom }) {
-  const vazio = value == null || value === "" || value === "—";
-  const t = vazio ? "cinza" : tom;
-  return (
-    <div className="rounded-lg border bg-muted/30 p-2.5">
-      <p className="text-[10px] uppercase tracking-wide text-muted-foreground">{label}</p>
-      <p className={`mt-0.5 flex items-center gap-1.5 text-sm font-medium ${TOM_TXT[t]}`}>
-        <span className={`h-2 w-2 shrink-0 rounded-full ${TOM_DOT[t]}`} />
-        <span className="break-words text-foreground">{vazio ? "—" : value}</span>
-      </p>
-    </div>
-  );
-}
-
 const TOM_SURFACE: Record<Tom, string> = {
   verde: "border-emerald-500/30 bg-emerald-500/10",
   amarelo: "border-amber-500/30 bg-amber-500/10",
@@ -56,7 +42,26 @@ const TOM_SURFACE: Record<Tom, string> = {
   cinza: "border-border bg-muted/30",
 };
 
-function MetricaExecutiva({
+function BlocoResumo({
+  titulo,
+  children,
+  className,
+}: {
+  titulo: string;
+  children: React.ReactNode;
+  className?: string;
+}) {
+  return (
+    <div className={cn("flex min-w-0 flex-col", className)}>
+      <div className="border-b border-border bg-muted/20 px-4 py-2.5">
+        <h5 className="text-[10px] font-bold uppercase tracking-wide text-muted-foreground">{titulo}</h5>
+      </div>
+      <div className="flex-1 space-y-4 p-4">{children}</div>
+    </div>
+  );
+}
+
+function CampoPrimario({
   label,
   value,
   tom = "cinza",
@@ -65,27 +70,68 @@ function MetricaExecutiva({
   value: React.ReactNode;
   tom?: Tom;
 }) {
+  const vazio = value == null || value === "" || value === "—";
+  const t = vazio ? "cinza" : tom;
   return (
-    <div className="min-w-0 border-l-2 border-border/70 pl-3 first:border-l-0 first:pl-0 md:first:border-l-2 md:first:pl-3">
-      <p className="text-[10px] font-medium uppercase text-muted-foreground">{label}</p>
-      <div className="mt-1 flex min-w-0 items-center gap-2">
-        <span className={cn("h-2 w-2 shrink-0 rounded-full", TOM_DOT[tom])} />
-        <span className={cn("truncate text-sm font-semibold", TOM_TXT[tom])}>{value || "—"}</span>
+    <div className="min-w-0">
+      <p className="text-[10px] uppercase tracking-wide text-muted-foreground">{label}</p>
+      <p className={cn("mt-0.5 break-words text-base font-semibold leading-snug", TOM_TXT[t])}>
+        {vazio ? "—" : value}
+      </p>
+    </div>
+  );
+}
+
+function CampoSecundario({ label, value }: { label: string; value: React.ReactNode }) {
+  const vazio = value == null || value === "" || value === "—";
+  return (
+    <div className="min-w-0">
+      <p className="text-[10px] uppercase tracking-wide text-muted-foreground/80">{label}</p>
+      <p className="mt-0.5 break-words text-sm text-muted-foreground">{vazio ? "—" : value}</p>
+    </div>
+  );
+}
+
+function MetricaResumo({
+  label,
+  value,
+  tom = "cinza",
+}: {
+  label: string;
+  value: React.ReactNode;
+  tom?: Tom;
+}) {
+  const vazio = value == null || value === "" || value === "—";
+  const t = vazio ? "cinza" : tom;
+  return (
+    <div className="min-w-0 rounded-md border border-border bg-muted/20 p-2.5">
+      <p className="text-[10px] uppercase tracking-wide text-muted-foreground">{label}</p>
+      <div className="mt-1 flex items-center gap-2">
+        <span className={cn("h-2 w-2 shrink-0 rounded-full", TOM_DOT[t])} />
+        <span className={cn("truncate text-sm font-bold", TOM_TXT[t])}>{vazio ? "—" : value}</span>
       </div>
     </div>
   );
 }
 
-function ResultadoExecutivo({ label, tom }: { label: string; tom: Tom }) {
+function ResultadoExecutivo({
+  label,
+  tom,
+  title = "Resultado da elegibilidade",
+}: {
+  label: string;
+  tom: Tom;
+  title?: string;
+}) {
   const Icon = tom === "verde" ? CheckCircle2 : tom === "vermelho" ? XCircle : AlertTriangle;
   return (
-    <div className={cn("flex min-h-28 items-center gap-4 border p-4 sm:p-5", TOM_SURFACE[tom])}>
-      <div className={cn("flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-card/70", TOM_TXT[tom])}>
-        <Icon className="h-6 w-6" />
+    <div className={cn("flex min-h-20 items-center gap-3 border p-3 sm:gap-3.5 sm:p-3.5", TOM_SURFACE[tom])}>
+      <div className={cn("flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-card/70", TOM_TXT[tom])}>
+        <Icon className="h-4 w-4" />
       </div>
       <div className="min-w-0">
-        <p className="text-[10px] font-semibold uppercase text-muted-foreground">Resultado da análise</p>
-        <p className={cn("mt-1 text-lg font-bold leading-tight sm:text-xl", TOM_TXT[tom])}>{label}</p>
+        <p className="text-[10px] font-semibold uppercase text-muted-foreground">{title}</p>
+        <p className={cn("mt-0.5 whitespace-nowrap text-sm font-bold leading-tight sm:text-base", TOM_TXT[tom])}>{label}</p>
       </div>
     </div>
   );
@@ -317,73 +363,78 @@ export function AnaliseImplantacaoDialog({ implantacaoId, open, onClose, readOnl
                   ? { label: "Ainda não analisado", tom: "cinza" }
                   : { label: "Apto para aprovação", tom: "verde" };
               return (
-                <section aria-labelledby="resumo-executivo-title" className="overflow-hidden rounded-lg border border-border bg-card shadow-sm">
+                <section aria-labelledby="resumo-analise-title" className="overflow-hidden rounded-lg border border-border bg-card shadow-sm">
                   <div className="border-b border-border bg-muted/30 px-4 py-3 sm:px-5">
-                    <h4 id="resumo-executivo-title" className="text-sm font-semibold">Resumo executivo</h4>
+                    <h4 id="resumo-analise-title" className="text-sm font-semibold">Resumo da análise</h4>
                   </div>
 
-                  <div className="grid lg:grid-cols-[minmax(0,1.7fr)_minmax(17rem,0.85fr)]">
-                    <div className="min-w-0 p-4 sm:p-5">
-                      <div className="grid gap-4 sm:grid-cols-[minmax(0,1.7fr)_minmax(10rem,0.8fr)]">
-                        <div className="min-w-0">
-                          <p className="text-[10px] font-semibold uppercase text-muted-foreground">Empresa</p>
-                          <p className="mt-1 break-words text-base font-bold leading-snug text-foreground sm:text-lg">
-                            {impl.nome_empresa || "—"}
-                          </p>
-                        </div>
-                        <div className="min-w-0 sm:border-l sm:border-border sm:pl-4">
-                          <p className="text-[10px] font-semibold uppercase text-muted-foreground">Contrato</p>
-                          <p className="mt-1 break-words font-mono text-sm font-bold text-foreground sm:text-base">
-                            {processo?.codigo || impl.codigo_contrato || "—"}
-                          </p>
-                        </div>
+                  <div className="grid divide-y divide-border lg:grid-cols-3 lg:divide-x lg:divide-y-0">
+                    {/* 1. IDENTIFICAÇÃO */}
+                    <BlocoResumo titulo="1. Identificação">
+                      <CampoPrimario label="Contrato / ID" value={processo?.codigo || impl.codigo_contrato || "—"} tom="verde" />
+                      <CampoPrimario label="Empresa" value={impl.nome_empresa} tom="verde" />
+                      <div className="grid grid-cols-2 gap-3 border-t border-border pt-3">
+                        <CampoSecundario label="CNPJ" value={impl.cnpj} />
+                        <CampoSecundario label="Contratado" value={impl.nome_empresa} />
+                        <CampoSecundario label="Tipo de vínculo" value={impl.tipo_contrato} />
                       </div>
+                    </BlocoResumo>
 
-                      <div className="mt-5 grid grid-cols-2 gap-x-3 gap-y-4 border-t border-border pt-4 sm:grid-cols-4">
-                        <MetricaExecutiva label="Status" value={statusExibido} tom={statusTom} />
-                        <MetricaExecutiva label="Risco" value={risco.label} tom={risco.tom} />
-                        <MetricaExecutiva label="Pendências" value={processo ? String(pendencias) : "—"} tom={pendencias > 0 ? "amarelo" : processo ? "verde" : "cinza"} />
-                        <MetricaExecutiva
+                    {/* 2. PROCESSO */}
+                    <BlocoResumo titulo="2. Processo">
+                      <div className="space-y-3">
+                        <CampoPrimario
+                          label="Status geral"
+                          value={sg ? statusGeralLabel(sg) : processo ? null : "—"}
+                          tom={
+                            sg === "concluido"
+                              ? "verde"
+                              : sg === "aguardando_pendencia"
+                              ? "amarelo"
+                              : sg === "cancelado"
+                              ? "vermelho"
+                              : sg
+                              ? "amarelo"
+                              : "cinza"
+                          }
+                        />
+                        <CampoPrimario
+                          label="Setor atual"
+                          value={processo ? setorLabel(processo.setor_atual) : null}
+                          tom={processo ? "amarelo" : "cinza"}
+                        />
+                      </div>
+                      <div className="grid grid-cols-2 gap-3 border-t border-border pt-3">
+                        <CampoSecundario label="Responsável atual" value={processo?.responsavel_atual_nome} />
+                        <CampoSecundario label="Última atualização" value={dataHoraCurta(processo?.ultima_movimentacao_em || impl.updated_at)} />
+                        <CampoSecundario label="Próxima ação" value={processo?.proxima_acao} />
+                      </div>
+                    </BlocoResumo>
+
+                    {/* 3. ANÁLISE */}
+                    <BlocoResumo titulo="3. Análise">
+                      <ResultadoExecutivo label={resultadoExecutivo.label} tom={resultadoExecutivo.tom} title="Resultado da elegibilidade" />
+                      <div className="grid grid-cols-2 gap-3">
+                        <MetricaResumo label="Risco" value={risco.label} tom={risco.tom} />
+                        <MetricaResumo
+                          label="Pendências"
+                          value={processo ? String(pendencias) : "—"}
+                          tom={pendencias > 0 ? "amarelo" : processo ? "verde" : "cinza"}
+                        />
+                        <MetricaResumo
+                          label="Divergências"
+                          value={divergencias != null ? String(divergencias) : null}
+                          tom={divergencias == null ? "cinza" : divergencias > 0 ? "vermelho" : "verde"}
+                        />
+                        <MetricaResumo
                           label="Divergências críticas"
                           value={itensValidacao.length === 0 ? "—" : String(resumoCruzado.criticas)}
                           tom={itensValidacao.length === 0 ? "cinza" : resumoCruzado.criticas > 0 ? "vermelho" : "verde"}
                         />
                       </div>
-                    </div>
-
-                    <ResultadoExecutivo label={resultadoExecutivo.label} tom={resultadoExecutivo.tom} />
-                  </div>
-
-                  <div className="border-t border-border bg-muted/10 p-4 sm:p-5">
-                    <p className="mb-3 text-[10px] font-semibold uppercase text-muted-foreground">Detalhes do processo</p>
-                    <div className="grid grid-cols-2 gap-2 md:grid-cols-4">
-                      <ItemResumo label="CNPJ" value={impl.cnpj} tom="verde" />
-                      <ItemResumo label="Contratado" value={impl.nome_empresa} tom="verde" />
-                      <ItemResumo label="Tipo de vínculo" value={impl.tipo_contrato} tom="verde" />
-                      <ItemResumo
-                        label="Status geral"
-                        value={sg ? statusGeralLabel(sg) : (processo ? null : "—")}
-                        tom={sg === "concluido" ? "verde" : sg === "aguardando_pendencia" ? "amarelo" : sg === "cancelado" ? "vermelho" : sg ? "amarelo" : "cinza"}
-                      />
-                      <ItemResumo label="Setor atual" value={processo ? setorLabel(processo.setor_atual) : null} tom={processo ? "amarelo" : "cinza"} />
-                      <ItemResumo label="Responsável atual" value={processo?.responsavel_atual_nome} tom={processo?.responsavel_atual_nome ? "verde" : "cinza"} />
-                      <ItemResumo
-                        label="Resultado da elegibilidade"
-                        value={processo?.resultado_final}
-                        tom={tomResultado(processo?.resultado_final)}
-                      />
-                      <ItemResumo
-                        label="Divergências"
-                        value={divergencias != null ? String(divergencias) : null}
-                        tom={divergencias == null ? "cinza" : divergencias > 0 ? "vermelho" : "verde"}
-                      />
-                      <ItemResumo
+                      <MetricaResumo
                         label="Validação cruzada"
-                        value={
-                          itensValidacao.length === 0
-                            ? null
-                            : `${resumoCruzado.compativeis}/${resumoCruzado.total} compatíveis`
-                        }
+                        value={itensValidacao.length === 0 ? null : `${resumoCruzado.compativeis}/${resumoCruzado.total} compatíveis`}
                         tom={
                           itensValidacao.length === 0
                             ? "cinza"
@@ -394,11 +445,7 @@ export function AnaliseImplantacaoDialog({ implantacaoId, open, onClose, readOnl
                             : "verde"
                         }
                       />
-                      <ItemResumo label="Vigência" value={formatDateBR(impl.data_vigencia)} tom={impl.data_vigencia ? "verde" : "cinza"} />
-                      <ItemResumo label="Previsão de implantação" value={formatDateBR(impl.inicio_atendimento)} tom={impl.inicio_atendimento ? "amarelo" : "cinza"} />
-                      <ItemResumo label="Última atualização" value={dataHoraCurta(processo?.ultima_movimentacao_em || impl.updated_at)} tom="verde" />
-                      <ItemResumo label="Próxima ação" value={processo?.proxima_acao} tom={processo?.proxima_acao ? "amarelo" : "cinza"} />
-                    </div>
+                    </BlocoResumo>
                   </div>
                 </section>
               );
