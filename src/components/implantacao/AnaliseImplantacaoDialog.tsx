@@ -43,6 +43,58 @@ const TOM_SURFACE: Record<Tom, string> = {
   cinza: "border-border bg-muted/30",
 };
 
+type CampoEstado = "ok" | "vazio" | "naoAplicavel" | "divergente";
+
+function CampoGridItem({
+  label,
+  value,
+  estado = "ok",
+  financeiro = false,
+  title,
+}: {
+  label: string;
+  value: ReactNode;
+  estado?: CampoEstado;
+  financeiro?: boolean;
+  title?: string;
+}) {
+  const vazio = estado === "vazio";
+  const divergente = estado === "divergente";
+  const naoAplicavel = estado === "naoAplicavel";
+  return (
+    <div
+      title={title}
+      className={cn(
+        "rounded-md p-2 transition-colors",
+        divergente && "border border-amber-500/40 bg-amber-500/10",
+        vazio && "bg-amber-500/5",
+        financeiro && !divergente && !vazio && !naoAplicavel && "bg-emerald-500/5"
+      )}
+    >
+      <p className="text-[11px] uppercase tracking-wide text-muted-foreground">{label}</p>
+      <p
+        className={cn(
+          "text-sm font-medium leading-tight",
+          vazio && "text-amber-600",
+          divergente && "text-amber-700",
+          naoAplicavel && "text-muted-foreground",
+          financeiro && !divergente && !vazio && !naoAplicavel && "text-emerald-600"
+        )}
+      >
+        {value}
+      </p>
+    </div>
+  );
+}
+
+function useMapaValidacao(itens: ValidacaoCruzadaRow[]) {
+  return useMemo(() => {
+    const map = new Map<string, ValidacaoCruzadaRow>();
+    for (const i of itens) map.set(i.campo, i);
+    return map;
+  }, [itens]);
+}
+
 function BlocoResumo({
   titulo,
   children,
