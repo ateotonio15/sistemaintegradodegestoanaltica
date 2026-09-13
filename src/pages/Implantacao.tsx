@@ -243,18 +243,19 @@ export default function Implantacao() {
           </div>
         </div>
 
+        {/* Filtros unificados (valem para as duas visões) */}
+        <ContratosFiltrosBar {...barProps} />
+
         {/* List */}
         {isLoading ? (
           <p className="text-muted-foreground text-center py-8">Carregando...</p>
         ) : visao === "tabela" ? (
           <ContratosTabela
-            items={filtered}
-            processoPorImplantacao={processoPorImplantacao}
-            anexosPorImplantacao={anexosPorImplantacao}
+            linhas={filtradas}
             onOpen={(id) => setOpenId(id)}
             onFluxo={(item) => setFluxoTarget(item)}
           />
-        ) : filtered.length === 0 ? (
+        ) : filtradas.length === 0 ? (
           <Card>
             <CardContent className="p-12 text-center text-muted-foreground">
               <FileText className="h-10 w-10 mx-auto mb-3 opacity-50" />
