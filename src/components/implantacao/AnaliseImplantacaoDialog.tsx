@@ -18,7 +18,7 @@ import { resumoValidacao } from "@/lib/validacao-cruzada";
 import { cn } from "@/lib/utils";
 import {
   setorLabel, statusGeralLabel, statusLabel,
-  STATUS_GERAL_BADGE, type ProcessoStatusGeral,
+  type ProcessoStatusGeral,
 } from "@/lib/contrato-processo";
 
 type Tom = "verde" | "amarelo" | "vermelho" | "cinza";
