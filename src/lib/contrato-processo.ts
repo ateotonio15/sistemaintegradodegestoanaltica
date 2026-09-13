@@ -259,21 +259,67 @@ export function progressoProcesso(setor?: string | null) {
 }
 
 export const ACAO_LABEL: Record<string, string> = {
-  processo_criado: "Processo criado",
+  processo_criado: "Contrato criado",
   documento_anexado: "Documento anexado",
+  documento_substituido: "Documento substituído",
+  documento_complementar: "Documento complementar recebido",
+  extracao_iniciada: "Extração iniciada",
+  extracao_concluida: "Extração concluída",
+  analise_ia_concluida: "Análise da IA concluída",
   analise_automatica: "Análise automática executada",
   validacao_cruzada: "Validação cruzada executada",
+  divergencia_encontrada: "Divergência encontrada",
   encaminhado: "Encaminhado para outro setor",
-  pendencia_aberta: "Pendência registrada",
+  responsavel_alterado: "Responsável alterado",
+  comentario: "Comentário registrado",
+  correcao: "Correção registrada",
+  pendencia_aberta: "Pendência criada",
+  pendencia_atualizada: "Pendência atualizada",
   pendencia_resolvida: "Pendência resolvida",
-  parecer_juridico: "Parecer jurídico registrado",
-  parecer_cadastro: "Parecer cadastral registrado",
-  parecer_financeiro: "Parecer financeiro registrado",
-  aprovado: "Processo aprovado",
-  aprovado_ressalva: "Aprovado com ressalva",
-  reprovado: "Processo reprovado",
+  pendencia_cancelada: "Pendência cancelada",
+  parecer_juridico: "Análise jurídica concluída",
+  parecer_cadastro: "Análise cadastral concluída",
+  parecer_financeiro: "Análise financeira concluída",
+  resultado_alterado: "Resultado atualizado",
+  aprovado: "Contrato aprovado",
+  aprovado_ressalva: "Contrato aprovado com ressalva",
+  reprovado: "Contrato reprovado",
   implantado: "Contrato implantado",
 };
+
+/** Cor do marcador da linha do tempo por tipo de evento. */
+export const ACAO_TOM: Record<string, string> = {
+  processo_criado: "bg-sky-500",
+  documento_anexado: "bg-blue-500",
+  documento_substituido: "bg-blue-500",
+  documento_complementar: "bg-blue-500",
+  extracao_iniciada: "bg-indigo-400",
+  extracao_concluida: "bg-indigo-500",
+  analise_ia_concluida: "bg-violet-500",
+  analise_automatica: "bg-violet-500",
+  validacao_cruzada: "bg-violet-500",
+  divergencia_encontrada: "bg-red-500",
+  encaminhado: "bg-primary",
+  responsavel_alterado: "bg-cyan-500",
+  comentario: "bg-muted-foreground",
+  correcao: "bg-amber-500",
+  pendencia_aberta: "bg-amber-500",
+  pendencia_atualizada: "bg-amber-500",
+  pendencia_resolvida: "bg-emerald-500",
+  pendencia_cancelada: "bg-muted-foreground",
+  parecer_juridico: "bg-emerald-500",
+  parecer_cadastro: "bg-emerald-500",
+  parecer_financeiro: "bg-emerald-500",
+  aprovado: "bg-emerald-600",
+  aprovado_ressalva: "bg-amber-500",
+  reprovado: "bg-red-600",
+  implantado: "bg-emerald-600",
+};
+
+export function acaoTom(acao?: string | null) {
+  if (!acao) return "bg-muted-foreground";
+  return ACAO_TOM[acao] ?? "bg-muted-foreground";
+}
 
 export function acaoLabel(acao?: string | null) {
   if (!acao) return "—";
