@@ -133,9 +133,34 @@ export function ImplantacaoWizard({ id, open, onClose, readOnly }: Props) {
     return true;
   };
 
+  const ACCEPT_BY_TIPO: Record<string, { exts: string[]; label: string }> = {
+    anexo_1: { exts: ["pdf", "jpg", "jpeg", "png"], label: "PDF, JPG ou PNG" },
+    contrato: { exts: ["pdf", "jpg", "jpeg", "png"], label: "PDF, JPG ou PNG" },
+    relatorio_vidas: { exts: ["pdf", "xlsx", "xlsm", "xls", "csv"], label: "PDF, Excel ou CSV" },
+    primeira_cobranca: { exts: ["pdf", "jpg", "jpeg", "png", "xlsx", "xlsm", "xls", "csv", "xml"], label: "PDF, imagem, Excel, CSV ou XML" },
+    complementar: { exts: ["pdf", "jpg", "jpeg", "png", "xlsx", "xlsm", "xls", "csv", "doc", "docx"], label: "PDF, imagem, Excel, CSV ou Word" },
+  };
+
+  const [uploadingTipo, setUploadingTipo] = useState<string | null>(null);
+  const [uploadErrors, setUploadErrors] = useState<Record<string, string>>({});
+
   const handleUpload = async (file: File, tipo: string) => {
     if (readOnly) return;
-    setUploading(true);
+    const rule = ACCEPT_BY_TIPO[tipo];
+    const ext = (file.name.split(".").pop() || "").toLowerCase();
+    if (rule && !rule.exts.includes(ext)) {
+      setUploadErrors((prev) => ({
+        ...prev,
+        [tipo]: `Arquivo não suportado (.${ext || "?"}). Envie ${rule.label}.`,
+      }));
+      return;
+    }
+    if (file.size > 20 * 1024 * 1024) {
+      setUploadErrors((prev) => ({ ...prev, [tipo]: "Arquivo muito grande. Envie um arquivo de até 20 MB." }));
+      return;
+    }
+    setUploadErrors((prev) => { const n = { ...prev }; delete n[tipo]; return n; });
+    setUploadingTipo(tipo);
     try {
       // Sanitiza o nome para o path do Storage (remove acentos e caracteres especiais)
       const safeName = file.name
