@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
@@ -6,9 +6,11 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
-import { CheckCircle2, AlertTriangle, XCircle, FileText, Building2, Users, Calendar, Paperclip, Rocket, Loader2, ShieldCheck, Check, Gavel, TrendingUp } from "lucide-react";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { CheckCircle2, AlertTriangle, XCircle, FileText, Building2, Users, Calendar, Paperclip, Rocket, Loader2, ShieldCheck, Check, Gavel, TrendingUp, Eye, ChevronDown, ChevronUp } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { SelecionarResponsavelCadastroDialog } from "./SelecionarResponsavelCadastroDialog";
+import { AnexoPreviewDialog } from "./AnexoPreviewDialog";
 import { formatDateBR, formatDay } from "@/lib/date-utils";
 import { formatCentavosBRL } from "@/lib/reajuste-utils";
 import { useContratoProcessoPorImplantacao, useContratoProcessoPendencias, useContratoProcessoHistorico } from "@/hooks/useContratoProcessos";
@@ -510,6 +512,155 @@ function DecisaoCard({ item }: { item: DecisaoItem }) {
   );
 }
 
+const CATEGORIAS_DOC = [
+  { key: "anexo_1", label: "ANEXO I" },
+  { key: "contrato", label: "CONTRATO" },
+  { key: "relatorio_vidas", label: "RELATÓRIO DE VIDAS" },
+  { key: "complementares", label: "COMPLEMENTARES" },
+] as const;
+
+function isAnexoCadastro(a: any) {
+  const tipo = String(a.tipo || "").toLowerCase();
+  const nome = String(a.nome_arquivo || "").toLowerCase();
+  if (tipo === "anexo_1" || tipo === "relatorio_vidas") return true;
+  if (nome.includes("anexo") && nome.includes("1")) return true;
+  if (nome.includes("layout") && nome.includes("vida")) return true;
+  if ((nome.includes("relatorio") || nome.includes("relatório")) && nome.includes("vida")) return true;
+  return false;
+}
+
+function tipoDocLabel(tipo?: string) {
+  const t = String(tipo || "").toLowerCase();
+  switch (t) {
+    case "anexo_1": return "Anexo I";
+    case "contrato": return "Contrato";
+    case "relatorio_vidas": return "Relatório de Vidas";
+    case "primeira_cobranca": return "Primeira Cobrança";
+    case "complementar": return "Complementar";
+    default: return t ? t.replace(/_/g, " ").replace(/^\w/, (c) => c.toUpperCase()) : "Documento";
+  }
+}
+
+function DocumentosVendasSection({
+  anexos,
+  readOnly,
+  onVisualizar,
+  loading,
+}: {
+  anexos: any[];
+  readOnly?: boolean;
+  onVisualizar: (path: string, name: string) => void;
+  loading?: string | null;
+}) {
+  const [open, setOpen] = useState(false);
+  const visiveis = readOnly ? anexos.filter(isAnexoCadastro) : anexos;
+
+  const porCategoria = useMemo(() => {
+    const map: Record<string, any[]> = {
+      anexo_1: [],
+      contrato: [],
+      relatorio_vidas: [],
+      complementares: [],
+    };
+    visiveis.forEach((a) => {
+      const t = String(a.tipo || "").toLowerCase();
+      if (map[t]) map[t].push(a);
+      else map.complementares.push(a);
+    });
+    return map;
+  }, [visiveis]);
+
+  const total = visiveis.length;
+  const categoriasComItens = CATEGORIAS_DOC.filter((c) => porCategoria[c.key].length > 0);
+
+  return (
+    <Collapsible open={open} onOpenChange={setOpen} className="rounded-lg border border-border bg-card/50">
+      <div className="flex items-center justify-between gap-3 px-4 py-3">
+        <div className="flex items-center gap-2 min-w-0">
+          <Paperclip className="h-4 w-4 text-muted-foreground shrink-0" />
+          <h4 className="text-sm font-semibold truncate">
+            {readOnly ? "Documentos para importação" : "Documentos enviados pelo Vendas"}
+          </h4>
+          <Badge variant="secondary" className="text-[10px] shrink-0">{total} arquivo{total !== 1 ? "s" : ""}</Badge>
+        </div>
+        <CollapsibleTrigger asChild>
+          <Button variant="ghost" size="sm" className="gap-1 shrink-0 text-muted-foreground hover:text-foreground">
+            {open ? (
+              <>
+                Ocultar documentos <ChevronUp className="h-4 w-4" />
+              </>
+            ) : (
+              <>
+                Ver documentos <ChevronDown className="h-4 w-4" />
+              </>
+            )}
+          </Button>
+        </CollapsibleTrigger>
+      </div>
+
+      {readOnly && (
+        <p className="px-4 pb-2 text-xs text-muted-foreground">
+          Você visualiza apenas o Anexo 1 e o Layout de Vidas necessários para a importação.
+        </p>
+      )}
+
+      <CollapsibleContent>
+        <div className="border-t border-border px-4 py-4 space-y-5">
+          {total === 0 ? (
+            <p className="text-sm text-muted-foreground">
+              {readOnly ? "Sem Anexo 1 ou Layout de Vidas anexado." : "Sem anexos."}
+            </p>
+          ) : (
+            categoriasComItens.map((cat) => (
+              <div key={cat.key}>
+                <div className="flex items-center gap-2 mb-2">
+                  <h5 className="text-xs font-bold uppercase tracking-wide text-muted-foreground">{cat.label}</h5>
+                  <Badge variant="outline" className="text-[10px]">
+                    {porCategoria[cat.key].length} arquivo{porCategoria[cat.key].length !== 1 ? "s" : ""}
+                  </Badge>
+                </div>
+                <div className="space-y-2">
+                  {porCategoria[cat.key].map((a: any) => {
+                    const isLoading = loading === a.storage_path;
+                    return (
+                      <div
+                        key={a.id}
+                        className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3 rounded-lg border border-border bg-card p-3"
+                      >
+                        <div className="flex items-start gap-3 min-w-0 flex-1">
+                          <FileText className="h-4 w-4 text-muted-foreground shrink-0 mt-0.5" />
+                          <div className="min-w-0 flex-1">
+                            <p className="text-sm font-medium break-words leading-snug">{a.nome_arquivo}</p>
+                            <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground">
+                              <span>{tipoDocLabel(a.tipo)}</span>
+                              {a.created_at && <span>{dataHoraCurta(a.created_at)}</span>}
+                              {a.uploaded_by_nome ? <span>Enviado por {a.uploaded_by_nome}</span> : <span>Enviado por —</span>}
+                            </div>
+                          </div>
+                        </div>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="shrink-0 gap-1 self-start sm:self-center"
+                          disabled={isLoading || !a.storage_path}
+                          onClick={() => onVisualizar(a.storage_path, a.nome_arquivo)}
+                        >
+                          {isLoading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Eye className="h-3.5 w-3.5" />}
+                          Visualizar documento
+                        </Button>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            ))
+          )}
+        </div>
+      </CollapsibleContent>
+    </Collapsible>
+  );
+}
+
 
 interface Props {
   implantacaoId: string;
@@ -525,14 +676,8 @@ export function AnaliseImplantacaoDialog({ implantacaoId, open, onClose, readOnl
   const [motivo, setMotivo] = useState("");
   const [mode, setMode] = useState<"view" | "correcao" | "rejeicao">("view");
   const [atribuirOpen, setAtribuirOpen] = useState(false);
-  const [preview, setPreview] = useState<{ url: string; name: string; type: string } | null>(null);
+  const [previewAnexo, setPreviewAnexo] = useState<{ storage_path: string; nome_arquivo: string; mime_type?: string } | null>(null);
   const [loadingAnexo, setLoadingAnexo] = useState<string | null>(null);
-
-  useEffect(() => {
-    return () => {
-      if (preview?.url) URL.revokeObjectURL(preview.url);
-    };
-  }, [preview?.url]);
 
   const { data: impl } = useQuery({
     queryKey: ["impl-analise", implantacaoId],
@@ -631,23 +776,12 @@ export function AnaliseImplantacaoDialog({ implantacaoId, open, onClose, readOnl
     onError: (e: any) => toast({ title: e?.message || "Erro ao liberar contrato", variant: "destructive" }),
   });
 
-  const handleDownload = async (path: string, name: string) => {
+  const handleVisualizarAnexo = (path: string, name: string) => {
     if (!path) {
       toast({ title: "Anexo sem caminho de arquivo", variant: "destructive" });
       return;
     }
-    setLoadingAnexo(path);
-    const { data, error } = await supabase.storage
-      .from("anexos-implantacao")
-      .download(path);
-    setLoadingAnexo(null);
-    if (error || !data) {
-      toast({ title: "Erro ao carregar anexo", description: error?.message, variant: "destructive" });
-      return;
-    }
-    const type = data.type || "application/octet-stream";
-    const url = URL.createObjectURL(data);
-    setPreview({ url, name, type });
+    setPreviewAnexo({ storage_path: path, nome_arquivo: name });
   };
 
 
@@ -854,49 +988,12 @@ export function AnaliseImplantacaoDialog({ implantacaoId, open, onClose, readOnl
             </Card>
 
             {/* Anexos */}
-            <div>
-              {(() => {
-                const isAnexoCadastro = (a: any) => {
-                  const tipo = String(a.tipo || "").toLowerCase();
-                  const nome = String(a.nome_arquivo || "").toLowerCase();
-                  if (tipo === "anexo_1" || tipo === "relatorio_vidas") return true;
-                  if (nome.includes("anexo") && nome.includes("1")) return true;
-                  if (nome.includes("layout") && nome.includes("vida")) return true;
-                  if ((nome.includes("relatorio") || nome.includes("relatório")) && nome.includes("vida")) return true;
-                  return false;
-                };
-                const visiveis = readOnly ? anexos.filter(isAnexoCadastro) : anexos;
-                return (
-                  <>
-                    <h4 className="text-sm font-semibold mb-2 flex items-center gap-2">
-                      <Paperclip className="h-4 w-4" />
-                      {readOnly ? "Documentos para importação" : "Documentos enviados pelo Vendas"} ({visiveis.length})
-                    </h4>
-                    {readOnly && (
-                      <p className="text-xs text-muted-foreground mb-2">
-                        Você visualiza apenas o Anexo 1 e o Layout de Vidas necessários para a importação.
-                      </p>
-                    )}
-                    {visiveis.length === 0 ? (
-                      <p className="text-sm text-muted-foreground">
-                        {readOnly ? "Sem Anexo 1 ou Layout de Vidas anexado." : "Sem anexos."}
-                      </p>
-                    ) : (
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-                        {visiveis.map((a: any) => (
-                          <button key={a.id} onClick={() => handleDownload(a.storage_path, a.nome_arquivo)} disabled={loadingAnexo === a.storage_path}
-                            className="flex items-center gap-2 text-left text-sm p-2 rounded-lg border hover:bg-accent transition-colors">
-                            <FileText className="h-4 w-4 text-primary shrink-0" />
-                            <span className="truncate flex-1">{loadingAnexo === a.storage_path ? "Carregando anexo…" : a.nome_arquivo}</span>
-                            {a.tipo && <Badge variant="secondary" className="text-[10px]">{a.tipo}</Badge>}
-                          </button>
-                        ))}
-                      </div>
-                    )}
-                  </>
-                );
-              })()}
-            </div>
+            <DocumentosVendasSection
+              anexos={anexos}
+              readOnly={readOnly}
+              onVisualizar={handleVisualizarAnexo}
+              loading={loadingAnexo}
+            />
 
             {/* Dados para Implantação (oriundos do Anexo 1) */}
             <div>
@@ -1001,32 +1098,11 @@ export function AnaliseImplantacaoDialog({ implantacaoId, open, onClose, readOnl
         onConfirm={(userId, userNome) => aprovar.mutate({ userId, userNome })}
         loading={aprovar.isPending}
       />
-      <Dialog open={!!preview} onOpenChange={(v) => !v && setPreview(null)}>
-        <DialogContent className="max-w-5xl h-[90vh] flex flex-col">
-          <DialogHeader>
-            <DialogTitle className="truncate">{preview?.name || "Anexo"}</DialogTitle>
-            <DialogDescription>Visualização do anexo sem abrir o domínio do arquivo em outra aba.</DialogDescription>
-          </DialogHeader>
-          {preview && preview.type.startsWith("image/") ? (
-            <div className="min-h-0 flex-1 overflow-auto rounded-lg border bg-muted/30 p-3">
-              <img src={preview.url} alt={preview.name} className="mx-auto max-h-full max-w-full object-contain" />
-            </div>
-          ) : preview && preview.type === "application/pdf" ? (
-            <iframe title={preview.name} src={preview.url} className="min-h-0 flex-1 rounded-lg border" />
-          ) : (
-            <div className="flex min-h-0 flex-1 items-center justify-center rounded-lg border bg-muted/30 p-6 text-center text-sm text-muted-foreground">
-              Este tipo de arquivo não tem pré-visualização no navegador. Use o botão abaixo para baixar.
-            </div>
-          )}
-          {preview && (
-            <div className="flex justify-end">
-              <Button asChild variant="outline">
-                <a href={preview.url} download={preview.name}>Baixar anexo</a>
-              </Button>
-            </div>
-          )}
-        </DialogContent>
-      </Dialog>
+      <AnexoPreviewDialog
+        anexo={previewAnexo}
+        open={!!previewAnexo}
+        onOpenChange={(v) => { if (!v) setPreviewAnexo(null); }}
+      />
     </Dialog>
   );
 }
