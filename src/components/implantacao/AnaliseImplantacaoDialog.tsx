@@ -742,12 +742,7 @@ export function AnaliseImplantacaoDialog({ implantacaoId, open, onClose, readOnl
               </div>
             </div>
 
-            {/* Validação Cruzada das análises do contrato */}
-            {processo && (
-              <div className="pt-2 border-t">
-                <ValidacaoCruzadaSection processoId={processo.id} implantacaoId={implantacaoId} />
-              </div>
-            )}
+
 
             {bloqueioCritico && (
               <div className="flex items-start gap-2 rounded-lg border border-red-500/30 bg-red-500/10 p-3 text-xs text-red-600">
