@@ -15,10 +15,11 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import {
   Upload, FileText, Sparkles, ArrowLeft, ArrowRight, CheckCircle2, AlertCircle,
   Loader2, Trash2, Download, Building2, FileSignature, DollarSign, Users,
-  ShieldCheck, XCircle, AlertTriangle, Send, Eye, ChevronDown, ChevronUp,
+  ShieldCheck, XCircle, AlertTriangle, Send, Eye, ChevronDown, ChevronUp, Info,
 } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { useAuth } from "@/hooks/useAuth";
 import { validarRelatorioVidas, type ValidacaoResultado } from "@/lib/relatorio-vidas-validator";
 
@@ -579,10 +580,11 @@ function Step1Upload({ anexos, data, onUpload, onDelete, onDownload, onView, upl
   };
 
   return (
-    <div className="space-y-4">
-      <div className="rounded-lg border border-primary/30 bg-primary/5 p-3 text-sm text-primary">
-        <strong>Importante:</strong> O <strong>Anexo 1</strong> é prioridade total para a extração automática.
-      </div>
+    <TooltipProvider delayDuration={100}>
+      <div className="space-y-4">
+        <div className="rounded-lg border border-primary/30 bg-primary/5 p-3 text-sm text-primary">
+          <strong>Importante:</strong> O <strong>Anexo 1</strong> é prioridade total para a extração automática.
+        </div>
 
       {/* Resumo de documentos obrigatórios */}
       <Card className="border-border bg-background">
@@ -646,17 +648,17 @@ function Step1Upload({ anexos, data, onUpload, onDelete, onDownload, onView, upl
         };
 
         const statusText = isValidating
-          ? "Validando..."
+          ? isAnexo1 ? "Validando documento..." : "Validando..."
           : hasError
-            ? errorMsg
+            ? isAnexo1 ? "Não foi possível identificar corretamente o Anexo 1." : errorMsg
             : showRequiredError
               ? "Obrigatório"
               : isOver
                 ? "Solte o arquivo aqui"
                 : isEmpty
-                  ? "Nenhum arquivo"
-                  : isAnexo1 && data?.extracao_anexo1_em
-                    ? "Reconhecido"
+                  ? isAnexo1 ? "Documento ainda não anexado" : "Nenhum arquivo"
+                  : isAnexo1
+                    ? "Anexo 1 pronto para extração"
                     : list.length === 1
                       ? "1 arquivo"
                       : `${list.length} arquivos`;
@@ -692,14 +694,16 @@ function Step1Upload({ anexos, data, onUpload, onDelete, onDownload, onView, upl
               handleFiles(e.dataTransfer.files, tipo);
             }}
             className={cn(
-              "transition-colors select-none",
+              "transition-colors select-none relative overflow-hidden",
               readOnly || isValidating ? "cursor-default" : "cursor-pointer",
               isAnexo1
-                ? "border-primary/40 bg-primary/[0.03]"
+                ? "border-primary/30 bg-primary/[0.03] ring-1 ring-primary/10"
                 : "border-border bg-background",
-              !isEmpty && !hasError && "border-success/40 bg-success/[0.02]",
+              isAnexo1 && !isEmpty && !hasError && "border-primary/40 bg-primary/[0.05] ring-1 ring-primary/20",
+              !isAnexo1 && !isEmpty && !hasError && "border-success/40 bg-success/[0.02]",
               (showRequiredError || hasError) && "border-destructive/50 bg-destructive/[0.03]",
-              isOver && "border-primary/70 bg-primary/[0.08] ring-1 ring-primary/30"
+              isOver && "border-primary/70 bg-primary/[0.08] ring-1 ring-primary/30",
+              isAnexo1 && "before:absolute before:left-0 before:top-0 before:bottom-0 before:w-[3px] before:bg-primary/60"
             )}
           >
             <CardContent className="p-3 space-y-2">
@@ -714,7 +718,9 @@ function Step1Upload({ anexos, data, onUpload, onDelete, onDownload, onView, upl
                       : hasError || showRequiredError
                         ? "border-destructive/40 bg-destructive/10 text-destructive"
                         : isEmpty
-                          ? "border-muted bg-muted/50 text-muted-foreground"
+                          ? isAnexo1
+                            ? "border-primary/40 bg-primary/10 text-primary"
+                            : "border-muted bg-muted/50 text-muted-foreground"
                           : "border-success/40 bg-success/10 text-success"
                 )}>
                   {isOver ? (
@@ -724,7 +730,7 @@ function Step1Upload({ anexos, data, onUpload, onDelete, onDownload, onView, upl
                   ) : hasError || showRequiredError ? (
                     <AlertCircle className="h-3.5 w-3.5" />
                   ) : isEmpty ? (
-                    <FileText className="h-3.5 w-3.5" />
+                    isAnexo1 ? <Sparkles className="h-3.5 w-3.5" /> : <FileText className="h-3.5 w-3.5" />
                   ) : (
                     <CheckCircle2 className="h-3.5 w-3.5" />
                   )}
@@ -747,13 +753,41 @@ function Step1Upload({ anexos, data, onUpload, onDelete, onDownload, onView, upl
                     <Badge variant="secondary" className="h-4 text-[10px] px-1.5">
                       Obrigatório
                     </Badge>
+                    {isAnexo1 && (
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <button
+                            type="button"
+                            className="inline-flex items-center justify-center rounded-full text-muted-foreground hover:text-primary transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/50"
+                            aria-label="Saiba mais sobre o Anexo 1"
+                            onClick={(e) => e.stopPropagation()}
+                          >
+                            <Info className="h-3.5 w-3.5" />
+                          </button>
+                        </TooltipTrigger>
+                        <TooltipContent side="top" className="max-w-xs">
+                          <p>O sistema utilizará primeiro o Anexo 1 para extrair empresa, CNPJ, valores, grupo/contrato, início de atendimento e demais informações disponíveis.</p>
+                        </TooltipContent>
+                      </Tooltip>
+                    )}
                   </div>
+                  {isAnexo1 && (
+                    <p className="text-[11px] text-muted-foreground mt-0.5 leading-snug">
+                      Este documento será usado como fonte principal para preencher automaticamente os dados da implantação.
+                    </p>
+                  )}
                 </div>
 
                 <div className="flex items-center gap-2 shrink-0">
                   <span className={cn(
                     "text-xs tabular-nums",
-                    hasError || showRequiredError ? "text-destructive" : isOver ? "text-primary" : isEmpty ? "text-muted-foreground" : "text-success"
+                    hasError || showRequiredError
+                      ? "text-destructive"
+                      : isOver
+                        ? "text-primary"
+                        : isEmpty
+                          ? "text-muted-foreground"
+                          : "text-success"
                   )}>
                     {statusText}
                   </span>
@@ -854,7 +888,8 @@ function Step1Upload({ anexos, data, onUpload, onDelete, onDownload, onView, upl
           </Card>
         );
       })}
-    </div>
+      </div>
+    </TooltipProvider>
   );
 }
 
