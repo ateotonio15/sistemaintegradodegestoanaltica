@@ -461,7 +461,9 @@ export function ImplantacaoWizard({ id, open, onClose, readOnly }: Props) {
               onUpload={handleUpload}
               onDelete={handleDeleteAnexo}
               onDownload={handleDownload}
-              uploading={uploading}
+              onView={handleView}
+              uploadingTipo={uploadingTipo}
+              uploadErrors={uploadErrors}
               readOnly={readOnly}
               attempted={uploadAttempted}
             />
