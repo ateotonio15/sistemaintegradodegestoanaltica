@@ -17,7 +17,7 @@ import { ValidacaoCruzadaSection } from "./ValidacaoCruzadaSection";
 import { resumoValidacao } from "@/lib/validacao-cruzada";
 import { cn } from "@/lib/utils";
 import {
-  setorLabel, statusGeralLabel, statusLabel, statusBadge,
+  setorLabel, statusGeralLabel, statusLabel,
   STATUS_GERAL_BADGE, type ProcessoStatusGeral,
 } from "@/lib/contrato-processo";
 
