@@ -264,7 +264,7 @@ export default function Implantacao() {
           </Card>
         ) : (
           <div className="space-y-3">
-            {filtered.map((i) => (
+            {filtradas.map((l) => { const i = l.implantacao; return (
               <Card
                 key={i.id}
                 className="cursor-pointer hover:shadow-md transition-shadow"
