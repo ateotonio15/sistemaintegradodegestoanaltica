@@ -16,6 +16,7 @@ import {
   Upload, FileText, Sparkles, ArrowLeft, ArrowRight, CheckCircle2, AlertCircle,
   Loader2, Trash2, Download, Building2, FileSignature, DollarSign, Users,
   ShieldCheck, XCircle, AlertTriangle, Send, Eye, ChevronDown, ChevronUp, Info,
+  ExternalLink,
 } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
