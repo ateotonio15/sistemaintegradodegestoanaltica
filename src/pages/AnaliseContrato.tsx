@@ -224,6 +224,31 @@ export default function AnaliseContrato() {
             )}
           </CardHeader>
           <CardContent>
+            {resultado && (
+              <div className="mb-4 space-y-2 rounded-xl border bg-muted/30 p-3">
+                <p className="text-sm font-medium">Vincular à proposta de implantação (Validação Cruzada)</p>
+                <p className="text-xs text-muted-foreground">
+                  Ao vincular, este resultado passa a ser comparado automaticamente com os dados do Anexo I da proposta.
+                </p>
+                <div className="flex flex-col gap-2 sm:flex-row">
+                  <Select value={vincularId} onValueChange={setVincularId}>
+                    <SelectTrigger className="sm:flex-1"><SelectValue placeholder="Selecione a proposta" /></SelectTrigger>
+                    <SelectContent>
+                      {implantacoes.map((i: any) => (
+                        <SelectItem key={i.id} value={i.id}>
+                          {i.nome_empresa || "Sem nome"}{i.codigo_contrato ? ` · ${i.codigo_contrato}` : ""}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <Button variant="outline" onClick={vincular} disabled={!vincularId || salvandoVinculo}>
+                    {salvandoVinculo ? <Loader2 className="mr-1.5 h-4 w-4 animate-spin" /> : <Link2 className="mr-1.5 h-4 w-4" />}
+                    Vincular análise
+                  </Button>
+                </div>
+              </div>
+            )}
+
             {!resultado ? (
               <div className="flex h-[240px] flex-col items-center justify-center gap-2 text-center text-sm text-muted-foreground">
                 <FileSearch className="h-8 w-8 opacity-40" />
