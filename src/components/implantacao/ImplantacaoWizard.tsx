@@ -313,7 +313,11 @@ export function ImplantacaoWizard({ id, open, onClose, readOnly }: Props) {
   };
 
   const goNext = async () => {
-    if (!valid[step]) { toast.error("Preencha os campos obrigatórios"); return; }
+    if (!valid[step]) {
+      if (step === 1) setUploadAttempted(true);
+      toast.error("Preencha os campos obrigatórios");
+      return;
+    }
     const next = Math.min(6, step + 1);
     if (await save({ etapa_atual: next })) setStep(next);
   };
