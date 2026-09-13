@@ -634,6 +634,15 @@ export function AnaliseImplantacaoDialog({ implantacaoId, open, onClose, readOnl
               );
             })()}
 
+            <PontosAtencaoSection
+              processo={processo}
+              impl={impl}
+              itens={itensValidacao}
+              resumo={resumoCruzado}
+              pendencias={processo?.pendencias_abertas ?? 0}
+              isLoading={validacaoLoading}
+            />
+
             {/* Cabeçalho */}
             <Card className="bg-gradient-to-br from-primary/5 to-transparent border-primary/20">
               <CardContent className="p-4 space-y-2">
