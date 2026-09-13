@@ -260,6 +260,13 @@ export function ImplantacaoWizard({ id, open, onClose, readOnly }: Props) {
         inicio_atendimento: ext.inicio_atendimento || data.inicio_atendimento,
         ticket: novoEnf != null && (data.ticket_auto_sync ?? true) ? brFromCents(novoEnf) : data.ticket,
       });
+      // Guarda a extração bruta para a Validação Cruzada
+      if (id) {
+        await supabase
+          .from("implantacoes_contratos" as any)
+          .update({ extracao_anexo1: ext as any, extracao_anexo1_em: new Date().toISOString() })
+          .eq("id", id);
+      }
       toast.success("Dados extraídos! Revise e edite se necessário.");
     } catch (e: any) {
       toast.error("Falha na extração: " + (e.message || "erro"));
