@@ -546,11 +546,16 @@ function AnexoPreviewDialog({ anexo, open, onOpenChange }: { anexo: any | null; 
   const mimeType = anexo?.mime_type || "";
   const isPdf = ext === "pdf" || mimeType.includes("pdf");
   const isImage = ["png", "jpg", "jpeg", "webp", "gif", "bmp"].includes(ext) || mimeType.startsWith("image/");
+  const [pdfDoc, setPdfDoc] = useState<PDFDocumentProxy | null>(null);
 
   useEffect(() => {
     if (!open || !anexo) {
       setUrl((prev) => {
         if (prev && prev.startsWith("blob:")) URL.revokeObjectURL(prev);
+        return null;
+      });
+      setPdfDoc((prev) => {
+        prev?.destroy();
         return null;
       });
       setError(null);
@@ -559,9 +564,14 @@ function AnexoPreviewDialog({ anexo, open, onOpenChange }: { anexo: any | null; 
     }
     let cancelled = false;
     let createdUrl: string | null = null;
+    let loadedPdf: PDFDocumentProxy | null = null;
     (async () => {
       setLoading(true);
       setError(null);
+      setPdfDoc((prev) => {
+        prev?.destroy();
+        return null;
+      });
       try {
         const { data: arquivo, error: e } = await supabase.storage
           .from("anexos-implantacao")
@@ -570,7 +580,14 @@ function AnexoPreviewDialog({ anexo, open, onOpenChange }: { anexo: any | null; 
         const mime = mimeType || (isPdf ? "application/pdf" : arquivo.type || "application/octet-stream");
         const blob = arquivo.type ? arquivo : new Blob([arquivo], { type: mime });
         createdUrl = URL.createObjectURL(blob);
-        if (!cancelled) setUrl(createdUrl);
+        if (isPdf) {
+          const buffer = await blob.arrayBuffer();
+          loadedPdf = await pdfjsLib.getDocument({ data: new Uint8Array(buffer) }).promise;
+        }
+        if (!cancelled) {
+          setUrl(createdUrl);
+          if (loadedPdf) setPdfDoc(loadedPdf);
+        }
       } catch (err: any) {
         if (!cancelled) setError(err?.message ?? "Não foi possível carregar o arquivo.");
       } finally {
@@ -579,6 +596,7 @@ function AnexoPreviewDialog({ anexo, open, onOpenChange }: { anexo: any | null; 
     })();
     return () => {
       cancelled = true;
+      loadedPdf?.destroy();
       if (createdUrl) URL.revokeObjectURL(createdUrl);
     };
   }, [open, anexo, isPdf, mimeType]);
