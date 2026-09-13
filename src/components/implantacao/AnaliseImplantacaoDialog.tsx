@@ -821,6 +821,12 @@ export function AnaliseImplantacaoDialog({ implantacaoId, open, onClose, readOnl
               isLoading={validacaoLoading}
             />
 
+            <DecisaoDiretoriaSection
+              itens={itensValidacao}
+              pendenciasList={pendenciasList}
+              historico={historico}
+            />
+
             {/* Cabeçalho */}
             <Card className="bg-gradient-to-br from-primary/5 to-transparent border-primary/20">
               <CardContent className="p-4 space-y-2">
