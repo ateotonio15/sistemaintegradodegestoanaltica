@@ -2,22 +2,21 @@ import { useMemo, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { FileSignature, Plus, Search, FileText, Clock, Trash2, GitBranch, Rows3, Table2 } from "lucide-react";
+import { FileSignature, Plus, FileText, Clock, Trash2, GitBranch, Rows3, Table2 } from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "@/hooks/useAuth";
 import { ImplantacaoWizard } from "@/components/implantacao/ImplantacaoWizard";
 import { AnaliseImplantacaoDialog } from "@/components/implantacao/AnaliseImplantacaoDialog";
 import { ProcessoFluxoDialog } from "@/components/implantacao/ProcessoFluxoDialog";
 import { ContratosTabela } from "@/components/implantacao/ContratosTabela";
+import { ContratosFiltrosBar, useContratosFiltros } from "@/components/implantacao/ContratosFiltros";
 import { useContratoProcessos } from "@/hooks/useContratoProcessos";
 import { setorLabel, statusBadge, statusLabel } from "@/lib/contrato-processo";
 import { formatDateBR, formatDay } from "@/lib/date-utils";
@@ -46,8 +45,6 @@ export default function Implantacao() {
   const canEdit = isVendas || isAdmin;
   const canDelete = isAdmin || isVendas;
 
-  const [search, setSearch] = useState("");
-  const [statusFilter, setStatusFilter] = useState<string>("todos");
   const [etapa, setEtapa] = useState<EtapaFiltro>("em_andamento");
   const [openId, setOpenId] = useState<string | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<{ id: string; nome: string } | null>(null);
@@ -110,22 +107,17 @@ export default function Implantacao() {
     return faltando;
   };
 
-  const filtered = useMemo(() => {
-    return items.filter((i) => {
-      const emAndamento = i.status !== "implantado";
-      const implantado = i.status === "implantado";
-      if (etapa === "em_andamento" && !emAndamento) return false;
-      if (etapa === "implantados" && !implantado) return false;
-      if (statusFilter !== "todos" && i.status !== statusFilter) return false;
-      if (!search) return true;
-      const s = search.toLowerCase();
-      return (
-        (i.nome_empresa || "").toLowerCase().includes(s) ||
-        (i.cnpj || "").toLowerCase().includes(s) ||
-        (i.codigo_contrato || "").toLowerCase().includes(s)
-      );
-    });
-  }, [items, search, statusFilter, etapa]);
+  const itensEtapa = useMemo(() => {
+    return items.filter((i) =>
+      etapa === "em_andamento" ? i.status !== "implantado" : i.status === "implantado",
+    );
+  }, [items, etapa]);
+
+  const { filtradas, barProps } = useContratosFiltros({
+    items: itensEtapa,
+    processoPorImplantacao,
+    anexosPorImplantacao,
+  });
 
   const counts = useMemo(() => {
     const c: Record<string, number> = {};
@@ -213,33 +205,9 @@ export default function Implantacao() {
           ))}
         </div>
 
-        {/* Filters */}
-        <Card className={visao === "tabela" ? "hidden" : ""}>
-          <CardContent className="p-4 flex flex-col md:flex-row gap-3">
-            <div className="relative flex-1">
-              <Search className="h-4 w-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
-              <Input
-                placeholder="Buscar por empresa, CNPJ ou código..."
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                className="pl-9"
-              />
-            </div>
-            <Select value={statusFilter} onValueChange={setStatusFilter}>
-              <SelectTrigger className="w-full md:w-56"><SelectValue /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="todos">Todos os status</SelectItem>
-                {Object.entries(STATUS_LABEL).map(([k, v]) => (
-                  <SelectItem key={k} value={k}>{v}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </CardContent>
-        </Card>
-
         {/* Etapas */}
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
-        <Tabs value={etapa} onValueChange={(v) => { setEtapa(v as EtapaFiltro); setStatusFilter("todos"); }} className="w-full md:w-auto">
+        <Tabs value={etapa} onValueChange={(v) => setEtapa(v as EtapaFiltro)} className="w-full md:w-auto">
           <TabsList className="w-full md:w-auto">
             <TabsTrigger value="em_andamento" className="gap-2">
               Em implantação
@@ -275,18 +243,19 @@ export default function Implantacao() {
           </div>
         </div>
 
+        {/* Filtros unificados (valem para as duas visões) */}
+        <ContratosFiltrosBar {...barProps} />
+
         {/* List */}
         {isLoading ? (
           <p className="text-muted-foreground text-center py-8">Carregando...</p>
         ) : visao === "tabela" ? (
           <ContratosTabela
-            items={filtered}
-            processoPorImplantacao={processoPorImplantacao}
-            anexosPorImplantacao={anexosPorImplantacao}
+            linhas={filtradas}
             onOpen={(id) => setOpenId(id)}
             onFluxo={(item) => setFluxoTarget(item)}
           />
-        ) : filtered.length === 0 ? (
+        ) : filtradas.length === 0 ? (
           <Card>
             <CardContent className="p-12 text-center text-muted-foreground">
               <FileText className="h-10 w-10 mx-auto mb-3 opacity-50" />
@@ -295,7 +264,7 @@ export default function Implantacao() {
           </Card>
         ) : (
           <div className="space-y-3">
-            {filtered.map((i) => (
+            {filtradas.map((l) => { const i = l.implantacao; return (
               <Card
                 key={i.id}
                 className="cursor-pointer hover:shadow-md transition-shadow"
@@ -407,7 +376,7 @@ export default function Implantacao() {
                   </div>
                 </CardContent>
               </Card>
-            ))}
+            );})}
           </div>
         )}
 
