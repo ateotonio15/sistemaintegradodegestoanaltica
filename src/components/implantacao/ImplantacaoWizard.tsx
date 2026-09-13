@@ -788,7 +788,15 @@ function Step1Upload({ anexos, data, onUpload, onDelete, onDownload, onView, upl
                 <div className="flex items-center gap-2 shrink-0">
                   <span className={cn(
                     "text-xs tabular-nums",
-                    hasError || showRequiredError ? "text-destructive" : isOver ? "text-primary" : isEmpty ? "text-muted-foreground" : "text-success"
+                    hasError || showRequiredError
+                      ? "text-destructive"
+                      : isOver
+                        ? "text-primary"
+                        : isEmpty
+                          ? "text-muted-foreground"
+                          : isAnexo1 && !anexo1Extraido
+                            ? "text-primary"
+                            : "text-success"
                   )}>
                     {statusText}
                   </span>
