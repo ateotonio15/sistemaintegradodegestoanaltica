@@ -1098,32 +1098,11 @@ export function AnaliseImplantacaoDialog({ implantacaoId, open, onClose, readOnl
         onConfirm={(userId, userNome) => aprovar.mutate({ userId, userNome })}
         loading={aprovar.isPending}
       />
-      <Dialog open={!!preview} onOpenChange={(v) => !v && setPreview(null)}>
-        <DialogContent className="max-w-5xl h-[90vh] flex flex-col">
-          <DialogHeader>
-            <DialogTitle className="truncate">{preview?.name || "Anexo"}</DialogTitle>
-            <DialogDescription>Visualização do anexo sem abrir o domínio do arquivo em outra aba.</DialogDescription>
-          </DialogHeader>
-          {preview && preview.type.startsWith("image/") ? (
-            <div className="min-h-0 flex-1 overflow-auto rounded-lg border bg-muted/30 p-3">
-              <img src={preview.url} alt={preview.name} className="mx-auto max-h-full max-w-full object-contain" />
-            </div>
-          ) : preview && preview.type === "application/pdf" ? (
-            <iframe title={preview.name} src={preview.url} className="min-h-0 flex-1 rounded-lg border" />
-          ) : (
-            <div className="flex min-h-0 flex-1 items-center justify-center rounded-lg border bg-muted/30 p-6 text-center text-sm text-muted-foreground">
-              Este tipo de arquivo não tem pré-visualização no navegador. Use o botão abaixo para baixar.
-            </div>
-          )}
-          {preview && (
-            <div className="flex justify-end">
-              <Button asChild variant="outline">
-                <a href={preview.url} download={preview.name}>Baixar anexo</a>
-              </Button>
-            </div>
-          )}
-        </DialogContent>
-      </Dialog>
+      <AnexoPreviewDialog
+        anexo={previewAnexo}
+        open={!!previewAnexo}
+        onOpenChange={(v) => { if (!v) setPreviewAnexo(null); }}
+      />
     </Dialog>
   );
 }
