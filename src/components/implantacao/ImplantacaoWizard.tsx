@@ -647,7 +647,6 @@ function Step1Upload({ anexos, data, onUpload, onDelete, onDownload, onView, upl
           fileRefs[tipo].current?.click();
         };
 
-        const anexo1Extraido = isAnexo1 && data?.extracao_anexo1_em;
         const statusText = isValidating
           ? isAnexo1 ? "Validando documento..." : "Validando..."
           : hasError
