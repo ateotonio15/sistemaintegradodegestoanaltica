@@ -682,6 +682,67 @@ function AnexoPreviewDialog({ anexo, open, onOpenChange }: { anexo: any | null; 
   );
 }
 
+// Renderiza todas as páginas do PDF em canvas (evita bloqueio do Chrome em iframes blob)
+function PdfCanvasViewer({ pdfDoc }: { pdfDoc: PDFDocumentProxy }) {
+  const containerRef = useRef<HTMLDivElement | null>(null);
+  const [numPages, setNumPages] = useState(0);
+
+  useEffect(() => {
+    setNumPages(pdfDoc.numPages);
+  }, [pdfDoc]);
+
+  useEffect(() => {
+    if (!numPages || !containerRef.current) return;
+    let cancelled = false;
+    const renderAll = async () => {
+      const container = containerRef.current;
+      if (!container) return;
+      const availableWidth = Math.max(320, container.clientWidth - 48);
+      const outputScale = window.devicePixelRatio || 1;
+      for (let p = 1; p <= numPages; p++) {
+        if (cancelled) return;
+        const canvas = container.querySelector<HTMLCanvasElement>(`canvas[data-page="${p}"]`);
+        if (!canvas) continue;
+        try {
+          const page = await pdfDoc.getPage(p);
+          const base = page.getViewport({ scale: 1 });
+          const scale = Math.max(0.6, Math.min(2.2, availableWidth / base.width));
+          const viewport = page.getViewport({ scale });
+          const ctx = canvas.getContext("2d");
+          if (!ctx) continue;
+          canvas.width = Math.floor(viewport.width * outputScale);
+          canvas.height = Math.floor(viewport.height * outputScale);
+          canvas.style.width = `${Math.floor(viewport.width)}px`;
+          canvas.style.height = `${Math.floor(viewport.height)}px`;
+          ctx.setTransform(outputScale, 0, 0, outputScale, 0, 0);
+          ctx.fillStyle = "hsl(0 0% 100%)";
+          ctx.fillRect(0, 0, viewport.width, viewport.height);
+          await page.render({ canvas, canvasContext: ctx, viewport, background: "hsl(0 0% 100%)" }).promise;
+        } catch {
+          // página ignorada em caso de erro de renderização
+        }
+      }
+    };
+    renderAll();
+    const observer = new ResizeObserver(() => renderAll());
+    observer.observe(container);
+    return () => {
+      cancelled = true;
+      observer.disconnect();
+    };
+  }, [pdfDoc, numPages]);
+
+  return (
+    <div ref={containerRef} className="h-full overflow-auto bg-card p-4">
+      <div className="flex flex-col items-center gap-4 pb-6">
+        {Array.from({ length: numPages }, (_, i) => (
+          <canvas key={i + 1} data-page={i + 1} className="rounded-sm shadow-sm bg-card" />
+        ))}
+      </div>
+    </div>
+  );
+}
+
 // ============= STEP 1 =============
 function formatFileSize(bytes?: number | null) {
   if (!bytes && bytes !== 0) return "";
