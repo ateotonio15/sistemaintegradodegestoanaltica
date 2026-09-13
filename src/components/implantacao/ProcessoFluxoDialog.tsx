@@ -31,6 +31,7 @@ import {
 } from "@/lib/contrato-processo";
 import { PendenciasProcessoSection } from "./PendenciasProcessoSection";
 import { ValidacaoCruzadaSection } from "./ValidacaoCruzadaSection";
+import { HistoricoProcessoTimeline } from "./HistoricoProcessoTimeline";
 
 interface Props {
   open: boolean;
