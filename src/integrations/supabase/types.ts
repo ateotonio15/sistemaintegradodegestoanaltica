@@ -1176,6 +1176,71 @@ export type Database = {
           },
         ]
       }
+      contrato_validacoes_cruzadas: {
+        Row: {
+          campo: string
+          created_at: string
+          criticidade: string
+          executado_por: string | null
+          executado_por_nome: string | null
+          id: string
+          implantacao_id: string | null
+          justificativa: string | null
+          pendencia_id: string | null
+          processo_id: string
+          resultado: string
+          rotulo: string | null
+          setor_destino: string | null
+          updated_at: string
+          valor_anexo: string | null
+          valor_contrato: string | null
+        }
+        Insert: {
+          campo: string
+          created_at?: string
+          criticidade?: string
+          executado_por?: string | null
+          executado_por_nome?: string | null
+          id?: string
+          implantacao_id?: string | null
+          justificativa?: string | null
+          pendencia_id?: string | null
+          processo_id: string
+          resultado?: string
+          rotulo?: string | null
+          setor_destino?: string | null
+          updated_at?: string
+          valor_anexo?: string | null
+          valor_contrato?: string | null
+        }
+        Update: {
+          campo?: string
+          created_at?: string
+          criticidade?: string
+          executado_por?: string | null
+          executado_por_nome?: string | null
+          id?: string
+          implantacao_id?: string | null
+          justificativa?: string | null
+          pendencia_id?: string | null
+          processo_id?: string
+          resultado?: string
+          rotulo?: string | null
+          setor_destino?: string | null
+          updated_at?: string
+          valor_anexo?: string | null
+          valor_contrato?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "contrato_validacoes_cruzadas_processo_id_fkey"
+            columns: ["processo_id"]
+            isOneToOne: false
+            referencedRelation: "contrato_processos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       contratos: {
         Row: {
           created_at: string
@@ -3217,6 +3282,8 @@ export type Database = {
       implantacoes_contratos: {
         Row: {
           acomodacao: string | null
+          analise_contrato: Json | null
+          analise_contrato_em: string | null
           aprovado_em: string | null
           aprovado_por: string | null
           aprovado_por_nome: string | null
@@ -3239,6 +3306,10 @@ export type Database = {
           enviado_diretoria_por: string | null
           enviado_diretoria_por_nome: string | null
           etapa_atual: number
+          extracao_anexo1: Json | null
+          extracao_anexo1_em: string | null
+          extracao_anexo1_texto: Json | null
+          extracao_anexo1_texto_em: string | null
           faixas_etarias: Json | null
           grupo_contrato: string | null
           id: string
@@ -3266,6 +3337,7 @@ export type Database = {
           tipo_contrato: string | null
           total_vidas: number | null
           updated_at: string
+          validacao_cruzada_em: string | null
           valor_apartamento_centavos: number | null
           valor_enfermaria_centavos: number | null
           vidas_apartamento: number | null
@@ -3275,6 +3347,8 @@ export type Database = {
         }
         Insert: {
           acomodacao?: string | null
+          analise_contrato?: Json | null
+          analise_contrato_em?: string | null
           aprovado_em?: string | null
           aprovado_por?: string | null
           aprovado_por_nome?: string | null
@@ -3297,6 +3371,10 @@ export type Database = {
           enviado_diretoria_por?: string | null
           enviado_diretoria_por_nome?: string | null
           etapa_atual?: number
+          extracao_anexo1?: Json | null
+          extracao_anexo1_em?: string | null
+          extracao_anexo1_texto?: Json | null
+          extracao_anexo1_texto_em?: string | null
           faixas_etarias?: Json | null
           grupo_contrato?: string | null
           id?: string
@@ -3324,6 +3402,7 @@ export type Database = {
           tipo_contrato?: string | null
           total_vidas?: number | null
           updated_at?: string
+          validacao_cruzada_em?: string | null
           valor_apartamento_centavos?: number | null
           valor_enfermaria_centavos?: number | null
           vidas_apartamento?: number | null
@@ -3333,6 +3412,8 @@ export type Database = {
         }
         Update: {
           acomodacao?: string | null
+          analise_contrato?: Json | null
+          analise_contrato_em?: string | null
           aprovado_em?: string | null
           aprovado_por?: string | null
           aprovado_por_nome?: string | null
@@ -3355,6 +3436,10 @@ export type Database = {
           enviado_diretoria_por?: string | null
           enviado_diretoria_por_nome?: string | null
           etapa_atual?: number
+          extracao_anexo1?: Json | null
+          extracao_anexo1_em?: string | null
+          extracao_anexo1_texto?: Json | null
+          extracao_anexo1_texto_em?: string | null
           faixas_etarias?: Json | null
           grupo_contrato?: string | null
           id?: string
@@ -3382,6 +3467,7 @@ export type Database = {
           tipo_contrato?: string | null
           total_vidas?: number | null
           updated_at?: string
+          validacao_cruzada_em?: string | null
           valor_apartamento_centavos?: number | null
           valor_enfermaria_centavos?: number | null
           vidas_apartamento?: number | null
@@ -5257,6 +5343,10 @@ export type Database = {
         Returns: string
       }
       excluir_implantacao: { Args: { p_id: string }; Returns: Json }
+      executar_validacao_cruzada: {
+        Args: { p_itens: Json; p_processo_id: string }
+        Returns: Json
+      }
       fin_arq_categoria_auto: {
         Args: { _mime: string; _nome: string }
         Returns: string

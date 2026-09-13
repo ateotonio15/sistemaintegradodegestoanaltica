@@ -262,6 +262,7 @@ export const ACAO_LABEL: Record<string, string> = {
   processo_criado: "Processo criado",
   documento_anexado: "Documento anexado",
   analise_automatica: "Análise automática executada",
+  validacao_cruzada: "Validação cruzada executada",
   encaminhado: "Encaminhado para outro setor",
   pendencia_aberta: "Pendência registrada",
   pendencia_resolvida: "Pendência resolvida",

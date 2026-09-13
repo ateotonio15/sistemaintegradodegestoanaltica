@@ -12,6 +12,9 @@ import { SelecionarResponsavelCadastroDialog } from "./SelecionarResponsavelCada
 import { formatDateBR, formatDay } from "@/lib/date-utils";
 import { formatCentavosBRL } from "@/lib/reajuste-utils";
 import { useContratoProcessoPorImplantacao } from "@/hooks/useContratoProcessos";
+import { useBloqueioValidacaoCruzada, useValidacaoCruzada } from "@/hooks/useValidacaoCruzada";
+import { ValidacaoCruzadaSection } from "./ValidacaoCruzadaSection";
+import { resumoValidacao } from "@/lib/validacao-cruzada";
 import {
   setorLabel, statusGeralLabel, statusLabel, statusBadge,
   STATUS_GERAL_BADGE, type ProcessoStatusGeral,
@@ -98,6 +101,9 @@ export function AnaliseImplantacaoDialog({ implantacaoId, open, onClose, readOnl
   });
 
   const { data: processo } = useContratoProcessoPorImplantacao(open ? implantacaoId : null);
+  const { data: itensValidacao = [] } = useValidacaoCruzada(open ? processo?.id : null);
+  const { bloqueado: bloqueioCritico } = useBloqueioValidacaoCruzada(open ? processo?.id : null);
+  const resumoCruzado = resumoValidacao(itensValidacao);
 
   const { data: anexos = [] } = useQuery({
     queryKey: ["impl-anexos", implantacaoId],
@@ -213,7 +219,11 @@ export function AnaliseImplantacaoDialog({ implantacaoId, open, onClose, readOnl
             {/* Resumo da Análise */}
             {(() => {
               const validacao: any = impl.relatorio_validacao || null;
-              const divergencias = validacao ? Number(validacao.erros ?? 0) : null;
+              const divergenciasRelatorio = validacao ? Number(validacao.erros ?? 0) : null;
+              const divergencias =
+                divergenciasRelatorio == null && itensValidacao.length === 0
+                  ? null
+                  : (divergenciasRelatorio ?? 0) + resumoCruzado.divergentes;
               const pendencias = processo?.pendencias_abertas ?? 0;
               const statusProc = processo?.status || "";
               let risco: { label: string; tom: Tom };
@@ -286,6 +296,31 @@ export function AnaliseImplantacaoDialog({ implantacaoId, open, onClose, readOnl
                         value={divergencias != null ? String(divergencias) : null}
                         tom={divergencias == null ? "cinza" : divergencias > 0 ? "vermelho" : "verde"}
                       />
+                      <ItemResumo
+                        label="Validação cruzada"
+                        value={
+                          itensValidacao.length === 0
+                            ? null
+                            : `${resumoCruzado.compativeis}/${resumoCruzado.total} compatíveis`
+                        }
+                        tom={
+                          itensValidacao.length === 0
+                            ? "cinza"
+                            : resumoCruzado.criticas > 0
+                            ? "vermelho"
+                            : resumoCruzado.divergentes > 0
+                            ? "amarelo"
+                            : "verde"
+                        }
+                      />
+                      <ItemResumo
+                        label="Divergências críticas"
+                        value={itensValidacao.length === 0 ? null : String(resumoCruzado.criticas)}
+                        tom={
+                          itensValidacao.length === 0 ? "cinza" : resumoCruzado.criticas > 0 ? "vermelho" : "verde"
+                        }
+                      />
+
                       <ItemResumo label="Vigência" value={formatDateBR(impl.data_vigencia)} tom={impl.data_vigencia ? "verde" : "cinza"} />
                       <ItemResumo label="Previsão de implantação" value={formatDateBR(impl.inicio_atendimento)} tom={impl.inicio_atendimento ? "amarelo" : "cinza"} />
                       <ItemResumo label="Última atualização" value={dataHoraCurta(processo?.ultima_movimentacao_em || impl.updated_at)} tom="verde" />
@@ -395,14 +430,29 @@ export function AnaliseImplantacaoDialog({ implantacaoId, open, onClose, readOnl
               </div>
             </div>
 
+            {/* Validação Cruzada das análises do contrato */}
+            {processo && (
+              <div className="pt-2 border-t">
+                <ValidacaoCruzadaSection processoId={processo.id} implantacaoId={implantacaoId} />
+              </div>
+            )}
 
+            {bloqueioCritico && (
+              <div className="flex items-start gap-2 rounded-lg border border-red-500/30 bg-red-500/10 p-3 text-xs text-red-600">
+                <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
+                <span>
+                  Conclusão bloqueada: há divergência crítica na validação cruzada. Resolva a pendência gerada no setor
+                  responsável para liberar a aprovação.
+                </span>
+              </div>
+            )}
 
             {/* Ação Cadastro: Liberar contrato */}
             {readOnly && impl.status !== "implantado" && impl.status !== "rejeitado" && (
               <div className="pt-2 border-t">
                 <Button
                   onClick={() => liberar.mutate()}
-                  disabled={liberar.isPending}
+                  disabled={liberar.isPending || bloqueioCritico}
                   className="w-full gap-2 bg-emerald-600 hover:bg-emerald-700"
                 >
                   <Rocket className="h-4 w-4" /> {liberar.isPending ? "Liberando…" : "Liberar contrato"}
@@ -417,7 +467,7 @@ export function AnaliseImplantacaoDialog({ implantacaoId, open, onClose, readOnl
                   <Textarea value={obs} onChange={(e) => setObs(e.target.value)} placeholder="Comentário para o cadastro…" rows={2} />
                 </div>
                 <div className="flex flex-col sm:flex-row gap-2">
-                  <Button onClick={() => setAtribuirOpen(true)} disabled={aprovar.isPending} className="flex-1 gap-2 bg-emerald-600 hover:bg-emerald-700">
+                  <Button onClick={() => setAtribuirOpen(true)} disabled={aprovar.isPending || bloqueioCritico} className="flex-1 gap-2 bg-emerald-600 hover:bg-emerald-700">
                     <CheckCircle2 className="h-4 w-4" /> Aprovar e enviar ao Cadastro
                   </Button>
                   <Button onClick={() => setMode("correcao")} variant="outline" className="gap-2 border-amber-500/50 text-amber-600 hover:bg-amber-500/10">

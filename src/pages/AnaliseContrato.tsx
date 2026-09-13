@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { extrairTextoContrato } from "@/lib/contrato-text-extract";
 import { Button } from "@/components/ui/button";
@@ -7,10 +8,11 @@ import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
 import {
   FileSearch, Upload, Loader2, Plus, Trash2, CheckCircle2, XCircle,
-  AlertTriangle, Download, ClipboardCopy,
+  AlertTriangle, Download, ClipboardCopy, Link2,
 } from "lucide-react";
 
 type Criterio = { criterio: string; atendido: boolean | "indeterminado" | null; observacao?: string | null };
@@ -77,6 +79,37 @@ export default function AnaliseContrato() {
   const [extraindo, setExtraindo] = useState(false);
   const [analisando, setAnalisando] = useState(false);
   const [resultado, setResultado] = useState<Resultado | null>(null);
+  const [vincularId, setVincularId] = useState("");
+  const [salvandoVinculo, setSalvandoVinculo] = useState(false);
+
+  const { data: implantacoes = [] } = useQuery({
+    queryKey: ["implantacoes-vinculo-analise"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("implantacoes_contratos" as any)
+        .select("id, nome_empresa, codigo_contrato")
+        .order("created_at", { ascending: false })
+        .limit(200);
+      if (error) throw error;
+      return (data ?? []) as any[];
+    },
+  });
+
+  const vincular = async () => {
+    if (!vincularId || !resultado) return;
+    setSalvandoVinculo(true);
+    const { error } = await supabase
+      .from("implantacoes_contratos" as any)
+      .update({ analise_contrato: resultado as any, analise_contrato_em: new Date().toISOString() })
+      .eq("id", vincularId);
+    setSalvandoVinculo(false);
+    if (error) {
+      toast.error("Não foi possível vincular: " + error.message);
+      return;
+    }
+    toast.success("Análise vinculada. Execute a Validação Cruzada no fluxo do contrato.");
+  };
+
 
   const salvarCriterios = (lista: string[]) => {
     setCriterios(lista);
@@ -224,6 +257,31 @@ export default function AnaliseContrato() {
             )}
           </CardHeader>
           <CardContent>
+            {resultado && (
+              <div className="mb-4 space-y-2 rounded-xl border bg-muted/30 p-3">
+                <p className="text-sm font-medium">Vincular à proposta de implantação (Validação Cruzada)</p>
+                <p className="text-xs text-muted-foreground">
+                  Ao vincular, este resultado passa a ser comparado automaticamente com os dados do Anexo I da proposta.
+                </p>
+                <div className="flex flex-col gap-2 sm:flex-row">
+                  <Select value={vincularId} onValueChange={setVincularId}>
+                    <SelectTrigger className="sm:flex-1"><SelectValue placeholder="Selecione a proposta" /></SelectTrigger>
+                    <SelectContent>
+                      {implantacoes.map((i: any) => (
+                        <SelectItem key={i.id} value={i.id}>
+                          {i.nome_empresa || "Sem nome"}{i.codigo_contrato ? ` · ${i.codigo_contrato}` : ""}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <Button variant="outline" onClick={vincular} disabled={!vincularId || salvandoVinculo}>
+                    {salvandoVinculo ? <Loader2 className="mr-1.5 h-4 w-4 animate-spin" /> : <Link2 className="mr-1.5 h-4 w-4" />}
+                    Vincular análise
+                  </Button>
+                </div>
+              </div>
+            )}
+
             {!resultado ? (
               <div className="flex h-[240px] flex-col items-center justify-center gap-2 text-center text-sm text-muted-foreground">
                 <FileSearch className="h-8 w-8 opacity-40" />
