@@ -520,6 +520,12 @@ export function ImplantacaoWizard({ id, open, onClose, readOnly }: Props) {
         </div>
       </DialogContent>
     </Dialog>
+
+    <AnexoPreviewDialog
+      anexo={previewAnexo}
+      open={!!previewAnexo}
+      onOpenChange={(v) => { if (!v) setPreviewAnexo(null); }}
+    />
   );
 }
 
