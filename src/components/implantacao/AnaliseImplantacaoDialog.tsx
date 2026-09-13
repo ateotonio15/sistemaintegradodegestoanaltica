@@ -6,15 +6,14 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
-import { CheckCircle2, AlertTriangle, XCircle, FileText, Building2, Users, Calendar, Paperclip, Rocket } from "lucide-react";
+import { CheckCircle2, AlertTriangle, XCircle, FileText, Building2, Users, Calendar, Paperclip, Rocket, Loader2, ShieldCheck, Check } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { SelecionarResponsavelCadastroDialog } from "./SelecionarResponsavelCadastroDialog";
 import { formatDateBR, formatDay } from "@/lib/date-utils";
 import { formatCentavosBRL } from "@/lib/reajuste-utils";
 import { useContratoProcessoPorImplantacao } from "@/hooks/useContratoProcessos";
-import { useBloqueioValidacaoCruzada, useValidacaoCruzada } from "@/hooks/useValidacaoCruzada";
-import { ValidacaoCruzadaSection } from "./ValidacaoCruzadaSection";
-import { resumoValidacao } from "@/lib/validacao-cruzada";
+import { useBloqueioValidacaoCruzada, useExecutarValidacaoCruzada, useValidacaoCruzada } from "@/hooks/useValidacaoCruzada";
+import { resumoValidacao, validarCruzado } from "@/lib/validacao-cruzada";
 import { cn } from "@/lib/utils";
 import {
   setorLabel, statusGeralLabel, statusLabel,
