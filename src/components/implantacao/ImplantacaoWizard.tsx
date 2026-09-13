@@ -647,18 +647,21 @@ function Step1Upload({ anexos, data, onUpload, onDelete, onDownload, onView, upl
           fileRefs[tipo].current?.click();
         };
 
+        const anexo1Extraido = isAnexo1 && data?.extracao_anexo1_em;
         const statusText = isValidating
-          ? "Validando..."
+          ? isAnexo1 ? "Validando documento..." : "Validando..."
           : hasError
-            ? errorMsg
+            ? isAnexo1 ? "Não foi possível identificar corretamente o Anexo 1." : errorMsg
             : showRequiredError
               ? "Obrigatório"
               : isOver
                 ? "Solte o arquivo aqui"
                 : isEmpty
-                  ? "Nenhum arquivo"
-                  : isAnexo1 && data?.extracao_anexo1_em
-                    ? "Reconhecido"
+                  ? isAnexo1 ? "Documento ainda não anexado" : "Nenhum arquivo"
+                  : isAnexo1
+                    ? anexo1Extraido
+                      ? "Anexo 1 pronto para extração"
+                      : "Anexo 1 anexado"
                     : list.length === 1
                       ? "1 arquivo"
                       : `${list.length} arquivos`;
