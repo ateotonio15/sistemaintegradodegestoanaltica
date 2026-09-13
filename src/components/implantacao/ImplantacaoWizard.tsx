@@ -856,7 +856,8 @@ function Step1Upload({ anexos, data, onUpload, onDelete, onDownload, onView, upl
           </Card>
         );
       })}
-    </div>
+      </div>
+    </TooltipProvider>
   );
 }
 
