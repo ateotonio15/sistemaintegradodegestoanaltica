@@ -734,8 +734,6 @@ function Step1Upload({ anexos, data, onUpload, onDelete, onDownload, onView, upl
                     <AlertCircle className="h-3.5 w-3.5" />
                   ) : isEmpty ? (
                     isAnexo1 ? <Sparkles className="h-3.5 w-3.5" /> : <FileText className="h-3.5 w-3.5" />
-                  ) : isAnexo1 && !anexo1Extraido ? (
-                    <FileText className="h-3.5 w-3.5" />
                   ) : (
                     <CheckCircle2 className="h-3.5 w-3.5" />
                   )}
