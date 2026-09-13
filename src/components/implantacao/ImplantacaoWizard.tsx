@@ -27,6 +27,8 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 import { useAuth } from "@/hooks/useAuth";
 import { validarRelatorioVidas, type ValidacaoResultado } from "@/lib/relatorio-vidas-validator";
 
+pdfjsLib.GlobalWorkerOptions.workerSrc = pdfWorkerUrl;
+
 interface Props {
   id: string;
   open: boolean;
