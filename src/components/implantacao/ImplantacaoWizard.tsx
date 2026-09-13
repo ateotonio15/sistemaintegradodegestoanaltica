@@ -81,6 +81,7 @@ export function ImplantacaoWizard({ id, open, onClose, readOnly }: Props) {
   const [step, setStep] = useState(1);
   const [extracting, setExtracting] = useState(false);
   const [uploading, setUploading] = useState(false);
+  const [uploadAttempted, setUploadAttempted] = useState(false);
 
   const { data: impl } = useQuery({
     queryKey: ["impl", id],
@@ -284,6 +285,11 @@ export function ImplantacaoWizard({ id, open, onClose, readOnly }: Props) {
     }
   }, [data?.valor_enfermaria_centavos, data?.ticket_auto_sync]);
 
+  // Reseta o aviso de tentativa de avanço quando o usuário volta à etapa de upload
+  useEffect(() => {
+    if (step === 1) setUploadAttempted(false);
+  }, [step]);
+
   const ultimoRelVidas = useMemo(
     () => anexos.filter((a: any) => a.tipo === "relatorio_vidas")[0],
     [anexos],
@@ -307,7 +313,11 @@ export function ImplantacaoWizard({ id, open, onClose, readOnly }: Props) {
   };
 
   const goNext = async () => {
-    if (!valid[step]) { toast.error("Preencha os campos obrigatórios"); return; }
+    if (!valid[step]) {
+      if (step === 1) setUploadAttempted(true);
+      toast.error("Preencha os campos obrigatórios");
+      return;
+    }
     const next = Math.min(6, step + 1);
     if (await save({ etapa_atual: next })) setStep(next);
   };
@@ -413,6 +423,7 @@ export function ImplantacaoWizard({ id, open, onClose, readOnly }: Props) {
               onDownload={handleDownload}
               uploading={uploading}
               readOnly={readOnly}
+              attempted={uploadAttempted}
             />
           )}
           {step === 2 && (
@@ -464,33 +475,89 @@ export function ImplantacaoWizard({ id, open, onClose, readOnly }: Props) {
 }
 
 // ============= STEP 1 =============
-function Step1Upload({ anexos, onUpload, onDelete, onDownload, uploading, readOnly }: any) {
+function Step1Upload({ anexos, onUpload, onDelete, onDownload, uploading, readOnly, attempted }: any) {
   const tipos = ["anexo_1", "contrato", "relatorio_vidas", "primeira_cobranca", "complementar"];
   return (
     <div className="space-y-4">
-      <div className="bg-blue-500/10 border border-blue-500/30 rounded-lg p-3 text-sm">
+      <div className="rounded-lg border border-primary/30 bg-primary/5 p-3 text-sm text-primary">
         <strong>Importante:</strong> O <strong>Anexo 1</strong> é prioridade total para a extração automática.
       </div>
+
       {tipos.map((tipo) => {
         const list = anexos.filter((a: any) => a.tipo === tipo);
         const isAnexo1 = tipo === "anexo_1";
+        const isEmpty = list.length === 0;
+        const showError = attempted && isEmpty;
+
         return (
-          <Card key={tipo} className={cn(isAnexo1 && "border-primary border-2", list.length === 0 && "border-destructive/40")}>
+          <Card
+            key={tipo}
+            className={cn(
+              "transition-colors",
+              isAnexo1
+                ? "border-primary/40 bg-primary/[0.03]"
+                : "border-border bg-background",
+              showError && "border-destructive/50 bg-destructive/[0.03]",
+              !isEmpty && !showError && "border-success/40 bg-success/[0.02]"
+            )}
+          >
             <CardContent className="p-4 space-y-3">
-              <div className="flex items-center justify-between">
-                <Label className="font-semibold flex items-center gap-2">
-                  {list.length > 0 ? (
-                    <CheckCircle2 className="h-4 w-4 text-green-500" />
-                  ) : (
-                    <XCircle className="h-4 w-4 text-destructive" />
-                  )}
-                  {TIPO_LABEL[tipo]}
-                  <Badge variant="outline">{list.length}</Badge>
-                  {isAnexo1 && <Badge variant="default">Prioritário</Badge>}
-                  <Badge variant={list.length > 0 ? "secondary" : "destructive"}>Obrigatório</Badge>
-                </Label>
+              <div className="flex items-center justify-between gap-3">
+                <div className="flex items-center gap-3 min-w-0">
+                  <div className={cn(
+                    "h-9 w-9 rounded-full flex items-center justify-center shrink-0 border",
+                    isEmpty
+                      ? showError
+                        ? "border-destructive/40 bg-destructive/10 text-destructive"
+                        : "border-muted bg-muted/50 text-muted-foreground"
+                      : "border-success/40 bg-success/10 text-success"
+                  )}>
+                    {isEmpty ? (
+                      showError ? <AlertCircle className="h-4 w-4" /> : <FileText className="h-4 w-4" />
+                    ) : (
+                      <CheckCircle2 className="h-4 w-4" />
+                    )}
+                  </div>
+                  <div className="min-w-0">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className={cn(
+                        "font-semibold text-sm",
+                        isAnexo1 ? "text-primary" : "text-foreground"
+                      )}>
+                        {TIPO_LABEL[tipo]}
+                      </span>
+                      <Badge variant="outline" className="h-5 text-[10px]">
+                        {list.length}
+                      </Badge>
+                      {isAnexo1 && (
+                        <Badge variant="default" className="h-5 text-[10px] gap-1">
+                          <Sparkles className="h-3 w-3" />
+                          Prioritário
+                        </Badge>
+                      )}
+                      <Badge variant="secondary" className="h-5 text-[10px]">
+                        Obrigatório
+                      </Badge>
+                    </div>
+                    {isEmpty ? (
+                      <p className={cn(
+                        "text-xs mt-0.5",
+                        showError ? "text-destructive" : "text-muted-foreground"
+                      )}>
+                        {showError
+                          ? "Documento obrigatório — anexe ao menos 1 arquivo desta categoria."
+                          : "Documento ainda não anexado"}
+                      </p>
+                    ) : (
+                      <p className="text-xs text-success mt-0.5">
+                        {list.length === 1 ? "1 arquivo anexado" : `${list.length} arquivos anexados`}
+                      </p>
+                    )}
+                  </div>
+                </div>
+
                 {!readOnly && (
-                  <label className="cursor-pointer">
+                  <label className="cursor-pointer shrink-0">
                     <input
                       type="file"
                       className="hidden"
@@ -504,33 +571,40 @@ function Step1Upload({ anexos, onUpload, onDelete, onDownload, uploading, readOn
                       }}
                       disabled={uploading}
                     />
-                    <Button asChild size="sm" variant="outline">
+                    <Button asChild size="sm" variant={isAnexo1 ? "default" : "outline"}>
                       <span>
-                        <Upload className="h-3 w-3 mr-1" />
+                        <Upload className="h-3.5 w-3.5 mr-1.5" />
                         {tipo === "complementar" || tipo === "primeira_cobranca" ? "Anexar (vários)" : "Anexar"}
                       </span>
                     </Button>
                   </label>
                 )}
               </div>
-              {list.length === 0 ? (
-                <p className="text-xs text-destructive">Nenhum arquivo — envie ao menos 1 arquivo desta categoria.</p>
-              ) : (
-                list.map((a: any) => (
-                  <div key={a.id} className="flex items-center justify-between bg-muted/50 rounded p-2 text-sm">
-                    <span className="flex items-center gap-2 truncate"><FileText className="h-4 w-4" /> {a.nome_arquivo}</span>
-                    <div className="flex gap-1">
-                      <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => onDownload(a)}>
-                        <Download className="h-3 w-3" />
-                      </Button>
-                      {!readOnly && (
-                        <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => onDelete(a)}>
-                          <Trash2 className="h-3 w-3 text-destructive" />
+
+              {list.length > 0 && (
+                <div className="space-y-1.5">
+                  {list.map((a: any) => (
+                    <div
+                      key={a.id}
+                      className="flex items-center justify-between rounded-md border bg-muted/30 px-3 py-2 text-sm"
+                    >
+                      <span className="flex items-center gap-2 truncate min-w-0">
+                        <FileText className="h-4 w-4 shrink-0 text-muted-foreground" />
+                        <span className="truncate" title={a.nome_arquivo}>{a.nome_arquivo}</span>
+                      </span>
+                      <div className="flex gap-0.5 shrink-0">
+                        <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => onDownload(a)}>
+                          <Download className="h-3.5 w-3.5" />
                         </Button>
-                      )}
+                        {!readOnly && (
+                          <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => onDelete(a)}>
+                            <Trash2 className="h-3.5 w-3.5 text-destructive" />
+                          </Button>
+                        )}
+                      </div>
                     </div>
-                  </div>
-                ))
+                  ))}
+                </div>
               )}
             </CardContent>
           </Card>
