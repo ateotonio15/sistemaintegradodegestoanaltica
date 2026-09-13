@@ -205,33 +205,9 @@ export default function Implantacao() {
           ))}
         </div>
 
-        {/* Filters */}
-        <Card className={visao === "tabela" ? "hidden" : ""}>
-          <CardContent className="p-4 flex flex-col md:flex-row gap-3">
-            <div className="relative flex-1">
-              <Search className="h-4 w-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
-              <Input
-                placeholder="Buscar por empresa, CNPJ ou código..."
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                className="pl-9"
-              />
-            </div>
-            <Select value={statusFilter} onValueChange={setStatusFilter}>
-              <SelectTrigger className="w-full md:w-56"><SelectValue /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="todos">Todos os status</SelectItem>
-                {Object.entries(STATUS_LABEL).map(([k, v]) => (
-                  <SelectItem key={k} value={k}>{v}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </CardContent>
-        </Card>
-
         {/* Etapas */}
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
-        <Tabs value={etapa} onValueChange={(v) => { setEtapa(v as EtapaFiltro); setStatusFilter("todos"); }} className="w-full md:w-auto">
+        <Tabs value={etapa} onValueChange={(v) => setEtapa(v as EtapaFiltro)} className="w-full md:w-auto">
           <TabsList className="w-full md:w-auto">
             <TabsTrigger value="em_andamento" className="gap-2">
               Em implantação
