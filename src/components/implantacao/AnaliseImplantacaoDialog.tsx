@@ -257,6 +257,10 @@ function PontosAtencaoSection({
             <Loader2 className="h-4 w-4 animate-spin" />
             Carregando validação cruzada…
           </p>
+        ) : naoExecutada ? (
+          <p className="text-sm text-muted-foreground">
+            Nenhuma validação cruzada registrada. Execute a validação para comparar os dados do contrato com o Anexo I.
+          </p>
         ) : semProblema ? (
           <div className="space-y-2 rounded-lg border border-emerald-500/20 bg-emerald-500/10 p-3">
             <p className="flex items-center gap-2 text-sm font-medium text-emerald-600">
