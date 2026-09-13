@@ -751,6 +751,7 @@ export function AnaliseImplantacaoDialog({ implantacaoId, open, onClose, readOnl
   const { data: historico = [] } = useContratoProcessoHistorico(open ? processo?.id : null);
   const { bloqueado: bloqueioCritico } = useBloqueioValidacaoCruzada(open ? processo?.id : null);
   const resumoCruzado = resumoValidacao(itensValidacao);
+  const mapaValidacao = useMapaValidacao(itensValidacao);
 
   const { data: anexos = [] } = useQuery({
     queryKey: ["impl-anexos", implantacaoId],
