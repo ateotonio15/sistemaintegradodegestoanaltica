@@ -285,6 +285,11 @@ export function ImplantacaoWizard({ id, open, onClose, readOnly }: Props) {
     }
   }, [data?.valor_enfermaria_centavos, data?.ticket_auto_sync]);
 
+  // Reseta o aviso de tentativa de avanço quando o usuário volta à etapa de upload
+  useEffect(() => {
+    if (step === 1) setUploadAttempted(false);
+  }, [step]);
+
   const ultimoRelVidas = useMemo(
     () => anexos.filter((a: any) => a.tipo === "relatorio_vidas")[0],
     [anexos],
