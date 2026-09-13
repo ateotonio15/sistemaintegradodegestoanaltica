@@ -7,7 +7,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
-import { CheckCircle2, AlertTriangle, XCircle, FileText, Building2, Users, Calendar, Paperclip, Rocket, Loader2, ShieldCheck, Check, Gavel, TrendingUp, Eye, ChevronDown, ChevronUp } from "lucide-react";
+import { CheckCircle2, AlertTriangle, XCircle, FileText, Calendar, Paperclip, Rocket, Loader2, ShieldCheck, Check, Gavel, TrendingUp, Eye, ChevronDown, ChevronUp } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { SelecionarResponsavelCadastroDialog } from "./SelecionarResponsavelCadastroDialog";
 import { AnexoPreviewDialog } from "./AnexoPreviewDialog";
