@@ -79,6 +79,37 @@ export default function AnaliseContrato() {
   const [extraindo, setExtraindo] = useState(false);
   const [analisando, setAnalisando] = useState(false);
   const [resultado, setResultado] = useState<Resultado | null>(null);
+  const [vincularId, setVincularId] = useState("");
+  const [salvandoVinculo, setSalvandoVinculo] = useState(false);
+
+  const { data: implantacoes = [] } = useQuery({
+    queryKey: ["implantacoes-vinculo-analise"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("implantacoes_contratos" as any)
+        .select("id, nome_empresa, codigo_contrato")
+        .order("created_at", { ascending: false })
+        .limit(200);
+      if (error) throw error;
+      return (data ?? []) as any[];
+    },
+  });
+
+  const vincular = async () => {
+    if (!vincularId || !resultado) return;
+    setSalvandoVinculo(true);
+    const { error } = await supabase
+      .from("implantacoes_contratos" as any)
+      .update({ analise_contrato: resultado as any, analise_contrato_em: new Date().toISOString() })
+      .eq("id", vincularId);
+    setSalvandoVinculo(false);
+    if (error) {
+      toast.error("Não foi possível vincular: " + error.message);
+      return;
+    }
+    toast.success("Análise vinculada. Execute a Validação Cruzada no fluxo do contrato.");
+  };
+
 
   const salvarCriterios = (lista: string[]) => {
     setCriterios(lista);
