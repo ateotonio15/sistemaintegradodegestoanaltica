@@ -6,15 +6,14 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
-import { CheckCircle2, AlertTriangle, XCircle, FileText, Building2, Users, Calendar, Paperclip, Rocket } from "lucide-react";
+import { CheckCircle2, AlertTriangle, XCircle, FileText, Building2, Users, Calendar, Paperclip, Rocket, Loader2, ShieldCheck, Check } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { SelecionarResponsavelCadastroDialog } from "./SelecionarResponsavelCadastroDialog";
 import { formatDateBR, formatDay } from "@/lib/date-utils";
 import { formatCentavosBRL } from "@/lib/reajuste-utils";
 import { useContratoProcessoPorImplantacao } from "@/hooks/useContratoProcessos";
-import { useBloqueioValidacaoCruzada, useValidacaoCruzada } from "@/hooks/useValidacaoCruzada";
-import { ValidacaoCruzadaSection } from "./ValidacaoCruzadaSection";
-import { resumoValidacao } from "@/lib/validacao-cruzada";
+import { useBloqueioValidacaoCruzada, useExecutarValidacaoCruzada, useValidacaoCruzada } from "@/hooks/useValidacaoCruzada";
+import { resumoValidacao, validarCruzado } from "@/lib/validacao-cruzada";
 import { cn } from "@/lib/utils";
 import {
   setorLabel, statusGeralLabel, statusLabel,
@@ -151,6 +150,195 @@ function dataHoraCurta(iso?: string | null) {
   return `${formatDateBR(d)} ${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`;
 }
 
+function MetricaPonto({
+  label,
+  value,
+  tom,
+}: {
+  label: string;
+  value: string;
+  tom: Tom;
+}) {
+  return (
+    <div className="rounded-lg border border-border bg-muted/20 p-3">
+      <p className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">{label}</p>
+      <div className="mt-1.5 flex items-center gap-2">
+        <span className={cn("h-2 w-2 shrink-0 rounded-full", TOM_DOT[tom])} />
+        <span className={cn("text-sm font-bold", TOM_TXT[tom])}>{value}</span>
+      </div>
+    </div>
+  );
+}
+
+interface PontosAtencaoSectionProps {
+  processo?: any;
+  impl: any;
+  itens: any[];
+  resumo: ReturnType<typeof resumoValidacao>;
+  pendencias: number;
+  isLoading: boolean;
+}
+
+function PontosAtencaoSection({
+  processo,
+  impl,
+  itens,
+  resumo,
+  pendencias,
+  isLoading,
+}: PontosAtencaoSectionProps) {
+  const { toast } = useToast();
+  const executar = useExecutarValidacaoCruzada();
+
+  const problemas = itens.filter((i) => i.resultado !== "compativel");
+  const statusVC = isLoading
+    ? { label: "Em processamento", tom: "amarelo" as Tom }
+    : !processo || itens.length === 0
+    ? { label: "Não executada", tom: "cinza" as Tom }
+    : problemas.length > 0
+    ? { label: "Com divergências", tom: "vermelho" as Tom }
+    : { label: "Compatível", tom: "verde" as Tom };
+
+  const handleExecutar = async () => {
+    if (!impl || !processo) {
+      toast({ title: "Não foi possível carregar os dados do contrato.", variant: "destructive" });
+      return;
+    }
+    try {
+      const r = await executar.mutateAsync({ processoId: processo.id, itens: validarCruzado(impl) });
+      toast({
+        title: `Validação cruzada concluída: ${r.divergencias} divergência(s), ${r.pendencias_criadas} pendência(s) criada(s).`,
+      });
+    } catch (e: any) {
+      toast({ title: e.message || "Erro ao executar a validação cruzada", variant: "destructive" });
+    }
+  };
+
+  const semProblema = !isLoading && !!processo && itens.length > 0 && problemas.length === 0 && pendencias === 0;
+  const naoExecutada = !isLoading && (!processo || itens.length === 0);
+
+  return (
+    <section aria-labelledby="pontos-atencao-title" className="overflow-hidden rounded-lg border border-border bg-card shadow-sm">
+      <div className="flex flex-wrap items-center justify-between gap-2 border-b border-border bg-muted/30 px-4 py-3 sm:px-5">
+        <h4 id="pontos-atencao-title" className="flex items-center gap-2 text-sm font-semibold">
+          <ShieldCheck className="h-4 w-4 text-primary" />
+          Validação e Pontos de Atenção
+        </h4>
+        {processo && (
+          <Button size="sm" variant="outline" onClick={handleExecutar} disabled={executar.isPending || !impl}>
+            {executar.isPending && <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />}
+            {itens.length ? "Revalidar" : "Executar validação"}
+          </Button>
+        )}
+      </div>
+
+      <div className="space-y-4 p-4">
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+          <MetricaPonto label="Validação Cruzada" value={statusVC.label} tom={statusVC.tom} />
+          <MetricaPonto
+            label="Pendências"
+            value={String(pendencias)}
+            tom={pendencias > 0 ? "amarelo" : processo ? "verde" : "cinza"}
+          />
+          <MetricaPonto
+            label="Divergências"
+            value={String(resumo.divergentes)}
+            tom={resumo.divergentes > 0 ? "vermelho" : processo ? "verde" : "cinza"}
+          />
+          <MetricaPonto
+            label="Divergências Críticas"
+            value={String(resumo.criticas)}
+            tom={resumo.criticas > 0 ? "vermelho" : processo ? "verde" : "cinza"}
+          />
+        </div>
+
+        {isLoading ? (
+          <p className="flex items-center gap-2 text-sm text-muted-foreground">
+            <Loader2 className="h-4 w-4 animate-spin" />
+            Carregando validação cruzada…
+          </p>
+        ) : naoExecutada ? (
+          <p className="text-sm text-muted-foreground">
+            Nenhuma validação cruzada registrada. Execute a validação para comparar os dados do contrato com o Anexo I.
+          </p>
+        ) : semProblema ? (
+          <div className="space-y-2 rounded-lg border border-emerald-500/20 bg-emerald-500/10 p-3">
+            <p className="flex items-center gap-2 text-sm font-medium text-emerald-600">
+              <Check className="h-4 w-4" /> Nenhuma divergência crítica encontrada
+            </p>
+            <p className="flex items-center gap-2 text-sm font-medium text-emerald-600">
+              <Check className="h-4 w-4" /> Dados principais compatíveis
+            </p>
+            <p className="flex items-center gap-2 text-sm font-medium text-emerald-600">
+              <Check className="h-4 w-4" /> Sem pendências impeditivas
+            </p>
+          </div>
+        ) : problemas.length > 0 ? (
+          <div className="space-y-3">
+            {problemas.map((i) => {
+              const isCritica = i.criticidade === "Crítica";
+              return (
+                <div
+                  key={i.id || i.campo}
+                  className={cn(
+                    "rounded-lg border p-3",
+                    isCritica ? "border-red-500/20 bg-red-500/5" : "border-amber-500/20 bg-amber-500/5"
+                  )}
+                >
+                  <div className="flex items-start gap-2">
+                    <AlertTriangle className={cn("mt-0.5 h-4 w-4 shrink-0", isCritica ? "text-red-500" : "text-amber-500")} />
+                    <div className="min-w-0 flex-1 space-y-2">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <span className="text-sm font-semibold">{i.rotulo}</span>
+                        {i.categoria && (
+                          <Badge variant="outline" className="text-[10px]">
+                            {i.categoria}
+                          </Badge>
+                        )}
+                        <Badge
+                          variant="outline"
+                          className={cn(
+                            "text-[10px]",
+                            isCritica
+                              ? "border-red-500/30 bg-red-500/10 text-red-600"
+                              : "border-amber-500/30 bg-amber-500/10 text-amber-600"
+                          )}
+                        >
+                          {i.criticidade}
+                        </Badge>
+                        <Badge variant="outline" className="text-[10px]">
+                          {setorLabel(i.setor_destino)}
+                        </Badge>
+                      </div>
+                      <div className="grid grid-cols-1 gap-2 text-xs sm:grid-cols-2">
+                        <div className="rounded-md border bg-muted/30 p-2">
+                          <p className="text-[10px] uppercase tracking-wide text-muted-foreground">Contrato</p>
+                          <p className="font-medium break-words">{i.valor_contrato || "—"}</p>
+                        </div>
+                        <div className="rounded-md border bg-muted/30 p-2">
+                          <p className="text-[10px] uppercase tracking-wide text-muted-foreground">Anexo I</p>
+                          <p className="font-medium break-words">{i.valor_anexo || "—"}</p>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        ) : pendencias > 0 ? (
+          <div className="flex items-start gap-2 rounded-lg border border-amber-500/20 bg-amber-500/10 p-3 text-sm text-amber-600">
+            <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
+            <span>
+              Existem {pendencias} pendência(s) aberta(s) no processo. Revise-as antes de aprovar.
+            </span>
+          </div>
+        ) : null}
+      </div>
+    </section>
+  );
+}
+
 
 interface Props {
   implantacaoId: string;
@@ -190,7 +378,7 @@ export function AnaliseImplantacaoDialog({ implantacaoId, open, onClose, readOnl
   });
 
   const { data: processo } = useContratoProcessoPorImplantacao(open ? implantacaoId : null);
-  const { data: itensValidacao = [] } = useValidacaoCruzada(open ? processo?.id : null);
+  const { data: itensValidacao = [], isLoading: validacaoLoading } = useValidacaoCruzada(open ? processo?.id : null);
   const { bloqueado: bloqueioCritico } = useBloqueioValidacaoCruzada(open ? processo?.id : null);
   const resumoCruzado = resumoValidacao(itensValidacao);
 
@@ -451,6 +639,15 @@ export function AnaliseImplantacaoDialog({ implantacaoId, open, onClose, readOnl
               );
             })()}
 
+            <PontosAtencaoSection
+              processo={processo}
+              impl={impl}
+              itens={itensValidacao}
+              resumo={resumoCruzado}
+              pendencias={processo?.pendencias_abertas ?? 0}
+              isLoading={validacaoLoading}
+            />
+
             {/* Cabeçalho */}
             <Card className="bg-gradient-to-br from-primary/5 to-transparent border-primary/20">
               <CardContent className="p-4 space-y-2">
@@ -550,12 +747,7 @@ export function AnaliseImplantacaoDialog({ implantacaoId, open, onClose, readOnl
               </div>
             </div>
 
-            {/* Validação Cruzada das análises do contrato */}
-            {processo && (
-              <div className="pt-2 border-t">
-                <ValidacaoCruzadaSection processoId={processo.id} implantacaoId={implantacaoId} />
-              </div>
-            )}
+
 
             {bloqueioCritico && (
               <div className="flex items-start gap-2 rounded-lg border border-red-500/30 bg-red-500/10 p-3 text-xs text-red-600">
