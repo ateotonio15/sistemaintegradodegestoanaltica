@@ -190,11 +190,12 @@ function PontosAtencaoSection({
   const { toast } = useToast();
   const executar = useExecutarValidacaoCruzada();
 
+  const problemas = itens.filter((i) => i.resultado !== "compativel");
   const statusVC = isLoading
     ? { label: "Em processamento", tom: "amarelo" as Tom }
     : !processo || itens.length === 0
     ? { label: "Não executada", tom: "cinza" as Tom }
-    : resumo.divergentes > 0
+    : problemas.length > 0
     ? { label: "Com divergências", tom: "vermelho" as Tom }
     : { label: "Compatível", tom: "verde" as Tom };
 
