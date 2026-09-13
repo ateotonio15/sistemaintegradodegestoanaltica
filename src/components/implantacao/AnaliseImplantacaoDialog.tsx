@@ -125,13 +125,13 @@ function ResultadoExecutivo({
 }) {
   const Icon = tom === "verde" ? CheckCircle2 : tom === "vermelho" ? XCircle : AlertTriangle;
   return (
-    <div className={cn("flex min-h-24 items-center gap-3.5 border p-3.5 sm:gap-4 sm:p-4", TOM_SURFACE[tom])}>
-      <div className={cn("flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-card/70", TOM_TXT[tom])}>
-        <Icon className="h-5 w-5" />
+    <div className={cn("flex min-h-20 items-center gap-3 border p-3 sm:gap-3.5 sm:p-3.5", TOM_SURFACE[tom])}>
+      <div className={cn("flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-card/70", TOM_TXT[tom])}>
+        <Icon className="h-4 w-4" />
       </div>
       <div className="min-w-0">
         <p className="text-[10px] font-semibold uppercase text-muted-foreground">{title}</p>
-        <p className={cn("mt-1 text-base font-bold leading-tight sm:text-lg", TOM_TXT[tom])}>{label}</p>
+        <p className={cn("mt-0.5 whitespace-nowrap text-sm font-bold leading-tight sm:text-base", TOM_TXT[tom])}>{label}</p>
       </div>
     </div>
   );
