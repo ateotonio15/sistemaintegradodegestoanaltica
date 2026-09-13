@@ -278,6 +278,14 @@ export default function Implantacao() {
         {/* List */}
         {isLoading ? (
           <p className="text-muted-foreground text-center py-8">Carregando...</p>
+        ) : visao === "tabela" ? (
+          <ContratosTabela
+            items={filtered}
+            processoPorImplantacao={processoPorImplantacao}
+            anexosPorImplantacao={anexosPorImplantacao}
+            onOpen={(id) => setOpenId(id)}
+            onFluxo={(item) => setFluxoTarget(item)}
+          />
         ) : filtered.length === 0 ? (
           <Card>
             <CardContent className="p-12 text-center text-muted-foreground">
