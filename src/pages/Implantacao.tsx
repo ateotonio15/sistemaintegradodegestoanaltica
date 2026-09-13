@@ -376,7 +376,7 @@ export default function Implantacao() {
                   </div>
                 </CardContent>
               </Card>
-            ))}
+            );})}
           </div>
         )}
 
