@@ -423,6 +423,7 @@ export function ImplantacaoWizard({ id, open, onClose, readOnly }: Props) {
               onDownload={handleDownload}
               uploading={uploading}
               readOnly={readOnly}
+              attempted={uploadAttempted}
             />
           )}
           {step === 2 && (
