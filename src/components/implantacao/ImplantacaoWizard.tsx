@@ -264,17 +264,8 @@ export function ImplantacaoWizard({ id, open, onClose, readOnly }: Props) {
     window.setTimeout(() => URL.revokeObjectURL(url), 1000);
   };
 
-  const handleView = async (a: any) => {
-    const { data: arquivo, error } = await supabase.storage
-      .from("anexos-implantacao")
-      .download(a.storage_path);
-    if (error || !arquivo) {
-      toast.error("Não foi possível abrir o arquivo. Tente baixar o documento.");
-      return;
-    }
-    const url = URL.createObjectURL(arquivo);
-    window.open(url, "_blank", "noopener,noreferrer");
-    window.setTimeout(() => URL.revokeObjectURL(url), 60_000);
+  const handleView = (a: any) => {
+    setPreviewAnexo(a);
   };
 
   const anexo1 = useMemo(() => anexos.find((a) => a.tipo === "anexo_1"), [anexos]);
