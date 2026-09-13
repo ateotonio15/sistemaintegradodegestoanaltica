@@ -721,8 +721,12 @@ function Step1Upload({ anexos, data, onUpload, onDelete, onDownload, onView, upl
                       : hasError || showRequiredError
                         ? "border-destructive/40 bg-destructive/10 text-destructive"
                         : isEmpty
-                          ? "border-muted bg-muted/50 text-muted-foreground"
-                          : "border-success/40 bg-success/10 text-success"
+                          ? isAnexo1
+                            ? "border-primary/40 bg-primary/10 text-primary"
+                            : "border-muted bg-muted/50 text-muted-foreground"
+                          : isAnexo1 && !anexo1Extraido
+                            ? "border-amber-400/50 bg-amber-400/10 text-amber-600 dark:text-amber-400"
+                            : "border-success/40 bg-success/10 text-success"
                 )}>
                   {isOver ? (
                     <Upload className="h-3.5 w-3.5" />
