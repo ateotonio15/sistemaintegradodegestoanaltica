@@ -391,126 +391,139 @@ export function ImplantacaoWizard({ id, open, onClose, readOnly }: Props) {
     );
   }
 
+  const handleSaveDraft = async () => {
+    await save();
+    toast.success("Rascunho salvo");
+    onClose();
+  };
+
   return (
     <Dialog open={open} onOpenChange={onClose}>
-      <DialogContent className="max-w-5xl max-h-[90vh] overflow-y-auto">
-        <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
-            <FileSignature className="h-5 w-5" />
-            Implantação — {data.nome_empresa || "Nova"}
-            {readOnly && <Badge variant="outline">Somente leitura</Badge>}
-          </DialogTitle>
-        </DialogHeader>
+      <DialogContent className="max-w-5xl max-h-[90vh] flex flex-col overflow-hidden p-0">
+        <div className="flex flex-col h-full min-h-0">
+          <DialogHeader className="px-6 pt-6 pb-2">
+            <DialogTitle className="flex items-center gap-2">
+              <FileSignature className="h-5 w-5" />
+              Implantação — {data.nome_empresa || "Nova"}
+              {readOnly && <Badge variant="outline">Somente leitura</Badge>}
+            </DialogTitle>
+          </DialogHeader>
 
-        {(data.status === "necessita_correcao" || data.status === "rejeitado") && data.motivo_correcao && (
-          <div className={cn(
-            "rounded-lg border p-3 flex items-start gap-3 animate-in fade-in slide-in-from-top-1",
-            data.status === "rejeitado"
-              ? "border-red-500/40 bg-red-500/10 text-red-900 dark:text-red-200"
-              : "border-amber-500/40 bg-amber-500/10 text-amber-900 dark:text-amber-200"
-          )}>
-            {data.status === "rejeitado"
-              ? <XCircle className="h-5 w-5 shrink-0 mt-0.5" />
-              : <AlertTriangle className="h-5 w-5 shrink-0 mt-0.5" />}
-            <div className="text-sm">
-              <p className="font-semibold mb-0.5">
-                {data.status === "rejeitado" ? "Contrato rejeitado pela Diretoria" : "Correção solicitada pela Diretoria"}
-              </p>
-              <p className="text-xs opacity-90">{data.motivo_correcao}</p>
-              <p className="text-[11px] opacity-70 mt-1">Ajuste os dados e clique em <strong>Enviar para Análise</strong> novamente.</p>
+          {(data.status === "necessita_correcao" || data.status === "rejeitado") && data.motivo_correcao && (
+            <div className={cn(
+              "mx-6 rounded-lg border p-3 flex items-start gap-3 animate-in fade-in slide-in-from-top-1",
+              data.status === "rejeitado"
+                ? "border-red-500/40 bg-red-500/10 text-red-900 dark:text-red-200"
+                : "border-amber-500/40 bg-amber-500/10 text-amber-900 dark:text-amber-200"
+            )}>
+              {data.status === "rejeitado"
+                ? <XCircle className="h-5 w-5 shrink-0 mt-0.5" />
+                : <AlertTriangle className="h-5 w-5 shrink-0 mt-0.5" />}
+              <div className="text-sm">
+                <p className="font-semibold mb-0.5">
+                  {data.status === "rejeitado" ? "Contrato rejeitado pela Diretoria" : "Correção solicitada pela Diretoria"}
+                </p>
+                <p className="text-xs opacity-90">{data.motivo_correcao}</p>
+                <p className="text-[11px] opacity-70 mt-1">Ajuste os dados e clique em <strong>Enviar para Análise</strong> novamente.</p>
+              </div>
             </div>
-          </div>
-        )}
+          )}
 
-        {/* Progress bar */}
-        <div className="flex items-center justify-between gap-2 py-2 overflow-x-auto">
-          {STEPS.map((s, i) => {
-            const done = step > s.n;
-            const active = step === s.n;
-            return (
-              <div key={s.n} className="flex items-center gap-2 flex-1 min-w-0">
-                <div
-                  className={cn(
-                    "flex items-center gap-2 cursor-pointer flex-shrink-0",
-                    !active && !done && "opacity-50"
-                  )}
-                  onClick={() => done && setStep(s.n)}
-                >
-                  <div className={cn(
-                    "h-8 w-8 rounded-full flex items-center justify-center text-xs font-bold border-2",
-                    active ? "bg-primary text-primary-foreground border-primary" :
-                    done ? "bg-green-500 text-white border-green-500" : "border-muted-foreground"
-                  )}>
-                    {done ? <CheckCircle2 className="h-4 w-4" /> : s.n}
+          {/* Progress bar */}
+          <div className="flex items-center justify-between gap-2 px-6 py-2 overflow-x-auto shrink-0">
+            {STEPS.map((s, i) => {
+              const done = step > s.n;
+              const active = step === s.n;
+              return (
+                <div key={s.n} className="flex items-center gap-2 flex-1 min-w-0">
+                  <div
+                    className={cn(
+                      "flex items-center gap-2 cursor-pointer flex-shrink-0",
+                      !active && !done && "opacity-50"
+                    )}
+                    onClick={() => done && setStep(s.n)}
+                  >
+                    <div className={cn(
+                      "h-8 w-8 rounded-full flex items-center justify-center text-xs font-bold border-2",
+                      active ? "bg-primary text-primary-foreground border-primary" :
+                      done ? "bg-green-500 text-white border-green-500" : "border-muted-foreground"
+                    )}>
+                      {done ? <CheckCircle2 className="h-4 w-4" /> : s.n}
+                    </div>
+                    <span className={cn("text-xs font-medium hidden md:inline", active && "text-primary")}>
+                      {s.label}
+                    </span>
                   </div>
-                  <span className={cn("text-xs font-medium hidden md:inline", active && "text-primary")}>
-                    {s.label}
-                  </span>
+                  {i < STEPS.length - 1 && (
+                    <div className={cn("h-0.5 flex-1", done ? "bg-green-500" : "bg-muted")} />
+                  )}
                 </div>
-                {i < STEPS.length - 1 && (
-                  <div className={cn("h-0.5 flex-1", done ? "bg-green-500" : "bg-muted")} />
+              );
+            })}
+          </div>
+
+          <div className="flex-1 min-h-0 overflow-y-auto px-6 py-4">
+            {step === 1 && (
+              <Step1Upload
+                anexos={anexos}
+                data={data}
+                onUpload={handleUpload}
+                onDelete={handleDeleteAnexo}
+                onDownload={handleDownload}
+                onView={handleView}
+                uploadingTipo={uploadingTipo}
+                uploadErrors={uploadErrors}
+                readOnly={readOnly}
+                attempted={uploadAttempted}
+                setAttempted={setUploadAttempted}
+                onSaveDraft={handleSaveDraft}
+                onContinue={goNext}
+              />
+            )}
+            {step === 2 && (
+              <Step2Extracao
+                data={data}
+                update={update}
+                onExtrair={handleExtrair}
+                extracting={extracting}
+                hasAnexo1={!!anexo1}
+                readOnly={readOnly}
+              />
+            )}
+            {step === 3 && <Step3Contrato data={data} update={update} readOnly={readOnly} isAdmin={isAdmin} />}
+            {step === 4 && <Step4Comissao data={data} update={update} readOnly={readOnly} />}
+            {step === 5 && <Step5Vidas data={data} update={update} readOnly={readOnly} relAnexo={ultimoRelVidas} />}
+            {step === 6 && <Step6Revisao data={data} anexos={anexos} />}
+          </div>
+
+          {step !== 1 && (
+            <div className="shrink-0 flex items-center justify-between border-t px-6 py-4">
+              <Button variant="outline" onClick={goBack} disabled={step === 1} className="gap-2">
+                <ArrowLeft className="h-4 w-4" /> Voltar
+              </Button>
+              <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                {valid[step] ? (
+                  <><CheckCircle2 className="h-3 w-3 text-green-500" /> Etapa válida</>
+                ) : (
+                  <><AlertCircle className="h-3 w-3 text-orange-500" /> Preencha os obrigatórios</>
                 )}
               </div>
-            );
-          })}
-        </div>
-
-        <div className="min-h-[400px] py-4">
-          {step === 1 && (
-            <Step1Upload
-              anexos={anexos}
-              data={data}
-              onUpload={handleUpload}
-              onDelete={handleDeleteAnexo}
-              onDownload={handleDownload}
-              onView={handleView}
-              uploadingTipo={uploadingTipo}
-              uploadErrors={uploadErrors}
-              readOnly={readOnly}
-              attempted={uploadAttempted}
-            />
-          )}
-          {step === 2 && (
-            <Step2Extracao
-              data={data}
-              update={update}
-              onExtrair={handleExtrair}
-              extracting={extracting}
-              hasAnexo1={!!anexo1}
-              readOnly={readOnly}
-            />
-          )}
-          {step === 3 && <Step3Contrato data={data} update={update} readOnly={readOnly} isAdmin={isAdmin} />}
-          {step === 4 && <Step4Comissao data={data} update={update} readOnly={readOnly} />}
-          {step === 5 && <Step5Vidas data={data} update={update} readOnly={readOnly} relAnexo={ultimoRelVidas} />}
-          {step === 6 && <Step6Revisao data={data} anexos={anexos} />}
-        </div>
-
-        <div className="flex items-center justify-between border-t pt-4">
-          <Button variant="outline" onClick={goBack} disabled={step === 1} className="gap-2">
-            <ArrowLeft className="h-4 w-4" /> Voltar
-          </Button>
-          <div className="flex items-center gap-2 text-xs text-muted-foreground">
-            {valid[step] ? (
-              <><CheckCircle2 className="h-3 w-3 text-green-500" /> Etapa válida</>
-            ) : (
-              <><AlertCircle className="h-3 w-3 text-orange-500" /> Preencha os obrigatórios</>
-            )}
-          </div>
-          {step < 6 ? (
-            <Button onClick={goNext} disabled={!valid[step] || readOnly} className="gap-2">
-              Avançar <ArrowRight className="h-4 w-4" />
-            </Button>
-          ) : isComum || isAdmin ? (
-            <Button onClick={handleFinalizarCadastro} disabled={readOnly} className="gap-2">
-              <CheckCircle2 className="h-4 w-4" /> Concluir Implantação
-            </Button>
-          ) : isVendas ? (
-            <Button onClick={handleEnviarAnalise} disabled={readOnly} className="gap-2">
-              <Send className="h-4 w-4" /> Enviar para Análise
-            </Button>
-          ) : (
-            <div className="text-xs text-muted-foreground italic">Aguardando próxima etapa do fluxo</div>
+              {step < 6 ? (
+                <Button onClick={goNext} disabled={!valid[step] || readOnly} className="gap-2">
+                  Avançar <ArrowRight className="h-4 w-4" />
+                </Button>
+              ) : isComum || isAdmin ? (
+                <Button onClick={handleFinalizarCadastro} disabled={readOnly} className="gap-2">
+                  <CheckCircle2 className="h-4 w-4" /> Concluir Implantação
+                </Button>
+              ) : isVendas ? (
+                <Button onClick={handleEnviarAnalise} disabled={readOnly} className="gap-2">
+                  <Send className="h-4 w-4" /> Enviar para Análise
+                </Button>
+              ) : (
+                <div className="text-xs text-muted-foreground italic">Aguardando próxima etapa do fluxo</div>
+              )}
+            </div>
           )}
         </div>
       </DialogContent>
