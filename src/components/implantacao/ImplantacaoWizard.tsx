@@ -229,9 +229,12 @@ export function ImplantacaoWizard({ id, open, onClose, readOnly }: Props) {
       }
     } catch (e: any) {
       console.error("Erro upload anexo:", e);
-      toast.error(e.message || "Falha no upload");
+      setUploadErrors((prev) => ({
+        ...prev,
+        [tipo]: "Não foi possível processar este documento. Verifique o arquivo e tente enviar novamente.",
+      }));
     } finally {
-      setUploading(false);
+      setUploadingTipo(null);
     }
   };
 
