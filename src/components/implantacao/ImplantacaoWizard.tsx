@@ -527,7 +527,7 @@ export function ImplantacaoWizard({ id, open, onClose, readOnly }: Props) {
       open={!!previewAnexo}
       onOpenChange={(v) => { if (!v) setPreviewAnexo(null); }}
     />
-  );
+  </>);
 }
 
 // ============= ANEXO PREVIEW DIALOG =============
