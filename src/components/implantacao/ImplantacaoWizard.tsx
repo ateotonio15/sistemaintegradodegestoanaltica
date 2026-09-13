@@ -458,6 +458,7 @@ export function ImplantacaoWizard({ id, open, onClose, readOnly }: Props) {
           {step === 1 && (
             <Step1Upload
               anexos={anexos}
+              data={data}
               onUpload={handleUpload}
               onDelete={handleDeleteAnexo}
               onDownload={handleDownload}
@@ -538,7 +539,7 @@ function fileExtLabel(a: any) {
   return ext || "ARQUIVO";
 }
 
-function Step1Upload({ anexos, onUpload, onDelete, onDownload, onView, uploadingTipo, uploadErrors = {}, readOnly, attempted }: any) {
+function Step1Upload({ anexos, data, onUpload, onDelete, onDownload, onView, uploadingTipo, uploadErrors = {}, readOnly, attempted }: any) {
   const tipos = ["anexo_1", "contrato", "relatorio_vidas", "primeira_cobranca", "complementar"];
   const [expanded, setExpanded] = useState<Record<string, boolean>>({});
   return (
