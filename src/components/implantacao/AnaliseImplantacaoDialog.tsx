@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useMemo, useState, type ReactNode } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
@@ -7,7 +7,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
-import { CheckCircle2, AlertTriangle, XCircle, FileText, Building2, Users, Calendar, Paperclip, Rocket, Loader2, ShieldCheck, Check, Gavel, TrendingUp, Eye, ChevronDown, ChevronUp } from "lucide-react";
+import { CheckCircle2, AlertTriangle, XCircle, FileText, Calendar, Paperclip, Rocket, Loader2, ShieldCheck, Check, Gavel, TrendingUp, Eye, ChevronDown, ChevronUp } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { SelecionarResponsavelCadastroDialog } from "./SelecionarResponsavelCadastroDialog";
 import { AnexoPreviewDialog } from "./AnexoPreviewDialog";
@@ -15,7 +15,7 @@ import { formatDateBR, formatDay } from "@/lib/date-utils";
 import { formatCentavosBRL } from "@/lib/reajuste-utils";
 import { useContratoProcessoPorImplantacao, useContratoProcessoPendencias, useContratoProcessoHistorico } from "@/hooks/useContratoProcessos";
 import { useBloqueioValidacaoCruzada, useExecutarValidacaoCruzada, useValidacaoCruzada } from "@/hooks/useValidacaoCruzada";
-import { resumoValidacao, validarCruzado } from "@/lib/validacao-cruzada";
+import { resumoValidacao, validarCruzado, type ValidacaoCruzadaRow } from "@/lib/validacao-cruzada";
 import { cn } from "@/lib/utils";
 import {
   setorLabel, statusGeralLabel, statusLabel, pendenciaEmAberto,
@@ -42,6 +42,61 @@ const TOM_SURFACE: Record<Tom, string> = {
   vermelho: "border-red-500/30 bg-red-500/10",
   cinza: "border-border bg-muted/30",
 };
+
+type CampoEstado = "ok" | "vazio" | "naoAplicavel" | "divergente";
+
+function CampoGridItem({
+  label,
+  value,
+  estado = "ok",
+  financeiro = false,
+  title,
+  className,
+}: {
+  label: string;
+  value: ReactNode;
+  estado?: CampoEstado;
+  financeiro?: boolean;
+  title?: string;
+  className?: string;
+}) {
+  const vazio = estado === "vazio";
+  const divergente = estado === "divergente";
+  const naoAplicavel = estado === "naoAplicavel";
+  return (
+    <div
+      title={title}
+      className={cn(
+        "rounded-md p-2 transition-colors",
+        divergente && "border border-amber-500/40 bg-amber-500/10",
+        vazio && "bg-amber-500/5",
+        financeiro && !divergente && !vazio && !naoAplicavel && "bg-emerald-500/5",
+        className
+      )}
+    >
+      <p className="text-[11px] uppercase tracking-wide text-muted-foreground">{label}</p>
+      <p
+        className={cn(
+          "text-sm font-medium leading-tight",
+          vazio && "text-amber-600",
+          divergente && "text-amber-700",
+          naoAplicavel && "text-muted-foreground",
+          financeiro && !divergente && !vazio && !naoAplicavel && "text-emerald-600"
+        )}
+      >
+        {value}
+      </p>
+    </div>
+  );
+}
+
+function useMapaValidacao(itens: ValidacaoCruzadaRow[]) {
+  return useMemo(() => {
+    const map = new Map<string, ValidacaoCruzadaRow>();
+    for (const i of itens) map.set(i.campo, i);
+    return map;
+  }, [itens]);
+}
 
 function BlocoResumo({
   titulo,
@@ -699,6 +754,7 @@ export function AnaliseImplantacaoDialog({ implantacaoId, open, onClose, readOnl
   const { data: historico = [] } = useContratoProcessoHistorico(open ? processo?.id : null);
   const { bloqueado: bloqueioCritico } = useBloqueioValidacaoCruzada(open ? processo?.id : null);
   const resumoCruzado = resumoValidacao(itensValidacao);
+  const mapaValidacao = useMapaValidacao(itensValidacao);
 
   const { data: anexos = [] } = useQuery({
     queryKey: ["impl-anexos", implantacaoId],
@@ -961,32 +1017,6 @@ export function AnaliseImplantacaoDialog({ implantacaoId, open, onClose, readOnl
               historico={historico}
             />
 
-            {/* Cabeçalho */}
-            <Card className="bg-gradient-to-br from-primary/5 to-transparent border-primary/20">
-              <CardContent className="p-4 space-y-2">
-                <div className="flex items-start justify-between gap-3">
-                  <div>
-                    <h3 className="text-lg font-semibold flex items-center gap-2">
-                      <Building2 className="h-4 w-4 text-primary" />
-                      {impl.nome_empresa || "Empresa sem nome"}
-                    </h3>
-                    <p className="text-xs text-muted-foreground">CNPJ: {impl.cnpj || "—"} · Contrato: {impl.codigo_contrato || "—"}</p>
-                  </div>
-                  <Badge variant="outline" className="text-xs">Enviado por {impl.enviado_diretoria_por_nome || impl.created_by_nome || "—"}</Badge>
-                </div>
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-xs pt-2">
-                  <div><p className="text-muted-foreground">Vidas Ativas</p><p className="font-semibold text-sm flex items-center gap-1"><Users className="h-3 w-3" />{impl.total_vidas ?? "—"}</p></div>
-                  <div><p className="text-muted-foreground">Vigência</p><p className="font-semibold text-sm flex items-center gap-1"><Calendar className="h-3 w-3" />{formatDateBR(impl.data_vigencia)}</p></div>
-                  <div><p className="text-muted-foreground">Acomodação</p><p className="font-semibold text-sm">{impl.acomodacao || "—"}</p></div>
-                  <div><p className="text-muted-foreground">Modalidade</p><p className="font-semibold text-sm">{impl.modalidade || "—"}</p></div>
-                  <div><p className="text-muted-foreground">Tipo de Contrato</p><p className="font-semibold text-sm">{impl.tipo_contrato || "—"}</p></div>
-                  <div><p className="text-muted-foreground">Período Movimentação</p><p className="font-semibold text-sm">{impl.periodo_movimentacao || "—"}</p></div>
-                  <div><p className="text-muted-foreground">Dia Vencimento</p><p className="font-semibold text-sm flex items-center gap-1"><Calendar className="h-3 w-3" />{formatDay(impl.data_vencimento)}</p></div>
-                </div>
-
-              </CardContent>
-            </Card>
-
             {/* Anexos */}
             <DocumentosVendasSection
               anexos={anexos}
@@ -995,33 +1025,139 @@ export function AnaliseImplantacaoDialog({ implantacaoId, open, onClose, readOnl
               loading={loadingAnexo}
             />
 
-            {/* Dados para Implantação (oriundos do Anexo 1) */}
-            <div>
+            {/* Dados para Implantação */}
+            <section>
               <h4 className="text-sm font-semibold mb-2">Dados para Implantação</h4>
-              <div className="grid grid-cols-2 md:grid-cols-3 gap-3 text-xs p-3 rounded-lg border bg-muted/30">
-                <div><p className="text-muted-foreground">Telefone</p><p className="font-semibold text-sm">{impl.telefone || "—"}</p></div>
-                <div><p className="text-muted-foreground">Inscrição Municipal</p><p className="font-semibold text-sm">{impl.inscricao_municipal || "—"}</p></div>
-                <div><p className="text-muted-foreground">Inscrição Estadual</p><p className="font-semibold text-sm">{impl.inscricao_estadual || "—"}</p></div>
-                <div className="md:col-span-2"><p className="text-muted-foreground">Endereço</p><p className="font-semibold text-sm">{impl.endereco || "—"}</p></div>
-                <div><p className="text-muted-foreground">CEP</p><p className="font-semibold text-sm">{impl.cep || "—"}</p></div>
-                <div><p className="text-muted-foreground">Grupo Contrato</p><p className="font-semibold text-sm">{impl.grupo_contrato || "—"}</p></div>
-                <div><p className="text-muted-foreground">Vidas Ativas Titulares</p><p className="font-semibold text-sm">{impl.vidas_titulares ?? "—"}</p></div>
-                <div><p className="text-muted-foreground">Vidas Ativas Dependentes</p><p className="font-semibold text-sm">{impl.vidas_dependentes ?? "—"}</p></div>
+              <div className="grid grid-cols-2 md:grid-cols-3 gap-2 p-3 rounded-lg border bg-muted/30">
+                <CampoGridItem
+                  label="Empresa"
+                  value={impl.nome_empresa || "Não informado"}
+                  estado={impl.nome_empresa ? (mapaValidacao.get("nome_empresa")?.resultado === "divergente" ? "divergente" : "ok") : "vazio"}
+                  title={mapaValidacao.get("nome_empresa")?.justificativa}
+                />
+                <CampoGridItem
+                  label="CNPJ"
+                  value={impl.cnpj || "Não informado"}
+                  estado={impl.cnpj ? (mapaValidacao.get("cnpj")?.resultado === "divergente" ? "divergente" : "ok") : "vazio"}
+                  title={mapaValidacao.get("cnpj")?.justificativa}
+                />
+                <CampoGridItem
+                  label="Telefone"
+                  value={impl.telefone || "Não informado"}
+                  estado={impl.telefone ? "ok" : "vazio"}
+                />
+                <CampoGridItem
+                  label="Endereço"
+                  value={impl.endereco || "Não informado"}
+                  estado={impl.endereco ? "ok" : "vazio"}
+                  className="md:col-span-2"
+                />
+                <CampoGridItem
+                  label="CEP"
+                  value={impl.cep || "Não informado"}
+                  estado={impl.cep ? "ok" : "vazio"}
+                />
+                <CampoGridItem
+                  label="Inscrição Municipal"
+                  value={impl.inscricao_municipal || "—"}
+                  estado={impl.inscricao_municipal ? "ok" : "naoAplicavel"}
+                />
+                <CampoGridItem
+                  label="Inscrição Estadual"
+                  value={impl.inscricao_estadual || "—"}
+                  estado={impl.inscricao_estadual ? "ok" : "naoAplicavel"}
+                />
+                <CampoGridItem
+                  label="Grupo / Contrato"
+                  value={impl.grupo_contrato || "Não informado"}
+                  estado={impl.grupo_contrato ? (mapaValidacao.get("grupo_contrato")?.resultado === "divergente" ? "divergente" : "ok") : "vazio"}
+                  title={mapaValidacao.get("grupo_contrato")?.justificativa}
+                />
+                <CampoGridItem
+                  label="Vidas Titulares"
+                  value={impl.vidas_titulares ?? "Não informado"}
+                  estado={impl.vidas_titulares != null ? (mapaValidacao.get("quantidade_vidas")?.resultado === "divergente" ? "divergente" : "ok") : "vazio"}
+                  title={mapaValidacao.get("quantidade_vidas")?.justificativa}
+                />
+                <CampoGridItem
+                  label="Vidas Dependentes"
+                  value={impl.vidas_dependentes ?? "Não informado"}
+                  estado={impl.vidas_dependentes != null ? (mapaValidacao.get("quantidade_vidas")?.resultado === "divergente" ? "divergente" : "ok") : "vazio"}
+                  title={mapaValidacao.get("quantidade_vidas")?.justificativa}
+                />
+                <CampoGridItem
+                  label="Total de Vidas"
+                  value={impl.total_vidas ?? "Não informado"}
+                  estado={impl.total_vidas != null ? (mapaValidacao.get("quantidade_vidas")?.resultado === "divergente" ? "divergente" : "ok") : "vazio"}
+                  title={mapaValidacao.get("quantidade_vidas")?.justificativa}
+                />
+                <CampoGridItem
+                  label="Data de Implantação"
+                  value={formatDateBR(impl.inicio_atendimento) || "Não informado"}
+                  estado={impl.inicio_atendimento ? (mapaValidacao.get("data_implantacao")?.resultado === "divergente" ? "divergente" : "ok") : "vazio"}
+                  title={mapaValidacao.get("data_implantacao")?.justificativa}
+                />
               </div>
-            </div>
+            </section>
 
             {/* Dados Comerciais */}
-            <div>
+            <section>
               <h4 className="text-sm font-semibold mb-2">Dados Comerciais</h4>
-              <div className="grid grid-cols-2 md:grid-cols-3 gap-3 text-xs p-3 rounded-lg border bg-muted/30">
-                <div><p className="text-muted-foreground">Valor Enfermaria</p><p className="font-semibold text-sm">{impl.valor_enfermaria_centavos != null ? formatCentavosBRL(impl.valor_enfermaria_centavos) : "—"}</p></div>
-                <div><p className="text-muted-foreground">Valor Apartamento</p><p className="font-semibold text-sm">{impl.valor_apartamento_centavos != null ? formatCentavosBRL(impl.valor_apartamento_centavos) : "—"}</p></div>
-                <div><p className="text-muted-foreground">% Agenciamento</p><p className="font-semibold text-sm">{impl.percentual_agenciamento != null ? `${Number(impl.percentual_agenciamento).toFixed(2).replace(".", ",")}%` : "—"}</p></div>
-                <div><p className="text-muted-foreground">% Vitalício</p><p className="font-semibold text-sm">{impl.percentual_vitalicio != null ? `${Number(impl.percentual_vitalicio).toFixed(2).replace(".", ",")}%` : "—"}</p></div>
-                <div><p className="text-muted-foreground">Corretora</p><p className="font-semibold text-sm">{impl.corretora || "—"}</p></div>
-                <div><p className="text-muted-foreground">Código do Contrato</p><p className="font-semibold text-sm">{impl.codigo_contrato || "—"}</p></div>
+              <div className="grid grid-cols-2 md:grid-cols-3 gap-2 p-3 rounded-lg border bg-muted/30">
+                <CampoGridItem
+                  label="Enfermaria"
+                  value={impl.valor_enfermaria_centavos != null ? formatCentavosBRL(impl.valor_enfermaria_centavos) : "Não informado"}
+                  estado={impl.valor_enfermaria_centavos != null ? (mapaValidacao.get("valor_enfermaria")?.resultado === "divergente" ? "divergente" : "ok") : "vazio"}
+                  financeiro
+                  title={mapaValidacao.get("valor_enfermaria")?.justificativa}
+                />
+                <CampoGridItem
+                  label="Apartamento"
+                  value={impl.valor_apartamento_centavos != null ? formatCentavosBRL(impl.valor_apartamento_centavos) : "Não informado"}
+                  estado={impl.valor_apartamento_centavos != null ? (mapaValidacao.get("valor_apartamento")?.resultado === "divergente" ? "divergente" : "ok") : "vazio"}
+                  financeiro
+                  title={mapaValidacao.get("valor_apartamento")?.justificativa}
+                />
+                <CampoGridItem
+                  label="% Agenciamento"
+                  value={impl.percentual_agenciamento != null ? `${Number(impl.percentual_agenciamento).toFixed(2).replace(".", ",")}%` : "—"}
+                  estado={impl.percentual_agenciamento != null ? "ok" : "naoAplicavel"}
+                  financeiro
+                />
+                <CampoGridItem
+                  label="% Vitalício"
+                  value={impl.percentual_vitalicio != null ? `${Number(impl.percentual_vitalicio).toFixed(2).replace(".", ",")}%` : "—"}
+                  estado={impl.percentual_vitalicio != null ? "ok" : "naoAplicavel"}
+                  financeiro
+                />
+                <CampoGridItem
+                  label="Corretora"
+                  value={impl.corretora || "—"}
+                  estado={impl.corretora ? "ok" : "naoAplicavel"}
+                />
+                <CampoGridItem
+                  label="Código do Contrato"
+                  value={impl.codigo_contrato || "Não informado"}
+                  estado={impl.codigo_contrato ? "ok" : "vazio"}
+                />
+                <CampoGridItem
+                  label="Período de Movimentação"
+                  value={impl.periodo_movimentacao || "Não informado"}
+                  estado={impl.periodo_movimentacao ? "ok" : "vazio"}
+                />
+                <CampoGridItem
+                  label="Dia de Vencimento"
+                  value={formatDay(impl.data_vencimento) || "Não informado"}
+                  estado={impl.data_vencimento ? "ok" : "vazio"}
+                />
+                <CampoGridItem
+                  label="Modalidade"
+                  value={impl.modalidade || "Não informado"}
+                  estado={impl.modalidade ? (mapaValidacao.get("modalidade")?.resultado === "divergente" ? "divergente" : "ok") : "vazio"}
+                  title={mapaValidacao.get("modalidade")?.justificativa}
+                />
               </div>
-            </div>
+            </section>
 
 
 
