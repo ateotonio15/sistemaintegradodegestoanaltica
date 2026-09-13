@@ -189,7 +189,7 @@ export function AnaliseImplantacaoDialog({ implantacaoId, open, onClose, readOnl
   });
 
   const { data: processo } = useContratoProcessoPorImplantacao(open ? implantacaoId : null);
-  const { data: itensValidacao = [] } = useValidacaoCruzada(open ? processo?.id : null);
+  const { data: itensValidacao = [], isLoading: validacaoLoading } = useValidacaoCruzada(open ? processo?.id : null);
   const { bloqueado: bloqueioCritico } = useBloqueioValidacaoCruzada(open ? processo?.id : null);
   const resumoCruzado = resumoValidacao(itensValidacao);
 
