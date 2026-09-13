@@ -991,7 +991,7 @@ export function AnaliseImplantacaoDialog({ implantacaoId, open, onClose, readOnl
             <DocumentosVendasSection
               anexos={anexos}
               readOnly={readOnly}
-              onVisualizar={handleDownload}
+              onVisualizar={handleVisualizarAnexo}
               loading={loadingAnexo}
             />
 
