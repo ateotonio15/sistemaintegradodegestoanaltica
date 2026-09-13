@@ -539,14 +539,63 @@ function fileExtLabel(a: any) {
   return ext || "ARQUIVO";
 }
 
+const OBRIGATORIOS = ["anexo_1", "contrato", "relatorio_vidas", "primeira_cobranca"];
+
 function Step1Upload({ anexos, data, onUpload, onDelete, onDownload, onView, uploadingTipo, uploadErrors = {}, readOnly, attempted }: any) {
   const tipos = ["anexo_1", "contrato", "relatorio_vidas", "primeira_cobranca", "complementar"];
   const [expanded, setExpanded] = useState<Record<string, boolean>>({});
+
+  const totalObrigatorios = OBRIGATORIOS.length;
+  const concluidos = OBRIGATORIOS.filter((t) => anexos.some((a: any) => a.tipo === t)).length;
+  const pendentes = totalObrigatorios - concluidos;
+  const progresso = totalObrigatorios === 0 ? 0 : (concluidos / totalObrigatorios) * 100;
+  const todosConcluidos = concluidos === totalObrigatorios;
+
   return (
     <div className="space-y-4">
       <div className="rounded-lg border border-primary/30 bg-primary/5 p-3 text-sm text-primary">
         <strong>Importante:</strong> O <strong>Anexo 1</strong> é prioridade total para a extração automática.
       </div>
+
+      {/* Resumo de documentos obrigatórios */}
+      <Card className="border-border bg-background">
+        <CardContent className="p-4 space-y-3">
+          <div className="flex items-center justify-between gap-3">
+            <div>
+              <h3 className="font-semibold text-sm text-foreground">Documentos da implantação</h3>
+              <p className="text-xs text-muted-foreground mt-0.5">
+                {todosConcluidos ? (
+                  <span className="flex items-center gap-1.5 text-success">
+                    <CheckCircle2 className="h-3.5 w-3.5" />
+                    Documentação obrigatória completa
+                  </span>
+                ) : concluidos === 0 ? (
+                  <>
+                    <strong>{totalObrigatorios}</strong> documentos obrigatórios ainda precisam ser anexados.
+                  </>
+                ) : (
+                  <>
+                    <strong>{concluidos}</strong> concluídos <span className="mx-1">•</span> <strong>{pendentes}</strong> pendentes
+                  </>
+                )}
+              </p>
+            </div>
+            <div className="text-right shrink-0">
+              <span className="text-lg font-bold tabular-nums text-foreground">
+                {concluidos}/{totalObrigatorios}
+              </span>
+            </div>
+          </div>
+          <div className="space-y-1">
+            <Progress value={progresso} className="h-2" />
+            {todosConcluidos && (
+              <p className="text-xs text-muted-foreground text-right">
+                {totalObrigatorios}/{totalObrigatorios} documentos enviados.
+              </p>
+            )}
+          </div>
+        </CardContent>
+      </Card>
 
       {tipos.map((tipo) => {
         const list = anexos.filter((a: any) => a.tipo === tipo);
