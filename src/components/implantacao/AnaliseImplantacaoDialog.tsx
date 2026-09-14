@@ -919,7 +919,7 @@ export function AnaliseImplantacaoDialog({ implantacaoId, open, onClose, readOnl
 
   return (
     <Dialog open={open} onOpenChange={(v) => !v && onClose()}>
-      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className={cn("max-h-[90vh] max-w-4xl overflow-y-auto", isCadastro && "cadastro-analysis-surface")}>
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <FileText className="h-5 w-5 text-primary" />
