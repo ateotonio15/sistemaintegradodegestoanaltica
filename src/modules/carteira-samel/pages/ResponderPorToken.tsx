@@ -34,9 +34,14 @@ export default function ResponderPorToken() {
       }
       setEnvio(env);
 
-      const { data: frows } = await db.rpc("get_avaliacao_formulario_por_token", { p_token: token });
+      const { data: frows, error: formError } = await db.rpc("get_avaliacao_formulario_por_token", { p_token: token });
       const f = Array.isArray(frows) ? frows[0] : frows;
-      if (f) setForm(f);
+      if (formError || !f) {
+        setErro("Não foi possível carregar o formulário desta avaliação. Tente novamente.");
+        setLoading(false);
+        return;
+      }
+      setForm(f);
       setLoading(false);
     })();
   }, [token]);
