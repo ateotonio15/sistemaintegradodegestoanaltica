@@ -657,6 +657,8 @@ export function AppLayout({ children }: { children?: React.ReactNode }) {
 
             <div className={cn("flex items-center gap-1.5 shrink-0", isAdmin && "ml-auto")}>
 
+              <SimularPerfilSwitcher />
+
               <CadastroEmpresasPopover />
 
               {showFilaShortcut && (
