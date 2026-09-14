@@ -334,7 +334,7 @@ export default function Empresas() {
   });
 
   const executivoUsers = usuarios
-    .filter((u) => userRolesList.some((r) => r.user_id === u.user_id && r.role === "executivo"))
+    .filter((u) => userRolesList.some((r) => r.user_id === u.user_id && (r.role === "executivo" || r.role === "executivo_externo")))
     .sort((a, b) => (a.display_name || a.username || "").localeCompare(b.display_name || b.username || "", "pt-BR"));
   const comunUsers = usuarios.filter((u) => userRolesList.some((r) => r.user_id === u.user_id && r.role === "comum"));
 
