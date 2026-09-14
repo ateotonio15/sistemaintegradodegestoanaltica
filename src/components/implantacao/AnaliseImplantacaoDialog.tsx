@@ -2136,6 +2136,25 @@ export function AnaliseImplantacaoDialog({ implantacaoId, open, onClose, readOnl
               </Button>
             )}
 
+            {isCadastro && (
+              <ObservacaoCadastroSection
+                historico={historico}
+                valor={obsCadastro}
+                onChange={setObsCadastro}
+                onRegistrar={() =>
+                  registrarObs.mutate({
+                    processoId: processo!.id,
+                    acao: "observacao_cadastro",
+                    observacao: obsCadastro.trim(),
+                    responsavelId: user?.id ?? null,
+                    responsavelNome: meuNome || null,
+                    detalhes: { origem: "Cadastro" },
+                  })
+                }
+                salvando={registrarObs.isPending}
+                habilitado={!!processo?.id}
+              />
+            )}
 
 
             {bloqueioCritico && (
