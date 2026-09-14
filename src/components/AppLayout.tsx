@@ -116,6 +116,7 @@ export function AppLayout({ children }: { children?: React.ReactNode }) {
   const queryClient = useQueryClient();
   useAtivarContratosPendentes();
   const { data: canAccessHonda } = useCanAccessHonda();
+  const hasLateralNavigation = isAdmin || role === "vendas";
 
   const SIDEBAR_STORAGE_KEY = "sidebar-collapsed";
 
@@ -155,6 +156,14 @@ export function AppLayout({ children }: { children?: React.ReactNode }) {
           { to: "/", label: "Painéis", icon: LayoutDashboard, children: dashChildren },
           ...allNavItems.slice(1),
         ]
+      : role === "vendas"
+        ? [
+            { to: "/dashboard/vendas", label: "Dashboard", icon: LayoutDashboard },
+            { to: "/empresas", label: "Empresas", icon: Building2 },
+            { to: "/movimentacoes", label: "Movimentações", icon: ArrowLeftRight },
+            { to: "/implantacao", label: "Implantação", icon: FileSignature },
+            { to: "/vidas", label: "Vidas", icon: Activity },
+          ]
       : isFinanceiro
         ? [
             { to: "/dashboard/financeiro", label: "Financeiro", icon: Wallet },
@@ -171,10 +180,6 @@ export function AppLayout({ children }: { children?: React.ReactNode }) {
         const allowed = role === "tec_enfermagem" ? saude : ["/uber", "/uber/dashboard", ...saude];
         return allowed.includes(item.to);
       }
-      if (role === "vendas") {
-        const allowed = ["/", "/empresas", "/movimentacoes", "/implantacao", "/vidas"];
-        return allowed.includes(item.to);
-      }
       if (isFinanceiro) {
         const allowed = ["/", "/dashboard/financeiro", "/empresas", "/movimentacoes", "/financeiro", "/arquivos", "/reajustes", "/contratos-recem-implantados"];
         return allowed.includes(item.to);
@@ -182,7 +187,7 @@ export function AppLayout({ children }: { children?: React.ReactNode }) {
       if ((item.to === "/uber" || item.to === "/uber/dashboard") && !isAdmin && role !== "executivo") return false;
       if (item.adminOnly && !isAdmin) return false;
       if (item.to === "/financeiro" && !isAdmin && !isFinanceiro && role !== "comum" && role !== "administradoras" && role !== "visualizacao") return false;
-      if (item.to === "/implantacao" && !isAdmin && role !== "comum" && role !== "administradoras" && role !== "visualizacao" && role !== "diretora") return false;
+      if (item.to === "/implantacao" && !isAdmin && role !== "comum" && role !== "administradoras" && role !== "visualizacao" && role !== "diretora" && role !== "vendas") return false;
       if (item.to === "/contratos-recem-implantados" && !isAdmin && !isFinanceiro && role !== "comum" && role !== "administradoras" && role !== "diretora") return false;
       if (item.to === "/arquivos" && !isAdmin && !isFinanceiro) return false;
       if (item.to === "/vidas" && !isAdmin && !["diretora","comum","administradoras","vendas"].includes(role as string)) return false;
@@ -406,8 +411,8 @@ export function AppLayout({ children }: { children?: React.ReactNode }) {
       <div aria-hidden className="pointer-events-none fixed inset-0 -z-10 bg-gradient-glow opacity-60" />
       <FloatingFilaChat />
 
-      {/* Sidebar — apenas admin */}
-      {isAdmin && (
+      {/* Navegação lateral do administrador e do perfil Vendas */}
+      {hasLateralNavigation && (
       <aside
         className={cn(
           "fixed inset-y-0 left-0 z-40 flex flex-col border-r border-sidebar-border transition-all duration-300 ease-in-out",
@@ -624,15 +629,15 @@ export function AppLayout({ children }: { children?: React.ReactNode }) {
       {/* Main area */}
       <div className={cn(
         "flex-1 flex flex-col transition-all duration-300 ease-in-out",
-        !isMobile && isAdmin && (collapsed ? "ml-[72px]" : "ml-[252px]"),
-        (isMobile || !isAdmin) && "ml-0"
+        !isMobile && hasLateralNavigation && (collapsed ? "ml-[72px]" : "ml-[252px]"),
+        (isMobile || !hasLateralNavigation) && "ml-0"
       )}>
         {/* Header */}
         <header className="sticky top-0 z-30 border-b border-border/50 bg-background/70 backdrop-blur-xl">
           <SimularPerfilBanner />
           <div className="flex h-14 items-center gap-3 px-4 md:px-6">
             <div className="flex items-center gap-3 shrink-0">
-              {isMobile && isAdmin && (
+              {isMobile && hasLateralNavigation && (
                 <button
                   onClick={() => setCollapsed(false)}
                   className="p-2 rounded-lg hover:bg-accent transition-colors text-muted-foreground hover:text-foreground"
@@ -640,7 +645,7 @@ export function AppLayout({ children }: { children?: React.ReactNode }) {
                   <PanelLeft className="h-5 w-5" />
                 </button>
               )}
-              {((collapsed && !isMobile) || !isAdmin) && (
+              {((collapsed && !isMobile) || !hasLateralNavigation) && (
                 <Link to="/" className="flex items-center gap-2.5 font-bold text-lg tracking-tight text-foreground hover:opacity-80 transition-opacity">
                   <img src={logoImg} alt="SIGA" className="h-8 w-8 rounded-lg object-contain" />
                   <span className="hidden sm:inline">SIGA</span>
@@ -648,7 +653,7 @@ export function AppLayout({ children }: { children?: React.ReactNode }) {
               )}
             </div>
 
-            {!isAdmin && (
+            {!hasLateralNavigation && (
               <HeaderTabs
                 available={navItems
                   .filter((it) => !("children" in it) || !it.children)
