@@ -1683,7 +1683,7 @@ export default function Empresas() {
                           <SelectContent>
                             {executivoUsers.map((u) => (
                               <SelectItem key={u.user_id} value={u.user_id}>
-                                {u.display_name || u.user_id}
+                                {u.display_name || u.username || u.user_id}
                               </SelectItem>
                             ))}
                           </SelectContent>
