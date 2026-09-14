@@ -2582,9 +2582,46 @@ export function AnaliseImplantacaoDialog({ implantacaoId, open, onClose, readOnl
               </div>
             )}
 
-            {/* Ação Cadastro: Liberar contrato */}
-            {readOnly && impl.status !== "implantado" && impl.status !== "rejeitado" && (
-              <div className={cn("border-t pt-2", isCadastro && "sticky bottom-0 z-10 -mx-6 bg-background px-6 pb-1 shadow-[0_-8px_20px_-16px_hsl(var(--foreground))]")}>
+            {/* Rodapé exclusivo do Cadastro */}
+            {isCadastro && readOnly && impl.status !== "implantado" && impl.status !== "rejeitado" && (
+              <div className="sticky bottom-0 z-10 -mx-6 space-y-2 border-t bg-background px-6 pb-1 pt-3 shadow-[0_-8px_20px_-16px_hsl(var(--foreground))]">
+                {!podeAprovar && (
+                  <div className="flex items-start gap-2 rounded-lg border border-amber-500/30 bg-amber-500/10 p-2.5 text-xs text-amber-700">
+                    <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+                    <span>
+                      Aprovação bloqueada: {impedimentosAprovacao.join(" · ")}
+                    </span>
+                  </div>
+                )}
+                <div className="flex flex-col gap-2 sm:flex-row">
+                  <Button
+                    variant="outline"
+                    className="flex-1 gap-2 border-amber-500/60 text-amber-600 hover:bg-amber-500/10"
+                    onClick={() => setDevolverOpen(true)}
+                  >
+                    <AlertTriangle className="h-4 w-4" /> Devolver para Correção
+                  </Button>
+                  <Button
+                    variant="outline"
+                    className="flex-1 gap-2 border-red-500/60 text-red-600 hover:bg-red-500/10"
+                    onClick={() => setPendenciarOpen(true)}
+                  >
+                    <XCircle className="h-4 w-4" /> Pendenciar
+                  </Button>
+                  <Button
+                    className="flex-1 gap-2 bg-emerald-600 hover:bg-emerald-700"
+                    disabled={!podeAprovar || liberar.isPending}
+                    onClick={() => setAprovarOpen(true)}
+                  >
+                    <Rocket className="h-4 w-4" /> Aprovar Implantação
+                  </Button>
+                </div>
+              </div>
+            )}
+
+            {/* Ação Cadastro (perfis sem a visualização compacta): Liberar contrato */}
+            {!isCadastro && readOnly && impl.status !== "implantado" && impl.status !== "rejeitado" && (
+              <div className="border-t pt-2">
                 <Button
                   onClick={() => liberar.mutate()}
                   disabled={liberar.isPending || bloqueioCritico || bloqueioSetores}
