@@ -264,120 +264,25 @@ export default function Implantacao() {
           </Card>
         ) : (
           <div className="space-y-3">
-            {filtradas.map((l) => { const i = l.implantacao; return (
-              <Card
-                key={i.id}
-                className="cursor-pointer hover:shadow-md transition-shadow"
-                onClick={() => setOpenId(i.id)}
-              >
-                <CardContent className="p-4">
-                  <div className="flex flex-col lg:flex-row lg:items-start gap-4">
-                    {/* Coluna principal: nome, status, código */}
-                    <div className="min-w-0 flex-1 lg:flex-[0_0_22rem]">
-                      <div className="flex items-start justify-between gap-2">
-                        <CardTitle className="text-base truncate">
-                          {i.nome_empresa || "Sem nome"}
-                        </CardTitle>
-                        <div className="flex items-center gap-1 shrink-0">
-                          <Badge variant="outline" className={STATUS_COLOR[i.status]}>
-                            {STATUS_LABEL[i.status]}
-                          </Badge>
-                          <Button
-                            size="icon"
-                            variant="ghost"
-                            className="h-7 w-7 text-muted-foreground hover:text-primary hover:bg-primary/10"
-                            onClick={(e) => { e.stopPropagation(); setFluxoTarget(i); }}
-                            title="Fluxo entre setores"
-                          >
-                            <GitBranch className="h-4 w-4" />
-                          </Button>
-                          {canDelete && (
-                            <Button
-                              size="icon"
-                              variant="ghost"
-                              className="h-7 w-7 text-muted-foreground hover:text-red-600 hover:bg-red-500/10"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                setDeleteTarget({ id: i.id, nome: i.nome_empresa || "Sem nome" });
-                              }}
-                              title="Excluir implantação"
-                            >
-                              <Trash2 className="h-4 w-4" />
-                            </Button>
-                          )}
-                        </div>
-                      </div>
-                      <div className="mt-2 text-sm text-muted-foreground">
-                        <p>CNPJ: {i.cnpj || "—"}</p>
-                        <p>Código: {i.codigo_contrato || "—"}</p>
-                      </div>
-                      {processoPorImplantacao.get(i.id) && (() => {
-                        const proc = processoPorImplantacao.get(i.id)!;
-                        const faltando = i.status === "implantado" ? [] : pendenciasCadastro(i);
-                        if (faltando.length > 0) {
-                          return (
-                            <div className="mt-2 flex flex-wrap items-center gap-1.5">
-                              <Badge variant="outline" className={statusBadge("aguardando_documento_empresa")}>
-                                {statusLabel("aguardando_documento_empresa")}
-                              </Badge>
-                              <span className="text-xs text-muted-foreground">
-                                Falta: {faltando.join(", ")}
-                              </span>
-                            </div>
-                          );
-                        }
-                        return (
-                          <div className="mt-2 flex flex-wrap items-center gap-1.5">
-                            <Badge variant="outline" className={statusBadge(proc.status)}>
-                              {statusLabel(proc.status)}
-                            </Badge>
-                            <span className="text-xs text-muted-foreground">
-                              {setorLabel(proc.setor_atual)}
-                              {(proc.pendencias_abertas ?? 0) > 0
-                                ? ` · ${proc.pendencias_abertas} pendência(s)`
-                                : ""}
-                            </span>
-                          </div>
-                        );
-                      })()}
-                    </div>
-
-                    {/* Coluna de detalhes */}
-                    <div className="flex-1 min-w-0">
-                      {i.status === "implantado" ? (
-                        <ImplantadoResumo implantacao={i} />
-                      ) : (
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-1 text-sm text-muted-foreground">
-                          <p>Vigência: {i.data_vigencia ? formatDateBR(i.data_vigencia) : "—"}</p>
-                          <p>Vencimento: {i.data_vencimento ? formatDay(i.data_vencimento) : "—"}</p>
-                          <p>Corretora: {i.corretora || "—"}</p>
-                          <p>Vidas: {i.total_vidas ?? 0}</p>
-                        </div>
-                      )}
-                    </div>
-
-                    {/* Coluna de etapa */}
-                    <div className="lg:flex-[0_0_auto] lg:text-right">
-                      <span className="text-xs text-muted-foreground flex items-center gap-1 lg:justify-end">
-                        <Clock className="h-3 w-3" />
-                        Etapa {i.etapa_atual}/6
-                      </span>
-                      <div className="flex gap-1 mt-1.5 lg:justify-end">
-                        {[1, 2, 3, 4, 5, 6].map((n) => (
-                          <span
-                            key={n}
-                            className={`h-1.5 w-5 rounded-full ${
-                              n <= (i.etapa_atual || 1) ? "bg-primary" : "bg-muted"
-                            }`}
-                          />
-                        ))}
-                      </div>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            );})}
+            {filtradas.map((l) => (
+              <ContratoCardNovo
+                key={l.implantacao.id}
+                linha={l}
+                onOpen={() => setOpenId(l.implantacao.id)}
+                onFluxo={() => setFluxoTarget(l.implantacao)}
+                onDelete={
+                  canDelete
+                    ? () =>
+                        setDeleteTarget({
+                          id: l.implantacao.id,
+                          nome: l.implantacao.nome_empresa || "Sem nome",
+                        })
+                    : undefined
+                }
+              />
+            ))}
           </div>
+
         )}
 
         {openId && isDiretora ? (
