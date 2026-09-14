@@ -105,6 +105,16 @@ export function ContratoCardNovo({ linha, onOpen, onFluxo, onDelete }: Props) {
             <span className="text-muted-foreground">Vidas:</span>
             <span className="font-medium">{i.total_vidas ?? 0}</span>
           </p>
+          <p className="flex items-center gap-1.5 min-w-0">
+            <CalendarRange className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+            <span className="text-muted-foreground">Movimentação:</span>
+            <span className="truncate font-medium">{i.periodo_movimentacao || "Não informado"}</span>
+          </p>
+          <p className="flex items-center gap-1.5">
+            <CalendarDays className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+            <span className="text-muted-foreground">Data corte:</span>
+            <span className="font-medium">{i.data_corte ? String(i.data_corte).padStart(2, "0") : "Não informado"}</span>
+          </p>
         </div>
 
         <div className="text-sm text-amber-600 dark:text-amber-500 space-y-0.5">
