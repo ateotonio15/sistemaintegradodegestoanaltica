@@ -1341,6 +1341,166 @@ function CondicoesComerciaisSection({ impl, itensValidacao }: {
   );
 }
 
+/**
+ * Seção "Validação dos Dados" — exclusiva da visualização do Cadastro.
+ * Reutiliza a Validação Cruzada já existente (sem lógica nova): mostra os
+ * itens comparados Contrato x Anexo I, escondendo critérios jurídicos.
+ */
+function ValidacaoDadosCadastroSection({ itensValidacao, pendenciasList }: {
+  itensValidacao: ValidacaoCruzadaRow[];
+  pendenciasList: any[];
+}) {
+  const [expanded, setExpanded] = useState(false);
+  const [parecerAberto, setParecerAberto] = useState(false);
+
+  // Critérios jurídicos não aparecem para o Cadastro.
+  const relevantes = useMemo(
+    () => itensValidacao.filter((i) => i.setor_destino !== "juridico"),
+    [itensValidacao],
+  );
+  const pontos = relevantes.filter(
+    (i) => i.resultado === "divergente" || i.resultado === "necessita_validacao",
+  );
+  const ordenados = useMemo(() => {
+    const peso = (i: ValidacaoCruzadaRow) =>
+      i.resultado === "divergente" ? 0 : i.resultado === "necessita_validacao" ? 1 : i.resultado === "nao_encontrado" ? 2 : 3;
+    return [...relevantes].sort((a, b) => peso(a) - peso(b) || a.rotulo.localeCompare(b.rotulo));
+  }, [relevantes]);
+
+  // Pendência impeditiva do Jurídico (alta/crítica em aberto) — apenas aviso, sem virar tela jurídica.
+  const pendenciasJuridicas = pendenciasList.filter(
+    (p) =>
+      pendenciaEmAberto(p.status) &&
+      p.setor === "juridico" &&
+      (p.criticidade === "Alta" || p.criticidade === "Crítica"),
+  );
+
+  const semValidacao = itensValidacao.length === 0;
+
+  return (
+    <Card className="overflow-hidden border-border bg-card shadow-sm">
+      <CardContent className="p-0">
+        <div className="flex flex-col gap-4 p-4 sm:flex-row sm:items-start sm:justify-between sm:p-5">
+          <div className="min-w-0 space-y-1.5">
+            <p className="text-[10px] font-semibold uppercase text-muted-foreground">Validação dos Dados</p>
+            {semValidacao ? (
+              <p className="inline-flex items-center gap-1.5 text-sm font-medium text-muted-foreground">
+                <ShieldCheck className="h-4 w-4" />
+                Validação ainda não executada.
+              </p>
+            ) : pontos.length > 0 ? (
+              <p className="inline-flex items-center gap-1.5 text-sm font-medium text-amber-700">
+                <AlertTriangle className="h-4 w-4" />
+                {pontos.length} {pontos.length === 1 ? "ponto precisa" : "pontos precisam"} de conferência
+              </p>
+            ) : (
+              <div>
+                <p className="inline-flex items-center gap-1.5 text-sm font-medium text-emerald-600">
+                  <CheckCircle2 className="h-4 w-4" />
+                  Dados conferidos
+                </p>
+                <p className="mt-0.5 text-xs text-muted-foreground">Nenhuma divergência impeditiva.</p>
+              </div>
+            )}
+          </div>
+          {!semValidacao && (
+            <div className="flex flex-wrap items-center gap-2 shrink-0">
+              <Button
+                variant="outline"
+                size="sm"
+                className="gap-1.5"
+                onClick={() => setExpanded((v) => !v)}
+                aria-expanded={expanded}
+              >
+                {expanded ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+                {expanded ? "Visualizar Menos" : pontos.length > 0 ? "Visualizar divergências" : "Visualizar Mais"}
+              </Button>
+            </div>
+          )}
+        </div>
+
+        {expanded && !semValidacao && (
+          <div className="space-y-3 border-t border-border bg-muted/20 p-4 sm:p-5">
+            {ordenados.map((i) => {
+              const divergente = i.resultado === "divergente";
+              const atencao = i.resultado === "necessita_validacao";
+              return (
+                <div
+                  key={i.id}
+                  className={cn(
+                    "rounded-md border border-border bg-card p-3",
+                    divergente && "border-amber-500/40 bg-amber-500/10",
+                  )}
+                >
+                  <div className="flex flex-wrap items-center gap-2">
+                    <p className="text-sm font-medium">{i.rotulo}</p>
+                    {divergente ? (
+                      <span className="inline-flex items-center gap-1 text-xs font-medium text-amber-700">
+                        <AlertTriangle className="h-3.5 w-3.5" /> Divergente
+                      </span>
+                    ) : atencao ? (
+                      <span className="inline-flex items-center gap-1 text-xs font-medium text-amber-600">
+                        <AlertTriangle className="h-3.5 w-3.5" /> Necessita validação
+                      </span>
+                    ) : i.resultado === "compativel" ? (
+                      <span className="inline-flex items-center gap-1 text-xs font-medium text-emerald-600">
+                        <CheckCircle2 className="h-3.5 w-3.5" /> Compatível
+                      </span>
+                    ) : (
+                      <span className="text-xs text-muted-foreground">Não encontrado</span>
+                    )}
+                  </div>
+                  <div className="mt-2 grid gap-2 sm:grid-cols-2">
+                    <div className="rounded-md border border-border bg-muted/30 p-2">
+                      <p className="text-[10px] uppercase tracking-wide text-muted-foreground">Contrato</p>
+                      <p className="break-words text-sm font-medium">{i.valor_contrato || "—"}</p>
+                    </div>
+                    <div className="rounded-md border border-border bg-muted/30 p-2">
+                      <p className="text-[10px] uppercase tracking-wide text-muted-foreground">Anexo I</p>
+                      <p className="break-words text-sm font-medium">{i.valor_anexo || "—"}</p>
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+
+            {pendenciasJuridicas.length > 0 && (
+              <div className="rounded-md border border-amber-500/30 bg-amber-500/10 p-3">
+                <p className="inline-flex items-center gap-1.5 text-sm font-medium text-amber-700">
+                  <AlertTriangle className="h-4 w-4" />
+                  Existe uma pendência impeditiva do Jurídico.
+                </p>
+                <div className="mt-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="h-7 gap-1.5 px-2 text-xs"
+                    onClick={() => setParecerAberto((v) => !v)}
+                    aria-expanded={parecerAberto}
+                  >
+                    <Eye className="h-3.5 w-3.5" />
+                    {parecerAberto ? "Ocultar parecer" : "Ver parecer"}
+                  </Button>
+                  {parecerAberto && (
+                    <div className="mt-2 space-y-2">
+                      {pendenciasJuridicas.map((p) => (
+                        <div key={p.id} className="rounded-md border border-amber-500/30 bg-card p-2 text-xs">
+                          <p className="font-medium">{p.titulo || "Pendência do Jurídico"}</p>
+                          {p.descricao && <p className="mt-1 text-muted-foreground">{p.descricao}</p>}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+
 interface Props {
   implantacaoId: string;
   open: boolean;
@@ -1510,6 +1670,10 @@ export function AnaliseImplantacaoDialog({ implantacaoId, open, onClose, readOnl
                 <CondicoesComerciaisSection
                   impl={impl}
                   itensValidacao={itensValidacao}
+                />
+                <ValidacaoDadosCadastroSection
+                  itensValidacao={itensValidacao}
+                  pendenciasList={pendenciasList}
                 />
                 <div ref={documentosRef}>
                   <DocumentosCadastroSection
