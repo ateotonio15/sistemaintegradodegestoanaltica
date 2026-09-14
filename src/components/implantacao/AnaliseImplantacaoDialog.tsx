@@ -7,8 +7,9 @@ import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
-import { CheckCircle2, AlertTriangle, XCircle, FileText, Calendar, Paperclip, Rocket, Loader2, ShieldCheck, Check, Gavel, TrendingUp, Eye, ChevronDown, ChevronUp } from "lucide-react";
+import { CheckCircle2, AlertTriangle, XCircle, FileText, Calendar, Paperclip, Rocket, Loader2, ShieldCheck, Check, Gavel, TrendingUp, Eye, ChevronDown, ChevronUp, Building2, Users } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/hooks/useAuth";
 import { SelecionarResponsavelCadastroDialog } from "./SelecionarResponsavelCadastroDialog";
 import { AnexoPreviewDialog } from "./AnexoPreviewDialog";
 import { formatDateBR, formatDay } from "@/lib/date-utils";
@@ -716,6 +717,78 @@ function DocumentosVendasSection({
   );
 }
 
+function ResumoCadastro({ impl, processo, pendencias, divergencias }: {
+  impl: any;
+  processo?: any;
+  pendencias: number;
+  divergencias: number | null;
+}) {
+  const status = processo?.status
+    ? statusLabel(processo.status)
+    : impl.status === "implantado"
+    ? "Implantado"
+    : impl.status === "rejeitado"
+    ? "Reprovado"
+    : "Em análise";
+
+  return (
+    <div className="space-y-3">
+      <section className="overflow-hidden rounded-lg border border-border bg-card shadow-sm">
+        <div className="flex flex-col gap-4 p-4 sm:flex-row sm:items-start sm:justify-between sm:p-5">
+          <div className="flex min-w-0 gap-3">
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-md bg-primary/10 text-primary">
+              <Building2 className="h-5 w-5" />
+            </div>
+            <div className="min-w-0">
+              <p className="text-[10px] font-semibold uppercase text-muted-foreground">Contrato em implantação</p>
+              <h3 className="mt-0.5 break-words text-lg font-bold leading-tight">{impl.nome_empresa || "Empresa não informada"}</h3>
+              <p className="mt-1 text-xs text-muted-foreground">
+                {impl.cnpj || "CNPJ não informado"} · {processo?.codigo || impl.codigo_contrato || "Contrato não informado"}
+              </p>
+            </div>
+          </div>
+          <Badge variant="outline" className="w-fit shrink-0 border-primary/30 bg-primary/5 px-3 py-1 text-primary">
+            {status}
+          </Badge>
+        </div>
+        <div className="grid border-t border-border bg-muted/20 sm:grid-cols-3 sm:divide-x sm:divide-border">
+          <div className="p-3 sm:px-5">
+            <p className="text-[10px] uppercase text-muted-foreground">Setor atual</p>
+            <p className="mt-0.5 text-sm font-semibold">{processo ? setorLabel(processo.setor_atual) : "—"}</p>
+          </div>
+          <div className="border-t border-border p-3 sm:border-t-0 sm:px-5">
+            <p className="text-[10px] uppercase text-muted-foreground">Responsável</p>
+            <p className="mt-0.5 text-sm font-semibold">{processo?.responsavel_atual_nome || "—"}</p>
+          </div>
+          <div className="border-t border-border p-3 sm:border-t-0 sm:px-5">
+            <p className="text-[10px] uppercase text-muted-foreground">Próxima ação</p>
+            <p className="mt-0.5 text-sm font-semibold">{processo?.proxima_acao || "—"}</p>
+          </div>
+        </div>
+      </section>
+
+      <section className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4" aria-label="Resumo do contrato">
+        <div className="rounded-lg border border-border bg-card p-3">
+          <p className="flex items-center gap-1.5 text-[10px] font-semibold uppercase text-muted-foreground"><Users className="h-3.5 w-3.5" /> Total de vidas</p>
+          <p className="mt-1 text-lg font-bold">{impl.total_vidas ?? "Não informado"}</p>
+        </div>
+        <div className="rounded-lg border border-border bg-card p-3">
+          <p className="flex items-center gap-1.5 text-[10px] font-semibold uppercase text-muted-foreground"><Calendar className="h-3.5 w-3.5" /> Implantação</p>
+          <p className="mt-1 text-lg font-bold">{formatDateBR(impl.inicio_atendimento)}</p>
+        </div>
+        <div className={cn("rounded-lg border p-3", pendencias > 0 ? TOM_SURFACE.amarelo : TOM_SURFACE.verde)}>
+          <p className="text-[10px] font-semibold uppercase text-muted-foreground">Pendências</p>
+          <p className={cn("mt-1 text-lg font-bold", TOM_TXT[pendencias > 0 ? "amarelo" : "verde"])}>{pendencias}</p>
+        </div>
+        <div className={cn("rounded-lg border p-3", divergencias == null ? TOM_SURFACE.cinza : divergencias > 0 ? TOM_SURFACE.vermelho : TOM_SURFACE.verde)}>
+          <p className="text-[10px] font-semibold uppercase text-muted-foreground">Divergências</p>
+          <p className={cn("mt-1 text-lg font-bold", TOM_TXT[divergencias == null ? "cinza" : divergencias > 0 ? "vermelho" : "verde"])}>{divergencias ?? "—"}</p>
+        </div>
+      </section>
+    </div>
+  );
+}
+
 
 interface Props {
   implantacaoId: string;
@@ -727,8 +800,11 @@ interface Props {
 export function AnaliseImplantacaoDialog({ implantacaoId, open, onClose, readOnly = false }: Props) {
   const qc = useQueryClient();
   const { toast } = useToast();
+  const { role } = useAuth();
+  const isCadastro = role === "comum" || role === "administradoras";
   const [obs, setObs] = useState("");
   const [motivo, setMotivo] = useState("");
+  const [visualizarMais, setVisualizarMais] = useState(false);
   const [mode, setMode] = useState<"view" | "correcao" | "rejeicao">("view");
   const [atribuirOpen, setAtribuirOpen] = useState(false);
   const [previewAnexo, setPreviewAnexo] = useState<{ storage_path: string; nome_arquivo: string; mime_type?: string } | null>(null);
@@ -843,7 +919,7 @@ export function AnaliseImplantacaoDialog({ implantacaoId, open, onClose, readOnl
 
   return (
     <Dialog open={open} onOpenChange={(v) => !v && onClose()}>
-      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className={cn("max-h-[90vh] max-w-4xl overflow-y-auto", isCadastro && "cadastro-analysis-surface")}>
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <FileText className="h-5 w-5 text-primary" />
@@ -856,6 +932,28 @@ export function AnaliseImplantacaoDialog({ implantacaoId, open, onClose, readOnl
           <p className="text-muted-foreground">Carregando…</p>
         ) : (
           <div className="space-y-5">
+            {isCadastro && (
+              <>
+                <ResumoCadastro
+                  impl={impl}
+                  processo={processo}
+                  pendencias={processo?.pendencias_abertas ?? 0}
+                  divergencias={
+                    impl.relatorio_validacao == null && itensValidacao.length === 0
+                      ? null
+                      : Number(impl.relatorio_validacao?.erros ?? 0) + resumoCruzado.divergentes
+                  }
+                />
+                <DocumentosVendasSection
+                  anexos={anexos}
+                  readOnly={readOnly}
+                  onVisualizar={handleVisualizarAnexo}
+                  loading={loadingAnexo}
+                />
+              </>
+            )}
+
+            <div className={cn(isCadastro ? "space-y-5" : "contents", isCadastro && !visualizarMais && "hidden")}>
             {/* Resumo da Análise */}
             {(() => {
               const validacao: any = impl.relatorio_validacao || null;
@@ -1018,12 +1116,14 @@ export function AnaliseImplantacaoDialog({ implantacaoId, open, onClose, readOnl
             />
 
             {/* Anexos */}
-            <DocumentosVendasSection
-              anexos={anexos}
-              readOnly={readOnly}
-              onVisualizar={handleVisualizarAnexo}
-              loading={loadingAnexo}
-            />
+            {!isCadastro && (
+              <DocumentosVendasSection
+                anexos={anexos}
+                readOnly={readOnly}
+                onVisualizar={handleVisualizarAnexo}
+                loading={loadingAnexo}
+              />
+            )}
 
             {/* Dados para Implantação */}
             <section>
@@ -1158,6 +1258,19 @@ export function AnaliseImplantacaoDialog({ implantacaoId, open, onClose, readOnl
                 />
               </div>
             </section>
+            </div>
+
+            {isCadastro && (
+              <Button
+                variant="outline"
+                className="w-full gap-2"
+                onClick={() => setVisualizarMais((value) => !value)}
+                aria-expanded={visualizarMais}
+              >
+                {visualizarMais ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+                {visualizarMais ? "Visualizar Menos" : "Visualizar Mais"}
+              </Button>
+            )}
 
 
 
@@ -1173,7 +1286,7 @@ export function AnaliseImplantacaoDialog({ implantacaoId, open, onClose, readOnl
 
             {/* Ação Cadastro: Liberar contrato */}
             {readOnly && impl.status !== "implantado" && impl.status !== "rejeitado" && (
-              <div className="pt-2 border-t">
+              <div className={cn("border-t pt-2", isCadastro && "sticky bottom-0 z-10 -mx-6 bg-background px-6 pb-1 shadow-[0_-8px_20px_-16px_hsl(var(--foreground))]")}>
                 <Button
                   onClick={() => liberar.mutate()}
                   disabled={liberar.isPending || bloqueioCritico}
@@ -1185,7 +1298,7 @@ export function AnaliseImplantacaoDialog({ implantacaoId, open, onClose, readOnl
             )}
 
             {!readOnly && mode === "view" && (
-              <div className="space-y-3 pt-2 border-t">
+              <div className={cn("space-y-3 border-t pt-2", isCadastro && "sticky bottom-0 z-10 -mx-6 bg-background px-6 pb-1 shadow-[0_-8px_20px_-16px_hsl(var(--foreground))]")}>
                 <div>
                   <label className="text-sm font-medium">Observação (opcional)</label>
                   <Textarea value={obs} onChange={(e) => setObs(e.target.value)} placeholder="Comentário para o cadastro…" rows={2} />
@@ -1205,7 +1318,7 @@ export function AnaliseImplantacaoDialog({ implantacaoId, open, onClose, readOnl
             )}
 
             {!readOnly && mode !== "view" && (
-              <div className="space-y-3 pt-2 border-t">
+              <div className={cn("space-y-3 border-t pt-2", isCadastro && "sticky bottom-0 z-10 -mx-6 bg-background px-6 pb-1 shadow-[0_-8px_20px_-16px_hsl(var(--foreground))]")}>
                 <div>
                   <label className="text-sm font-medium">
                     {mode === "correcao" ? "Motivo da correção" : "Motivo da rejeição"} *

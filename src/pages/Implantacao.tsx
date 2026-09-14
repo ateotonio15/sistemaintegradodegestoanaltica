@@ -45,6 +45,7 @@ export default function Implantacao() {
   const queryClient = useQueryClient();
   const canEdit = isVendas || isAdmin;
   const canDelete = isAdmin || isVendas;
+  const isCadastro = role === "comum" || role === "administradoras";
 
   const [etapa, setEtapa] = useState<EtapaFiltro>("em_andamento");
   const [openId, setOpenId] = useState<string | null>(null);
@@ -286,10 +287,11 @@ export default function Implantacao() {
 
         )}
 
-        {openId && isDiretora ? (
+        {openId && (isDiretora || isCadastro) ? (
           <AnaliseImplantacaoDialog
             implantacaoId={openId}
             open={!!openId}
+            readOnly={isCadastro}
             onClose={() => {
               setOpenId(null);
               queryClient.invalidateQueries({ queryKey: ["implantacoes"] });
