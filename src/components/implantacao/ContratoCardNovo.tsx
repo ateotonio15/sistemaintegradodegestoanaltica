@@ -1,7 +1,7 @@
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { Building2, CalendarDays, Eye, GitBranch, Trash2, User, Users } from "lucide-react";
+import { Building2, CalendarDays, CalendarRange, Eye, GitBranch, Trash2, User, Users } from "lucide-react";
 import { formatBRLFromCentavos } from "@/lib/cobranca-retroativa-calc";
 import { formatDateBR } from "@/lib/date-utils";
 import { statusBadge, statusLabel, setorLabel } from "@/lib/contrato-processo";
