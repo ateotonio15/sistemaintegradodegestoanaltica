@@ -602,13 +602,22 @@ function DocumentosVendasSection({
   readOnly,
   onVisualizar,
   loading,
+  open: openProp,
+  onOpenChange,
 }: {
   anexos: any[];
   readOnly?: boolean;
   onVisualizar: (path: string, name: string) => void;
   loading?: string | null;
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
 }) {
-  const [open, setOpen] = useState(false);
+  const [internalOpen, setInternalOpen] = useState(false);
+  const open = openProp ?? internalOpen;
+  const setOpen = (v: boolean) => {
+    setInternalOpen(v);
+    onOpenChange?.(v);
+  };
   const visiveis = readOnly ? anexos.filter(isAnexoCadastro) : anexos;
 
   const porCategoria = useMemo(() => {
