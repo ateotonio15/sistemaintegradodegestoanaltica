@@ -333,7 +333,9 @@ export default function Empresas() {
     enabled: !!user,
   });
 
-  const executivoUsers = usuarios.filter((u) => userRolesList.some((r) => r.user_id === u.user_id && r.role === "executivo"));
+  const executivoUsers = usuarios
+    .filter((u) => userRolesList.some((r) => r.user_id === u.user_id && r.role === "executivo"))
+    .sort((a, b) => (a.display_name || a.username || "").localeCompare(b.display_name || b.username || "", "pt-BR"));
   const comunUsers = usuarios.filter((u) => userRolesList.some((r) => r.user_id === u.user_id && r.role === "comum"));
 
   const { data: empresas = [], isLoading } = useQuery({
