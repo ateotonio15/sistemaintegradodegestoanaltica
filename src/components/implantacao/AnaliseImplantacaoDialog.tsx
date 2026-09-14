@@ -717,72 +717,71 @@ function DocumentosVendasSection({
   );
 }
 
-function ResumoCadastro({ impl, processo, pendencias, divergencias }: {
+function ResumoCadastro({ impl, processo }: {
   impl: any;
   processo?: any;
-  pendencias: number;
-  divergencias: number | null;
 }) {
-  const status = processo?.status
-    ? statusLabel(processo.status)
-    : impl.status === "implantado"
-    ? "Implantado"
-    : impl.status === "rejeitado"
-    ? "Reprovado"
-    : "Em análise";
+  const totalVidas =
+    impl.vidas_titulares != null || impl.vidas_dependentes != null
+      ? (impl.vidas_titulares || 0) + (impl.vidas_dependentes || 0)
+      : null;
 
   return (
     <div className="space-y-3">
-      <section className="overflow-hidden rounded-lg border border-border bg-card shadow-sm">
-        <div className="flex flex-col gap-4 p-4 sm:flex-row sm:items-start sm:justify-between sm:p-5">
-          <div className="flex min-w-0 gap-3">
-            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-md bg-primary/10 text-primary">
-              <Building2 className="h-5 w-5" />
-            </div>
-            <div className="min-w-0">
-              <p className="text-[10px] font-semibold uppercase text-muted-foreground">Contrato em implantação</p>
-              <h3 className="mt-0.5 break-words text-lg font-bold leading-tight">{impl.nome_empresa || "Empresa não informada"}</h3>
-              <p className="mt-1 text-xs text-muted-foreground">
-                {impl.cnpj || "CNPJ não informado"} · {processo?.codigo || impl.codigo_contrato || "Contrato não informado"}
-              </p>
-            </div>
-          </div>
-          <Badge variant="outline" className="w-fit shrink-0 border-primary/30 bg-primary/5 px-3 py-1 text-primary">
-            {status}
-          </Badge>
+      <section className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4" aria-label="Resumo do contrato">
+        <div className="rounded-lg border border-border bg-card p-3 shadow-sm">
+          <p className="flex items-center gap-1.5 text-[10px] font-semibold uppercase text-muted-foreground">
+            <Users className="h-3.5 w-3.5" /> Total de Vidas
+          </p>
+          <p className="mt-1 text-2xl font-bold tracking-tight">
+            {totalVidas ?? "Não informado"}
+          </p>
+          {totalVidas != null && (
+            <p className="text-[11px] text-muted-foreground">
+              {impl.vidas_titulares || 0} titulares · {impl.vidas_dependentes || 0} dependentes
+            </p>
+          )}
         </div>
-        <div className="grid border-t border-border bg-muted/20 sm:grid-cols-3 sm:divide-x sm:divide-border">
-          <div className="p-3 sm:px-5">
-            <p className="text-[10px] uppercase text-muted-foreground">Setor atual</p>
-            <p className="mt-0.5 text-sm font-semibold">{processo ? setorLabel(processo.setor_atual) : "—"}</p>
-          </div>
-          <div className="border-t border-border p-3 sm:border-t-0 sm:px-5">
-            <p className="text-[10px] uppercase text-muted-foreground">Responsável</p>
-            <p className="mt-0.5 text-sm font-semibold">{processo?.responsavel_atual_nome || "—"}</p>
-          </div>
-          <div className="border-t border-border p-3 sm:border-t-0 sm:px-5">
-            <p className="text-[10px] uppercase text-muted-foreground">Próxima ação</p>
-            <p className="mt-0.5 text-sm font-semibold">{processo?.proxima_acao || "—"}</p>
-          </div>
+        <div className="rounded-lg border border-border bg-card p-3 shadow-sm">
+          <p className="flex items-center gap-1.5 text-[10px] font-semibold uppercase text-muted-foreground">
+            <FileText className="h-3.5 w-3.5" /> Contrato
+          </p>
+          <p className="mt-1 text-2xl font-bold tracking-tight">
+            {processo?.codigo || impl.codigo_contrato || "Não informado"}
+          </p>
+        </div>
+        <div className="rounded-lg border border-border bg-card p-3 shadow-sm">
+          <p className="flex items-center gap-1.5 text-[10px] font-semibold uppercase text-muted-foreground">
+            <Calendar className="h-3.5 w-3.5" /> Vigência / Implantação
+          </p>
+          <p className="mt-1 text-2xl font-bold tracking-tight">
+            {formatDateBR(impl.inicio_atendimento || impl.data_implantacao)}
+          </p>
+        </div>
+        <div className="rounded-lg border border-border bg-card p-3 shadow-sm">
+          <p className="flex items-center gap-1.5 text-[10px] font-semibold uppercase text-muted-foreground">
+            <Building2 className="h-3.5 w-3.5" /> Modalidade
+          </p>
+          <p className="mt-1 text-lg font-bold tracking-tight leading-tight">
+            {impl.modalidade || "Não informado"}
+          </p>
         </div>
       </section>
 
-      <section className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4" aria-label="Resumo do contrato">
-        <div className="rounded-lg border border-border bg-card p-3">
-          <p className="flex items-center gap-1.5 text-[10px] font-semibold uppercase text-muted-foreground"><Users className="h-3.5 w-3.5" /> Total de vidas</p>
-          <p className="mt-1 text-lg font-bold">{impl.total_vidas ?? "Não informado"}</p>
-        </div>
-        <div className="rounded-lg border border-border bg-card p-3">
-          <p className="flex items-center gap-1.5 text-[10px] font-semibold uppercase text-muted-foreground"><Calendar className="h-3.5 w-3.5" /> Implantação</p>
-          <p className="mt-1 text-lg font-bold">{formatDateBR(impl.inicio_atendimento)}</p>
-        </div>
-        <div className={cn("rounded-lg border p-3", pendencias > 0 ? TOM_SURFACE.amarelo : TOM_SURFACE.verde)}>
-          <p className="text-[10px] font-semibold uppercase text-muted-foreground">Pendências</p>
-          <p className={cn("mt-1 text-lg font-bold", TOM_TXT[pendencias > 0 ? "amarelo" : "verde"])}>{pendencias}</p>
-        </div>
-        <div className={cn("rounded-lg border p-3", divergencias == null ? TOM_SURFACE.cinza : divergencias > 0 ? TOM_SURFACE.vermelho : TOM_SURFACE.verde)}>
-          <p className="text-[10px] font-semibold uppercase text-muted-foreground">Divergências</p>
-          <p className={cn("mt-1 text-lg font-bold", TOM_TXT[divergencias == null ? "cinza" : divergencias > 0 ? "vermelho" : "verde"])}>{divergencias ?? "—"}</p>
+      <section className="overflow-hidden rounded-lg border border-border bg-card shadow-sm">
+        <div className="flex items-center gap-4 p-4 sm:p-5">
+          <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
+            <Building2 className="h-6 w-6" />
+          </div>
+          <div className="min-w-0">
+            <p className="text-[10px] font-semibold uppercase text-muted-foreground">Empresa</p>
+            <h3 className="mt-0.5 break-words text-lg font-bold leading-tight">
+              {impl.nome_empresa || "Empresa não informada"}
+            </h3>
+            <p className="mt-1 text-sm text-muted-foreground">
+              CNPJ: {impl.cnpj || "Não informado"}
+            </p>
+          </div>
         </div>
       </section>
     </div>
