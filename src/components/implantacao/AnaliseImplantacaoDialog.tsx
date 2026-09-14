@@ -1038,6 +1038,126 @@ function VidasImplantacaoSection({ impl, anexos, pendenciasList, onVisualizarAne
   );
 }
 
+function CondicoesComerciaisSection({ impl, itensValidacao }: {
+  impl: any;
+  itensValidacao: ValidacaoCruzadaRow[];
+}) {
+  const [expanded, setExpanded] = useState(false);
+  const [detalhesAbertos, setDetalhesAbertos] = useState<string | null>(null);
+  const mapaValidacao = useMapaValidacao(itensValidacao);
+
+  const fmtMoeda = (centavos: number | null | undefined) =>
+    centavos != null ? formatCentavosBRL(centavos) : null;
+  const fmtPct = (v: number | null | undefined) =>
+    v != null ? `${Number(v).toFixed(2).replace(".", ",")}%` : null;
+
+  const campos: { label: string; value: string | null; campoValidacao?: string }[] = [
+    { label: "Valor Enfermaria", value: fmtMoeda(impl.valor_enfermaria_centavos), campoValidacao: "valor_enfermaria" },
+    { label: "Valor Apartamento", value: fmtMoeda(impl.valor_apartamento_centavos), campoValidacao: "valor_apartamento" },
+    { label: "% Agenciamento", value: fmtPct(impl.percentual_agenciamento) },
+    { label: "% Vitalício", value: fmtPct(impl.percentual_vitalicio) },
+    { label: "Corretora", value: impl.corretora },
+    { label: "Código do Contrato", value: impl.codigo_contrato },
+    { label: "Dia de vencimento", value: impl.data_vencimento != null ? String(impl.data_vencimento).padStart(2, "0") : null },
+    { label: "Modalidade", value: impl.modalidade, campoValidacao: "modalidade" },
+  ];
+
+  return (
+    <Card className="overflow-hidden border-border bg-card shadow-sm">
+      <CardContent className="p-0">
+        <div className="flex flex-col gap-4 p-4 sm:flex-row sm:items-start sm:justify-between sm:p-5">
+          <div className="min-w-0">
+            <p className="text-[10px] font-semibold uppercase text-muted-foreground">Condições Comerciais</p>
+            <div className="mt-2 flex flex-wrap gap-x-8 gap-y-2">
+              <div>
+                <p className="text-[10px] uppercase tracking-wide text-muted-foreground">Enfermaria</p>
+                <p className="text-lg font-bold">{fmtMoeda(impl.valor_enfermaria_centavos) ?? "—"}</p>
+              </div>
+              <div>
+                <p className="text-[10px] uppercase tracking-wide text-muted-foreground">Apartamento</p>
+                <p className="text-lg font-bold">{fmtMoeda(impl.valor_apartamento_centavos) ?? "—"}</p>
+              </div>
+            </div>
+          </div>
+          <div className="flex flex-wrap items-center gap-2 shrink-0">
+            <Button
+              variant="outline"
+              size="sm"
+              className="gap-1.5"
+              onClick={() => setExpanded((v) => !v)}
+              aria-expanded={expanded}
+            >
+              {expanded ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+              {expanded ? "Visualizar Menos" : "Visualizar Mais"}
+            </Button>
+          </div>
+        </div>
+
+        {expanded && (
+          <div className="border-t border-border bg-muted/20 p-4 sm:p-5">
+            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+              {campos.map((campo) => {
+                const item = campo.campoValidacao ? mapaValidacao.get(campo.campoValidacao) : undefined;
+                const divergente = item?.resultado === "divergente";
+                const vazio = campo.value == null || campo.value === "";
+                return (
+                  <div
+                    key={campo.label}
+                    className={cn(
+                      "rounded-md p-2.5",
+                      divergente && "border border-amber-500/40 bg-amber-500/10"
+                    )}
+                  >
+                    <p className="text-[10px] uppercase tracking-wide text-muted-foreground">{campo.label}</p>
+                    {divergente ? (
+                      <div className="mt-1 space-y-1">
+                        <p className="text-sm">
+                          <span className="text-muted-foreground">Contrato: </span>
+                          <span className="font-semibold">{item.valor_contrato ?? campo.value ?? "—"}</span>
+                        </p>
+                        <p className="text-sm">
+                          <span className="text-muted-foreground">Anexo I: </span>
+                          <span className="font-semibold">{item.valor_anexo ?? "—"}</span>
+                        </p>
+                        <p className="inline-flex items-center gap-1.5 text-sm font-medium text-amber-700">
+                          <AlertTriangle className="h-3.5 w-3.5" />
+                          Divergência encontrada
+                        </p>
+                        <div>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="mt-1 h-7 gap-1.5 px-2 text-xs"
+                            onClick={() => setDetalhesAbertos((v) => (v === campo.campoValidacao! ? null : campo.campoValidacao!))}
+                            aria-expanded={detalhesAbertos === campo.campoValidacao}
+                          >
+                            <Eye className="h-3.5 w-3.5" />
+                            {detalhesAbertos === campo.campoValidacao ? "Ocultar detalhes" : "Ver detalhes"}
+                          </Button>
+                          {detalhesAbertos === campo.campoValidacao && (
+                            <p className="mt-2 rounded-md border border-amber-500/30 bg-card p-2 text-xs text-muted-foreground">
+                              {item.justificativa || "Divergência entre o contrato e o Anexo I."}
+                              {item.criticidade ? ` Criticidade: ${item.criticidade}.` : ""}
+                            </p>
+                          )}
+                        </div>
+                      </div>
+                    ) : (
+                      <p className={cn("mt-0.5 break-words text-sm font-medium leading-tight", vazio && "text-muted-foreground")}>
+                        {vazio ? "—" : campo.value}
+                      </p>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+
 interface Props {
   implantacaoId: string;
   open: boolean;
@@ -1203,6 +1323,10 @@ export function AnaliseImplantacaoDialog({ implantacaoId, open, onClose, readOnl
                   anexos={anexos}
                   pendenciasList={pendenciasList}
                   onVisualizarAnexo={handleVisualizarAnexo}
+                />
+                <CondicoesComerciaisSection
+                  impl={impl}
+                  itensValidacao={itensValidacao}
                 />
                 <div ref={documentosRef}>
                   <DocumentosVendasSection
