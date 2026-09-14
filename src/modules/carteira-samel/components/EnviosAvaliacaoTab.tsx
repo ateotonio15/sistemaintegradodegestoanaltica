@@ -31,6 +31,8 @@ export function EnviosAvaliacaoTab({ form }: Props) {
   const qc = useQueryClient();
   const [busca, setBusca] = useState("");
   const [criando, setCriando] = useState<string | null>(null);
+  const [qrModal, setQrModal] = useState<QRModalState>({ open: false, empresa: null, envio: null });
+  const qrCanvasRef = useRef<HTMLDivElement>(null);
 
   const mesAtual = new Date().toISOString().slice(0, 7);
 
