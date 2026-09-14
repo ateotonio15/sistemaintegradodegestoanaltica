@@ -878,6 +878,165 @@ function EmpresaDadosCadastraisSection({ impl, onVerDocumentos }: {
   );
 }
 
+function VidasImplantacaoSection({ impl, anexos, pendenciasList, onVisualizarAnexo }: {
+  impl: any;
+  anexos: any[];
+  pendenciasList: any[];
+  onVisualizarAnexo?: (path: string, name: string) => void;
+}) {
+  const [expanded, setExpanded] = useState(false);
+  const [mostrarPendencias, setMostrarPendencias] = useState(false);
+
+  const relatorio: any = impl.relatorio_validacao || null;
+  const totalVidas =
+    impl.total_vidas ??
+    (impl.vidas_titulares != null || impl.vidas_dependentes != null
+      ? (impl.vidas_titulares || 0) + (impl.vidas_dependentes || 0)
+      : relatorio?.total_vidas ?? null);
+  const titulares = impl.vidas_titulares ?? relatorio?.titulares ?? null;
+  const dependentes = impl.vidas_dependentes ?? relatorio?.dependentes ?? null;
+
+  const recebidas = relatorio?.linhas_lidas ?? relatorio?.total_vidas ?? null;
+  const validadas = relatorio?.linhas_validas ?? relatorio?.total_vidas ?? null;
+  const comPendencia = relatorio ? Number(relatorio.erros ?? 0) : null;
+  const divergentes = relatorio ? Number(relatorio.alertas ?? 0) : null;
+  const pendenciasRelatorio: any[] = Array.isArray(relatorio?.pendencias) ? relatorio.pendencias : [];
+  const pendenciasVidas = pendenciasList.filter(
+    (p) => pendenciaEmAberto(p.status) && /vida|benefici/i.test(`${p.titulo || ""} ${p.descricao || ""}`)
+  );
+
+  const anexoRelatorio = anexos.find((a) => a.tipo === "relatorio_vidas" && a.storage_path);
+
+  return (
+    <Card className="overflow-hidden border-border bg-card shadow-sm">
+      <CardContent className="p-0">
+        <div className="flex flex-col gap-4 p-4 sm:flex-row sm:items-start sm:justify-between sm:p-5">
+          <div className="min-w-0">
+            <p className="text-[10px] font-semibold uppercase text-muted-foreground">Vidas da Implantação</p>
+            <h3 className="mt-1 text-lg font-bold leading-tight">
+              {totalVidas != null ? `${totalVidas} vidas` : "Vidas não informadas"}
+            </h3>
+            <p className="mt-1 text-sm text-muted-foreground">
+              {titulares ?? 0} titulares · {dependentes ?? 0} dependentes
+            </p>
+          </div>
+          <div className="flex flex-wrap items-center gap-2 shrink-0">
+            <Button
+              variant="outline"
+              size="sm"
+              className="gap-1.5"
+              onClick={() => setExpanded((v) => !v)}
+              aria-expanded={expanded}
+            >
+              {expanded ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+              {expanded ? "Visualizar Menos" : "Visualizar Mais"}
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              className="gap-1.5"
+              disabled={!anexoRelatorio}
+              title={anexoRelatorio ? undefined : "Relatório de vidas não anexado"}
+              onClick={() => anexoRelatorio && onVisualizarAnexo?.(anexoRelatorio.storage_path, anexoRelatorio.nome_arquivo || "Relatório de Vidas")}
+            >
+              <Users className="h-4 w-4" />
+              Visualizar Relatório de Vidas
+            </Button>
+          </div>
+        </div>
+
+        {expanded && (
+          <div className="space-y-4 border-t border-border bg-muted/20 p-4 sm:p-5">
+            <div className="grid gap-3 sm:grid-cols-3">
+              <div className="rounded-md border border-border bg-card p-3">
+                <p className="text-[10px] uppercase tracking-wide text-muted-foreground">Total de vidas</p>
+                <p className="mt-0.5 text-lg font-bold">{totalVidas ?? "—"}</p>
+              </div>
+              <div className="rounded-md border border-border bg-card p-3">
+                <p className="text-[10px] uppercase tracking-wide text-muted-foreground">Titulares</p>
+                <p className="mt-0.5 text-lg font-bold">{titulares ?? "—"}</p>
+              </div>
+              <div className="rounded-md border border-border bg-card p-3">
+                <p className="text-[10px] uppercase tracking-wide text-muted-foreground">Dependentes</p>
+                <p className="mt-0.5 text-lg font-bold">{dependentes ?? "—"}</p>
+              </div>
+            </div>
+
+            {relatorio && (
+              <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+                <div className="rounded-md border border-border bg-card p-3">
+                  <p className="text-[10px] uppercase tracking-wide text-muted-foreground">Vidas recebidas</p>
+                  <p className="mt-0.5 text-sm font-semibold">{recebidas ?? "—"}</p>
+                </div>
+                <div className="rounded-md border border-border bg-card p-3">
+                  <p className="text-[10px] uppercase tracking-wide text-muted-foreground">Validadas</p>
+                  <p className="mt-0.5 text-sm font-semibold text-emerald-600">{validadas ?? "—"}</p>
+                </div>
+                <div className={cn("rounded-md border p-3", comPendencia ? "border-amber-500/30 bg-amber-500/10" : "border-border bg-card")}>
+                  <p className="text-[10px] uppercase tracking-wide text-muted-foreground">Com pendência</p>
+                  <p className={cn("mt-0.5 text-sm font-semibold", comPendencia ? "text-amber-700" : "")}>{comPendencia ?? "—"}</p>
+                </div>
+                <div className={cn("rounded-md border p-3", divergentes ? "border-amber-500/30 bg-amber-500/10" : "border-border bg-card")}>
+                  <p className="text-[10px] uppercase tracking-wide text-muted-foreground">Com divergência</p>
+                  <p className={cn("mt-0.5 text-sm font-semibold", divergentes ? "text-amber-700" : "")}>{divergentes ?? "—"}</p>
+                </div>
+              </div>
+            )}
+
+            {relatorio && (comPendencia ?? 0) > 0 && (
+              <div className="flex flex-wrap items-center justify-between gap-2 rounded-md border border-amber-500/30 bg-amber-500/10 p-3">
+                <p className="inline-flex items-center gap-1.5 text-sm font-medium text-amber-700">
+                  <AlertTriangle className="h-4 w-4" />
+                  {comPendencia} {comPendencia === 1 ? "vida precisa" : "vidas precisam"} de correção
+                </p>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="gap-1.5"
+                  onClick={() => setMostrarPendencias((v) => !v)}
+                  aria-expanded={mostrarPendencias}
+                >
+                  <Eye className="h-4 w-4" />
+                  {mostrarPendencias ? "Ocultar pendências" : "Ver pendências"}
+                </Button>
+              </div>
+            )}
+
+            {mostrarPendencias && pendenciasRelatorio.length > 0 && (
+              <div className="max-h-56 space-y-2 overflow-y-auto rounded-md border border-border bg-card p-3">
+                {pendenciasRelatorio.map((p, i) => (
+                  <div key={i} className="flex items-start gap-2 text-sm">
+                    <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0 text-amber-600" />
+                    <p className="text-muted-foreground">
+                      <span className="font-medium text-foreground">Linha {p.linha}</span>
+                      {p.coluna ? ` · ${p.coluna}` : ""} — {p.motivo}
+                    </p>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {pendenciasVidas.length > 0 && (
+              <div className="rounded-md border border-border bg-card p-3">
+                <p className="mb-2 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
+                  Pendências do processo relacionadas a vidas
+                </p>
+                <div className="space-y-1.5">
+                  {pendenciasVidas.map((p) => (
+                    <p key={p.id} className="text-sm text-muted-foreground">
+                      <span className="font-medium text-foreground">{p.titulo}</span>
+                      {p.descricao ? ` — ${p.descricao}` : ""}
+                    </p>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
 
 interface Props {
   implantacaoId: string;
