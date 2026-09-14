@@ -2021,6 +2021,134 @@ export function AnaliseImplantacaoDialog({ implantacaoId, open, onClose, readOnl
     onError: (e: any) => toast({ title: e?.message || "Erro ao liberar contrato", variant: "destructive" }),
   });
 
+  // ---- Ações do rodapé exclusivo do Cadastro ----
+  const encaminhar = useEncaminharContratoProcesso();
+  const criarPendencia = useCriarPendenciaProcesso();
+  const [devolverOpen, setDevolverOpen] = useState(false);
+  const [pendenciarOpen, setPendenciarOpen] = useState(false);
+  const [aprovarOpen, setAprovarOpen] = useState(false);
+
+  /** Condições impeditivas verificadas antes da aprovação final do Cadastro. */
+  const impedimentosAprovacao = useMemo(() => {
+    if (!impl) return [] as string[];
+    const lista: string[] = [];
+    const temAnexo = (tipo: string) => anexos.some((a: any) => a.tipo === tipo);
+    const faltandoDocs = [
+      ["anexo_1", "Anexo I"],
+      ["contrato", "Contrato"],
+    ].filter(([tipo]) => !temAnexo(tipo as string)).map(([, label]) => label as string);
+    if (faltandoDocs.length) lista.push(`Documentos obrigatórios ausentes: ${faltandoDocs.join(", ")}`);
+    if (!temAnexo("relatorio_vidas")) lista.push("Relatório de Vidas não anexado");
+
+    const cadastraisFaltando = [
+      ["nome_empresa", "Razão Social"],
+      ["cnpj", "CNPJ"],
+      ["codigo_contrato", "Código do contrato"],
+      ["modalidade", "Modalidade"],
+      ["data_implantacao", "Data de implantação"],
+    ].filter(([campo]) => !impl[campo as string]).map(([, label]) => label as string);
+    if (cadastraisFaltando.length) lista.push(`Dados cadastrais obrigatórios ausentes: ${cadastraisFaltando.join(", ")}`);
+
+    if (bloqueioCritico) lista.push("Divergência crítica em aberto na validação cruzada");
+    if (bloqueioSetores)
+      lista.push(
+        `Etapa obrigatória pendente em outro setor (${[...new Set(pendenciasSetoresImpeditivas.map((p) => setorLabel(p.setor)))].join(", ")})`,
+      );
+    const pendCadastro = pendenciasList.filter(
+      (p: any) => pendenciaEmAberto(p.status) && (p.criticidade === "Alta" || p.criticidade === "Crítica"),
+    );
+    if (pendCadastro.length && !bloqueioSetores) lista.push(`${pendCadastro.length} pendência(s) impeditiva(s) em aberto`);
+    return lista;
+  }, [impl, anexos, bloqueioCritico, bloqueioSetores, pendenciasSetoresImpeditivas, pendenciasList]);
+
+  const podeAprovar = impedimentosAprovacao.length === 0;
+
+  const handleDevolver = (setor: ProcessoSetor, motivoTexto: string) => {
+    if (!processo?.id) {
+      toast({ title: "Processo do contrato não encontrado", variant: "destructive" });
+      return;
+    }
+    encaminhar.mutate(
+      {
+        processoId: processo.id,
+        setorDestino: setor,
+        responsavelId: user?.id ?? null,
+        responsavelNome: meuNome || null,
+        observacao: `Devolvido pelo Cadastro: ${motivoTexto}`,
+      },
+      {
+        onSuccess: async () => {
+          await supabase.rpc("solicitar_correcao_implantacao" as any, { p_impl: implantacaoId, p_motivo: motivoTexto });
+          qc.invalidateQueries({ queryKey: ["implantacoes"] });
+          qc.invalidateQueries({ queryKey: ["impl-analise", implantacaoId] });
+          qc.invalidateQueries({ queryKey: ["impl-alertas"] });
+          setDevolverOpen(false);
+          toast({ title: `Contrato devolvido para ${setorLabel(setor)}` });
+          onClose();
+        },
+        onError: (e: any) => toast({ title: e?.message || "Erro ao devolver o contrato", variant: "destructive" }),
+      },
+    );
+  };
+
+  const handlePendenciar = (input: { motivo: string; categoria: PendenciaCategoria; observacao: string }) => {
+    if (!processo?.id) {
+      toast({ title: "Processo do contrato não encontrado", variant: "destructive" });
+      return;
+    }
+    criarPendencia.mutate(
+      {
+        processoId: processo.id,
+        setor: SETOR_POR_CATEGORIA[input.categoria] ?? "cadastro",
+        titulo: input.motivo,
+        descricao: input.observacao,
+        categoria: input.categoria,
+        criticidade: "Alta",
+        responsavelId: user?.id ?? null,
+        responsavelNome: meuNome || null,
+      },
+      {
+        onSuccess: () => {
+          registrarObs.mutate({
+            processoId: processo.id,
+            acao: "pendencia_cadastro",
+            observacao: `${input.motivo} — ${input.observacao}`,
+            responsavelId: user?.id ?? null,
+            responsavelNome: meuNome || null,
+            detalhes: { origem: "Cadastro", tipo: input.categoria },
+          });
+          setPendenciarOpen(false);
+          toast({ title: "Pendência registrada no histórico do contrato" });
+        },
+        onError: (e: any) => toast({ title: e?.message || "Erro ao registrar pendência", variant: "destructive" }),
+      },
+    );
+  };
+
+  const handleAprovarCadastro = () => {
+    if (!podeAprovar) {
+      toast({ title: "Existe condição impeditiva para aprovar esta implantação", variant: "destructive" });
+      return;
+    }
+    liberar.mutate(undefined, {
+      onSuccess: () => {
+        if (processo?.id) {
+          registrarObs.mutate({
+            processoId: processo.id,
+            acao: "aprovado_cadastro",
+            observacao: obsCadastro.trim() || "Implantação aprovada pelo Cadastro",
+            responsavelId: user?.id ?? null,
+            responsavelNome: meuNome || null,
+            detalhes: { origem: "Cadastro" },
+          });
+        }
+        setAprovarOpen(false);
+      },
+    });
+  };
+
+
+
   const handleVisualizarAnexo = (path: string, name: string) => {
     if (!path) {
       toast({ title: "Anexo sem caminho de arquivo", variant: "destructive" });
