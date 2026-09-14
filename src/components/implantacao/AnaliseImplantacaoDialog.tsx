@@ -1000,43 +1000,31 @@ function DocumentosCadastroSection({
   anexos,
   onVisualizar,
   loading,
-  open: openProp,
-  onOpenChange,
 }: {
   anexos: any[];
   onVisualizar: (path: string, name: string) => void;
   loading?: string | null;
-  open?: boolean;
-  onOpenChange?: (open: boolean) => void;
 }) {
-  const [internalOpen, setInternalOpen] = useState(false);
-  const [categoriaAberta, setCategoriaAberta] = useState<string | null>(null);
-  const open = openProp ?? internalOpen;
-  const setOpen = (v: boolean) => {
-    setInternalOpen(v);
-    onOpenChange?.(v);
-  };
-
-  const porCategoria = useMemo(() => {
-    const map: Record<string, any[]> = {
-      anexo_1: [],
-      contrato: [],
-      relatorio_vidas: [],
-      primeira_cobranca: [],
-      complementares: [],
+  const total = anexos.length;
+  const docPrincipal = useMemo(() => documentoPrincipalCadastro(anexos), [anexos]);
+  const contagem = useMemo(() => {
+    const count = (tipo: string) =>
+      anexos.filter((a) => String(a.tipo || "").toLowerCase() === tipo).length;
+    return {
+      anexo_1: count("anexo_1"),
+      contrato: count("contrato"),
+      relatorio_vidas: count("relatorio_vidas"),
     };
-    anexos.forEach((a) => {
-      const t = String(a.tipo || "").toLowerCase();
-      if (map[t]) map[t].push(a);
-      else map.complementares.push(a);
-    });
-    return map;
   }, [anexos]);
 
-  const total = anexos.length;
+  const abrirPrincipal = () => {
+    if (docPrincipal?.storage_path) {
+      onVisualizar(docPrincipal.storage_path, docPrincipal.nome_arquivo);
+    }
+  };
 
   return (
-    <Card className={cn("overflow-hidden border-border bg-card shadow-sm", open && "ring-1 ring-primary/10")}>
+    <Card className="overflow-hidden border-border bg-card shadow-sm">
       <CardContent className="p-0">
         <div className="flex flex-col gap-4 p-4 sm:flex-row sm:items-center sm:justify-between sm:p-5">
           <div className="min-w-0">
@@ -1047,7 +1035,7 @@ function DocumentosCadastroSection({
             <p className="mt-1 text-sm text-muted-foreground">
               {total === 0
                 ? "Nenhum documento anexado"
-                : `${porCategoria.anexo_1.length} Anexo I · ${porCategoria.contrato.length} Contrato · ${porCategoria.relatorio_vidas.length} Relatório de Vidas`}
+                : `${contagem.anexo_1} Anexo I · ${contagem.contrato} Contrato · ${contagem.relatorio_vidas} Relatório de Vidas`}
             </p>
           </div>
           <div className="flex flex-wrap items-center gap-2 shrink-0">
@@ -1055,123 +1043,18 @@ function DocumentosCadastroSection({
               variant="outline"
               size="sm"
               className="gap-1.5"
-              onClick={() => setOpen(!open)}
-              aria-expanded={open}
+              disabled={!docPrincipal || loading === docPrincipal?.storage_path}
+              onClick={abrirPrincipal}
             >
-              {open ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
-              {open ? "Ocultar documentos" : "Visualizar documentos"}
+              {loading === docPrincipal?.storage_path ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <Eye className="h-4 w-4" />
+              )}
+              Visualizar documentos
             </Button>
           </div>
         </div>
-
-        {open && (
-          <div className="space-y-3 border-t border-border bg-muted/20 p-4 sm:p-5">
-            {total === 0 ? (
-              <p className="text-sm text-muted-foreground">Nenhum documento anexado à implantação.</p>
-            ) : (
-              CATEGORIAS_DOC.map((cat) => {
-                const itens = porCategoria[cat.key];
-                const qtd = itens.length;
-                const temItens = qtd > 0;
-                const aberta = categoriaAberta === cat.key;
-                const primeiro = itens[0];
-
-                return (
-                  <div
-                    key={cat.key}
-                    className={cn(
-                      "rounded-lg border bg-card p-3 transition-colors",
-                      temItens ? "border-border" : "border-dashed border-muted-foreground/30 bg-muted/30"
-                    )}
-                  >
-                    <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                      <div className="min-w-0">
-                        <div className="flex items-center gap-2">
-                          {temItens ? (
-                            <Check className="h-4 w-4 shrink-0 text-emerald-500" />
-                          ) : (
-                            <AlertTriangle className="h-4 w-4 shrink-0 text-amber-500" />
-                          )}
-                          <h4 className="text-sm font-semibold">{cat.label}</h4>
-                          <Badge variant="outline" className="text-[10px]">
-                            {qtd} arquivo{qtd !== 1 ? "s" : ""}
-                          </Badge>
-                        </div>
-                        {!temItens && (
-                          <p className="mt-1 text-xs text-muted-foreground">Nenhum arquivo nesta categoria</p>
-                        )}
-                        {temItens && !aberta && (
-                          <p className="mt-1 truncate text-xs text-muted-foreground">
-                            {itens.map((a) => a.nome_arquivo).join(" · ")}
-                          </p>
-                        )}
-                      </div>
-                      <div className="flex flex-wrap items-center gap-2 shrink-0">
-                        {temItens && (
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            className="gap-1.5"
-                            disabled={loading === primeiro?.storage_path || !primeiro?.storage_path}
-                            onClick={() => {
-                              if (qtd === 1) {
-                                onVisualizar(primeiro.storage_path, primeiro.nome_arquivo);
-                              } else {
-                                setCategoriaAberta((v) => (v === cat.key ? null : cat.key));
-                              }
-                            }}
-                          >
-                            {loading === primeiro?.storage_path ? (
-                              <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                            ) : (
-                              <Eye className="h-3.5 w-3.5" />
-                            )}
-                            {qtd === 1 ? "Visualizar" : aberta ? "Ocultar lista" : "Visualizar todos"}
-                          </Button>
-                        )}
-                      </div>
-                    </div>
-
-                    {aberta && temItens && (
-                      <div className="mt-3 space-y-2 border-t border-border pt-3">
-                        {itens.map((a: any) => {
-                          const isLoading = loading === a.storage_path;
-                          return (
-                            <div
-                              key={a.id}
-                              className="flex flex-col gap-2 rounded-md border border-border bg-background p-2.5 sm:flex-row sm:items-center sm:justify-between"
-                            >
-                              <div className="flex items-start gap-2 min-w-0">
-                                <FileText className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" />
-                                <div className="min-w-0">
-                                  <p className="break-words text-sm font-medium leading-snug">{a.nome_arquivo}</p>
-                                  <p className="text-xs text-muted-foreground">
-                                    {tipoDocLabel(a.tipo)}
-                                    {a.created_at && ` · ${dataHoraCurta(a.created_at)}`}
-                                  </p>
-                                </div>
-                              </div>
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                className="shrink-0 gap-1.5 self-start sm:self-center"
-                                disabled={isLoading || !a.storage_path}
-                                onClick={() => onVisualizar(a.storage_path, a.nome_arquivo)}
-                              >
-                                {isLoading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Eye className="h-3.5 w-3.5" />}
-                                Visualizar
-                              </Button>
-                            </div>
-                          );
-                        })}
-                      </div>
-                    )}
-                  </div>
-                );
-              })
-            )}
-          </div>
-        )}
       </CardContent>
     </Card>
   );
