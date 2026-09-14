@@ -33,9 +33,29 @@ interface AuthContextType {
   empresaVinculadaId: string | null;
   mustChangePassword: boolean;
   canEditFinanceiro: boolean;
+  realRole: UserRole;
+  simulatedRole: UserRole;
+  isSimulating: boolean;
+  canSimulate: boolean;
+  setSimulatedRole: (role: UserRole) => void;
   signOut: () => Promise<void>;
   refreshAuthFlags: () => Promise<void>;
 }
+
+export const SIMULACAO_STORAGE_KEY = "siga:simular-perfil";
+
+export const PERFIS_SIMULAVEIS: { value: Exclude<UserRole, null>; label: string }[] = [
+  { value: "vendas", label: "Vendas" },
+  { value: "diretora", label: "Diretoria" },
+  { value: "comum", label: "Cadastro" },
+  { value: "financeiro", label: "Financeiro" },
+  { value: "executivo", label: "Executivo" },
+  { value: "executivo_externo", label: "Executivo externo" },
+  { value: "enfermeira", label: "Enfermeira" },
+  { value: "tec_enfermagem", label: "Téc. Enfermagem" },
+  { value: "visualizacao", label: "Visualização" },
+  { value: "administradoras", label: "Administradoras" },
+];
 
 const AuthContext = createContext<AuthContextType>({
   user: null,
