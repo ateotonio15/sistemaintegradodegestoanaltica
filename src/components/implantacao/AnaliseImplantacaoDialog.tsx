@@ -14,7 +14,7 @@ import { SelecionarResponsavelCadastroDialog } from "./SelecionarResponsavelCada
 import { AnexoPreviewDialog } from "./AnexoPreviewDialog";
 import { formatDateBR, formatDay } from "@/lib/date-utils";
 import { formatCentavosBRL } from "@/lib/reajuste-utils";
-import { useContratoProcessoPorImplantacao, useContratoProcessoPendencias, useContratoProcessoHistorico } from "@/hooks/useContratoProcessos";
+import { useContratoProcessoPorImplantacao, useContratoProcessoPendencias, useContratoProcessoHistorico, useRegistrarMovimentacaoProcesso } from "@/hooks/useContratoProcessos";
 import { useBloqueioValidacaoCruzada, useExecutarValidacaoCruzada, useValidacaoCruzada } from "@/hooks/useValidacaoCruzada";
 import { resumoValidacao, validarCruzado, type ValidacaoCruzadaRow } from "@/lib/validacao-cruzada";
 import { cn } from "@/lib/utils";
