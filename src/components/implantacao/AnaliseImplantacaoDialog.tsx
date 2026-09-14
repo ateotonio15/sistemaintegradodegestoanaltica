@@ -1671,118 +1671,6 @@ function pendenciasImpeditivasDeSetor(pendenciasList: any[], setores: string[]) 
   );
 }
 
-/**
- * Seção "Validações anteriores" — exclusiva da visualização do Cadastro.
- * Mostra apenas o status de cada setor envolvido, derivado do histórico e das
- * pendências já existentes do processo (sem criar regra nova de validação).
- */
-function ValidacoesAnterioresSection({ historico, pendenciasList }: {
-  historico: { acao: string }[];
-  pendenciasList: any[];
-}) {
-  const [parecerSetor, setParecerSetor] = useState<string | null>(null);
-
-  const temEvento = (...acoes: string[]) => historico.some((h) => acoes.includes(h.acao));
-  const pendenciasDo = (setor: string) =>
-    pendenciasList.filter((p) => pendenciaEmAberto(p.status) && p.setor === setor);
-
-  const linhas: {
-    setor: string;
-    nome: string;
-    concluido: boolean;
-    labelConcluido: string;
-    pendencias: any[];
-  }[] = [
-    {
-      setor: "comercial",
-      nome: "Comercial",
-      concluido: temEvento("documento_anexado", "documento_complementar"),
-      labelConcluido: "Documentação enviada",
-      pendencias: pendenciasDo("comercial"),
-    },
-    {
-      setor: "juridico",
-      nome: "Jurídico",
-      concluido: temEvento("parecer_juridico"),
-      labelConcluido: "Aprovado",
-      pendencias: pendenciasDo("juridico"),
-    },
-    {
-      setor: "financeiro",
-      nome: "Financeiro",
-      concluido: temEvento("parecer_financeiro"),
-      labelConcluido: "Validado",
-      pendencias: pendenciasDo("financeiro"),
-    },
-    {
-      setor: "diretoria",
-      nome: "Diretoria",
-      concluido: temEvento("aprovado", "aprovado_ressalva"),
-      labelConcluido: "Autorizado",
-      pendencias: pendenciasDo("diretoria"),
-    },
-  ];
-
-  return (
-    <Card className="overflow-hidden border-border bg-card shadow-sm">
-      <CardContent className="p-0">
-        <div className="border-b border-border bg-muted/20 px-4 py-2.5 sm:px-5">
-          <p className="text-[10px] font-semibold uppercase text-muted-foreground">Validações anteriores</p>
-        </div>
-        <div className="divide-y divide-border">
-          {linhas.map((linha) => {
-            const temPendencia = linha.pendencias.length > 0;
-            return (
-              <div key={linha.setor} className="px-4 py-3 sm:px-5">
-                <div className="flex flex-wrap items-center justify-between gap-2">
-                  <div className="min-w-0">
-                    <p className="text-sm font-semibold">{linha.nome}</p>
-                    {temPendencia ? (
-                      <p className="mt-0.5 inline-flex items-center gap-1.5 text-xs font-medium text-amber-700">
-                        <AlertTriangle className="h-3.5 w-3.5" /> Pendência
-                      </p>
-                    ) : linha.concluido ? (
-                      <p className="mt-0.5 inline-flex items-center gap-1.5 text-xs font-medium text-emerald-600">
-                        <CheckCircle2 className="h-3.5 w-3.5" /> {linha.labelConcluido}
-                      </p>
-                    ) : (
-                      <p className="mt-0.5 text-xs text-muted-foreground">Análise pendente</p>
-                    )}
-                  </div>
-                  {temPendencia && (
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="h-7 gap-1.5 px-2 text-xs"
-                      onClick={() => setParecerSetor((v) => (v === linha.setor ? null : linha.setor))}
-                      aria-expanded={parecerSetor === linha.setor}
-                    >
-                      <Eye className="h-3.5 w-3.5" />
-                      {parecerSetor === linha.setor ? "Ocultar parecer" : "Ver parecer"}
-                    </Button>
-                  )}
-                </div>
-                {temPendencia && parecerSetor === linha.setor && (
-                  <div className="mt-2 space-y-2">
-                    {linha.pendencias.map((p) => (
-                      <div key={p.id} className="rounded-md border border-amber-500/30 bg-amber-500/10 p-2 text-xs">
-                        <p className="font-medium">{p.titulo || "Pendência"}</p>
-                        {p.descricao && <p className="mt-1 text-muted-foreground">{p.descricao}</p>}
-                      </div>
-                    ))}
-                    <p className="text-[11px] text-muted-foreground">
-                      Somente o setor {linha.nome} pode alterar esta decisão.
-                    </p>
-                  </div>
-                )}
-              </div>
-            );
-          })}
-        </div>
-      </CardContent>
-    </Card>
-  );
-}
 
 interface Props {
   implantacaoId: string;
@@ -2099,10 +1987,6 @@ export function AnaliseImplantacaoDialog({ implantacaoId, open, onClose, readOnl
                 />
                 <ValidacaoDadosCadastroSection
                   itensValidacao={itensValidacao}
-                  pendenciasList={pendenciasList}
-                />
-                <ValidacoesAnterioresSection
-                  historico={historico}
                   pendenciasList={pendenciasList}
                 />
                 <DocumentosCadastroSection
