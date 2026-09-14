@@ -16,6 +16,7 @@ import { Loader2, Copy, Send, Search, RefreshCw, CheckCircle2, Clock, Bell, QrCo
 import { toast } from "sonner";
 import { formatDateBR } from "@/lib/date-utils";
 import { QRCodeCanvas } from "qrcode.react";
+import { getPublicBaseUrl } from "@/lib/public-url";
 
 const db = supabase as any;
 
@@ -102,14 +103,14 @@ export function EnviosAvaliacaoTab({ form }: Props) {
     }).select("id, token_unico").single();
     setCriando(null);
     if (error) { toast.error("Erro ao gerar link: " + error.message); return; }
-    const link = `${window.location.origin}/avaliar/${data.token_unico}`;
+    const link = `${getPublicBaseUrl()}/avaliar/${data.token_unico}`;
     await navigator.clipboard.writeText(link).catch(() => {});
     toast.success("Link gerado e copiado!");
     qc.invalidateQueries({ queryKey: ["avaliacoes-envios"] });
   };
 
   const copiarLink = async (token: string) => {
-    const link = `${window.location.origin}/avaliar/${token}`;
+    const link = `${getPublicBaseUrl()}/avaliar/${token}`;
     await navigator.clipboard.writeText(link);
     toast.success("Link copiado");
   };
@@ -279,7 +280,7 @@ export function EnviosAvaliacaoTab({ form }: Props) {
                   className="rounded-xl border border-border/60 bg-white p-3 shadow-sm"
                 >
                   <QRCodeCanvas
-                    value={`${window.location.origin}/avaliar/${qrModal.envio.token_unico}`}
+                    value={`${getPublicBaseUrl()}/avaliar/${qrModal.envio.token_unico}`}
                     size={240}
                     bgColor="#ffffff"
                     fgColor="#000000"
@@ -290,14 +291,14 @@ export function EnviosAvaliacaoTab({ form }: Props) {
 
                 <div className="w-full space-y-2">
                   <p className="text-xs text-muted-foreground break-all text-center">
-                    {window.location.origin}/avaliar/{qrModal.envio.token_unico}
+                    {getPublicBaseUrl()}/avaliar/{qrModal.envio.token_unico}
                   </p>
                   <div className="flex items-center justify-center gap-2">
                     <Button
                       size="sm"
                       variant="outline"
                       onClick={() =>
-                        copiarLinkTexto(`${window.location.origin}/avaliar/${qrModal.envio.token_unico}`)
+                        copiarLinkTexto(`${getPublicBaseUrl()}/avaliar/${qrModal.envio.token_unico}`)
                       }
                     >
                       <Copy className="h-3 w-3 mr-1" /> Copiar link
