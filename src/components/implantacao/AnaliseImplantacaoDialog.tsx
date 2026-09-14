@@ -1806,12 +1806,12 @@ export function AnaliseImplantacaoDialog({ implantacaoId, open, onClose, readOnl
   const [atribuirOpen, setAtribuirOpen] = useState(false);
   const [previewAnexo, setPreviewAnexo] = useState<{ storage_path: string; nome_arquivo: string; mime_type?: string } | null>(null);
   const [loadingAnexo, setLoadingAnexo] = useState<string | null>(null);
-  const [documentosAbertos, setDocumentosAbertos] = useState(false);
-  const documentosRef = useRef<HTMLDivElement>(null);
-
+  // Abre diretamente o documento principal da implantação (Contrato → Anexo I → Relatório de Vidas)
   const handleVerDocumentos = () => {
-    setDocumentosAbertos(true);
-    setTimeout(() => documentosRef.current?.scrollIntoView({ behavior: "smooth", block: "start" }), 50);
+    const doc = documentoPrincipalCadastro(anexos);
+    if (doc?.storage_path) {
+      handleVisualizarAnexo(doc.storage_path, doc.nome_arquivo);
+    }
   };
 
   const { data: impl } = useQuery({
@@ -2096,15 +2096,11 @@ export function AnaliseImplantacaoDialog({ implantacaoId, open, onClose, readOnl
                   historico={historico}
                   pendenciasList={pendenciasList}
                 />
-                <div ref={documentosRef}>
-                  <DocumentosCadastroSection
-                    anexos={anexos}
-                    onVisualizar={handleVisualizarAnexo}
-                    loading={loadingAnexo}
-                    open={documentosAbertos}
-                    onOpenChange={setDocumentosAbertos}
-                  />
-                </div>
+                <DocumentosCadastroSection
+                  anexos={anexos}
+                  onVisualizar={handleVisualizarAnexo}
+                  loading={loadingAnexo}
+                />
               </>
             )}
 
