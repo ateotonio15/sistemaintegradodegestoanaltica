@@ -1,7 +1,7 @@
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { Building2, CalendarDays, Eye, GitBranch, Trash2, User, Users } from "lucide-react";
+import { Building2, CalendarDays, CalendarRange, Eye, GitBranch, Trash2, User, Users } from "lucide-react";
 import { formatBRLFromCentavos } from "@/lib/cobranca-retroativa-calc";
 import { formatDateBR } from "@/lib/date-utils";
 import { statusBadge, statusLabel, setorLabel } from "@/lib/contrato-processo";
@@ -104,6 +104,16 @@ export function ContratoCardNovo({ linha, onOpen, onFluxo, onDelete }: Props) {
             <Users className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
             <span className="text-muted-foreground">Vidas:</span>
             <span className="font-medium">{i.total_vidas ?? 0}</span>
+          </p>
+          <p className="flex items-center gap-1.5 min-w-0">
+            <CalendarRange className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+            <span className="text-muted-foreground">Movimentação:</span>
+            <span className="truncate font-medium">{i.periodo_movimentacao || "Não informado"}</span>
+          </p>
+          <p className="flex items-center gap-1.5">
+            <CalendarDays className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+            <span className="text-muted-foreground">Data corte:</span>
+            <span className="font-medium">{i.data_corte ? String(i.data_corte).padStart(2, "0") : "Não informado"}</span>
           </p>
         </div>
 
