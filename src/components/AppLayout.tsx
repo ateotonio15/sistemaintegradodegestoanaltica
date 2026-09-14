@@ -33,6 +33,7 @@ import { SuspensaoBanner } from "@/components/empresas/SuspensaoBanner";
 import { CobrancaBanner } from "@/components/financeiro/CobrancaBanner";
 import { HondaAlertasBanner } from "@/components/honda/HondaAlertasBanner";
 import { HeaderTabs } from "@/components/HeaderTabs";
+import { SimularPerfilSwitcher, SimularPerfilBanner } from "@/components/SimularPerfilSwitcher";
 import { CadastroEmpresasPopover } from "@/components/CadastroEmpresasPopover";
 import { FloatingFilaChat } from "@/components/atendimentos/FloatingFilaChat";
 
