@@ -1670,6 +1670,9 @@ export function AnaliseImplantacaoDialog({ implantacaoId, open, onClose, readOnl
   const { data: pendenciasList = [] } = useContratoProcessoPendencias(open ? processo?.id : null);
   const { data: historico = [] } = useContratoProcessoHistorico(open ? processo?.id : null);
   const { bloqueado: bloqueioCritico } = useBloqueioValidacaoCruzada(open ? processo?.id : null);
+  // Etapas obrigatórias de outros setores com pendência impeditiva bloqueiam a liberação pelo Cadastro.
+  const pendenciasSetoresImpeditivas = pendenciasImpeditivasDeSetor(pendenciasList, ["juridico", "financeiro", "diretoria"]);
+  const bloqueioSetores = pendenciasSetoresImpeditivas.length > 0;
   const resumoCruzado = resumoValidacao(itensValidacao);
   const mapaValidacao = useMapaValidacao(itensValidacao);
 
