@@ -843,6 +843,17 @@ function isAnexoCadastro(a: any) {
   return false;
 }
 
+// Documento principal para abertura direta pelo Cadastro: Contrato → Anexo I → Relatório de Vidas → demais
+const PRIORIDADE_DOC_CADASTRO = ["contrato", "anexo_1", "relatorio_vidas", "primeira_cobranca"];
+
+function documentoPrincipalCadastro(anexos: any[]) {
+  for (const tipo of PRIORIDADE_DOC_CADASTRO) {
+    const doc = anexos.find((a) => String(a.tipo || "").toLowerCase() === tipo && a.storage_path);
+    if (doc) return doc;
+  }
+  return anexos.find((a) => a.storage_path) || null;
+}
+
 function tipoDocLabel(tipo?: string) {
   const t = String(tipo || "").toLowerCase();
   switch (t) {
