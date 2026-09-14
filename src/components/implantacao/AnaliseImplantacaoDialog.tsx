@@ -852,6 +852,13 @@ function documentoPrincipalCadastro(anexos: any[], prioridade: string[] = PRIORI
   for (const tipo of prioridade) {
     const doc = anexos.find((a) => String(a.tipo || "").toLowerCase() === tipo && a.storage_path);
     if (doc) return doc;
+    if (tipo === "anexo_1") {
+      const porNome = anexos.find((a) => {
+        const nome = String(a.nome_arquivo || "").toLowerCase();
+        return a.storage_path && nome.includes("anexo") && (nome.includes("1") || nome.includes("i "));
+      });
+      if (porNome) return porNome;
+    }
   }
   return anexos.find((a) => a.storage_path) || null;
 }
