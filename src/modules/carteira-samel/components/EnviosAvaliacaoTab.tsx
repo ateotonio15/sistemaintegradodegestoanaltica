@@ -1,22 +1,38 @@
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Loader2, Copy, Send, Search, RefreshCw, CheckCircle2, Clock, Bell } from "lucide-react";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from "@/components/ui/dialog";
+import { Loader2, Copy, Send, Search, RefreshCw, CheckCircle2, Clock, Bell, QrCode, Download } from "lucide-react";
 import { toast } from "sonner";
 import { formatDateBR } from "@/lib/date-utils";
+import { QRCodeCanvas } from "qrcode.react";
 
 const db = supabase as any;
 
 interface Props { form: any }
 
+interface QRModalState {
+  open: boolean;
+  empresa: any | null;
+  envio: any | null;
+}
+
 export function EnviosAvaliacaoTab({ form }: Props) {
   const qc = useQueryClient();
   const [busca, setBusca] = useState("");
   const [criando, setCriando] = useState<string | null>(null);
+  const [qrModal, setQrModal] = useState<QRModalState>({ open: false, empresa: null, envio: null });
+  const qrCanvasRef = useRef<HTMLDivElement>(null);
 
   const mesAtual = new Date().toISOString().slice(0, 7);
 
@@ -96,6 +112,37 @@ export function EnviosAvaliacaoTab({ form }: Props) {
     const link = `${window.location.origin}/avaliar/${token}`;
     await navigator.clipboard.writeText(link);
     toast.success("Link copiado");
+  };
+
+  const copiarLinkTexto = async (link: string) => {
+    await navigator.clipboard.writeText(link);
+    toast.success("Link copiado");
+  };
+
+  const abrirQRCode = (emp: any, env: any) => {
+    setQrModal({ open: true, empresa: emp, envio: env });
+  };
+
+  const baixarQRCodePNG = () => {
+    const canvas = qrCanvasRef.current?.querySelector("canvas") as HTMLCanvasElement | null;
+    if (!canvas) {
+      toast.error("QR Code ainda não renderizado");
+      return;
+    }
+    const url = canvas.toDataURL("image/png");
+    const nomeEmpresa = qrModal.empresa?.nome || "empresa";
+    const slug = nomeEmpresa
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, "-")
+      .replace(/^-+|-+$/g, "");
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `qrcode-${slug}.png`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
   };
 
   const gerarTodos = async () => {
@@ -188,9 +235,14 @@ export function EnviosAvaliacaoTab({ form }: Props) {
                             <span className="ml-1">Gerar link</span>
                           </Button>
                         ) : (
-                          <Button size="sm" variant="ghost" onClick={() => copiarLink(env.token_unico)}>
-                            <Copy className="h-3 w-3 mr-1" /> Copiar link
-                          </Button>
+                          <div className="flex items-center justify-end gap-1">
+                            <Button size="sm" variant="ghost" onClick={() => abrirQRCode(emp, env)}>
+                              <QrCode className="h-3 w-3 mr-1" /> QR Code
+                            </Button>
+                            <Button size="sm" variant="ghost" onClick={() => copiarLink(env.token_unico)}>
+                              <Copy className="h-3 w-3 mr-1" /> Copiar link
+                            </Button>
+                          </div>
                         )}
                       </td>
                     </tr>
@@ -204,6 +256,62 @@ export function EnviosAvaliacaoTab({ form }: Props) {
           </div>
         )}
       </Card>
+
+      <Dialog open={qrModal.open} onOpenChange={(open) => setQrModal({ ...qrModal, open })}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>QR Code de Avaliação</DialogTitle>
+            <DialogDescription>
+              {qrModal.empresa?.nome && (
+                <span className="block font-medium text-foreground">{qrModal.empresa.nome}</span>
+              )}
+              {qrModal.empresa?.executiva_nome && (
+                <span className="block text-xs">Executiva: {qrModal.empresa.executiva_nome}</span>
+              )}
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="flex flex-col items-center gap-4 py-2">
+            {qrModal.envio?.token_unico && (
+              <>
+                <div
+                  ref={qrCanvasRef}
+                  className="rounded-xl border border-border/60 bg-white p-3 shadow-sm"
+                >
+                  <QRCodeCanvas
+                    value={`${window.location.origin}/avaliar/${qrModal.envio.token_unico}`}
+                    size={240}
+                    bgColor="#ffffff"
+                    fgColor="#000000"
+                    level="M"
+                    includeMargin={false}
+                  />
+                </div>
+
+                <div className="w-full space-y-2">
+                  <p className="text-xs text-muted-foreground break-all text-center">
+                    {window.location.origin}/avaliar/{qrModal.envio.token_unico}
+                  </p>
+                  <div className="flex items-center justify-center gap-2">
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() =>
+                        copiarLinkTexto(`${window.location.origin}/avaliar/${qrModal.envio.token_unico}`)
+                      }
+                    >
+                      <Copy className="h-3 w-3 mr-1" /> Copiar link
+                    </Button>
+                    <Button size="sm" onClick={baixarQRCodePNG}>
+                      <Download className="h-3 w-3 mr-1" /> Baixar PNG
+                    </Button>
+                  </div>
+                </div>
+              </>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
