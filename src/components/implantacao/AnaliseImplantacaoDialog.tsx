@@ -898,6 +898,13 @@ export function AnaliseImplantacaoDialog({ implantacaoId, open, onClose, readOnl
   const [atribuirOpen, setAtribuirOpen] = useState(false);
   const [previewAnexo, setPreviewAnexo] = useState<{ storage_path: string; nome_arquivo: string; mime_type?: string } | null>(null);
   const [loadingAnexo, setLoadingAnexo] = useState<string | null>(null);
+  const [documentosAbertos, setDocumentosAbertos] = useState(false);
+  const documentosRef = useRef<HTMLDivElement>(null);
+
+  const handleVerDocumentos = () => {
+    setDocumentosAbertos(true);
+    setTimeout(() => documentosRef.current?.scrollIntoView({ behavior: "smooth", block: "start" }), 50);
+  };
 
   const { data: impl } = useQuery({
     queryKey: ["impl-analise", implantacaoId],
