@@ -727,64 +727,145 @@ function ResumoCadastro({ impl, processo }: {
       : null;
 
   return (
-    <div className="space-y-3">
-      <section className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4" aria-label="Resumo do contrato">
-        <div className="rounded-lg border border-border bg-card p-3 shadow-sm">
-          <p className="flex items-center gap-1.5 text-[10px] font-semibold uppercase text-muted-foreground">
-            <Users className="h-3.5 w-3.5" /> Total de Vidas
+    <section className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4" aria-label="Resumo do contrato">
+      <div className="rounded-lg border border-border bg-card p-3 shadow-sm">
+        <p className="flex items-center gap-1.5 text-[10px] font-semibold uppercase text-muted-foreground">
+          <Users className="h-3.5 w-3.5" /> Total de Vidas
+        </p>
+        <p className="mt-1 text-2xl font-bold tracking-tight">
+          {totalVidas ?? "Não informado"}
+        </p>
+        {totalVidas != null && (
+          <p className="text-[11px] text-muted-foreground">
+            {impl.vidas_titulares || 0} titulares · {impl.vidas_dependentes || 0} dependentes
           </p>
-          <p className="mt-1 text-2xl font-bold tracking-tight">
-            {totalVidas ?? "Não informado"}
-          </p>
-          {totalVidas != null && (
-            <p className="text-[11px] text-muted-foreground">
-              {impl.vidas_titulares || 0} titulares · {impl.vidas_dependentes || 0} dependentes
-            </p>
-          )}
-        </div>
-        <div className="rounded-lg border border-border bg-card p-3 shadow-sm">
-          <p className="flex items-center gap-1.5 text-[10px] font-semibold uppercase text-muted-foreground">
-            <FileText className="h-3.5 w-3.5" /> Contrato
-          </p>
-          <p className="mt-1 text-2xl font-bold tracking-tight">
-            {processo?.codigo || impl.codigo_contrato || "Não informado"}
-          </p>
-        </div>
-        <div className="rounded-lg border border-border bg-card p-3 shadow-sm">
-          <p className="flex items-center gap-1.5 text-[10px] font-semibold uppercase text-muted-foreground">
-            <Calendar className="h-3.5 w-3.5" /> Vigência / Implantação
-          </p>
-          <p className="mt-1 text-2xl font-bold tracking-tight">
-            {formatDateBR(impl.inicio_atendimento || impl.data_implantacao)}
-          </p>
-        </div>
-        <div className="rounded-lg border border-border bg-card p-3 shadow-sm">
-          <p className="flex items-center gap-1.5 text-[10px] font-semibold uppercase text-muted-foreground">
-            <Building2 className="h-3.5 w-3.5" /> Modalidade
-          </p>
-          <p className="mt-1 text-lg font-bold tracking-tight leading-tight">
-            {impl.modalidade || "Não informado"}
-          </p>
-        </div>
-      </section>
+        )}
+      </div>
+      <div className="rounded-lg border border-border bg-card p-3 shadow-sm">
+        <p className="flex items-center gap-1.5 text-[10px] font-semibold uppercase text-muted-foreground">
+          <FileText className="h-3.5 w-3.5" /> Contrato
+        </p>
+        <p className="mt-1 text-2xl font-bold tracking-tight">
+          {processo?.codigo || impl.codigo_contrato || "Não informado"}
+        </p>
+      </div>
+      <div className="rounded-lg border border-border bg-card p-3 shadow-sm">
+        <p className="flex items-center gap-1.5 text-[10px] font-semibold uppercase text-muted-foreground">
+          <Calendar className="h-3.5 w-3.5" /> Vigência / Implantação
+        </p>
+        <p className="mt-1 text-2xl font-bold tracking-tight">
+          {formatDateBR(impl.inicio_atendimento || impl.data_implantacao)}
+        </p>
+      </div>
+      <div className="rounded-lg border border-border bg-card p-3 shadow-sm">
+        <p className="flex items-center gap-1.5 text-[10px] font-semibold uppercase text-muted-foreground">
+          <Building2 className="h-3.5 w-3.5" /> Modalidade
+        </p>
+        <p className="mt-1 text-lg font-bold tracking-tight leading-tight">
+          {impl.modalidade || "Não informado"}
+        </p>
+      </div>
+    </section>
+  );
+}
 
-      <section className="overflow-hidden rounded-lg border border-border bg-card shadow-sm">
-        <div className="flex items-center gap-4 p-4 sm:p-5">
-          <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
-            <Building2 className="h-6 w-6" />
-          </div>
+function EmpresaDadosCadastraisSection({ impl, onVerDocumentos }: {
+  impl: any;
+  onVerDocumentos?: () => void;
+}) {
+  const [expanded, setExpanded] = useState(false);
+
+  const campos = [
+    { label: "Razão Social", value: impl.nome_empresa },
+    { label: "CNPJ", value: impl.cnpj },
+    { label: "Telefone", value: impl.telefone },
+    { label: "Endereço", value: impl.endereco },
+    { label: "CEP", value: impl.cep },
+    { label: "Inscrição Municipal", value: impl.inscricao_municipal },
+    { label: "Inscrição Estadual", value: impl.inscricao_estadual },
+    { label: "Grupo / Contrato", value: impl.grupo_contrato },
+    { label: "Código do contrato", value: impl.codigo_contrato },
+    { label: "Modalidade", value: impl.modalidade },
+    { label: "Tipo de contrato", value: impl.tipo_contrato },
+    { label: "Período de movimentação", value: impl.periodo_movimentacao },
+    { label: "Dia de vencimento", value: impl.data_vencimento != null ? String(impl.data_vencimento).padStart(2, "0") : null },
+    { label: "Corretora", value: impl.corretora },
+    { label: "Data de implantação", value: formatDateBR(impl.data_implantacao) },
+  ];
+
+  return (
+    <Card className="overflow-hidden border-border bg-card shadow-sm">
+      <CardContent className="p-0">
+        <div className="flex flex-col gap-4 p-4 sm:flex-row sm:items-start sm:justify-between sm:p-5">
           <div className="min-w-0">
-            <p className="text-[10px] font-semibold uppercase text-muted-foreground">Empresa</p>
-            <h3 className="mt-0.5 break-words text-lg font-bold leading-tight">
+            <p className="text-[10px] font-semibold uppercase text-muted-foreground">Empresa — Dados Cadastrais</p>
+            <h3 className="mt-1 break-words text-lg font-bold leading-tight">
               {impl.nome_empresa || "Empresa não informada"}
             </h3>
             <p className="mt-1 text-sm text-muted-foreground">
               CNPJ: {impl.cnpj || "Não informado"}
             </p>
           </div>
+          <div className="flex flex-wrap items-center gap-2 shrink-0">
+            <Button
+              variant="outline"
+              size="sm"
+              className="gap-1.5"
+              onClick={() => setExpanded((v) => !v)}
+              aria-expanded={expanded}
+            >
+              {expanded ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+              {expanded ? "Visualizar Menos" : "Visualizar Mais"}
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              className="gap-1.5"
+              onClick={onVerDocumentos}
+            >
+              <Paperclip className="h-4 w-4" />
+              Visualizar documentos
+            </Button>
+          </div>
         </div>
-      </section>
-    </div>
+
+        {expanded && (
+          <div className="border-t border-border bg-muted/20 p-4 sm:p-5">
+            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+              {campos.map((campo) => {
+                const vazio = campo.value == null || campo.value === "" || campo.value === "—";
+                return (
+                  <div
+                    key={campo.label}
+                    className={cn(
+                      "rounded-md p-2.5",
+                      vazio && "border border-amber-500/30 bg-amber-500/10"
+                    )}
+                  >
+                    <p className="text-[10px] uppercase tracking-wide text-muted-foreground">{campo.label}</p>
+                    <p
+                      className={cn(
+                        "mt-0.5 break-words text-sm font-medium leading-tight",
+                        vazio && "text-amber-700"
+                      )}
+                    >
+                      {vazio ? (
+                        <span className="inline-flex items-center gap-1.5">
+                          <AlertTriangle className="h-3.5 w-3.5" />
+                          Não informada
+                        </span>
+                      ) : (
+                        campo.value
+                      )}
+                    </p>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
+      </CardContent>
+    </Card>
   );
 }
 
