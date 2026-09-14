@@ -924,7 +924,11 @@ export function AnaliseImplantacaoDialog({ implantacaoId, open, onClose, readOnl
             <FileText className="h-5 w-5 text-primary" />
             Análise de Implantação
           </DialogTitle>
-          <DialogDescription>Revise os dados, anexos e histórico antes de aprovar ou solicitar correção.</DialogDescription>
+          <DialogDescription>
+            {isCadastro
+              ? "Revise os dados, documentos e informações da implantação antes de aprovar ou solicitar correção."
+              : "Revise os dados, anexos e histórico antes de aprovar ou solicitar correção."}
+          </DialogDescription>
         </DialogHeader>
 
         {!impl ? (
