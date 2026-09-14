@@ -169,7 +169,7 @@
 }
 
 @layer components {
-  .cadastro-analysis-surface {
+  :root:not(.dark) .cadastro-analysis-surface {
     --background: 220 20% 97%;
     --foreground: 222 47% 11%;
     --card: 0 0% 100%;
