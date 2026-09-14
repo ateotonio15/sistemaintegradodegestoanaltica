@@ -272,6 +272,8 @@ export const ACAO_LABEL: Record<string, string> = {
   encaminhado: "Encaminhado para outro setor",
   responsavel_alterado: "Responsável alterado",
   comentario: "Comentário registrado",
+  observacao_cadastro: "Observação do Cadastro",
+
   correcao: "Correção registrada",
   pendencia_aberta: "Pendência criada",
   pendencia_atualizada: "Pendência atualizada",
