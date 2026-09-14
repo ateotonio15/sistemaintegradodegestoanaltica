@@ -843,9 +843,9 @@ function isAnexoCadastro(a: any) {
   return false;
 }
 
-// Documento principal para abertura direta pelo Cadastro
-const PRIORIDADE_DOC_CADASTRO = ["contrato", "anexo_1", "relatorio_vidas", "primeira_cobranca"];
-// Na seção "Empresa — Dados Cadastrais", o documento de referência é o Anexo I
+// Documento principal para abertura direta pelo Cadastro: sempre o Anexo I primeiro
+const PRIORIDADE_DOC_CADASTRO = ["anexo_1", "contrato", "relatorio_vidas", "primeira_cobranca"];
+// Na seção "Empresa — Dados Cadastrais", o documento de referência também é o Anexo I
 const PRIORIDADE_DOC_EMPRESA = ["anexo_1", "contrato", "relatorio_vidas", "primeira_cobranca"];
 
 function documentoPrincipalCadastro(anexos: any[], prioridade: string[] = PRIORIDADE_DOC_CADASTRO) {
