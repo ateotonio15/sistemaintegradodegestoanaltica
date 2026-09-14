@@ -1035,12 +1035,20 @@ export function AnaliseImplantacaoDialog({ implantacaoId, open, onClose, readOnl
             {isCadastro && (
               <>
                 <ResumoCadastro impl={impl} processo={processo} />
-                <DocumentosVendasSection
-                  anexos={anexos}
-                  readOnly={readOnly}
-                  onVisualizar={handleVisualizarAnexo}
-                  loading={loadingAnexo}
+                <EmpresaDadosCadastraisSection
+                  impl={impl}
+                  onVerDocumentos={handleVerDocumentos}
                 />
+                <div ref={documentosRef}>
+                  <DocumentosVendasSection
+                    anexos={anexos}
+                    readOnly={readOnly}
+                    onVisualizar={handleVisualizarAnexo}
+                    loading={loadingAnexo}
+                    open={documentosAbertos}
+                    onOpenChange={setDocumentosAbertos}
+                  />
+                </div>
               </>
             )}
 
