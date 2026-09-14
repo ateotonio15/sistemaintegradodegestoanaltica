@@ -97,6 +97,18 @@ export default function ResponderPorToken() {
         </div>
         <h1 className="text-xl font-bold">Avaliação enviada!</h1>
         <p className="text-sm text-muted-foreground">Obrigado por compartilhar sua opinião.</p>
+        <Button
+          variant="outline"
+          className="w-full"
+          onClick={() => {
+            setRespostas({});
+            setComentario("");
+            setEnviado(false);
+          }}
+        >
+          Responder outra avaliação
+        </Button>
+
       </Card>
     </div>
   );
