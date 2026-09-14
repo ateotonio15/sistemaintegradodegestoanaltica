@@ -152,6 +152,8 @@ function AdminOuInternoGate() {
 }
 
 function HomeRoute() {
+  const { isVendas } = useAuth();
+  if (isVendas) return <Navigate to="/dashboard/vendas" replace />;
   return <Home />;
 }
 
