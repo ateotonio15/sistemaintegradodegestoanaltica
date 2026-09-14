@@ -226,23 +226,42 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const signOut = async () => {
     clearSessionNamespace("financeiro");
+    try { localStorage.removeItem(SIMULACAO_STORAGE_KEY); } catch { /* ignore */ }
+    setSimulatedRoleState(null);
     await supabase.auth.signOut();
   };
 
+  const canSimulate = role === "admin";
+  const simulatedRole = canSimulate ? simulatedRoleState : null;
+  const effectiveRole: UserRole = simulatedRole ?? role;
+
+  const setSimulatedRole = useCallback((next: UserRole) => {
+    setSimulatedRoleState(next);
+    try {
+      if (next) localStorage.setItem(SIMULACAO_STORAGE_KEY, next);
+      else localStorage.removeItem(SIMULACAO_STORAGE_KEY);
+    } catch { /* ignore */ }
+  }, []);
+
   return (
     <AuthContext.Provider value={{
-      user, session, loading, role,
-      isAdmin: role === "admin",
-      isExecutivo: role === "executivo",
-      isExecutivoExterno: role === "executivo_externo",
-      isViewOnly: role === "visualizacao" || role === "diretora",
-      isEnfermeira: role === "enfermeira" || role === "tec_enfermagem",
-      isTecEnfermagem: role === "tec_enfermagem",
-      isFinanceiro: role === "financeiro",
-      isComum: role === "comum" || role === "administradoras",
-      isVendas: role === "vendas",
-      isDiretora: role === "diretora",
-      isAdministradoras: role === "administradoras",
+      user, session, loading, role: effectiveRole,
+      realRole: role,
+      simulatedRole,
+      isSimulating: !!simulatedRole,
+      canSimulate,
+      setSimulatedRole,
+      isAdmin: effectiveRole === "admin",
+      isExecutivo: effectiveRole === "executivo",
+      isExecutivoExterno: effectiveRole === "executivo_externo",
+      isViewOnly: effectiveRole === "visualizacao" || effectiveRole === "diretora",
+      isEnfermeira: effectiveRole === "enfermeira" || effectiveRole === "tec_enfermagem",
+      isTecEnfermagem: effectiveRole === "tec_enfermagem",
+      isFinanceiro: effectiveRole === "financeiro",
+      isComum: effectiveRole === "comum" || effectiveRole === "administradoras",
+      isVendas: effectiveRole === "vendas",
+      isDiretora: effectiveRole === "diretora",
+      isAdministradoras: effectiveRole === "administradoras",
       isAdminInterno,
       isAdminEmpresa,
       isCorretora: !!corretoraId,
