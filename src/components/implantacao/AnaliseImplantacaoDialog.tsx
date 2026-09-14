@@ -1324,6 +1324,10 @@ export function AnaliseImplantacaoDialog({ implantacaoId, open, onClose, readOnl
                   pendenciasList={pendenciasList}
                   onVisualizarAnexo={handleVisualizarAnexo}
                 />
+                <CondicoesComerciaisSection
+                  impl={impl}
+                  itensValidacao={itensValidacao}
+                />
                 <div ref={documentosRef}>
                   <DocumentosVendasSection
                     anexos={anexos}
