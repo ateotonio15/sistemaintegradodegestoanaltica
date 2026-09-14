@@ -2148,12 +2148,23 @@ export function AnaliseImplantacaoDialog({ implantacaoId, open, onClose, readOnl
               </div>
             )}
 
+            {isCadastro && bloqueioSetores && (
+              <div className="flex items-start gap-2 rounded-lg border border-amber-500/30 bg-amber-500/10 p-3 text-xs text-amber-700">
+                <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
+                <span>
+                  Aprovação final bloqueada: existe pendência impeditiva em outro setor
+                  ({[...new Set(pendenciasSetoresImpeditivas.map((p) => setorLabel(p.setor)))].join(", ")}).
+                  Aguarde a conclusão da etapa obrigatória para liberar o contrato.
+                </span>
+              </div>
+            )}
+
             {/* Ação Cadastro: Liberar contrato */}
             {readOnly && impl.status !== "implantado" && impl.status !== "rejeitado" && (
               <div className={cn("border-t pt-2", isCadastro && "sticky bottom-0 z-10 -mx-6 bg-background px-6 pb-1 shadow-[0_-8px_20px_-16px_hsl(var(--foreground))]")}>
                 <Button
                   onClick={() => liberar.mutate()}
-                  disabled={liberar.isPending || bloqueioCritico}
+                  disabled={liberar.isPending || bloqueioCritico || bloqueioSetores}
                   className="w-full gap-2 bg-emerald-600 hover:bg-emerald-700"
                 >
                   <Rocket className="h-4 w-4" /> {liberar.isPending ? "Liberando…" : "Liberar contrato"}
