@@ -207,28 +207,24 @@ export default function Implantacao() {
           ))}
         </div>
 
-        {/* Etapas — régua de abas visível apenas para Vendas */}
+        {/* Etapas */}
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
-          {isVendas ? (
-            <Tabs value={etapa} onValueChange={(v) => setEtapa(v as EtapaFiltro)} className="w-full md:w-auto">
-              <TabsList className="w-full md:w-auto">
-                <TabsTrigger value="em_andamento" className="gap-2">
-                  Em implantação
-                  <Badge variant="secondary" className="text-xs px-1.5 py-0">
-                    {items.filter((i) => i.status !== "implantado").length}
-                  </Badge>
-                </TabsTrigger>
-                <TabsTrigger value="implantados" className="gap-2">
-                  Implantados
-                  <Badge variant="secondary" className="text-xs px-1.5 py-0">
-                    {items.filter((i) => i.status === "implantado").length}
-                  </Badge>
-                </TabsTrigger>
-              </TabsList>
-            </Tabs>
-          ) : (
-            <div />
-          )}
+          <Tabs value={etapa} onValueChange={(v) => setEtapa(v as EtapaFiltro)} className="w-full md:w-auto">
+            <TabsList className="w-full md:w-auto">
+              <TabsTrigger value="em_andamento" className="gap-2">
+                Em implantação
+                <Badge variant="secondary" className="text-xs px-1.5 py-0">
+                  {items.filter((i) => i.status !== "implantado").length}
+                </Badge>
+              </TabsTrigger>
+              <TabsTrigger value="implantados" className="gap-2">
+                Implantados
+                <Badge variant="secondary" className="text-xs px-1.5 py-0">
+                  {items.filter((i) => i.status === "implantado").length}
+                </Badge>
+              </TabsTrigger>
+            </TabsList>
+          </Tabs>
           <div className="flex items-center gap-1 shrink-0">
             <Button
               size="sm"

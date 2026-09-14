@@ -24,6 +24,41 @@ function parseISODateLocal(iso: string) {
   return new Date(y, (m || 1) - 1, d || 1);
 }
 
+function ReguaImplantacao({ item }: { item: any }) {
+  const etapas = [
+    { label: "Criação", data: item.created_at },
+    { label: "Diretoria", data: item.enviado_diretoria_em },
+    { label: "Cadastro", data: item.enviado_cadastro_em },
+    { label: "Implantado", data: item.implantado_em },
+  ];
+
+  return (
+    <div className="flex items-center gap-1 mt-3" aria-label="Régua da implantação">
+      {etapas.map((etapa, index) => {
+        const concluida = Boolean(etapa.data);
+        return (
+          <div key={etapa.label} className="flex items-center flex-1 last:flex-none">
+            <div className="flex flex-col items-center gap-1 min-w-[58px]">
+              <span
+                className={`h-2.5 w-2.5 rounded-full border-2 ${
+                  concluida ? "bg-primary border-primary" : "bg-background border-muted-foreground/30"
+                }`}
+                title={etapa.data ? `${etapa.label}: ${formatDateBR(etapa.data)}` : etapa.label}
+              />
+              <span className={`text-[10px] ${concluida ? "text-foreground" : "text-muted-foreground"}`}>
+                {etapa.label}
+              </span>
+            </div>
+            {index < etapas.length - 1 && (
+              <span className={`h-0.5 flex-1 ${concluida ? "bg-primary/60" : "bg-muted-foreground/20"}`} />
+            )}
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
 export default function DashboardVendas() {
   const { user } = useAuth();
   const qc = useQueryClient();
@@ -265,7 +300,8 @@ export default function DashboardVendas() {
                             <span>{i.total_vidas || 0} vidas ativas</span>
                             {i.modalidade && <span>· {i.modalidade}</span>}
                             {i.acomodacao && <span>· {i.acomodacao}</span>}
-                            {i.data_vigencia && <span>· Vigência {formatDateBR(i.data_vigencia)}</span>}
+                            {i.inicio_atendimento && <span>· Movimentação: {formatDateBR(i.inicio_atendimento)}</span>}
+                            {i.data_vigencia && <span>· Vigência: dia {formatDay(i.data_vigencia)}</span>}
                             {i.data_vencimento && <span>· Venc. dia {formatDay(i.data_vencimento)}</span>}
                             {i.corretora && <span>· {i.corretora}</span>}
                           </div>
@@ -275,7 +311,8 @@ export default function DashboardVendas() {
                               <span className="text-amber-600"> · Correção: {i.motivo_correcao}</span>
                             )}
                           </div>
-                          <Progress value={i.progresso || 0} className="h-1.5 mt-2" />
+                           <Progress value={i.progresso || 0} className="h-1.5 mt-2" />
+                           <ReguaImplantacao item={i} />
                         </div>
                         <ChevronRight className="h-4 w-4 text-muted-foreground group-hover:translate-x-0.5 transition-transform" />
                       </button>

@@ -493,8 +493,8 @@ export function ImplantacoesAndamentoCard() {
                     </div>
                   )}
 
-                  {/* Timeline */}
-                  <MiniTimeline row={row} />
+                  {/* Régua exclusiva do perfil Vendas */}
+                  {isVendas && <MiniTimeline row={row} />}
                 </div>
               );
             })}
