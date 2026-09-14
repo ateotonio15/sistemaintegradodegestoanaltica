@@ -108,6 +108,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [corretoraPortalSecoes, setCorretoraPortalSecoes] = useState<Record<string, boolean> | null>(null);
   const [corretoraEmpresas, setCorretoraEmpresas] = useState<{ id: string; nome: string }[]>([]);
   const [activeEmpresaId, setActiveEmpresaId] = useState<string | null>(null);
+  const [simulatedRoleState, setSimulatedRoleState] = useState<UserRole>(() => {
+    try {
+      const stored = localStorage.getItem(SIMULACAO_STORAGE_KEY);
+      return (stored as UserRole) ?? null;
+    } catch {
+      return null;
+    }
+  });
   const roleRef = useRef<UserRole>(null);
   const lastUserIdRef = useRef<string | null>(null);
   const roleRequestRef = useRef(0);
