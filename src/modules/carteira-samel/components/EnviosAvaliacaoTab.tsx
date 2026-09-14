@@ -235,9 +235,14 @@ export function EnviosAvaliacaoTab({ form }: Props) {
                             <span className="ml-1">Gerar link</span>
                           </Button>
                         ) : (
-                          <Button size="sm" variant="ghost" onClick={() => copiarLink(env.token_unico)}>
-                            <Copy className="h-3 w-3 mr-1" /> Copiar link
-                          </Button>
+                          <div className="flex items-center justify-end gap-1">
+                            <Button size="sm" variant="ghost" onClick={() => abrirQRCode(emp, env)}>
+                              <QrCode className="h-3 w-3 mr-1" /> QR Code
+                            </Button>
+                            <Button size="sm" variant="ghost" onClick={() => copiarLink(env.token_unico)}>
+                              <Copy className="h-3 w-3 mr-1" /> Copiar link
+                            </Button>
+                          </div>
                         )}
                       </td>
                     </tr>
