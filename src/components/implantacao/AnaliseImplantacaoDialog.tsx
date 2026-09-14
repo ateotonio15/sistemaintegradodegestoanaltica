@@ -1636,7 +1636,19 @@ export function AnaliseImplantacaoDialog({ implantacaoId, open, onClose, readOnl
   const { toast } = useToast();
   const { role } = useAuth();
   const isCadastro = role === "comum" || role === "administradoras";
+  const { user } = useAuth();
   const [obs, setObs] = useState("");
+  const [obsCadastro, setObsCadastro] = useState("");
+  const registrarObs = useRegistrarMovimentacaoProcesso();
+  const { data: meuNome = "" } = useQuery({
+    queryKey: ["meu-display-name", user?.id],
+    queryFn: async () => {
+      const { data } = await supabase.from("profiles").select("display_name, username").eq("user_id", user!.id).maybeSingle();
+      return ((data as any)?.display_name || (data as any)?.username || "") as string;
+    },
+    enabled: open && !!user?.id,
+  });
+
   const [motivo, setMotivo] = useState("");
   const [visualizarMais, setVisualizarMais] = useState(false);
   const [mode, setMode] = useState<"view" | "correcao" | "rejeicao">("view");
