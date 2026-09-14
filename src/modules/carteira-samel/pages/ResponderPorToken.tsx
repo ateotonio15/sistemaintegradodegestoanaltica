@@ -32,12 +32,8 @@ export default function ResponderPorToken() {
         setLoading(false);
         return;
       }
-      if (env.data_resposta) {
-        setErro("Esta avaliação já foi respondida. Obrigado!");
-        setLoading(false);
-        return;
-      }
       setEnvio(env);
+
       const { data: frows } = await db.rpc("get_avaliacao_formulario_por_token", { p_token: token });
       const f = Array.isArray(frows) ? frows[0] : frows;
       if (f) setForm(f);
