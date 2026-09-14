@@ -14,12 +14,15 @@ import { SelecionarResponsavelCadastroDialog } from "./SelecionarResponsavelCada
 import { AnexoPreviewDialog } from "./AnexoPreviewDialog";
 import { formatDateBR, formatDay } from "@/lib/date-utils";
 import { formatCentavosBRL } from "@/lib/reajuste-utils";
-import { useContratoProcessoPorImplantacao, useContratoProcessoPendencias, useContratoProcessoHistorico, useRegistrarMovimentacaoProcesso } from "@/hooks/useContratoProcessos";
+import { useContratoProcessoPorImplantacao, useContratoProcessoPendencias, useContratoProcessoHistorico, useRegistrarMovimentacaoProcesso, useEncaminharContratoProcesso, useCriarPendenciaProcesso } from "@/hooks/useContratoProcessos";
 import { useBloqueioValidacaoCruzada, useExecutarValidacaoCruzada, useValidacaoCruzada } from "@/hooks/useValidacaoCruzada";
 import { resumoValidacao, validarCruzado, type ValidacaoCruzadaRow } from "@/lib/validacao-cruzada";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
 import {
   setorLabel, statusGeralLabel, statusLabel, pendenciaEmAberto,
+  PENDENCIA_CATEGORIAS, SETOR_POR_CATEGORIA,
+  type PendenciaCategoria, type ProcessoSetor,
   type ProcessoStatusGeral,
 } from "@/lib/contrato-processo";
 
