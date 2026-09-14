@@ -1808,9 +1808,9 @@ export function AnaliseImplantacaoDialog({ implantacaoId, open, onClose, readOnl
   const [atribuirOpen, setAtribuirOpen] = useState(false);
   const [previewAnexo, setPreviewAnexo] = useState<{ storage_path: string; nome_arquivo: string; mime_type?: string } | null>(null);
   const [loadingAnexo, setLoadingAnexo] = useState<string | null>(null);
-  // Abre diretamente o documento principal da implantação (Contrato → Anexo I → Relatório de Vidas)
+  // Na seção da Empresa, abre diretamente o Anexo I (documento de referência do cadastro)
   const handleVerDocumentos = () => {
-    const doc = documentoPrincipalCadastro(anexos);
+    const doc = documentoPrincipalCadastro(anexos, PRIORIDADE_DOC_EMPRESA);
     if (doc?.storage_path) {
       handleVisualizarAnexo(doc.storage_path, doc.nome_arquivo);
     }
