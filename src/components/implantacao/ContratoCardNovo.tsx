@@ -94,12 +94,7 @@ export function ContratoCardNovo({ linha, onOpen, onFluxo, onDelete }: Props) {
         )}
 
         {/* Dados */}
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-y-1 gap-x-6 text-sm">
-          <p className="flex items-center gap-1.5 min-w-0">
-            <Building2 className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
-            <span className="text-muted-foreground">Corretora:</span>
-            <span className="truncate font-medium">{i.corretora || "Não informado"}</span>
-          </p>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-y-1 gap-x-6 text-sm">
           <p className="flex items-center gap-1.5 min-w-0">
             <User className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
             <span className="text-muted-foreground">Vendedor:</span>
@@ -113,6 +108,11 @@ export function ContratoCardNovo({ linha, onOpen, onFluxo, onDelete }: Props) {
         </div>
 
         <div className="text-sm text-amber-600 dark:text-amber-500 space-y-0.5">
+          <p className="flex items-center gap-1.5 min-w-0">
+            <Building2 className="h-3.5 w-3.5 shrink-0" />
+            <span>Corretora:</span>
+            <span className="truncate font-medium">{i.corretora || "Não informado"}</span>
+          </p>
           <p className="flex items-center gap-1.5">
             <CalendarDays className="h-3.5 w-3.5 shrink-0" />
             Início da Vigência: {i.data_vigencia ? formatDateBR(i.data_vigencia) : "Não informado"}
