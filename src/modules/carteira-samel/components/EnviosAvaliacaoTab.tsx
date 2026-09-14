@@ -114,6 +114,37 @@ export function EnviosAvaliacaoTab({ form }: Props) {
     toast.success("Link copiado");
   };
 
+  const copiarLinkTexto = async (link: string) => {
+    await navigator.clipboard.writeText(link);
+    toast.success("Link copiado");
+  };
+
+  const abrirQRCode = (emp: any, env: any) => {
+    setQrModal({ open: true, empresa: emp, envio: env });
+  };
+
+  const baixarQRCodePNG = () => {
+    const canvas = qrCanvasRef.current?.querySelector("canvas") as HTMLCanvasElement | null;
+    if (!canvas) {
+      toast.error("QR Code ainda não renderizado");
+      return;
+    }
+    const url = canvas.toDataURL("image/png");
+    const nomeEmpresa = qrModal.empresa?.nome || "empresa";
+    const slug = nomeEmpresa
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, "-")
+      .replace(/^-+|-+$/g, "");
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `qrcode-${slug}.png`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
   const gerarTodos = async () => {
     const pendentes = filtradas.filter((e: any) => !envioPorEmpresa.has(e.id));
     if (pendentes.length === 0) { toast.info("Todas as empresas já possuem envio neste mês"); return; }
