@@ -1512,9 +1512,8 @@ export function AnaliseImplantacaoDialog({ implantacaoId, open, onClose, readOnl
                   itensValidacao={itensValidacao}
                 />
                 <div ref={documentosRef}>
-                  <DocumentosVendasSection
+                  <DocumentosCadastroSection
                     anexos={anexos}
-                    readOnly={readOnly}
                     onVisualizar={handleVisualizarAnexo}
                     loading={loadingAnexo}
                     open={documentosAbertos}
