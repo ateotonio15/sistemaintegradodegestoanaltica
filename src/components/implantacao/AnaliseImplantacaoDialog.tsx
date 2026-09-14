@@ -277,6 +277,189 @@ function ObservacaoCadastroSection({
   );
 }
 
+/** Devolver para Correção: escolhe o setor de destino e exige motivo. */
+function DevolverCorrecaoDialog({
+  open,
+  onOpenChange,
+  onConfirm,
+  loading,
+}: {
+  open: boolean;
+  onOpenChange: (v: boolean) => void;
+  onConfirm: (setor: ProcessoSetor, motivo: string) => void;
+  loading: boolean;
+}) {
+  const [setor, setSetor] = useState<ProcessoSetor>("comercial");
+  const [motivo, setMotivo] = useState("");
+  return (
+    <Dialog open={open} onOpenChange={(v) => { if (!loading) onOpenChange(v); }}>
+      <DialogContent className="cadastro-analysis-surface max-w-md">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2 text-amber-600">
+            <AlertTriangle className="h-5 w-5" /> Devolver para Correção
+          </DialogTitle>
+          <DialogDescription>Escolha o setor de destino e descreva o que precisa ser corrigido.</DialogDescription>
+        </DialogHeader>
+        <div className="space-y-3">
+          <div className="space-y-1.5">
+            <label className="text-sm font-medium">Setor de destino *</label>
+            <Select value={setor} onValueChange={(v) => setSetor(v as ProcessoSetor)}>
+              <SelectTrigger><SelectValue placeholder="Selecione o setor" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="comercial">Comercial</SelectItem>
+                <SelectItem value="juridico">Jurídico</SelectItem>
+                <SelectItem value="financeiro">Financeiro</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="space-y-1.5">
+            <label className="text-sm font-medium">Motivo *</label>
+            <Textarea value={motivo} onChange={(e) => setMotivo(e.target.value)} rows={4}
+              placeholder="Descreva o que precisa ser corrigido…" />
+          </div>
+        </div>
+        <div className="flex justify-end gap-2">
+          <Button variant="ghost" disabled={loading} onClick={() => onOpenChange(false)}>Cancelar</Button>
+          <Button
+            className="gap-2 bg-amber-600 hover:bg-amber-700"
+            disabled={!motivo.trim() || loading}
+            onClick={() => onConfirm(setor, motivo.trim())}
+          >
+            {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <AlertTriangle className="h-4 w-4" />}
+            {loading ? "Enviando…" : "Devolver"}
+          </Button>
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+/** Pendenciar: registra pendência do Cadastro quando a análise não pode ser concluída. */
+function PendenciarDialog({
+  open,
+  onOpenChange,
+  onConfirm,
+  loading,
+}: {
+  open: boolean;
+  onOpenChange: (v: boolean) => void;
+  onConfirm: (input: { motivo: string; categoria: PendenciaCategoria; observacao: string }) => void;
+  loading: boolean;
+}) {
+  const [motivo, setMotivo] = useState("");
+  const [categoria, setCategoria] = useState<PendenciaCategoria>("Cadastral");
+  const [observacao, setObservacao] = useState("");
+  const valido = !!motivo.trim() && !!observacao.trim();
+  return (
+    <Dialog open={open} onOpenChange={(v) => { if (!loading) onOpenChange(v); }}>
+      <DialogContent className="cadastro-analysis-surface max-w-md">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2 text-red-600">
+            <XCircle className="h-5 w-5" /> Pendenciar análise
+          </DialogTitle>
+          <DialogDescription>Registre a pendência que impede a conclusão da análise agora.</DialogDescription>
+        </DialogHeader>
+        <div className="space-y-3">
+          <div className="space-y-1.5">
+            <label className="text-sm font-medium">Motivo *</label>
+            <input
+              className="h-9 w-full rounded-md border border-input bg-background px-3 text-sm"
+              value={motivo}
+              onChange={(e) => setMotivo(e.target.value)}
+              placeholder="Ex.: Aguardando relatório de vidas corrigido"
+            />
+          </div>
+          <div className="space-y-1.5">
+            <label className="text-sm font-medium">Tipo da pendência *</label>
+            <Select value={categoria} onValueChange={(v) => setCategoria(v as PendenciaCategoria)}>
+              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectContent>
+                {PENDENCIA_CATEGORIAS.map((c) => (
+                  <SelectItem key={c} value={c}>{c}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="space-y-1.5">
+            <label className="text-sm font-medium">Observação *</label>
+            <Textarea value={observacao} onChange={(e) => setObservacao(e.target.value)} rows={3}
+              placeholder="Detalhe a pendência para o setor responsável…" />
+          </div>
+        </div>
+        <div className="flex justify-end gap-2">
+          <Button variant="ghost" disabled={loading} onClick={() => onOpenChange(false)}>Cancelar</Button>
+          <Button
+            className="gap-2 bg-red-600 hover:bg-red-700"
+            disabled={!valido || loading}
+            onClick={() => onConfirm({ motivo: motivo.trim(), categoria, observacao: observacao.trim() })}
+          >
+            {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <XCircle className="h-4 w-4" />}
+            {loading ? "Registrando…" : "Registrar pendência"}
+          </Button>
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+/** Confirmação da aprovação final da implantação pelo Cadastro. */
+function ConfirmarAprovacaoDialog({
+  open,
+  onOpenChange,
+  impl,
+  onConfirm,
+  loading,
+}: {
+  open: boolean;
+  onOpenChange: (v: boolean) => void;
+  impl: any;
+  onConfirm: () => void;
+  loading: boolean;
+}) {
+  const vidas = (impl?.vidas_titulares ?? 0) + (impl?.vidas_dependentes ?? 0) || impl?.total_vidas || 0;
+  return (
+    <Dialog open={open} onOpenChange={(v) => { if (!loading) onOpenChange(v); }}>
+      <DialogContent className="cadastro-analysis-surface max-w-md">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2 text-emerald-600">
+            <CheckCircle2 className="h-5 w-5" /> Aprovar esta implantação?
+          </DialogTitle>
+          <DialogDescription>Confira os dados antes de confirmar a aprovação.</DialogDescription>
+        </DialogHeader>
+        <div className="space-y-2 rounded-xl border bg-muted/30 p-3 text-sm">
+          <div>
+            <p className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">Empresa</p>
+            <p className="font-semibold">{impl?.nome_empresa || "—"}</p>
+          </div>
+          <div className="grid grid-cols-3 gap-2">
+            <div>
+              <p className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">Contrato</p>
+              <p className="font-semibold">{impl?.codigo_contrato || "—"}</p>
+            </div>
+            <div>
+              <p className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">Vidas</p>
+              <p className="font-semibold">{vidas}</p>
+            </div>
+            <div>
+              <p className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">Implantação</p>
+              <p className="font-semibold">{impl?.data_implantacao ? formatDateBR(impl.data_implantacao) : "—"}</p>
+            </div>
+          </div>
+        </div>
+        <div className="flex justify-end gap-2">
+          <Button variant="ghost" disabled={loading} onClick={() => onOpenChange(false)}>Cancelar</Button>
+          <Button className="gap-2 bg-emerald-600 hover:bg-emerald-700" disabled={loading} onClick={onConfirm}>
+            {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <CheckCircle2 className="h-4 w-4" />}
+            {loading ? "Aprovando…" : "Confirmar Aprovação"}
+          </Button>
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+
+
 
 
 function MetricaPonto({
