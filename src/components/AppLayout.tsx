@@ -187,7 +187,7 @@ export function AppLayout({ children }: { children?: React.ReactNode }) {
       if ((item.to === "/uber" || item.to === "/uber/dashboard") && !isAdmin && role !== "executivo") return false;
       if (item.adminOnly && !isAdmin) return false;
       if (item.to === "/financeiro" && !isAdmin && !isFinanceiro && role !== "comum" && role !== "administradoras" && role !== "visualizacao") return false;
-      if (item.to === "/implantacao" && !isAdmin && role !== "comum" && role !== "administradoras" && role !== "visualizacao" && role !== "diretora") return false;
+      if (item.to === "/implantacao" && !isAdmin && role !== "comum" && role !== "administradoras" && role !== "visualizacao" && role !== "diretora" && role !== "vendas") return false;
       if (item.to === "/contratos-recem-implantados" && !isAdmin && !isFinanceiro && role !== "comum" && role !== "administradoras" && role !== "diretora") return false;
       if (item.to === "/arquivos" && !isAdmin && !isFinanceiro) return false;
       if (item.to === "/vidas" && !isAdmin && !["diretora","comum","administradoras","vendas"].includes(role as string)) return false;
