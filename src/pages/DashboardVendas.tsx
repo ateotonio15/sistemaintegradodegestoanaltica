@@ -60,7 +60,7 @@ function ReguaImplantacao({ item }: { item: any }) {
 }
 
 export default function DashboardVendas() {
-  const { user } = useAuth();
+  const { user, isVendas } = useAuth();
   const qc = useQueryClient();
   const [openId, setOpenId] = useState<string | null>(null);
   const [search, setSearch] = useState("");
@@ -312,7 +312,7 @@ export default function DashboardVendas() {
                             )}
                           </div>
                            <Progress value={i.progresso || 0} className="h-1.5 mt-2" />
-                           <ReguaImplantacao item={i} />
+                           {isVendas && <ReguaImplantacao item={i} />}
                         </div>
                         <ChevronRight className="h-4 w-4 text-muted-foreground group-hover:translate-x-0.5 transition-transform" />
                       </button>
