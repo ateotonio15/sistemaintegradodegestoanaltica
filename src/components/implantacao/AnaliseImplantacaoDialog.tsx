@@ -14,12 +14,15 @@ import { SelecionarResponsavelCadastroDialog } from "./SelecionarResponsavelCada
 import { AnexoPreviewDialog } from "./AnexoPreviewDialog";
 import { formatDateBR, formatDay } from "@/lib/date-utils";
 import { formatCentavosBRL } from "@/lib/reajuste-utils";
-import { useContratoProcessoPorImplantacao, useContratoProcessoPendencias, useContratoProcessoHistorico, useRegistrarMovimentacaoProcesso } from "@/hooks/useContratoProcessos";
+import { useContratoProcessoPorImplantacao, useContratoProcessoPendencias, useContratoProcessoHistorico, useRegistrarMovimentacaoProcesso, useEncaminharContratoProcesso, useCriarPendenciaProcesso } from "@/hooks/useContratoProcessos";
 import { useBloqueioValidacaoCruzada, useExecutarValidacaoCruzada, useValidacaoCruzada } from "@/hooks/useValidacaoCruzada";
 import { resumoValidacao, validarCruzado, type ValidacaoCruzadaRow } from "@/lib/validacao-cruzada";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
 import {
   setorLabel, statusGeralLabel, statusLabel, pendenciaEmAberto,
+  PENDENCIA_CATEGORIAS, SETOR_POR_CATEGORIA,
+  type PendenciaCategoria, type ProcessoSetor,
   type ProcessoStatusGeral,
 } from "@/lib/contrato-processo";
 
@@ -276,6 +279,189 @@ function ObservacaoCadastroSection({
     </section>
   );
 }
+
+/** Devolver para Correção: escolhe o setor de destino e exige motivo. */
+function DevolverCorrecaoDialog({
+  open,
+  onOpenChange,
+  onConfirm,
+  loading,
+}: {
+  open: boolean;
+  onOpenChange: (v: boolean) => void;
+  onConfirm: (setor: ProcessoSetor, motivo: string) => void;
+  loading: boolean;
+}) {
+  const [setor, setSetor] = useState<ProcessoSetor>("comercial");
+  const [motivo, setMotivo] = useState("");
+  return (
+    <Dialog open={open} onOpenChange={(v) => { if (!loading) onOpenChange(v); }}>
+      <DialogContent className="cadastro-analysis-surface max-w-md">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2 text-amber-600">
+            <AlertTriangle className="h-5 w-5" /> Devolver para Correção
+          </DialogTitle>
+          <DialogDescription>Escolha o setor de destino e descreva o que precisa ser corrigido.</DialogDescription>
+        </DialogHeader>
+        <div className="space-y-3">
+          <div className="space-y-1.5">
+            <label className="text-sm font-medium">Setor de destino *</label>
+            <Select value={setor} onValueChange={(v) => setSetor(v as ProcessoSetor)}>
+              <SelectTrigger><SelectValue placeholder="Selecione o setor" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="comercial">Comercial</SelectItem>
+                <SelectItem value="juridico">Jurídico</SelectItem>
+                <SelectItem value="financeiro">Financeiro</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="space-y-1.5">
+            <label className="text-sm font-medium">Motivo *</label>
+            <Textarea value={motivo} onChange={(e) => setMotivo(e.target.value)} rows={4}
+              placeholder="Descreva o que precisa ser corrigido…" />
+          </div>
+        </div>
+        <div className="flex justify-end gap-2">
+          <Button variant="ghost" disabled={loading} onClick={() => onOpenChange(false)}>Cancelar</Button>
+          <Button
+            className="gap-2 bg-amber-600 hover:bg-amber-700"
+            disabled={!motivo.trim() || loading}
+            onClick={() => onConfirm(setor, motivo.trim())}
+          >
+            {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <AlertTriangle className="h-4 w-4" />}
+            {loading ? "Enviando…" : "Devolver"}
+          </Button>
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+/** Pendenciar: registra pendência do Cadastro quando a análise não pode ser concluída. */
+function PendenciarDialog({
+  open,
+  onOpenChange,
+  onConfirm,
+  loading,
+}: {
+  open: boolean;
+  onOpenChange: (v: boolean) => void;
+  onConfirm: (input: { motivo: string; categoria: PendenciaCategoria; observacao: string }) => void;
+  loading: boolean;
+}) {
+  const [motivo, setMotivo] = useState("");
+  const [categoria, setCategoria] = useState<PendenciaCategoria>("Cadastral");
+  const [observacao, setObservacao] = useState("");
+  const valido = !!motivo.trim() && !!observacao.trim();
+  return (
+    <Dialog open={open} onOpenChange={(v) => { if (!loading) onOpenChange(v); }}>
+      <DialogContent className="cadastro-analysis-surface max-w-md">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2 text-red-600">
+            <XCircle className="h-5 w-5" /> Pendenciar análise
+          </DialogTitle>
+          <DialogDescription>Registre a pendência que impede a conclusão da análise agora.</DialogDescription>
+        </DialogHeader>
+        <div className="space-y-3">
+          <div className="space-y-1.5">
+            <label className="text-sm font-medium">Motivo *</label>
+            <input
+              className="h-9 w-full rounded-md border border-input bg-background px-3 text-sm"
+              value={motivo}
+              onChange={(e) => setMotivo(e.target.value)}
+              placeholder="Ex.: Aguardando relatório de vidas corrigido"
+            />
+          </div>
+          <div className="space-y-1.5">
+            <label className="text-sm font-medium">Tipo da pendência *</label>
+            <Select value={categoria} onValueChange={(v) => setCategoria(v as PendenciaCategoria)}>
+              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectContent>
+                {PENDENCIA_CATEGORIAS.map((c) => (
+                  <SelectItem key={c} value={c}>{c}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="space-y-1.5">
+            <label className="text-sm font-medium">Observação *</label>
+            <Textarea value={observacao} onChange={(e) => setObservacao(e.target.value)} rows={3}
+              placeholder="Detalhe a pendência para o setor responsável…" />
+          </div>
+        </div>
+        <div className="flex justify-end gap-2">
+          <Button variant="ghost" disabled={loading} onClick={() => onOpenChange(false)}>Cancelar</Button>
+          <Button
+            className="gap-2 bg-red-600 hover:bg-red-700"
+            disabled={!valido || loading}
+            onClick={() => onConfirm({ motivo: motivo.trim(), categoria, observacao: observacao.trim() })}
+          >
+            {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <XCircle className="h-4 w-4" />}
+            {loading ? "Registrando…" : "Registrar pendência"}
+          </Button>
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+/** Confirmação da aprovação final da implantação pelo Cadastro. */
+function ConfirmarAprovacaoDialog({
+  open,
+  onOpenChange,
+  impl,
+  onConfirm,
+  loading,
+}: {
+  open: boolean;
+  onOpenChange: (v: boolean) => void;
+  impl: any;
+  onConfirm: () => void;
+  loading: boolean;
+}) {
+  const vidas = (impl?.vidas_titulares ?? 0) + (impl?.vidas_dependentes ?? 0) || impl?.total_vidas || 0;
+  return (
+    <Dialog open={open} onOpenChange={(v) => { if (!loading) onOpenChange(v); }}>
+      <DialogContent className="cadastro-analysis-surface max-w-md">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2 text-emerald-600">
+            <CheckCircle2 className="h-5 w-5" /> Aprovar esta implantação?
+          </DialogTitle>
+          <DialogDescription>Confira os dados antes de confirmar a aprovação.</DialogDescription>
+        </DialogHeader>
+        <div className="space-y-2 rounded-xl border bg-muted/30 p-3 text-sm">
+          <div>
+            <p className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">Empresa</p>
+            <p className="font-semibold">{impl?.nome_empresa || "—"}</p>
+          </div>
+          <div className="grid grid-cols-3 gap-2">
+            <div>
+              <p className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">Contrato</p>
+              <p className="font-semibold">{impl?.codigo_contrato || "—"}</p>
+            </div>
+            <div>
+              <p className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">Vidas</p>
+              <p className="font-semibold">{vidas}</p>
+            </div>
+            <div>
+              <p className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">Implantação</p>
+              <p className="font-semibold">{impl?.data_implantacao ? formatDateBR(impl.data_implantacao) : "—"}</p>
+            </div>
+          </div>
+        </div>
+        <div className="flex justify-end gap-2">
+          <Button variant="ghost" disabled={loading} onClick={() => onOpenChange(false)}>Cancelar</Button>
+          <Button className="gap-2 bg-emerald-600 hover:bg-emerald-700" disabled={loading} onClick={onConfirm}>
+            {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <CheckCircle2 className="h-4 w-4" />}
+            {loading ? "Aprovando…" : "Confirmar Aprovação"}
+          </Button>
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+
 
 
 
@@ -1835,6 +2021,134 @@ export function AnaliseImplantacaoDialog({ implantacaoId, open, onClose, readOnl
     onError: (e: any) => toast({ title: e?.message || "Erro ao liberar contrato", variant: "destructive" }),
   });
 
+  // ---- Ações do rodapé exclusivo do Cadastro ----
+  const encaminhar = useEncaminharContratoProcesso();
+  const criarPendencia = useCriarPendenciaProcesso();
+  const [devolverOpen, setDevolverOpen] = useState(false);
+  const [pendenciarOpen, setPendenciarOpen] = useState(false);
+  const [aprovarOpen, setAprovarOpen] = useState(false);
+
+  /** Condições impeditivas verificadas antes da aprovação final do Cadastro. */
+  const impedimentosAprovacao = useMemo(() => {
+    if (!impl) return [] as string[];
+    const lista: string[] = [];
+    const temAnexo = (tipo: string) => anexos.some((a: any) => a.tipo === tipo);
+    const faltandoDocs = [
+      ["anexo_1", "Anexo I"],
+      ["contrato", "Contrato"],
+    ].filter(([tipo]) => !temAnexo(tipo as string)).map(([, label]) => label as string);
+    if (faltandoDocs.length) lista.push(`Documentos obrigatórios ausentes: ${faltandoDocs.join(", ")}`);
+    if (!temAnexo("relatorio_vidas")) lista.push("Relatório de Vidas não anexado");
+
+    const cadastraisFaltando = [
+      ["nome_empresa", "Razão Social"],
+      ["cnpj", "CNPJ"],
+      ["codigo_contrato", "Código do contrato"],
+      ["modalidade", "Modalidade"],
+      ["data_implantacao", "Data de implantação"],
+    ].filter(([campo]) => !impl[campo as string]).map(([, label]) => label as string);
+    if (cadastraisFaltando.length) lista.push(`Dados cadastrais obrigatórios ausentes: ${cadastraisFaltando.join(", ")}`);
+
+    if (bloqueioCritico) lista.push("Divergência crítica em aberto na validação cruzada");
+    if (bloqueioSetores)
+      lista.push(
+        `Etapa obrigatória pendente em outro setor (${[...new Set(pendenciasSetoresImpeditivas.map((p) => setorLabel(p.setor)))].join(", ")})`,
+      );
+    const pendCadastro = pendenciasList.filter(
+      (p: any) => pendenciaEmAberto(p.status) && (p.criticidade === "Alta" || p.criticidade === "Crítica"),
+    );
+    if (pendCadastro.length && !bloqueioSetores) lista.push(`${pendCadastro.length} pendência(s) impeditiva(s) em aberto`);
+    return lista;
+  }, [impl, anexos, bloqueioCritico, bloqueioSetores, pendenciasSetoresImpeditivas, pendenciasList]);
+
+  const podeAprovar = impedimentosAprovacao.length === 0;
+
+  const handleDevolver = (setor: ProcessoSetor, motivoTexto: string) => {
+    if (!processo?.id) {
+      toast({ title: "Processo do contrato não encontrado", variant: "destructive" });
+      return;
+    }
+    encaminhar.mutate(
+      {
+        processoId: processo.id,
+        setorDestino: setor,
+        responsavelId: user?.id ?? null,
+        responsavelNome: meuNome || null,
+        observacao: `Devolvido pelo Cadastro: ${motivoTexto}`,
+      },
+      {
+        onSuccess: async () => {
+          await supabase.rpc("solicitar_correcao_implantacao" as any, { p_impl: implantacaoId, p_motivo: motivoTexto });
+          qc.invalidateQueries({ queryKey: ["implantacoes"] });
+          qc.invalidateQueries({ queryKey: ["impl-analise", implantacaoId] });
+          qc.invalidateQueries({ queryKey: ["impl-alertas"] });
+          setDevolverOpen(false);
+          toast({ title: `Contrato devolvido para ${setorLabel(setor)}` });
+          onClose();
+        },
+        onError: (e: any) => toast({ title: e?.message || "Erro ao devolver o contrato", variant: "destructive" }),
+      },
+    );
+  };
+
+  const handlePendenciar = (input: { motivo: string; categoria: PendenciaCategoria; observacao: string }) => {
+    if (!processo?.id) {
+      toast({ title: "Processo do contrato não encontrado", variant: "destructive" });
+      return;
+    }
+    criarPendencia.mutate(
+      {
+        processoId: processo.id,
+        setor: SETOR_POR_CATEGORIA[input.categoria] ?? "cadastro",
+        titulo: input.motivo,
+        descricao: input.observacao,
+        categoria: input.categoria,
+        criticidade: "Alta",
+        responsavelId: user?.id ?? null,
+        responsavelNome: meuNome || null,
+      },
+      {
+        onSuccess: () => {
+          registrarObs.mutate({
+            processoId: processo.id,
+            acao: "pendencia_cadastro",
+            observacao: `${input.motivo} — ${input.observacao}`,
+            responsavelId: user?.id ?? null,
+            responsavelNome: meuNome || null,
+            detalhes: { origem: "Cadastro", tipo: input.categoria },
+          });
+          setPendenciarOpen(false);
+          toast({ title: "Pendência registrada no histórico do contrato" });
+        },
+        onError: (e: any) => toast({ title: e?.message || "Erro ao registrar pendência", variant: "destructive" }),
+      },
+    );
+  };
+
+  const handleAprovarCadastro = () => {
+    if (!podeAprovar) {
+      toast({ title: "Existe condição impeditiva para aprovar esta implantação", variant: "destructive" });
+      return;
+    }
+    liberar.mutate(undefined, {
+      onSuccess: () => {
+        if (processo?.id) {
+          registrarObs.mutate({
+            processoId: processo.id,
+            acao: "aprovado_cadastro",
+            observacao: obsCadastro.trim() || "Implantação aprovada pelo Cadastro",
+            responsavelId: user?.id ?? null,
+            responsavelNome: meuNome || null,
+            detalhes: { origem: "Cadastro" },
+          });
+        }
+        setAprovarOpen(false);
+      },
+    });
+  };
+
+
+
   const handleVisualizarAnexo = (path: string, name: string) => {
     if (!path) {
       toast({ title: "Anexo sem caminho de arquivo", variant: "destructive" });
@@ -2268,9 +2582,46 @@ export function AnaliseImplantacaoDialog({ implantacaoId, open, onClose, readOnl
               </div>
             )}
 
-            {/* Ação Cadastro: Liberar contrato */}
-            {readOnly && impl.status !== "implantado" && impl.status !== "rejeitado" && (
-              <div className={cn("border-t pt-2", isCadastro && "sticky bottom-0 z-10 -mx-6 bg-background px-6 pb-1 shadow-[0_-8px_20px_-16px_hsl(var(--foreground))]")}>
+            {/* Rodapé exclusivo do Cadastro */}
+            {isCadastro && readOnly && impl.status !== "implantado" && impl.status !== "rejeitado" && (
+              <div className="sticky bottom-0 z-10 -mx-6 space-y-2 border-t bg-background px-6 pb-1 pt-3 shadow-[0_-8px_20px_-16px_hsl(var(--foreground))]">
+                {!podeAprovar && (
+                  <div className="flex items-start gap-2 rounded-lg border border-amber-500/30 bg-amber-500/10 p-2.5 text-xs text-amber-700">
+                    <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+                    <span>
+                      Aprovação bloqueada: {impedimentosAprovacao.join(" · ")}
+                    </span>
+                  </div>
+                )}
+                <div className="flex flex-col gap-2 sm:flex-row">
+                  <Button
+                    variant="outline"
+                    className="flex-1 gap-2 border-amber-500/60 text-amber-600 hover:bg-amber-500/10"
+                    onClick={() => setDevolverOpen(true)}
+                  >
+                    <AlertTriangle className="h-4 w-4" /> Devolver para Correção
+                  </Button>
+                  <Button
+                    variant="outline"
+                    className="flex-1 gap-2 border-red-500/60 text-red-600 hover:bg-red-500/10"
+                    onClick={() => setPendenciarOpen(true)}
+                  >
+                    <XCircle className="h-4 w-4" /> Pendenciar
+                  </Button>
+                  <Button
+                    className="flex-1 gap-2 bg-emerald-600 hover:bg-emerald-700"
+                    disabled={!podeAprovar || liberar.isPending}
+                    onClick={() => setAprovarOpen(true)}
+                  >
+                    <Rocket className="h-4 w-4" /> Aprovar Implantação
+                  </Button>
+                </div>
+              </div>
+            )}
+
+            {/* Ação Cadastro (perfis sem a visualização compacta): Liberar contrato */}
+            {!isCadastro && readOnly && impl.status !== "implantado" && impl.status !== "rejeitado" && (
+              <div className="border-t pt-2">
                 <Button
                   onClick={() => liberar.mutate()}
                   disabled={liberar.isPending || bloqueioCritico || bloqueioSetores}
@@ -2335,6 +2686,25 @@ export function AnaliseImplantacaoDialog({ implantacaoId, open, onClose, readOnl
         anexo={previewAnexo}
         open={!!previewAnexo}
         onOpenChange={(v) => { if (!v) setPreviewAnexo(null); }}
+      />
+      <DevolverCorrecaoDialog
+        open={devolverOpen}
+        onOpenChange={setDevolverOpen}
+        onConfirm={handleDevolver}
+        loading={encaminhar.isPending}
+      />
+      <PendenciarDialog
+        open={pendenciarOpen}
+        onOpenChange={setPendenciarOpen}
+        onConfirm={handlePendenciar}
+        loading={criarPendencia.isPending}
+      />
+      <ConfirmarAprovacaoDialog
+        open={aprovarOpen}
+        onOpenChange={setAprovarOpen}
+        impl={impl}
+        onConfirm={handleAprovarCadastro}
+        loading={liberar.isPending}
       />
     </Dialog>
   );

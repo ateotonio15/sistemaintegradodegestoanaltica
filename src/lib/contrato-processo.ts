@@ -273,6 +273,8 @@ export const ACAO_LABEL: Record<string, string> = {
   responsavel_alterado: "Responsável alterado",
   comentario: "Comentário registrado",
   observacao_cadastro: "Observação do Cadastro",
+  pendencia_cadastro: "Pendência registrada pelo Cadastro",
+  aprovado_cadastro: "Implantação aprovada pelo Cadastro",
 
   correcao: "Correção registrada",
   pendencia_aberta: "Pendência criada",
@@ -305,6 +307,8 @@ export const ACAO_TOM: Record<string, string> = {
   responsavel_alterado: "bg-cyan-500",
   comentario: "bg-muted-foreground",
   observacao_cadastro: "bg-sky-500",
+  pendencia_cadastro: "bg-red-500",
+  aprovado_cadastro: "bg-emerald-500",
 
   correcao: "bg-amber-500",
   pendencia_aberta: "bg-amber-500",
