@@ -937,16 +937,7 @@ export function AnaliseImplantacaoDialog({ implantacaoId, open, onClose, readOnl
           <div className="space-y-5">
             {isCadastro && (
               <>
-                <ResumoCadastro
-                  impl={impl}
-                  processo={processo}
-                  pendencias={processo?.pendencias_abertas ?? 0}
-                  divergencias={
-                    impl.relatorio_validacao == null && itensValidacao.length === 0
-                      ? null
-                      : Number(impl.relatorio_validacao?.erros ?? 0) + resumoCruzado.divergentes
-                  }
-                />
+                <ResumoCadastro impl={impl} processo={processo} />
                 <DocumentosVendasSection
                   anexos={anexos}
                   readOnly={readOnly}
