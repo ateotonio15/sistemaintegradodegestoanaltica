@@ -85,6 +85,11 @@ const AuthContext = createContext<AuthContextType>({
   empresaVinculadaId: null,
   mustChangePassword: false,
   canEditFinanceiro: false,
+  realRole: null,
+  simulatedRole: null,
+  isSimulating: false,
+  canSimulate: false,
+  setSimulatedRole: () => {},
   signOut: async () => {},
   refreshAuthFlags: async () => {},
 });
