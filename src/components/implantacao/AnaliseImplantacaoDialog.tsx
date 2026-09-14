@@ -1671,6 +1671,10 @@ export function AnaliseImplantacaoDialog({ implantacaoId, open, onClose, readOnl
                   impl={impl}
                   itensValidacao={itensValidacao}
                 />
+                <ValidacaoDadosCadastroSection
+                  itensValidacao={itensValidacao}
+                  pendenciasList={pendenciasList}
+                />
                 <div ref={documentosRef}>
                   <DocumentosCadastroSection
                     anexos={anexos}
