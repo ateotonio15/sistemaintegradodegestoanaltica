@@ -95,10 +95,10 @@ export function ContratoCardNovo({ linha, onOpen, onFluxo, onDelete }: Props) {
 
         {/* Dados */}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-y-1 gap-x-6 text-sm">
-          <p className="flex items-center gap-1.5 min-w-0">
+          <p className="flex items-center gap-1.5 min-w-0" title={i.responsavel_cadastro_nome || i.created_by_nome || ""}>
             <User className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
             <span className="text-muted-foreground">Vendedor:</span>
-            <span className="truncate font-medium">{i.created_by_nome || "Não informado"}</span>
+            <span className="truncate font-medium">{i.responsavel_cadastro_nome || i.created_by_nome || "Não informado"}</span>
           </p>
           <p className="flex items-center gap-1.5">
             <Users className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
