@@ -16,6 +16,7 @@ import { ImplantacaoWizard } from "@/components/implantacao/ImplantacaoWizard";
 import { AnaliseImplantacaoDialog } from "@/components/implantacao/AnaliseImplantacaoDialog";
 import { ProcessoFluxoDialog } from "@/components/implantacao/ProcessoFluxoDialog";
 import { ContratosTabela } from "@/components/implantacao/ContratosTabela";
+import { ContratoCardNovo } from "@/components/implantacao/ContratoCardNovo";
 import { ContratosFiltrosBar, useContratosFiltros } from "@/components/implantacao/ContratosFiltros";
 import { useContratoProcessos } from "@/hooks/useContratoProcessos";
 import { setorLabel, statusBadge, statusLabel } from "@/lib/contrato-processo";
