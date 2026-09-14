@@ -1726,7 +1726,7 @@ export default function Empresas() {
             <SelectContent>
               <SelectItem value="all">Todas as executivas</SelectItem>
               {executivoUsers.map((u) => (
-                <SelectItem key={u.user_id} value={u.user_id}>{u.display_name}</SelectItem>
+                <SelectItem key={u.user_id} value={u.user_id}>{u.display_name || u.username || u.user_id}</SelectItem>
               ))}
             </SelectContent>
           </Select>
