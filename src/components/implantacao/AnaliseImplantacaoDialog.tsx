@@ -2232,7 +2232,14 @@ export function AnaliseImplantacaoDialog({ implantacaoId, open, onClose, readOnl
                     responsavelId: user?.id ?? null,
                     responsavelNome: meuNome || null,
                     detalhes: { origem: "Cadastro" },
+                  }, {
+                    onSuccess: () => {
+                      setObsCadastro("");
+                      toast({ title: "Observação registrada no histórico do contrato" });
+                    },
+                    onError: (e: any) => toast({ title: e?.message || "Erro ao registrar observação", variant: "destructive" }),
                   })
+
                 }
                 salvando={registrarObs.isPending}
                 habilitado={!!processo?.id}
