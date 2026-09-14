@@ -32,12 +32,8 @@ export default function ResponderPorToken() {
         setLoading(false);
         return;
       }
-      if (env.data_resposta) {
-        setErro("Esta avaliação já foi respondida. Obrigado!");
-        setLoading(false);
-        return;
-      }
       setEnvio(env);
+
       const { data: frows } = await db.rpc("get_avaliacao_formulario_por_token", { p_token: token });
       const f = Array.isArray(frows) ? frows[0] : frows;
       if (f) setForm(f);
@@ -101,6 +97,18 @@ export default function ResponderPorToken() {
         </div>
         <h1 className="text-xl font-bold">Avaliação enviada!</h1>
         <p className="text-sm text-muted-foreground">Obrigado por compartilhar sua opinião.</p>
+        <Button
+          variant="outline"
+          className="w-full"
+          onClick={() => {
+            setRespostas({});
+            setComentario("");
+            setEnviado(false);
+          }}
+        >
+          Responder outra avaliação
+        </Button>
+
       </Card>
     </div>
   );
