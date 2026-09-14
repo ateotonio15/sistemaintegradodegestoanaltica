@@ -14,7 +14,7 @@ import { SelecionarResponsavelCadastroDialog } from "./SelecionarResponsavelCada
 import { AnexoPreviewDialog } from "./AnexoPreviewDialog";
 import { formatDateBR, formatDay } from "@/lib/date-utils";
 import { formatCentavosBRL } from "@/lib/reajuste-utils";
-import { useContratoProcessoPorImplantacao, useContratoProcessoPendencias, useContratoProcessoHistorico } from "@/hooks/useContratoProcessos";
+import { useContratoProcessoPorImplantacao, useContratoProcessoPendencias, useContratoProcessoHistorico, useRegistrarMovimentacaoProcesso } from "@/hooks/useContratoProcessos";
 import { useBloqueioValidacaoCruzada, useExecutarValidacaoCruzada, useValidacaoCruzada } from "@/hooks/useValidacaoCruzada";
 import { resumoValidacao, validarCruzado, type ValidacaoCruzadaRow } from "@/lib/validacao-cruzada";
 import { cn } from "@/lib/utils";
@@ -207,6 +207,77 @@ function dataHoraCurta(iso?: string | null) {
   if (isNaN(d.getTime())) return "—";
   return `${formatDateBR(d)} ${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`;
 }
+
+/** Observação do Cadastro: vinculada ao contrato, com usuário, data/hora e registro no histórico. */
+function ObservacaoCadastroSection({
+  historico,
+  valor,
+  onChange,
+  onRegistrar,
+  salvando,
+  habilitado,
+  obrigatoria = false,
+}: {
+  historico: any[];
+  valor: string;
+  onChange: (v: string) => void;
+  onRegistrar: () => void;
+  salvando: boolean;
+  habilitado: boolean;
+  obrigatoria?: boolean;
+}) {
+  const anteriores = historico.filter((m) => m.acao === "observacao_cadastro");
+  const vazia = !valor.trim();
+
+  return (
+    <section className="rounded-xl border bg-card p-4 space-y-3">
+      <div className="flex items-center justify-between gap-2">
+        <h3 className="text-sm font-semibold">
+          Observação do Cadastro {obrigatoria ? <span className="text-red-600">*</span> : <span className="text-xs font-normal text-muted-foreground">(opcional)</span>}
+        </h3>
+        {anteriores.length > 0 && (
+          <Badge variant="outline" className="text-xs">{anteriores.length} registrada(s)</Badge>
+        )}
+      </div>
+
+      <Textarea
+        value={valor}
+        onChange={(e) => onChange(e.target.value)}
+        placeholder="Adicione uma observação sobre a análise, se necessário..."
+        rows={3}
+      />
+
+      {obrigatoria && vazia && (
+        <p className="flex items-center gap-1.5 text-xs text-amber-700">
+          <AlertTriangle className="h-3.5 w-3.5" /> A observação é obrigatória para devolver para correção, reprovar ou aprovar com ressalva.
+        </p>
+      )}
+
+      <div className="flex justify-end">
+        <Button size="sm" variant="outline" className="gap-2" disabled={vazia || salvando || !habilitado} onClick={onRegistrar}>
+          <Check className="h-4 w-4" /> {salvando ? "Registrando…" : "Registrar observação"}
+        </Button>
+      </div>
+
+      {anteriores.length > 0 && (
+        <div className="space-y-2 border-t pt-3">
+          {anteriores.map((m) => (
+            <div key={m.id} className="rounded-lg border bg-muted/30 p-2.5 text-xs">
+              <div className="flex flex-wrap items-center gap-2 text-muted-foreground">
+                <Badge variant="outline" className="text-[10px]">Cadastro</Badge>
+                <span className="font-medium text-foreground">{m.responsavel_nome || "Usuário do Cadastro"}</span>
+                <span>· {dataHoraCurta(m.created_at)}</span>
+              </div>
+              {m.observacao && <p className="mt-1 whitespace-pre-wrap">{m.observacao}</p>}
+            </div>
+          ))}
+        </div>
+      )}
+    </section>
+  );
+}
+
+
 
 function MetricaPonto({
   label,
@@ -1636,7 +1707,19 @@ export function AnaliseImplantacaoDialog({ implantacaoId, open, onClose, readOnl
   const { toast } = useToast();
   const { role } = useAuth();
   const isCadastro = role === "comum" || role === "administradoras";
+  const { user } = useAuth();
   const [obs, setObs] = useState("");
+  const [obsCadastro, setObsCadastro] = useState("");
+  const registrarObs = useRegistrarMovimentacaoProcesso();
+  const { data: meuNome = "" } = useQuery({
+    queryKey: ["meu-display-name", user?.id],
+    queryFn: async () => {
+      const { data } = await supabase.from("profiles").select("display_name, username").eq("user_id", user!.id).maybeSingle();
+      return ((data as any)?.display_name || (data as any)?.username || "") as string;
+    },
+    enabled: open && !!user?.id,
+  });
+
   const [motivo, setMotivo] = useState("");
   const [visualizarMais, setVisualizarMais] = useState(false);
   const [mode, setMode] = useState<"view" | "correcao" | "rejeicao">("view");
@@ -2136,6 +2219,32 @@ export function AnaliseImplantacaoDialog({ implantacaoId, open, onClose, readOnl
               </Button>
             )}
 
+            {isCadastro && (
+              <ObservacaoCadastroSection
+                historico={historico}
+                valor={obsCadastro}
+                onChange={setObsCadastro}
+                onRegistrar={() =>
+                  registrarObs.mutate({
+                    processoId: processo!.id,
+                    acao: "observacao_cadastro",
+                    observacao: obsCadastro.trim(),
+                    responsavelId: user?.id ?? null,
+                    responsavelNome: meuNome || null,
+                    detalhes: { origem: "Cadastro" },
+                  }, {
+                    onSuccess: () => {
+                      setObsCadastro("");
+                      toast({ title: "Observação registrada no histórico do contrato" });
+                    },
+                    onError: (e: any) => toast({ title: e?.message || "Erro ao registrar observação", variant: "destructive" }),
+                  })
+
+                }
+                salvando={registrarObs.isPending}
+                habilitado={!!processo?.id}
+              />
+            )}
 
 
             {bloqueioCritico && (
