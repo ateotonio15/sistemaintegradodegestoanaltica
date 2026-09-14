@@ -2687,6 +2687,25 @@ export function AnaliseImplantacaoDialog({ implantacaoId, open, onClose, readOnl
         open={!!previewAnexo}
         onOpenChange={(v) => { if (!v) setPreviewAnexo(null); }}
       />
+      <DevolverCorrecaoDialog
+        open={devolverOpen}
+        onOpenChange={setDevolverOpen}
+        onConfirm={handleDevolver}
+        loading={encaminhar.isPending}
+      />
+      <PendenciarDialog
+        open={pendenciarOpen}
+        onOpenChange={setPendenciarOpen}
+        onConfirm={handlePendenciar}
+        loading={criarPendencia.isPending}
+      />
+      <ConfirmarAprovacaoDialog
+        open={aprovarOpen}
+        onOpenChange={setAprovarOpen}
+        impl={impl}
+        onConfirm={handleAprovarCadastro}
+        loading={liberar.isPending}
+      />
     </Dialog>
   );
 }
