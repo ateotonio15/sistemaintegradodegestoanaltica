@@ -6,19 +6,42 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { Input } from "@/components/ui/input";
-import { FileSignature, Plus, Send, AlertTriangle, CheckCircle2, Clock, Users, TrendingUp, Search, ChevronRight, XCircle } from "lucide-react";
+import { IsoDatePicker } from "@/components/ui/iso-date-picker";
+import { FileSignature, Plus, Send, AlertTriangle, CheckCircle2, Clock, Users, TrendingUp, Search, ChevronRight, XCircle, ClipboardCheck, RotateCcw } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { ImplantacaoWizard } from "@/components/implantacao/ImplantacaoWizard";
-import { STATUS_META, STATUS_ORDER } from "@/lib/implantacao-status";
+import { STATUS_META } from "@/lib/implantacao-status";
 import { formatDateBR, formatDay } from "@/lib/date-utils";
+
+function isSameLocalDay(iso: string | null | undefined, ref: Date) {
+  if (!iso) return false;
+  const d = new Date(iso);
+  return d.getFullYear() === ref.getFullYear() && d.getMonth() === ref.getMonth() && d.getDate() === ref.getDate();
+}
+
+function parseISODateLocal(iso: string) {
+  const [y, m, d] = iso.split("-").map(Number);
+  return new Date(y, (m || 1) - 1, d || 1);
+}
 
 export default function DashboardVendas() {
   const { user } = useAuth();
   const qc = useQueryClient();
   const [openId, setOpenId] = useState<string | null>(null);
   const [search, setSearch] = useState("");
+  const [dataInicio, setDataInicio] = useState<string | null>(null);
+  const [dataFim, setDataFim] = useState<string | null>(null);
 
-  const { data: items = [] } = useQuery({
+  const { data: profile } = useQuery({
+    queryKey: ["profile-nome", user?.id],
+    queryFn: async () => {
+      const { data } = await supabase.from("profiles").select("display_name, username").eq("user_id", user!.id).maybeSingle();
+      return data as any;
+    },
+    enabled: !!user?.id,
+  });
+
+  const { data: items = [], dataUpdatedAt } = useQuery({
     queryKey: ["implantacoes-vendas"],
     queryFn: async () => {
       const { data, error } = await supabase
@@ -57,6 +80,21 @@ export default function DashboardVendas() {
     return d.getMonth() === mesAtual && d.getFullYear() === anoAtual;
   };
 
+  // Base filtrada pelo período (created_at). Sem filtro = período atual (mês corrente) + itens em aberto.
+  const base = useMemo(() => {
+    if (dataInicio || dataFim) {
+      const ini = dataInicio ? parseISODateLocal(dataInicio) : null;
+      const fim = dataFim ? (() => { const d = parseISODateLocal(dataFim); d.setHours(23, 59, 59, 999); return d; })() : null;
+      return items.filter((i) => {
+        const d = new Date(i.created_at);
+        if (ini && d < ini) return false;
+        if (fim && d > fim) return false;
+        return true;
+      });
+    }
+    return items;
+  }, [items, dataInicio, dataFim]);
+
   const emAndamento = useMemo(
     () =>
       items.filter(
@@ -77,19 +115,29 @@ export default function DashboardVendas() {
     );
   }, [emAndamento, search]);
 
+  // ===== KPIs do novo painel =====
+  const kpis = useMemo(() => {
+    const preAprovadas = base.filter((i) => i.status === "aprovado_diretoria" || i.status === "enviado_cadastro").length;
+    const liberadasHoje = base.filter((i) => isSameLocalDay(i.implantado_em, now) || (i.status === "enviado_cadastro" && isSameLocalDay(i.updated_at, now))).length;
+    const devolvidas = base.filter((i) => i.status === "necessita_correcao").length;
 
-  const counts = useMemo(() => {
-    const c: Record<string, number> = {};
-    items.forEach((i) => { c[i.status] = (c[i.status] || 0) + 1; });
-    return c;
-  }, [items]);
+    const tempos = base
+      .filter((i) => (i.status === "aprovado_diretoria" || i.status === "enviado_cadastro" || i.status === "implantado") && i.created_at)
+      .map((i) => {
+        const ini = new Date(i.created_at).getTime();
+        const fim = new Date(i.updated_at || i.implantado_em || i.created_at).getTime();
+        return Math.max(0, (fim - ini) / 3600000);
+      });
+    const mediaHoras = tempos.length ? tempos.reduce((a, b) => a + b, 0) / tempos.length : 0;
+    const tempoMedio = mediaHoras >= 48 ? `${Math.round(mediaHoras / 24)}d` : `${Math.round(mediaHoras)}h`;
+
+    return { preAprovadas, liberadasHoje, devolvidas, tempoMedio };
+  }, [base]);
 
   const totalVidas = useMemo(
     () => items.filter(isImplantadoNoMes).reduce((acc, i) => acc + (i.total_vidas || 0), 0),
     [items, mesAtual, anoAtual]
   );
-
-  const implantadosMes = items.filter(isImplantadoNoMes).length;
 
   const handleNew = async () => {
     const { data: prof } = await supabase.from("profiles").select("display_name").eq("user_id", user!.id).maybeSingle();
@@ -102,22 +150,53 @@ export default function DashboardVendas() {
     setOpenId((data as any).id);
   };
 
+  const primeiroNome = (profile?.display_name || profile?.username || "Vendedor").split(" ")[0];
+  const atualizadoEm = new Date(dataUpdatedAt || Date.now());
+  const atualizadoEmLabel = `${atualizadoEm.toLocaleDateString("pt-BR", { day: "2-digit", month: "long" })} às ${atualizadoEm.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}`;
+
   return (
     <>
-      <div className="p-4 md:p-6 space-y-6">
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+      <div className="p-4 md:p-6 space-y-5">
+        {/* Cabeçalho estilo da referência */}
+        <div className="space-y-3">
           <div>
-            <h1 className="text-2xl md:text-3xl font-bold flex items-center gap-2">
-              <FileSignature className="h-7 w-7 text-primary" /> Painel de Vendas
+            <h1 className="text-3xl md:text-4xl font-bold flex items-center gap-3 flex-wrap">
+              Olá, {primeiroNome}
+              <Badge variant="secondary" className="text-xs font-medium px-3 py-1 rounded-full">Vendas</Badge>
             </h1>
-            <p className="text-sm text-muted-foreground mt-1">Controle das suas implantações contratuais.</p>
+            <p className="text-sm text-muted-foreground mt-1">
+              Última atualização: <span className="font-medium text-foreground">{atualizadoEmLabel}</span>
+            </p>
           </div>
-          <Button onClick={handleNew} className="gap-2"><Plus className="h-4 w-4" /> Nova Implantação</Button>
+          <Button onClick={handleNew} className="gap-2 rounded-xl px-5 font-semibold">
+            <Plus className="h-4 w-4" /> Nova Implantação
+          </Button>
         </div>
+
+        {/* Filtro de período */}
+        <Card className="rounded-2xl">
+          <CardContent className="p-4 md:p-5">
+            <div className="flex flex-wrap items-end gap-4">
+              <div className="w-full sm:w-56">
+                <p className="text-xs font-medium text-muted-foreground mb-1.5">Data de Início</p>
+                <IsoDatePicker value={dataInicio} onChange={setDataInicio} placeholder="Selecionar data" />
+              </div>
+              <div className="w-full sm:w-56">
+                <p className="text-xs font-medium text-muted-foreground mb-1.5">Data de Fim</p>
+                <IsoDatePicker value={dataFim} onChange={setDataFim} placeholder="Selecionar data" />
+              </div>
+              {(dataInicio || dataFim) && (
+                <Button variant="ghost" size="sm" onClick={() => { setDataInicio(null); setDataFim(null); }} className="text-muted-foreground">
+                  Limpar
+                </Button>
+              )}
+            </div>
+          </CardContent>
+        </Card>
 
         {/* Alertas */}
         {alertas.length > 0 && (
-          <Card className="border-amber-500/40 bg-amber-500/5">
+          <Card className="border-amber-500/40 bg-amber-500/5 rounded-2xl">
             <CardContent className="p-4 space-y-2">
               <div className="flex items-center gap-2 text-amber-600 font-semibold text-sm">
                 <AlertTriangle className="h-4 w-4" /> Pendências da Diretoria ({alertas.length})
@@ -135,20 +214,24 @@ export default function DashboardVendas() {
           </Card>
         )}
 
-        {/* KPIs */}
+        {/* KPIs principais — padrão da imagem */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
+          <KpiCard icon={<ClipboardCheck className="h-5 w-5" />} label="Pré-aprovações (fila)" value={String(kpis.preAprovadas)} />
+          <KpiCard icon={<CheckCircle2 className="h-5 w-5" />} label="Liberadas hoje" value={String(kpis.liberadasHoje)} />
+          <KpiCard icon={<RotateCcw className="h-5 w-5" />} label="Devolvidas" value={String(kpis.devolvidas)} />
+          <KpiCard icon={<Clock className="h-5 w-5" />} label="Tempo médio na fila" value={kpis.tempoMedio} />
+        </div>
+
+        {/* KPIs secundários */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-          <Kpi icon={<FileSignature />} label="Em implantação" value={(counts.em_implantacao || 0) + (counts.documentacao_pendente || 0)} accent="text-primary" />
-          <Kpi icon={<Send />} label="Aguardando Diretoria" value={counts.em_analise_diretoria || 0} accent="text-blue-500" />
-          <Kpi icon={<AlertTriangle />} label="Necessita correção" value={counts.necessita_correcao || 0} accent="text-amber-500" />
-          <Kpi icon={<CheckCircle2 />} label="Aprovados" value={(counts.aprovado_diretoria || 0) + (counts.enviado_cadastro || 0)} accent="text-emerald-500" />
-          <Kpi icon={<CheckCircle2 />} label="Implantados" value={counts.implantado || 0} accent="text-emerald-600" />
-          <Kpi icon={<TrendingUp />} label="Implantados no mês" value={implantadosMes} accent="text-emerald-600" />
+          <Kpi icon={<Send />} label="Aguardando Diretoria" value={items.filter((i) => i.status === "em_analise_diretoria").length} accent="text-blue-500" />
+          <Kpi icon={<CheckCircle2 />} label="Implantados" value={items.filter((i) => i.status === "implantado").length} accent="text-emerald-600" />
           <Kpi icon={<Users />} label="Vidas no mês" value={totalVidas} accent="text-primary" />
-          <Kpi icon={<XCircle />} label="Rejeitados" value={counts.rejeitado || 0} accent="text-red-500" />
+          <Kpi icon={<XCircle />} label="Rejeitados" value={items.filter((i) => i.status === "rejeitado").length} accent="text-red-500" />
         </div>
 
         {/* Lista */}
-        <Card>
+        <Card className="rounded-2xl">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
             <CardTitle className="text-base flex items-center gap-2"><Clock className="h-4 w-4 text-primary" /> Implantações em andamento</CardTitle>
             <div className="relative w-64">
@@ -218,9 +301,24 @@ export default function DashboardVendas() {
   );
 }
 
+function KpiCard({ icon, label, value }: { icon: React.ReactNode; label: string; value: string }) {
+  return (
+    <Card className="rounded-2xl border-border/60 bg-card">
+      <CardContent className="p-5">
+        <div className="flex items-start justify-between">
+          <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">{label}</p>
+          <span className="h-9 w-9 rounded-lg bg-primary/10 text-primary flex items-center justify-center shrink-0">{icon}</span>
+        </div>
+        <p className="text-4xl font-bold mt-3">{value}</p>
+        <p className="text-xs text-muted-foreground mt-1">Período atual</p>
+      </CardContent>
+    </Card>
+  );
+}
+
 function Kpi({ icon, label, value, accent }: { icon: React.ReactNode; label: string; value: number; accent: string }) {
   return (
-    <Card className="card-hover">
+    <Card className="card-hover rounded-2xl">
       <CardContent className="p-4">
         <div className="flex items-center gap-2 text-xs text-muted-foreground">
           <span className={accent}>{icon}</span>
