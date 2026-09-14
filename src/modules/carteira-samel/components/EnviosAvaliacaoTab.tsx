@@ -1,17 +1,31 @@
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Loader2, Copy, Send, Search, RefreshCw, CheckCircle2, Clock, Bell } from "lucide-react";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from "@/components/ui/dialog";
+import { Loader2, Copy, Send, Search, RefreshCw, CheckCircle2, Clock, Bell, QrCode, Download } from "lucide-react";
 import { toast } from "sonner";
 import { formatDateBR } from "@/lib/date-utils";
+import { QRCodeCanvas } from "qrcode.react";
 
 const db = supabase as any;
 
 interface Props { form: any }
+
+interface QRModalState {
+  open: boolean;
+  empresa: any | null;
+  envio: any | null;
+}
 
 export function EnviosAvaliacaoTab({ form }: Props) {
   const qc = useQueryClient();
