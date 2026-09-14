@@ -800,8 +800,11 @@ interface Props {
 export function AnaliseImplantacaoDialog({ implantacaoId, open, onClose, readOnly = false }: Props) {
   const qc = useQueryClient();
   const { toast } = useToast();
+  const { role } = useAuth();
+  const isCadastro = role === "comum" || role === "administradoras";
   const [obs, setObs] = useState("");
   const [motivo, setMotivo] = useState("");
+  const [visualizarMais, setVisualizarMais] = useState(false);
   const [mode, setMode] = useState<"view" | "correcao" | "rejeicao">("view");
   const [atribuirOpen, setAtribuirOpen] = useState(false);
   const [previewAnexo, setPreviewAnexo] = useState<{ storage_path: string; nome_arquivo: string; mime_type?: string } | null>(null);
@@ -929,6 +932,28 @@ export function AnaliseImplantacaoDialog({ implantacaoId, open, onClose, readOnl
           <p className="text-muted-foreground">Carregando…</p>
         ) : (
           <div className="space-y-5">
+            {isCadastro && (
+              <>
+                <ResumoCadastro
+                  impl={impl}
+                  processo={processo}
+                  pendencias={processo?.pendencias_abertas ?? 0}
+                  divergencias={
+                    impl.relatorio_validacao == null && itensValidacao.length === 0
+                      ? null
+                      : Number(impl.relatorio_validacao?.erros ?? 0) + resumoCruzado.divergentes
+                  }
+                />
+                <DocumentosVendasSection
+                  anexos={anexos}
+                  readOnly={readOnly}
+                  onVisualizar={handleVisualizarAnexo}
+                  loading={loadingAnexo}
+                />
+              </>
+            )}
+
+            <div className={cn(isCadastro ? "space-y-5" : "contents", isCadastro && !visualizarMais && "hidden")}>
             {/* Resumo da Análise */}
             {(() => {
               const validacao: any = impl.relatorio_validacao || null;
@@ -1091,12 +1116,14 @@ export function AnaliseImplantacaoDialog({ implantacaoId, open, onClose, readOnl
             />
 
             {/* Anexos */}
-            <DocumentosVendasSection
-              anexos={anexos}
-              readOnly={readOnly}
-              onVisualizar={handleVisualizarAnexo}
-              loading={loadingAnexo}
-            />
+            {!isCadastro && (
+              <DocumentosVendasSection
+                anexos={anexos}
+                readOnly={readOnly}
+                onVisualizar={handleVisualizarAnexo}
+                loading={loadingAnexo}
+              />
+            )}
 
             {/* Dados para Implantação */}
             <section>
@@ -1231,6 +1258,19 @@ export function AnaliseImplantacaoDialog({ implantacaoId, open, onClose, readOnl
                 />
               </div>
             </section>
+            </div>
+
+            {isCadastro && (
+              <Button
+                variant="outline"
+                className="w-full gap-2"
+                onClick={() => setVisualizarMais((value) => !value)}
+                aria-expanded={visualizarMais}
+              >
+                {visualizarMais ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+                {visualizarMais ? "Visualizar Menos" : "Visualizar Mais"}
+              </Button>
+            )}
 
 
 
@@ -1246,7 +1286,7 @@ export function AnaliseImplantacaoDialog({ implantacaoId, open, onClose, readOnl
 
             {/* Ação Cadastro: Liberar contrato */}
             {readOnly && impl.status !== "implantado" && impl.status !== "rejeitado" && (
-              <div className="pt-2 border-t">
+              <div className={cn("border-t pt-2", isCadastro && "sticky bottom-0 z-10 -mx-6 bg-background px-6 pb-1 shadow-[0_-8px_20px_-16px_hsl(var(--foreground))]")}>
                 <Button
                   onClick={() => liberar.mutate()}
                   disabled={liberar.isPending || bloqueioCritico}
@@ -1258,7 +1298,7 @@ export function AnaliseImplantacaoDialog({ implantacaoId, open, onClose, readOnl
             )}
 
             {!readOnly && mode === "view" && (
-              <div className="space-y-3 pt-2 border-t">
+              <div className={cn("space-y-3 border-t pt-2", isCadastro && "sticky bottom-0 z-10 -mx-6 bg-background px-6 pb-1 shadow-[0_-8px_20px_-16px_hsl(var(--foreground))]")}>
                 <div>
                   <label className="text-sm font-medium">Observação (opcional)</label>
                   <Textarea value={obs} onChange={(e) => setObs(e.target.value)} placeholder="Comentário para o cadastro…" rows={2} />
@@ -1278,7 +1318,7 @@ export function AnaliseImplantacaoDialog({ implantacaoId, open, onClose, readOnl
             )}
 
             {!readOnly && mode !== "view" && (
-              <div className="space-y-3 pt-2 border-t">
+              <div className={cn("space-y-3 border-t pt-2", isCadastro && "sticky bottom-0 z-10 -mx-6 bg-background px-6 pb-1 shadow-[0_-8px_20px_-16px_hsl(var(--foreground))]")}>
                 <div>
                   <label className="text-sm font-medium">
                     {mode === "correcao" ? "Motivo da correção" : "Motivo da rejeição"} *
