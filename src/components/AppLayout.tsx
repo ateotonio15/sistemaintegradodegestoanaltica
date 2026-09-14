@@ -33,6 +33,7 @@ import { SuspensaoBanner } from "@/components/empresas/SuspensaoBanner";
 import { CobrancaBanner } from "@/components/financeiro/CobrancaBanner";
 import { HondaAlertasBanner } from "@/components/honda/HondaAlertasBanner";
 import { HeaderTabs } from "@/components/HeaderTabs";
+import { SimularPerfilSwitcher, SimularPerfilBanner } from "@/components/SimularPerfilSwitcher";
 import { CadastroEmpresasPopover } from "@/components/CadastroEmpresasPopover";
 import { FloatingFilaChat } from "@/components/atendimentos/FloatingFilaChat";
 
@@ -628,6 +629,7 @@ export function AppLayout({ children }: { children?: React.ReactNode }) {
       )}>
         {/* Header */}
         <header className="sticky top-0 z-30 border-b border-border/50 bg-background/70 backdrop-blur-xl">
+          <SimularPerfilBanner />
           <div className="flex h-14 items-center gap-3 px-4 md:px-6">
             <div className="flex items-center gap-3 shrink-0">
               {isMobile && isAdmin && (
@@ -655,6 +657,8 @@ export function AppLayout({ children }: { children?: React.ReactNode }) {
             )}
 
             <div className={cn("flex items-center gap-1.5 shrink-0", isAdmin && "ml-auto")}>
+
+              <SimularPerfilSwitcher />
 
               <CadastroEmpresasPopover />
 

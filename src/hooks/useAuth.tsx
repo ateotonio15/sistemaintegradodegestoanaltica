@@ -33,9 +33,29 @@ interface AuthContextType {
   empresaVinculadaId: string | null;
   mustChangePassword: boolean;
   canEditFinanceiro: boolean;
+  realRole: UserRole;
+  simulatedRole: UserRole;
+  isSimulating: boolean;
+  canSimulate: boolean;
+  setSimulatedRole: (role: UserRole) => void;
   signOut: () => Promise<void>;
   refreshAuthFlags: () => Promise<void>;
 }
+
+export const SIMULACAO_STORAGE_KEY = "siga:simular-perfil";
+
+export const PERFIS_SIMULAVEIS: { value: Exclude<UserRole, null>; label: string }[] = [
+  { value: "vendas", label: "Vendas" },
+  { value: "diretora", label: "Diretoria" },
+  { value: "comum", label: "Cadastro" },
+  { value: "financeiro", label: "Financeiro" },
+  { value: "executivo", label: "Executivo" },
+  { value: "executivo_externo", label: "Executivo externo" },
+  { value: "enfermeira", label: "Enfermeira" },
+  { value: "tec_enfermagem", label: "Téc. Enfermagem" },
+  { value: "visualizacao", label: "Visualização" },
+  { value: "administradoras", label: "Administradoras" },
+];
 
 const AuthContext = createContext<AuthContextType>({
   user: null,
@@ -65,6 +85,11 @@ const AuthContext = createContext<AuthContextType>({
   empresaVinculadaId: null,
   mustChangePassword: false,
   canEditFinanceiro: false,
+  realRole: null,
+  simulatedRole: null,
+  isSimulating: false,
+  canSimulate: false,
+  setSimulatedRole: () => {},
   signOut: async () => {},
   refreshAuthFlags: async () => {},
 });
@@ -83,6 +108,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [corretoraPortalSecoes, setCorretoraPortalSecoes] = useState<Record<string, boolean> | null>(null);
   const [corretoraEmpresas, setCorretoraEmpresas] = useState<{ id: string; nome: string }[]>([]);
   const [activeEmpresaId, setActiveEmpresaId] = useState<string | null>(null);
+  const [simulatedRoleState, setSimulatedRoleState] = useState<UserRole>(() => {
+    try {
+      const stored = localStorage.getItem(SIMULACAO_STORAGE_KEY);
+      return (stored as UserRole) ?? null;
+    } catch {
+      return null;
+    }
+  });
   const roleRef = useRef<UserRole>(null);
   const lastUserIdRef = useRef<string | null>(null);
   const roleRequestRef = useRef(0);
@@ -193,23 +226,42 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const signOut = async () => {
     clearSessionNamespace("financeiro");
+    try { localStorage.removeItem(SIMULACAO_STORAGE_KEY); } catch { /* ignore */ }
+    setSimulatedRoleState(null);
     await supabase.auth.signOut();
   };
 
+  const canSimulate = role === "admin";
+  const simulatedRole = canSimulate ? simulatedRoleState : null;
+  const effectiveRole: UserRole = simulatedRole ?? role;
+
+  const setSimulatedRole = useCallback((next: UserRole) => {
+    setSimulatedRoleState(next);
+    try {
+      if (next) localStorage.setItem(SIMULACAO_STORAGE_KEY, next);
+      else localStorage.removeItem(SIMULACAO_STORAGE_KEY);
+    } catch { /* ignore */ }
+  }, []);
+
   return (
     <AuthContext.Provider value={{
-      user, session, loading, role,
-      isAdmin: role === "admin",
-      isExecutivo: role === "executivo",
-      isExecutivoExterno: role === "executivo_externo",
-      isViewOnly: role === "visualizacao" || role === "diretora",
-      isEnfermeira: role === "enfermeira" || role === "tec_enfermagem",
-      isTecEnfermagem: role === "tec_enfermagem",
-      isFinanceiro: role === "financeiro",
-      isComum: role === "comum" || role === "administradoras",
-      isVendas: role === "vendas",
-      isDiretora: role === "diretora",
-      isAdministradoras: role === "administradoras",
+      user, session, loading, role: effectiveRole,
+      realRole: role,
+      simulatedRole,
+      isSimulating: !!simulatedRole,
+      canSimulate,
+      setSimulatedRole,
+      isAdmin: effectiveRole === "admin",
+      isExecutivo: effectiveRole === "executivo",
+      isExecutivoExterno: effectiveRole === "executivo_externo",
+      isViewOnly: effectiveRole === "visualizacao" || effectiveRole === "diretora",
+      isEnfermeira: effectiveRole === "enfermeira" || effectiveRole === "tec_enfermagem",
+      isTecEnfermagem: effectiveRole === "tec_enfermagem",
+      isFinanceiro: effectiveRole === "financeiro",
+      isComum: effectiveRole === "comum" || effectiveRole === "administradoras",
+      isVendas: effectiveRole === "vendas",
+      isDiretora: effectiveRole === "diretora",
+      isAdministradoras: effectiveRole === "administradoras",
       isAdminInterno,
       isAdminEmpresa,
       isCorretora: !!corretoraId,
@@ -221,7 +273,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setActiveEmpresaId,
       empresaVinculadaId,
       mustChangePassword,
-      canEditFinanceiro: role === "admin" || role === "financeiro",
+      canEditFinanceiro: effectiveRole === "admin" || effectiveRole === "financeiro",
       signOut,
       refreshAuthFlags,
     }}>
