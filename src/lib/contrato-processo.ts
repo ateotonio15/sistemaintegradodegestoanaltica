@@ -307,6 +307,8 @@ export const ACAO_TOM: Record<string, string> = {
   responsavel_alterado: "bg-cyan-500",
   comentario: "bg-muted-foreground",
   observacao_cadastro: "bg-sky-500",
+  pendencia_cadastro: "bg-red-500",
+  aprovado_cadastro: "bg-emerald-500",
 
   correcao: "bg-amber-500",
   pendencia_aberta: "bg-amber-500",
