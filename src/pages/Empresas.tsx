@@ -333,7 +333,9 @@ export default function Empresas() {
     enabled: !!user,
   });
 
-  const executivoUsers = usuarios.filter((u) => userRolesList.some((r) => r.user_id === u.user_id && r.role === "executivo"));
+  const executivoUsers = usuarios
+    .filter((u) => userRolesList.some((r) => r.user_id === u.user_id && r.role === "executivo"))
+    .sort((a, b) => (a.display_name || a.username || "").localeCompare(b.display_name || b.username || "", "pt-BR"));
   const comunUsers = usuarios.filter((u) => userRolesList.some((r) => r.user_id === u.user_id && r.role === "comum"));
 
   const { data: empresas = [], isLoading } = useQuery({
@@ -1123,7 +1125,7 @@ export default function Empresas() {
                           <SelectContent>
                             {executivoUsers.map((u) => (
                               <SelectItem key={u.user_id} value={u.user_id}>
-                                {u.display_name || u.user_id}
+                                {u.display_name || u.username || u.user_id}
                               </SelectItem>
                             ))}
                           </SelectContent>
@@ -1681,7 +1683,7 @@ export default function Empresas() {
                           <SelectContent>
                             {executivoUsers.map((u) => (
                               <SelectItem key={u.user_id} value={u.user_id}>
-                                {u.display_name || u.user_id}
+                                {u.display_name || u.username || u.user_id}
                               </SelectItem>
                             ))}
                           </SelectContent>
@@ -1724,7 +1726,7 @@ export default function Empresas() {
             <SelectContent>
               <SelectItem value="all">Todas as executivas</SelectItem>
               {executivoUsers.map((u) => (
-                <SelectItem key={u.user_id} value={u.user_id}>{u.display_name}</SelectItem>
+                <SelectItem key={u.user_id} value={u.user_id}>{u.display_name || u.username || u.user_id}</SelectItem>
               ))}
             </SelectContent>
           </Select>
