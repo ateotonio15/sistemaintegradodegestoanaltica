@@ -273,7 +273,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setActiveEmpresaId,
       empresaVinculadaId,
       mustChangePassword,
-      canEditFinanceiro: role === "admin" || role === "financeiro",
+      canEditFinanceiro: effectiveRole === "admin" || effectiveRole === "financeiro",
       signOut,
       refreshAuthFlags,
     }}>
