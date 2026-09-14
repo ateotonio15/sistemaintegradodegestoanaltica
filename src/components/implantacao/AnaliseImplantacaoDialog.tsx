@@ -843,11 +843,13 @@ function isAnexoCadastro(a: any) {
   return false;
 }
 
-// Documento principal para abertura direta pelo Cadastro: Contrato → Anexo I → Relatório de Vidas → demais
+// Documento principal para abertura direta pelo Cadastro
 const PRIORIDADE_DOC_CADASTRO = ["contrato", "anexo_1", "relatorio_vidas", "primeira_cobranca"];
+// Na seção "Empresa — Dados Cadastrais", o documento de referência é o Anexo I
+const PRIORIDADE_DOC_EMPRESA = ["anexo_1", "contrato", "relatorio_vidas", "primeira_cobranca"];
 
-function documentoPrincipalCadastro(anexos: any[]) {
-  for (const tipo of PRIORIDADE_DOC_CADASTRO) {
+function documentoPrincipalCadastro(anexos: any[], prioridade: string[] = PRIORIDADE_DOC_CADASTRO) {
+  for (const tipo of prioridade) {
     const doc = anexos.find((a) => String(a.tipo || "").toLowerCase() === tipo && a.storage_path);
     if (doc) return doc;
   }
