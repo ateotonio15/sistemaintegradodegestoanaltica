@@ -5352,6 +5352,10 @@ export type Database = {
         }[]
       }
       demanda_can_edit: { Args: { _executiva: string }; Returns: boolean }
+      empresa_plantao_do_usuario: {
+        Args: { _empresa_id: string; _user_id: string }
+        Returns: boolean
+      }
       encaminhar_contrato_processo: {
         Args: {
           p_observacao?: string
@@ -5478,6 +5482,10 @@ export type Database = {
       marcar_prioridade_maxima: {
         Args: { p_empresa_id: string; p_motivo: string; p_observacoes?: string }
         Returns: string
+      }
+      plantao_do_usuario: {
+        Args: { _plantao_id: string; _user_id: string }
+        Returns: boolean
       }
       processar_avaliacoes_envios: { Args: never; Returns: Json }
       processar_retorno_ferias: { Args: never; Returns: number }
