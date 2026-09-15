@@ -20,6 +20,7 @@ import Financeiro from "./pages/Financeiro";
 import PainelTvFinanceiro from "./pages/PainelTvFinanceiro";
 import Reajustes from "./pages/Reajustes";
 import Arquivos from "./pages/Arquivos";
+import Cartas from "./pages/Cartas";
 import Implantacao from "./pages/Implantacao";
 import ContratosRecemImplantados from "./pages/ContratosRecemImplantados";
 import VidasSamel from "./pages/VidasSamel";
@@ -236,6 +237,7 @@ const AppRoutes = () => (
 
       <Route element={<RoleGate allow={["admin", "financeiro"]} />}>
         <Route path="/arquivos" element={<Arquivos />} />
+        <Route path="/cartas" element={<Cartas />} />
       </Route>
 
       <Route element={<RoleGate allow={["admin"]} />}>
