@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
-import { Monitor, Moon, Sun, Settings, ShieldCheck, Info, Loader2 } from "lucide-react";
+import { Monitor, Moon, Sun, Settings, ShieldCheck, Info, Loader2, Eye, EyeOff } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
@@ -45,6 +45,54 @@ const PERFIL_LABEL: Record<string, string> = {
   administradoras: "Administradoras",
 };
 
+function CampoSenha({
+  id,
+  label,
+  placeholder,
+  value,
+  onChange,
+  visivel,
+  onToggle,
+  autoComplete,
+  hint,
+}: {
+  id: string;
+  label: string;
+  placeholder: string;
+  value: string;
+  onChange: (v: string) => void;
+  visivel: boolean;
+  onToggle: () => void;
+  autoComplete?: string;
+  hint?: string;
+}) {
+  return (
+    <div className="space-y-2">
+      <Label htmlFor={id}>{label}</Label>
+      <div className="relative">
+        <Input
+          id={id}
+          type={visivel ? "text" : "password"}
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+          placeholder={placeholder}
+          autoComplete={autoComplete}
+          className="pr-10"
+        />
+        <button
+          type="button"
+          onClick={onToggle}
+          aria-label={visivel ? "Ocultar senha" : "Mostrar senha"}
+          className="absolute right-2 top-1/2 -translate-y-1/2 rounded-md p-1 text-muted-foreground hover:text-foreground transition-colors"
+        >
+          {visivel ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+        </button>
+      </div>
+      {hint && <p className="text-xs text-muted-foreground">{hint}</p>}
+    </div>
+  );
+}
+
 export default function Configuracoes() {
   const { user, role } = useAuth();
   const { mode, setMode } = useTheme();
@@ -82,26 +130,72 @@ export default function Configuracoes() {
     }
   };
 
-  // Segurança — troca da própria senha
+  // Segurança — troca da própria senha (sempre do usuário logado)
+  const [senhaAtual, setSenhaAtual] = useState("");
   const [novaSenha, setNovaSenha] = useState("");
   const [confirmarSenha, setConfirmarSenha] = useState("");
+  const [verAtual, setVerAtual] = useState(false);
+  const [verNova, setVerNova] = useState(false);
+  const [verConfirmar, setVerConfirmar] = useState(false);
   const [salvandoSenha, setSalvandoSenha] = useState(false);
 
+  const limparCamposSenha = () => {
+    setSenhaAtual("");
+    setNovaSenha("");
+    setConfirmarSenha("");
+    setVerAtual(false);
+    setVerNova(false);
+    setVerConfirmar(false);
+  };
+
   const handleTrocarSenha = async () => {
-    if (novaSenha.length < 6) {
-      toast.error("A senha deve ter pelo menos 6 caracteres.");
+    if (!user?.id) {
+      toast.error("Sessão expirada. Entre novamente para alterar a senha.");
+      return;
+    }
+    if (!senhaAtual || !novaSenha || !confirmarSenha) {
+      toast.error("Preencha todos os campos de senha.");
       return;
     }
     if (novaSenha !== confirmarSenha) {
-      toast.error("As senhas não conferem.");
+      toast.error("As novas senhas não coincidem.");
       return;
     }
+    if (novaSenha.length < 8) {
+      toast.error("A nova senha não atende aos requisitos de segurança.");
+      return;
+    }
+    if (novaSenha === senhaAtual) {
+      toast.error("A nova senha deve ser diferente da senha atual.");
+      return;
+    }
+
     setSalvandoSenha(true);
     try {
+      // Reautenticação com o mesmo mecanismo de login do sistema
+      if (user.email) {
+        const { error: authError } = await supabase.auth.signInWithPassword({
+          email: user.email,
+          password: senhaAtual,
+        });
+        if (authError) {
+          toast.error("Senha atual incorreta.");
+          return;
+        }
+      }
+
       const { error } = await supabase.auth.updateUser({ password: novaSenha });
-      if (error) throw error;
-      setNovaSenha("");
-      setConfirmarSenha("");
+      if (error) {
+        const msg = (error.message || "").toLowerCase();
+        if (msg.includes("password")) {
+          toast.error("A nova senha não atende aos requisitos de segurança.");
+        } else {
+          toast.error(error.message || "Não foi possível alterar a senha.");
+        }
+        return;
+      }
+
+      limparCamposSenha();
       toast.success("Senha alterada com sucesso.");
     } catch (e: any) {
       toast.error(e?.message || "Não foi possível alterar a senha.");
@@ -109,6 +203,7 @@ export default function Configuracoes() {
       setSalvandoSenha(false);
     }
   };
+
 
   return (
     <div className="mx-auto w-full max-w-4xl space-y-6 p-4 md:p-6">
@@ -202,41 +297,51 @@ export default function Configuracoes() {
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-base">
               <ShieldCheck className="h-4 w-4 text-primary" />
-              Senha de acesso
+              Segurança
             </CardTitle>
-            <CardDescription>Altere a senha da sua própria conta.</CardDescription>
+            <CardDescription>Gerencie sua senha de acesso.</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="grid gap-4 sm:grid-cols-2">
-              <div className="space-y-2">
-                <Label htmlFor="nova-senha">Nova senha</Label>
-                <Input
-                  id="nova-senha"
-                  type="password"
-                  value={novaSenha}
-                  onChange={(e) => setNovaSenha(e.target.value)}
-                  placeholder="Mínimo de 6 caracteres"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="confirmar-senha">Confirmar nova senha</Label>
-                <Input
-                  id="confirmar-senha"
-                  type="password"
-                  value={confirmarSenha}
-                  onChange={(e) => setConfirmarSenha(e.target.value)}
-                  placeholder="Repita a nova senha"
-                />
-              </div>
+            <div className="grid gap-4 sm:max-w-md">
+              <CampoSenha
+                id="senha-atual"
+                label="Senha Atual"
+                placeholder="Digite sua senha atual"
+                value={senhaAtual}
+                onChange={setSenhaAtual}
+                visivel={verAtual}
+                onToggle={() => setVerAtual((v) => !v)}
+                autoComplete="current-password"
+              />
+              <CampoSenha
+                id="nova-senha"
+                label="Nova Senha"
+                placeholder="Digite a nova senha"
+                value={novaSenha}
+                onChange={setNovaSenha}
+                visivel={verNova}
+                onToggle={() => setVerNova((v) => !v)}
+                autoComplete="new-password"
+                hint="Mínimo de 8 caracteres."
+              />
+              <CampoSenha
+                id="confirmar-senha"
+                label="Confirmar Nova Senha"
+                placeholder="Confirme a nova senha"
+                value={confirmarSenha}
+                onChange={setConfirmarSenha}
+                visivel={verConfirmar}
+                onToggle={() => setVerConfirmar((v) => !v)}
+                autoComplete="new-password"
+              />
             </div>
+            <p className="text-xs text-muted-foreground">
+              A alteração vale apenas para a sua própria conta.
+            </p>
             <div className="flex justify-end">
-              <Button
-                variant="outline"
-                onClick={handleTrocarSenha}
-                disabled={salvandoSenha || !novaSenha || !confirmarSenha}
-              >
+              <Button onClick={handleTrocarSenha} disabled={salvandoSenha}>
                 {salvandoSenha && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                Alterar senha
+                Alterar Senha
               </Button>
             </div>
           </CardContent>
