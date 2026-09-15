@@ -249,41 +249,51 @@ export default function Configuracoes() {
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-base">
               <ShieldCheck className="h-4 w-4 text-primary" />
-              Senha de acesso
+              Segurança
             </CardTitle>
-            <CardDescription>Altere a senha da sua própria conta.</CardDescription>
+            <CardDescription>Gerencie sua senha de acesso.</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="grid gap-4 sm:grid-cols-2">
-              <div className="space-y-2">
-                <Label htmlFor="nova-senha">Nova senha</Label>
-                <Input
-                  id="nova-senha"
-                  type="password"
-                  value={novaSenha}
-                  onChange={(e) => setNovaSenha(e.target.value)}
-                  placeholder="Mínimo de 6 caracteres"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="confirmar-senha">Confirmar nova senha</Label>
-                <Input
-                  id="confirmar-senha"
-                  type="password"
-                  value={confirmarSenha}
-                  onChange={(e) => setConfirmarSenha(e.target.value)}
-                  placeholder="Repita a nova senha"
-                />
-              </div>
+            <div className="grid gap-4 sm:max-w-md">
+              <CampoSenha
+                id="senha-atual"
+                label="Senha Atual"
+                placeholder="Digite sua senha atual"
+                value={senhaAtual}
+                onChange={setSenhaAtual}
+                visivel={verAtual}
+                onToggle={() => setVerAtual((v) => !v)}
+                autoComplete="current-password"
+              />
+              <CampoSenha
+                id="nova-senha"
+                label="Nova Senha"
+                placeholder="Digite a nova senha"
+                value={novaSenha}
+                onChange={setNovaSenha}
+                visivel={verNova}
+                onToggle={() => setVerNova((v) => !v)}
+                autoComplete="new-password"
+                hint="Mínimo de 8 caracteres."
+              />
+              <CampoSenha
+                id="confirmar-senha"
+                label="Confirmar Nova Senha"
+                placeholder="Confirme a nova senha"
+                value={confirmarSenha}
+                onChange={setConfirmarSenha}
+                visivel={verConfirmar}
+                onToggle={() => setVerConfirmar((v) => !v)}
+                autoComplete="new-password"
+              />
             </div>
+            <p className="text-xs text-muted-foreground">
+              A alteração vale apenas para a sua própria conta.
+            </p>
             <div className="flex justify-end">
-              <Button
-                variant="outline"
-                onClick={handleTrocarSenha}
-                disabled={salvandoSenha || !novaSenha || !confirmarSenha}
-              >
+              <Button onClick={handleTrocarSenha} disabled={salvandoSenha}>
                 {salvandoSenha && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                Alterar senha
+                Alterar Senha
               </Button>
             </div>
           </CardContent>
