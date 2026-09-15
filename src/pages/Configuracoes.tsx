@@ -82,26 +82,72 @@ export default function Configuracoes() {
     }
   };
 
-  // Segurança — troca da própria senha
+  // Segurança — troca da própria senha (sempre do usuário logado)
+  const [senhaAtual, setSenhaAtual] = useState("");
   const [novaSenha, setNovaSenha] = useState("");
   const [confirmarSenha, setConfirmarSenha] = useState("");
+  const [verAtual, setVerAtual] = useState(false);
+  const [verNova, setVerNova] = useState(false);
+  const [verConfirmar, setVerConfirmar] = useState(false);
   const [salvandoSenha, setSalvandoSenha] = useState(false);
 
+  const limparCamposSenha = () => {
+    setSenhaAtual("");
+    setNovaSenha("");
+    setConfirmarSenha("");
+    setVerAtual(false);
+    setVerNova(false);
+    setVerConfirmar(false);
+  };
+
   const handleTrocarSenha = async () => {
-    if (novaSenha.length < 6) {
-      toast.error("A senha deve ter pelo menos 6 caracteres.");
+    if (!user?.id) {
+      toast.error("Sessão expirada. Entre novamente para alterar a senha.");
+      return;
+    }
+    if (!senhaAtual || !novaSenha || !confirmarSenha) {
+      toast.error("Preencha todos os campos de senha.");
       return;
     }
     if (novaSenha !== confirmarSenha) {
-      toast.error("As senhas não conferem.");
+      toast.error("As novas senhas não coincidem.");
       return;
     }
+    if (novaSenha.length < 8) {
+      toast.error("A nova senha não atende aos requisitos de segurança.");
+      return;
+    }
+    if (novaSenha === senhaAtual) {
+      toast.error("A nova senha deve ser diferente da senha atual.");
+      return;
+    }
+
     setSalvandoSenha(true);
     try {
+      // Reautenticação com o mesmo mecanismo de login do sistema
+      if (user.email) {
+        const { error: authError } = await supabase.auth.signInWithPassword({
+          email: user.email,
+          password: senhaAtual,
+        });
+        if (authError) {
+          toast.error("Senha atual incorreta.");
+          return;
+        }
+      }
+
       const { error } = await supabase.auth.updateUser({ password: novaSenha });
-      if (error) throw error;
-      setNovaSenha("");
-      setConfirmarSenha("");
+      if (error) {
+        const msg = (error.message || "").toLowerCase();
+        if (msg.includes("password")) {
+          toast.error("A nova senha não atende aos requisitos de segurança.");
+        } else {
+          toast.error(error.message || "Não foi possível alterar a senha.");
+        }
+        return;
+      }
+
+      limparCamposSenha();
       toast.success("Senha alterada com sucesso.");
     } catch (e: any) {
       toast.error(e?.message || "Não foi possível alterar a senha.");
@@ -109,6 +155,7 @@ export default function Configuracoes() {
       setSalvandoSenha(false);
     }
   };
+
 
   return (
     <div className="mx-auto w-full max-w-4xl space-y-6 p-4 md:p-6">
