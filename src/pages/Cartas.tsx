@@ -124,7 +124,7 @@ export default function Cartas() {
                 <Button variant="outline" size="sm" onClick={() => imprimirCarta(campos)}>
                   <Printer className="mr-2 h-4 w-4" /> Imprimir / PDF
                 </Button>
-                <Button size="sm" onClick={() => baixarCartaDoc(campos)}>
+                <Button size="sm" onClick={() => void baixarCartaDoc(campos)}>
                   <Download className="mr-2 h-4 w-4" /> Baixar Word
                 </Button>
               </div>
