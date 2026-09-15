@@ -313,14 +313,40 @@ export async function adicionarExclusoesAoBruto(
 
   // Mapa pagador (normalizado) → CNPJ, a partir do bruto
   const pagadorCnpjMap = new Map<string, string>();
-  if (idxPagador >= 0 && idxCnpj >= 0) {
+  const cnpjsDistintos: string[] = [];
+  if (idxCnpj >= 0) {
     for (let r = 1; r < aoaBruto.length; r++) {
       const linha = aoaBruto[r] as unknown[];
-      const pag = normText(linha[idxPagador]);
       const cnpj = String(linha[idxCnpj] ?? "").trim();
-      if (pag && cnpj && !pagadorCnpjMap.has(pag)) pagadorCnpjMap.set(pag, cnpj);
+      if (cnpj && !cnpjsDistintos.includes(cnpj)) cnpjsDistintos.push(cnpj);
+      if (idxPagador >= 0) {
+        const pag = normText(linha[idxPagador]);
+        if (pag && cnpj && !pagadorCnpjMap.has(pag)) pagadorCnpjMap.set(pag, cnpj);
+      }
     }
   }
+
+  /**
+   * Resolve o CNPJ da linha de exclusão a partir do nome do pagador.
+   * Aceita nomes truncados/abreviados (comparação por prefixo) e, quando o
+   * bruto possui um único CNPJ, usa-o como fallback — sem isso a empresa de
+   * PERÍODO não era reconhecida e o proporcional caía na regra mensal.
+   */
+  const resolverCnpj = (pagVal: string): string => {
+    const unico = cnpjsDistintos.length === 1 ? cnpjsDistintos[0] : "";
+    const key = normText(pagVal);
+    if (!key) return unico;
+    const exato = pagadorCnpjMap.get(key);
+    if (exato) return exato;
+    for (const [k, v] of pagadorCnpjMap) {
+      if (k.startsWith(key) || key.startsWith(k)) return v;
+    }
+    const p = key.slice(0, 12);
+    if (p.length >= 6) {
+      for (const [k, v] of pagadorCnpjMap) if (k.slice(0, 12) === p) return v;
+    }
+    return unico;
+  };
 
   // Detecta mensalidade por plano (moda dos valores em linhas de Mensalidade)
   const mensalidadePorPlano = new Map<string, number>();
