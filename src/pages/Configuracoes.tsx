@@ -358,11 +358,19 @@ export default function Configuracoes() {
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-base">
               <Info className="h-4 w-4 text-primary" />
-              Sistema
+              Informações do Sistema
             </CardTitle>
             <CardDescription>Dados da sua conta e do ambiente.</CardDescription>
           </CardHeader>
           <CardContent className="grid gap-4 text-sm sm:grid-cols-2">
+            <div>
+              <p className="text-xs text-muted-foreground">Versão</p>
+              <p className="font-medium">{systemVersion}</p>
+            </div>
+            <div>
+              <p className="text-xs text-muted-foreground">Última atualização</p>
+              <p className="font-medium">{lastSystemUpdate}</p>
+            </div>
             <div>
               <p className="text-xs text-muted-foreground">Usuário</p>
               <p className="font-medium">{user?.email ?? "—"}</p>
@@ -371,16 +379,6 @@ export default function Configuracoes() {
               <p className="text-xs text-muted-foreground">Perfil</p>
               <p className="font-medium">
                 <Badge variant="secondary">{PERFIL_LABEL[role ?? ""] ?? "—"}</Badge>
-              </p>
-            </div>
-            <div>
-              <p className="text-xs text-muted-foreground">Sistema</p>
-              <p className="font-medium">SIGA — Sistema Integrado de Gestão Analítica</p>
-            </div>
-            <div>
-              <p className="text-xs text-muted-foreground">Fuso horário</p>
-              <p className="font-medium">
-                {Intl.DateTimeFormat().resolvedOptions().timeZone || "—"}
               </p>
             </div>
           </CardContent>
