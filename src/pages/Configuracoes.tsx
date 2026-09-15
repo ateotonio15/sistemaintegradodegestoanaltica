@@ -45,6 +45,54 @@ const PERFIL_LABEL: Record<string, string> = {
   administradoras: "Administradoras",
 };
 
+function CampoSenha({
+  id,
+  label,
+  placeholder,
+  value,
+  onChange,
+  visivel,
+  onToggle,
+  autoComplete,
+  hint,
+}: {
+  id: string;
+  label: string;
+  placeholder: string;
+  value: string;
+  onChange: (v: string) => void;
+  visivel: boolean;
+  onToggle: () => void;
+  autoComplete?: string;
+  hint?: string;
+}) {
+  return (
+    <div className="space-y-2">
+      <Label htmlFor={id}>{label}</Label>
+      <div className="relative">
+        <Input
+          id={id}
+          type={visivel ? "text" : "password"}
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+          placeholder={placeholder}
+          autoComplete={autoComplete}
+          className="pr-10"
+        />
+        <button
+          type="button"
+          onClick={onToggle}
+          aria-label={visivel ? "Ocultar senha" : "Mostrar senha"}
+          className="absolute right-2 top-1/2 -translate-y-1/2 rounded-md p-1 text-muted-foreground hover:text-foreground transition-colors"
+        >
+          {visivel ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+        </button>
+      </div>
+      {hint && <p className="text-xs text-muted-foreground">{hint}</p>}
+    </div>
+  );
+}
+
 export default function Configuracoes() {
   const { user, role } = useAuth();
   const { mode, setMode } = useTheme();
