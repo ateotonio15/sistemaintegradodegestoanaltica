@@ -202,7 +202,6 @@ export function AppLayout({ children }: { children?: React.ReactNode }) {
     if (isAdmin || role === "diretora" || role === "comum" || role === "executivo" || role === "administradoras") {
       filtered.push({ to: "/carteira-samel", label: "Carteira Samel", icon: Briefcase });
     }
-    filtered.push({ to: "/configuracoes", label: "Configurações", icon: SettingsIcon });
     return filtered;
   }, [isAdmin, isExecutivo, isExecutivoExterno, isEnfermeira, isFinanceiro, isViewOnly, role, dashChildren, canAccessHonda]);
 
