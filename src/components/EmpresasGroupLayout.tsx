@@ -22,7 +22,7 @@ type Tab = {
 const TABS: Tab[] = [
   {
     to: "/implantacao",
-    label: "Implantação",
+    label: "Análise de Contratos",
     icon: FileSignature,
     show: () => true,
   },
