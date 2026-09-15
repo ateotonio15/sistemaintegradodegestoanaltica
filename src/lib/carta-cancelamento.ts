@@ -77,6 +77,75 @@ function nomeEmpresarial(t: string): string | null {
   return nome && nome.length > 2 ? nome.toUpperCase() : null;
 }
 
+/**
+ * Extração por linhas (DANFSe v2.0): os rótulos ficam em uma linha e os valores
+ * na linha imediatamente abaixo, em colunas separadas apenas por espaços.
+ */
+function linhasNormalizadas(texto: string): string[] {
+  return texto
+    .split(/\r?\n/)
+    .map((l) => l.replace(/\u00a0/g, " ").replace(/\s+/g, " ").trim())
+    .filter(Boolean);
+}
+
+/** Remove as colunas "Município / Sigla UF" e "Código IBGE / CEP" da linha do nome. */
+function limparNomeLinha(linha: string): string | null {
+  let nome = linha;
+  const m = nome.match(/\s\/\s[A-Z]{2}\b/);
+  if (m) {
+    const antes = nome.slice(0, m.index).trim().split(" ");
+    antes.pop(); // remove o nome do município
+    nome = antes.join(" ");
+  }
+  nome = nome
+    .replace(/\s+\d{2}\.\d{5}\s*\/.*$/, "")
+    .replace(/[\s\-–/]+$/, "")
+    .trim();
+  return nome.length > 2 ? nome.toUpperCase() : null;
+}
+
+interface TomadorLinhas {
+  cnpj: string | null;
+  im: string | null;
+  nome: string | null;
+}
+
+function tomadorPorLinhas(texto: string): TomadorLinhas {
+  const ls = linhasNormalizadas(texto);
+  const vazio: TomadorLinhas = { cnpj: null, im: null, nome: null };
+  const i = ls.findIndex(
+    (l) =>
+      /tomador\s*\/\s*adquirente/i.test(l) ||
+      /tomador\s+d[oa]\s+servi[çc]o/i.test(l) ||
+      /^tomador\b/i.test(l),
+  );
+  if (i < 0) return vazio;
+
+  const out: TomadorLinhas = { ...vazio };
+
+  // Linha de valores logo abaixo do cabeçalho: CNPJ, Inscrição, Telefone
+  const linhaValores = ls[i + 1] || "";
+  out.cnpj = linhaValores.match(/(\d{2}\.\d{3}\.\d{3}\/\d{4}-\d{2})/)?.[1] || null;
+  if (/indicador\s+municipal|inscri/i.test(ls[i])) {
+    const depoisCnpj = out.cnpj
+      ? linhaValores.slice(linhaValores.indexOf(out.cnpj) + out.cnpj.length)
+      : linhaValores;
+    out.im = depoisCnpj.match(/\b(\d{4,12})\b/)?.[1] || null;
+  }
+  if (!out.im) out.im = inscricaoMunicipal(`${ls[i]} ${linhaValores}`);
+
+  // Nome empresarial: rótulo nas linhas seguintes, valor na linha de baixo
+  for (let j = i + 1; j < Math.min(i + 8, ls.length); j++) {
+    if (/nome\s*\/\s*nome\s+empresarial|nome\s+empresarial|raz[aã]o\s+social/i.test(ls[j])) {
+      out.nome = limparNomeLinha(ls[j + 1] || "");
+      break;
+    }
+  }
+
+  return out;
+}
+
+
 /** Extrai os dados usados na carta a partir do texto da NFS-e. */
 export function extrairDadosCarta(textoOriginal: string): DadosCartaNfse {
   const texto = limpar(textoOriginal);
@@ -129,9 +198,11 @@ export function extrairDadosCarta(textoOriginal: string): DadosCartaNfse {
 
   const imPrestador = inscricaoMunicipal(blocoPrestador) || PRESTADOR_PADRAO.inscricao;
 
-  // Inscrição municipal do tomador: bloco do tomador e, se faltar, a última
-  // "Indicador Municipal (Inscrição)" do documento diferente da do prestador.
-  let imTomador = inscricaoMunicipal(blocoTomador);
+  // Leitura por linhas (formato DANFSe: rótulos acima, valores abaixo)
+  const porLinhas = tomadorPorLinhas(textoOriginal);
+
+  // Inscrição municipal do tomador: linhas → bloco → última do documento
+  let imTomador = porLinhas.im || inscricaoMunicipal(blocoTomador);
   if (!imTomador) {
     const todas = [...texto.matchAll(/(?:indicador|inscri[çc][aã]o|inscr\.?)\s*municipal[^\d]{0,40}(\d{4,12})/gi)]
       .map((m) => m[1])
@@ -139,9 +210,8 @@ export function extrairDadosCarta(textoOriginal: string): DadosCartaNfse {
     imTomador = todas.length ? todas[todas.length - 1] : null;
   }
 
-  // Nome do tomador (assinatura): bloco do tomador e, se faltar, o último
-  // "Nome / Nome Empresarial" do documento (o primeiro é o do prestador).
-  let nomeTomador = nomeEmpresarial(blocoTomador);
+  // Nome do tomador (assinatura)
+  let nomeTomador = porLinhas.nome || nomeEmpresarial(blocoTomador);
   if (!nomeTomador) {
     const idx = texto.toLowerCase().lastIndexOf("nome empresarial");
     if (idx > 0) nomeTomador = nomeEmpresarial(texto.slice(idx - 20));
@@ -152,8 +222,9 @@ export function extrairDadosCarta(textoOriginal: string): DadosCartaNfse {
     dataEmissao,
     valor,
     tomadorNome: nomeTomador,
-    tomadorCnpj: primeiroCnpj(blocoTomador),
+    tomadorCnpj: porLinhas.cnpj || primeiroCnpj(blocoTomador),
     tomadorInscricaoMunicipal: imTomador,
+
     prestadorNome: nomeEmpresarial(blocoPrestador) || PRESTADOR_PADRAO.nome,
     prestadorCnpj: primeiroCnpj(blocoPrestador) || PRESTADOR_PADRAO.cnpj,
     prestadorInscricaoMunicipal: imPrestador,
