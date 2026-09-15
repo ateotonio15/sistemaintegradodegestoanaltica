@@ -121,7 +121,7 @@ export default function Cartas() {
             <CardHeader className="flex flex-row items-center justify-between pb-3">
               <CardTitle className="text-base">Pré-visualização</CardTitle>
               <div className="flex gap-2">
-                <Button variant="outline" size="sm" onClick={() => imprimirCarta(campos)}>
+                <Button variant="outline" size="sm" onClick={() => void imprimirCarta(campos)}>
                   <Printer className="mr-2 h-4 w-4" /> Imprimir / PDF
                 </Button>
                 <Button size="sm" onClick={() => void baixarCartaDoc(campos)}>
