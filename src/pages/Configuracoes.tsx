@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
-import { Monitor, Moon, Sun, Settings, ShieldCheck, Info, Loader2 } from "lucide-react";
+import { Monitor, Moon, Sun, Settings, ShieldCheck, Info, Loader2, Eye, EyeOff } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
