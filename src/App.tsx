@@ -6,6 +6,7 @@ import { BrowserRouter, Routes, Route, Navigate, Outlet, useLocation } from "rea
 import { AuthProvider, useAuth } from "@/hooks/useAuth";
 import { ThemeProvider } from "@/hooks/useTheme";
 import { AppLayout } from "@/components/AppLayout";
+import Configuracoes from "./pages/Configuracoes";
 import Empresas from "./pages/Empresas";
 import Movimentacoes from "./pages/Movimentacoes";
 import Usuarios from "./pages/Usuarios";
@@ -176,6 +177,7 @@ const AppRoutes = () => (
       <Route path="/portal" element={<Portal />} />
       <Route path="/meu-painel" element={<MeuPainel />} />
       <Route path="/trocar-senha" element={<TrocarSenha />} />
+      <Route path="/configuracoes" element={<Configuracoes />} />
       <Route element={<AdminInternoGate />}>
         <Route path="/admin/cadastrar-empresa" element={<CadastrarEmpresa />} />
       </Route>
