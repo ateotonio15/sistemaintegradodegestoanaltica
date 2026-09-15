@@ -45,8 +45,20 @@ const TABS: Tab[] = [
 ];
 
 export default function EmpresasGroupLayout() {
-  const { role, isAdmin, isFinanceiro, isExecutivoExterno } = useAuth();
+  const { role, isAdmin, isVendas, isFinanceiro, isExecutivoExterno } = useAuth();
   const loc = useLocation();
+
+  // Perfis com régua lateral (admin/vendas) não precisam das sub-abas internas
+  const hasLateralNavigation = isAdmin || isVendas;
+
+  if (hasLateralNavigation) {
+    return (
+      <div className="animate-in fade-in duration-300">
+        <Outlet />
+      </div>
+    );
+  }
+
   const visible = isExecutivoExterno
     ? TABS.filter((t) => t.to === "/empresas")
     : TABS.filter((t) => t.show({ role, isAdmin, isFinanceiro }));
