@@ -114,6 +114,7 @@ export function AppLayout({ children }: { children?: React.ReactNode }) {
   const navigate = useNavigate();
   const { signOut, user, isAdmin, isExecutivo, isViewOnly, isEnfermeira, isFinanceiro, isExecutivoExterno, role, isAdminInterno } = useAuth();
   const { theme, toggleTheme } = useTheme();
+  useApplyUserTheme();
   const isMobile = useIsMobile();
   const queryClient = useQueryClient();
   useAtivarContratosPendentes();
