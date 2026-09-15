@@ -20,6 +20,7 @@ import {
   FileSignature,
   ClockAlert,
   FolderArchive,
+  FileText,
   TrendingUp,
   Users,
   HeartPulse,
@@ -363,6 +364,14 @@ const SHORTCUTS: Shortcut[] = [
     icon: KeyRound,
     group: "utilitarios",
     show: (c) => c.isAdmin,
+  },
+  {
+    to: "/cartas",
+    label: "Cartas",
+    description: "Carta de cancelamento preenchida a partir da nota fiscal",
+    icon: FileText,
+    group: "utilitarios",
+    show: (c) => c.isAdmin || c.isFinanceiro,
   },
   {
     to: "/admin/fila-atendimento",
