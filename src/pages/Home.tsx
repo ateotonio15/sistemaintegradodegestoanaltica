@@ -365,6 +365,14 @@ const SHORTCUTS: Shortcut[] = [
     show: (c) => c.isAdmin,
   },
   {
+    to: "/cartas",
+    label: "Cartas",
+    description: "Carta de cancelamento preenchida a partir da nota fiscal",
+    icon: FileText,
+    group: "utilitarios",
+    show: (c) => c.isAdmin || c.isFinanceiro,
+  },
+  {
     to: "/admin/fila-atendimento",
     label: "Fila de Atendimento",
     description: "Atendimentos recebidos das empresas por setor",
