@@ -20,6 +20,7 @@ import {
   FileSignature,
   ClockAlert,
   FolderArchive,
+  FileText,
   TrendingUp,
   Users,
   HeartPulse,
