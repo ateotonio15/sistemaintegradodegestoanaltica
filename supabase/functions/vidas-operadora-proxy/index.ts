@@ -34,21 +34,6 @@ Deno.serve(async (req) => {
       });
     }
 
-    const { data: roles } = await userClient
-      .from("user_roles")
-      .select("role")
-      .eq("user_id", userData.user.id);
-
-    const allowed = (roles ?? []).some((r: { role: string }) =>
-      r.role === "admin" || r.role === "diretora"
-    );
-    if (!allowed) {
-      return new Response(JSON.stringify({ status: false, message: "Forbidden" }), {
-        status: 403,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
-
     // Aceita ds_classificacao via query string OU body JSON
     let dsClassificacao: string | null = null;
     const url = new URL(req.url);
