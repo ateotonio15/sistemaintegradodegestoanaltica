@@ -245,19 +245,68 @@ export function cartaEstilo(): string {
   return ESTILO_CARTA;
 }
 
-/** Gera um arquivo .doc (HTML compatível com Word) da carta. */
-export function baixarCartaDoc(c: CartaCampos): void {
-  const html = `<!DOCTYPE html><html><head><meta charset="utf-8"/>
-<style>@page { size: A4; margin: 2.5cm; } ${ESTILO_CARTA}</style></head>
-<body>${montarCartaHtml(c)}</body></html>`;
-  const blob = new Blob([`\ufeff${html}`], { type: "application/msword" });
+function escXml(s: string): string {
+  return (s || "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;");
+}
+
+function nomeArquivoCarta(c: CartaCampos): string {
+  const alvo = (c.tomadorNome || "TOMADOR").split(/\s+/).slice(0, 3).join(" ");
+  return `CARTA CANCELAMENTO ${alvo} ${c.numero || ""}`.trim();
+}
+
+/**
+ * Gera o Word (.docx) usando o modelo timbrado oficial, preenchendo os campos
+ * e preservando o layout, fontes e o papel timbrado do documento original.
+ */
+export async function baixarCartaDoc(c: CartaCampos): Promise<void> {
+  const [{ default: JSZip }, { CARTA_MODELO_DOCX_BASE64 }] = await Promise.all([
+    import("jszip"),
+    import("./carta-modelo-docx"),
+  ]);
+
+  const bin = atob(CARTA_MODELO_DOCX_BASE64);
+  const bytes = new Uint8Array(bin.length);
+  for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+
+  const zip = await JSZip.loadAsync(bytes);
+  const doc = await zip.file("word/document.xml")!.async("string");
+
+  const valores: Record<string, string> = {
+    DATA_CARTA: c.dataCarta,
+    PRESTADOR_NOME: c.prestadorNome,
+    PRESTADOR_CNPJ: c.prestadorCnpj,
+    PRESTADOR_IM: c.prestadorInscricaoMunicipal,
+    PRESTADOR_ENDERECO: c.prestadorEndereco,
+    PRESTADOR_CEP: c.prestadorCep,
+    NUMERO: c.numero,
+    DATA_EMISSAO: c.dataEmissao,
+    VALOR: c.valor,
+    TOMADOR_CNPJ: c.tomadorCnpj,
+    TOMADOR_IM: c.tomadorInscricaoMunicipal,
+    TOMADOR_NOME: c.tomadorNome,
+    MOTIVO: c.motivoComplemento,
+  };
+
+  const preenchido = doc.replace(/\{\{([A-Z_]+)\}\}/g, (all, chave: string) =>
+    chave in valores ? escXml(valores[chave]) : all,
+  );
+
+  zip.file("word/document.xml", preenchido);
+  const blob = await zip.generateAsync({
+    type: "blob",
+    mimeType: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+  });
+
   const url = URL.createObjectURL(blob);
   const a = document.createElement("a");
   a.href = url;
-  const alvo = (c.tomadorNome || "TOMADOR").split(/\s+/).slice(0, 3).join(" ");
-  a.download = `CARTA CANCELAMENTO ${alvo} ${c.numero || ""}`.trim() + ".doc";
+  a.download = `${nomeArquivoCarta(c)}.docx`;
   a.click();
-  URL.revokeObjectURL(url);
+  setTimeout(() => URL.revokeObjectURL(url), 2000);
 }
 
 /** Abre a janela de impressão (para salvar em PDF) com a carta. */
