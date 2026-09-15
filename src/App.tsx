@@ -205,7 +205,9 @@ const AppRoutes = () => (
 
       <Route element={<EmpresasGroupLayout />}>
         <Route path="/empresas" element={<Empresas />} />
-        <Route path="/movimentacoes" element={<Movimentacoes />} />
+        <Route element={<RoleGate allow={["admin", "comum", "diretora", "executivo", "executivo_externo", "financeiro", "enfermeira", "tec_enfermagem", "visualizacao", "administradoras"]} />}>
+          <Route path="/movimentacoes" element={<Movimentacoes />} />
+        </Route>
 
         <Route element={<RoleGate allow={["admin", "diretora", "comum", "administradoras", "vendas"]} />}>
           <Route path="/vidas" element={<Vidas />} />

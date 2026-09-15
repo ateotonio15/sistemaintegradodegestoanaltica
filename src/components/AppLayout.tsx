@@ -162,7 +162,6 @@ export function AppLayout({ children }: { children?: React.ReactNode }) {
         ? [
             { to: "/dashboard/vendas", label: "Dashboard", icon: LayoutDashboard },
             { to: "/empresas", label: "Empresas", icon: Building2 },
-            { to: "/movimentacoes", label: "Movimentações", icon: ArrowLeftRight },
             { to: "/implantacao", label: "Análise de Contratos", icon: FileSignature },
             { to: "/vidas", label: "Vidas", icon: Activity },
           ]
