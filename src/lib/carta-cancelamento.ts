@@ -115,11 +115,12 @@ export function extrairDadosCarta(textoOriginal: string): DadosCartaNfse {
     /prestador\s*(\/\s*fornecedor)?/i,
     /(tomador|destinat[aá]rio|intermedi[aá]rio)/i,
   );
-  const blocoTomador = trecho(
-    texto,
-    /tomador\s*(\/\s*adquirente|d[oa]?\s*servi[çc]o)?/i,
-    /(destinat[aá]rio|intermedi[aá]rio|servi[çc]o\s+prestado|tributa[çc][aã]o)/i,
-  );
+  // Bloco do TOMADOR: prioriza o cabeçalho "TOMADOR / ADQUIRENTE"
+  const fimTomador = /(destinat[aá]rio\s+da\s+opera|intermedi[aá]rio\s+da\s+opera|servi[çc]o\s+prestado)/i;
+  const blocoTomador =
+    trecho(texto, /tomador\s*\/\s*adquirente\s*/i, fimTomador) ||
+    trecho(texto, /tomador\s+d[oa]\s+servi[çc]o\s*/i, fimTomador) ||
+    trecho(texto, /tomador\s*/i, fimTomador);
 
   const endereco = aposRotulo(blocoPrestador, /endere[çc]o\s*/i)
     .split(/\s{2,}|e-?mail/i)[0]
