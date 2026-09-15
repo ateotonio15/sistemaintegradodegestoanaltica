@@ -198,9 +198,11 @@ export function extrairDadosCarta(textoOriginal: string): DadosCartaNfse {
 
   const imPrestador = inscricaoMunicipal(blocoPrestador) || PRESTADOR_PADRAO.inscricao;
 
-  // Inscrição municipal do tomador: bloco do tomador e, se faltar, a última
-  // "Indicador Municipal (Inscrição)" do documento diferente da do prestador.
-  let imTomador = inscricaoMunicipal(blocoTomador);
+  // Leitura por linhas (formato DANFSe: rótulos acima, valores abaixo)
+  const porLinhas = tomadorPorLinhas(textoOriginal);
+
+  // Inscrição municipal do tomador: linhas → bloco → última do documento
+  let imTomador = porLinhas.im || inscricaoMunicipal(blocoTomador);
   if (!imTomador) {
     const todas = [...texto.matchAll(/(?:indicador|inscri[çc][aã]o|inscr\.?)\s*municipal[^\d]{0,40}(\d{4,12})/gi)]
       .map((m) => m[1])
@@ -208,9 +210,8 @@ export function extrairDadosCarta(textoOriginal: string): DadosCartaNfse {
     imTomador = todas.length ? todas[todas.length - 1] : null;
   }
 
-  // Nome do tomador (assinatura): bloco do tomador e, se faltar, o último
-  // "Nome / Nome Empresarial" do documento (o primeiro é o do prestador).
-  let nomeTomador = nomeEmpresarial(blocoTomador);
+  // Nome do tomador (assinatura)
+  let nomeTomador = porLinhas.nome || nomeEmpresarial(blocoTomador);
   if (!nomeTomador) {
     const idx = texto.toLowerCase().lastIndexOf("nome empresarial");
     if (idx > 0) nomeTomador = nomeEmpresarial(texto.slice(idx - 20));
@@ -221,8 +222,9 @@ export function extrairDadosCarta(textoOriginal: string): DadosCartaNfse {
     dataEmissao,
     valor,
     tomadorNome: nomeTomador,
-    tomadorCnpj: primeiroCnpj(blocoTomador),
+    tomadorCnpj: porLinhas.cnpj || primeiroCnpj(blocoTomador),
     tomadorInscricaoMunicipal: imTomador,
+
     prestadorNome: nomeEmpresarial(blocoPrestador) || PRESTADOR_PADRAO.nome,
     prestadorCnpj: primeiroCnpj(blocoPrestador) || PRESTADOR_PADRAO.cnpj,
     prestadorInscricaoMunicipal: imPrestador,
