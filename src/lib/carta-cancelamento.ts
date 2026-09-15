@@ -156,7 +156,7 @@ export function extrairDadosCarta(textoOriginal: string): DadosCartaNfse {
     tomadorInscricaoMunicipal: imTomador,
     prestadorNome: nomeEmpresarial(blocoPrestador) || PRESTADOR_PADRAO.nome,
     prestadorCnpj: primeiroCnpj(blocoPrestador) || PRESTADOR_PADRAO.cnpj,
-    prestadorInscricaoMunicipal: inscricaoMunicipal(blocoPrestador) || PRESTADOR_PADRAO.inscricao,
+    prestadorInscricaoMunicipal: imPrestador,
     prestadorEndereco: endereco || PRESTADOR_PADRAO.endereco,
     prestadorCep: cep || PRESTADOR_PADRAO.cep,
   };
