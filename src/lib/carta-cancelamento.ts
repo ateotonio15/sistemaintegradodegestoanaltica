@@ -50,8 +50,17 @@ function primeiroCnpj(t: string): string | null {
 }
 
 function inscricaoMunicipal(t: string): string | null {
-  const m = t.match(/indicador\s+municipal[^\n]*?\)?\s*(\d{4,12})/i);
-  return m ? m[1] : null;
+  // Aceita "Indicador Municipal (Inscrição)", "Inscrição Municipal", "Inscr. Municipal"
+  const rotulos = [
+    /indicador\s+municipal[^\d]{0,40}(\d{4,12})/i,
+    /inscri[çc][aã]o\s+municipal[^\d]{0,40}(\d{4,12})/i,
+    /inscr\.?\s*municipal[^\d]{0,40}(\d{4,12})/i,
+  ];
+  for (const r of rotulos) {
+    const m = t.match(r);
+    if (m) return m[1];
+  }
+  return null;
 }
 
 function nomeEmpresarial(t: string): string | null {
