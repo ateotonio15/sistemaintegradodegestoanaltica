@@ -406,14 +406,106 @@ export async function baixarCartaDoc(c: CartaCampos): Promise<void> {
   setTimeout(() => URL.revokeObjectURL(url), 2000);
 }
 
-/** Abre a janela de impressão (para salvar em PDF) com a carta. */
-export function imprimirCarta(c: CartaCampos): void {
-  const w = window.open("", "_blank", "width=880,height=1000");
+function valoresCarta(c: CartaCampos): Record<string, string> {
+  return {
+    DATA_CARTA: c.dataCarta,
+    PRESTADOR_NOME: c.prestadorNome,
+    PRESTADOR_CNPJ: c.prestadorCnpj,
+    PRESTADOR_IM: c.prestadorInscricaoMunicipal,
+    PRESTADOR_ENDERECO: c.prestadorEndereco,
+    PRESTADOR_CEP: c.prestadorCep,
+    NUMERO: c.numero,
+    DATA_EMISSAO: c.dataEmissao,
+    VALOR: c.valor,
+    TOMADOR_CNPJ: c.tomadorCnpj,
+    TOMADOR_IM: c.tomadorInscricaoMunicipal,
+    TOMADOR_NOME: c.tomadorNome,
+    MOTIVO: c.motivoComplemento,
+  };
+}
+
+async function abrirModeloDocx() {
+  const [{ default: JSZip }, { CARTA_MODELO_DOCX_BASE64 }] = await Promise.all([
+    import("jszip"),
+    import("./carta-modelo-docx"),
+  ]);
+  const bin = atob(CARTA_MODELO_DOCX_BASE64);
+  const bytes = new Uint8Array(bin.length);
+  for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+  return JSZip.loadAsync(bytes);
+}
+
+/**
+ * Converte o Word timbrado em HTML fiel (mesmo papel timbrado, fonte Arial,
+ * negrito/sublinhado e alinhamentos), para ser impresso/salvo em PDF.
+ */
+async function montarCartaModeloHtml(c: CartaCampos): Promise<string> {
+  const zip = await abrirModeloDocx();
+  const xml = await zip.file("word/document.xml")!.async("string");
+  const timbradoB64 = await zip.file("word/media/image1.png")!.async("base64");
+
+  const valores = valoresCarta(c);
+  const preencher = (t: string) =>
+    t.replace(/\{\{([A-Z_]+)\}\}/g, (all, k: string) => (k in valores ? valores[k] : all));
+
+  const doc = new DOMParser().parseFromString(xml, "application/xml");
+  const W = "http://schemas.openxmlformats.org/wordprocessingml/2006/main";
+  const paragrafos = Array.from(doc.getElementsByTagNameNS(W, "p"));
+
+  const corpo = paragrafos
+    .map((p) => {
+      const jc = p.getElementsByTagNameNS(W, "jc")[0]?.getAttributeNS(W, "val");
+      const align = jc === "center" ? "center" : jc === "right" ? "right" : jc === "both" ? "justify" : "left";
+      const runs = Array.from(p.getElementsByTagNameNS(W, "r"));
+      const partes = runs
+        .map((r) => {
+          const texto = Array.from(r.getElementsByTagNameNS(W, "t"))
+            .map((t) => t.textContent || "")
+            .join("");
+          if (!texto) return "";
+          const negrito = r.getElementsByTagNameNS(W, "b").length > 0;
+          const sublinhado = r.getElementsByTagNameNS(W, "u").length > 0;
+          let html = esc(preencher(texto)).replace(/ {2,}/g, (s) => "&nbsp;".repeat(s.length));
+          if (negrito) html = `<b>${html}</b>`;
+          if (sublinhado) html = `<u>${html}</u>`;
+          return html;
+        })
+        .join("");
+      return `<p style="text-align:${align}">${partes || "&nbsp;"}</p>`;
+    })
+    .join("");
+
+  return `<div class="pagina">
+  <img class="timbre" src="data:image/png;base64,${timbradoB64}" alt=""/>
+  <div class="texto">${corpo}</div>
+</div>`;
+}
+
+const ESTILO_MODELO = `
+* { box-sizing: border-box; }
+html, body { margin: 0; padding: 0; background: #f1f5f9; }
+.pagina { position: relative; width: 21cm; height: 29.7cm; margin: 0 auto; overflow: hidden; background: #fff; }
+.timbre { position: absolute; left: -1.43cm; top: 0.04cm; width: 21.46cm; height: 29.56cm; }
+.texto { position: relative; padding: 0.25cm 0.75cm 1.27cm 1.25cm; font-family: Arial, Helvetica, sans-serif; font-size: 11.5pt; color: #000; }
+.texto p { margin: 0; line-height: 1.25; min-height: 1.25em; }
+@media print {
+  @page { size: A4; margin: 0; }
+  html, body { background: #fff; }
+  .pagina { margin: 0; }
+}
+`;
+
+/** Abre a janela de impressão (para salvar em PDF) com a carta no modelo do Word. */
+export async function imprimirCarta(c: CartaCampos): Promise<void> {
+  const html = await montarCartaModeloHtml(c);
+  const w = window.open("", "_blank", "width=920,height=1100");
   if (!w) return;
-  w.document.write(`<!DOCTYPE html><html><head><meta charset="utf-8"/><title>Carta de Cancelamento</title>
-<style>@page { size: A4; margin: 2.5cm; } body { margin: 2.5cm; } ${ESTILO_CARTA}</style></head>
-<body>${montarCartaHtml(c)}</body></html>`);
+  w.document.write(`<!DOCTYPE html><html><head><meta charset="utf-8"/>
+<title>${escXml(nomeArquivoCarta(c))}</title>
+<style>${ESTILO_MODELO}</style></head><body>${html}</body></html>`);
   w.document.close();
   w.focus();
-  setTimeout(() => w.print(), 400);
+  const imprimir = () => setTimeout(() => w.print(), 300);
+  if (w.document.readyState === "complete") imprimir();
+  else w.addEventListener("load", imprimir);
 }
