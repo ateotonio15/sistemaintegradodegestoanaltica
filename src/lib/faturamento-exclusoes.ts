@@ -426,10 +426,12 @@ export async function adicionarExclusoesAoBruto(
       const raw = pickFromExcl(headersBruto[idxCnpj], linhaExc, normExcMap);
       cnpjLinha = String(raw ?? "").trim();
     }
-    if (!cnpjLinha && idxPagador >= 0) {
-      const pagVal = String(pickFromExcl(headersBruto[idxPagador], linhaExc, normExcMap) ?? "");
-      const key = normText(pagVal);
-      cnpjLinha = (key ? pagadorCnpjMap.get(key) : "") ?? "";
+    if (!cnpjLinha) {
+      const pagVal =
+        idxPagador >= 0
+          ? String(pickFromExcl(headersBruto[idxPagador], linhaExc, normExcMap) ?? "")
+          : "";
+      cnpjLinha = resolverCnpj(pagVal);
     }
     const diaInicioPeriodo = opts?.periodoPorCnpj?.get(onlyDigits(cnpjLinha));
 
@@ -467,13 +469,7 @@ export async function adicionarExclusoesAoBruto(
 
       // CNPJ: se veio vazio, buscar via mapa pagador→CNPJ
       if (ci === idxCnpj && (val === "" || val == null)) {
-        const pagVal =
-          idxPagador >= 0
-            ? String(pickFromExcl(headersBruto[idxPagador], linhaExc, normExcMap) ?? "")
-            : "";
-        const key = normText(pagVal);
-        const cnpj = key ? pagadorCnpjMap.get(key) : undefined;
-        if (cnpj) val = cnpj;
+        if (cnpjLinha) val = cnpjLinha;
       }
 
       // Datas: garante formato DD/MM/YYYY como texto
