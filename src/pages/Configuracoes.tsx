@@ -23,6 +23,7 @@ import {
   useUserPreferences,
 } from "@/hooks/useUserPreferences";
 import { cn } from "@/lib/utils";
+import { systemVersion, lastSystemUpdate } from "@/config/system";
 
 const TEMAS: { value: ThemeMode; label: string; icon: typeof Sun }[] = [
   { value: "light", label: "Modo Claro", icon: Sun },
