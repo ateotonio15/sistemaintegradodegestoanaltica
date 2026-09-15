@@ -27,8 +27,10 @@ function isForaDoPrazo(mov: Tables<"movimentacoes">): boolean {
     const endDay = parseInt(mov.periodo.split("-")[1]);
     const [year, month] = mov.mes_referencia.split("-").map(Number);
     if (!year || !month) return false;
-    const deadlineDate = new Date(year, month - 1, endDay);
-    return new Date() > deadlineDate;
+    // Fora do prazo somente a partir do DIA SEGUINTE ao fim do período:
+    // no próprio dia do corte a movimentação ainda está dentro do prazo.
+    const deadlineDate = new Date(year, month - 1, endDay + 1);
+    return new Date() >= deadlineDate;
   } catch {
     return false;
   }
