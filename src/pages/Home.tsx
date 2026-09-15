@@ -40,6 +40,7 @@ import {
   type LucideIcon,
   Star,
   FileSearch,
+  Settings,
 } from "lucide-react";
 
 type InteligenciaItem = {
@@ -380,6 +381,14 @@ const SHORTCUTS: Shortcut[] = [
     show: (c) =>
       c.isAdmin || c.isFinanceiro || c.isVendas ||
       ["comum", "diretora", "administradoras"].includes(c.role as string),
+  },
+  {
+    to: "/configuracoes",
+    label: "Configurações",
+    description: "Preferências, segurança e informações do sistema",
+    icon: Settings,
+    group: "utilitarios",
+    show: () => true,
   },
 ];
 
