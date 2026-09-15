@@ -64,12 +64,17 @@ function inscricaoMunicipal(t: string): string | null {
 }
 
 function nomeEmpresarial(t: string): string | null {
-  const bruto = aposRotulo(t, /nome\s*\/\s*nome\s*empresarial\s*/i);
+  const bruto =
+    aposRotulo(t, /nome\s*\/\s*nome\s*empresarial\s*/i) ||
+    aposRotulo(t, /(nome\s+empresarial|raz[aã]o\s+social|nome\s*\/\s*raz[aã]o\s+social)\s*:?\s*/i);
   if (!bruto) return null;
   const nome = bruto
-    .split(/\s{2,}|munic[ií]pio|c[oó]digo\s+ibge|endere[çc]o|e-?mail/i)[0]
+    .split(
+      /\s{2,}|munic[ií]pio|c[oó]digo\s+ibge|endere[çc]o|e-?mail|telefone|cnpj|inscri|indicador|regime/i,
+    )[0]
+    .replace(/[\s\-–]+$/, "")
     .trim();
-  return nome ? nome.toUpperCase() : null;
+  return nome && nome.length > 2 ? nome.toUpperCase() : null;
 }
 
 /** Extrai os dados usados na carta a partir do texto da NFS-e. */
@@ -110,27 +115,48 @@ export function extrairDadosCarta(textoOriginal: string): DadosCartaNfse {
     /prestador\s*(\/\s*fornecedor)?/i,
     /(tomador|destinat[aá]rio|intermedi[aá]rio)/i,
   );
-  const blocoTomador = trecho(
-    texto,
-    /tomador\s*(\/\s*adquirente|d[oa]?\s*servi[çc]o)?/i,
-    /(destinat[aá]rio|intermedi[aá]rio|servi[çc]o\s+prestado|tributa[çc][aã]o)/i,
-  );
+  // Bloco do TOMADOR: prioriza o cabeçalho "TOMADOR / ADQUIRENTE"
+  const fimTomador = /(destinat[aá]rio\s+da\s+opera|intermedi[aá]rio\s+da\s+opera|servi[çc]o\s+prestado)/i;
+  const blocoTomador =
+    trecho(texto, /tomador\s*\/\s*adquirente\s*/i, fimTomador) ||
+    trecho(texto, /tomador\s+d[oa]\s+servi[çc]o\s*/i, fimTomador) ||
+    trecho(texto, /tomador\s*/i, fimTomador);
 
   const endereco = aposRotulo(blocoPrestador, /endere[çc]o\s*/i)
     .split(/\s{2,}|e-?mail/i)[0]
     ?.trim();
   const cep = blocoPrestador.match(/(\d{2}\.\d{3}-\d{3})/)?.[1] || null;
 
+  const imPrestador = inscricaoMunicipal(blocoPrestador) || PRESTADOR_PADRAO.inscricao;
+
+  // Inscrição municipal do tomador: bloco do tomador e, se faltar, a última
+  // "Indicador Municipal (Inscrição)" do documento diferente da do prestador.
+  let imTomador = inscricaoMunicipal(blocoTomador);
+  if (!imTomador) {
+    const todas = [...texto.matchAll(/(?:indicador|inscri[çc][aã]o|inscr\.?)\s*municipal[^\d]{0,40}(\d{4,12})/gi)]
+      .map((m) => m[1])
+      .filter((v) => v !== imPrestador);
+    imTomador = todas.length ? todas[todas.length - 1] : null;
+  }
+
+  // Nome do tomador (assinatura): bloco do tomador e, se faltar, o último
+  // "Nome / Nome Empresarial" do documento (o primeiro é o do prestador).
+  let nomeTomador = nomeEmpresarial(blocoTomador);
+  if (!nomeTomador) {
+    const idx = texto.toLowerCase().lastIndexOf("nome empresarial");
+    if (idx > 0) nomeTomador = nomeEmpresarial(texto.slice(idx - 20));
+  }
+
   return {
     numero,
     dataEmissao,
     valor,
-    tomadorNome: nomeEmpresarial(blocoTomador),
+    tomadorNome: nomeTomador,
     tomadorCnpj: primeiroCnpj(blocoTomador),
-    tomadorInscricaoMunicipal: inscricaoMunicipal(blocoTomador),
+    tomadorInscricaoMunicipal: imTomador,
     prestadorNome: nomeEmpresarial(blocoPrestador) || PRESTADOR_PADRAO.nome,
     prestadorCnpj: primeiroCnpj(blocoPrestador) || PRESTADOR_PADRAO.cnpj,
-    prestadorInscricaoMunicipal: inscricaoMunicipal(blocoPrestador) || PRESTADOR_PADRAO.inscricao,
+    prestadorInscricaoMunicipal: imPrestador,
     prestadorEndereco: endereco || PRESTADOR_PADRAO.endereco,
     prestadorCep: cep || PRESTADOR_PADRAO.cep,
   };
