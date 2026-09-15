@@ -64,12 +64,17 @@ function inscricaoMunicipal(t: string): string | null {
 }
 
 function nomeEmpresarial(t: string): string | null {
-  const bruto = aposRotulo(t, /nome\s*\/\s*nome\s*empresarial\s*/i);
+  const bruto =
+    aposRotulo(t, /nome\s*\/\s*nome\s*empresarial\s*/i) ||
+    aposRotulo(t, /(nome\s+empresarial|raz[aã]o\s+social|nome\s*\/\s*raz[aã]o\s+social)\s*:?\s*/i);
   if (!bruto) return null;
   const nome = bruto
-    .split(/\s{2,}|munic[ií]pio|c[oó]digo\s+ibge|endere[çc]o|e-?mail/i)[0]
+    .split(
+      /\s{2,}|munic[ií]pio|c[oó]digo\s+ibge|endere[çc]o|e-?mail|telefone|cnpj|inscri|indicador|regime/i,
+    )[0]
+    .replace(/[\s\-–]+$/, "")
     .trim();
-  return nome ? nome.toUpperCase() : null;
+  return nome && nome.length > 2 ? nome.toUpperCase() : null;
 }
 
 /** Extrai os dados usados na carta a partir do texto da NFS-e. */
