@@ -370,7 +370,7 @@ const SHORTCUTS: Shortcut[] = [
     description: "Atendimentos recebidos das empresas por setor",
     icon: MessageSquareWarning,
     group: "utilitarios",
-    show: () => true,
+    show: (c) => !c.isFinanceiro,
   },
   {
     to: "/analise-contrato",
@@ -379,7 +379,7 @@ const SHORTCUTS: Shortcut[] = [
     icon: FileSearch,
     group: "utilitarios",
     show: (c) =>
-      c.isAdmin || c.isFinanceiro || c.isVendas ||
+      c.isAdmin || c.isVendas ||
       ["comum", "diretora", "administradoras"].includes(c.role as string),
   },
   {
