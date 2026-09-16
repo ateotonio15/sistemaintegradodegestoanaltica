@@ -154,17 +154,31 @@ export function BloqueioDialog({ open, onOpenChange, editing, preselectDate, can
             <Input value={motivo} onChange={(e) => setMotivo(e.target.value)} disabled={!canEdit} placeholder="Ex.: Reunião interna, congresso, etc." />
           </div>
         </div>
+        )}
         <DialogFooter className="flex sm:justify-between gap-2">
           <div>
-            {isEdit && canEdit && (
+            {isEdit && canEdit && editMode && (
               <Button variant="destructive" size="sm" onClick={handleDelete}>
                 <Trash2 className="h-4 w-4 mr-1" /> Excluir
               </Button>
             )}
           </div>
           <div className="flex gap-2">
-            <Button variant="outline" onClick={() => onOpenChange(false)}>Fechar</Button>
-            {canEdit && <Button onClick={handleSubmit} disabled={upsert.isPending}>Salvar</Button>}
+            {showView && canEdit ? (
+              <>
+                <Button variant="outline" onClick={() => onOpenChange(false)}>Fechar</Button>
+                <Button onClick={() => setEditMode(true)}>
+                  <Pencil className="h-4 w-4 mr-1" /> Editar
+                </Button>
+              </>
+            ) : (
+              <>
+                <Button variant="outline" onClick={() => (isEdit && canEdit ? setEditMode(false) : onOpenChange(false))}>
+                  {isEdit && canEdit ? "Voltar" : "Fechar"}
+                </Button>
+                {canEdit && <Button onClick={handleSubmit} disabled={upsert.isPending}>Salvar</Button>}
+              </>
+            )}
           </div>
         </DialogFooter>
       </DialogContent>
