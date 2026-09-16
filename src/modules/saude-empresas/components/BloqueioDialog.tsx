@@ -34,9 +34,11 @@ export function BloqueioDialog({ open, onOpenChange, editing, preselectDate, can
   const [horaFim, setHoraFim] = useState("09:00");
   const [motivo, setMotivo] = useState("");
   const [popOpen, setPopOpen] = useState(false);
+  const [editMode, setEditMode] = useState(false);
 
   useEffect(() => {
     if (!open) return;
+    setEditMode(false);
     if (editing) {
       const [y, m, d] = editing.data.split("-").map(Number);
       setData(new Date(y, m - 1, d));
