@@ -80,8 +80,6 @@ export function BloqueioDialog({ open, onOpenChange, editing, preselectDate, can
     onOpenChange(false);
   };
 
-  return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
   const periodoLabel = (p: BloqueioPeriodo) =>
     p === "dia_todo" ? "Dia todo" : p === "manha" ? "Manhã (antes das 12h)" : p === "tarde" ? "Tarde (a partir das 12h)" : "Horário específico";
 
