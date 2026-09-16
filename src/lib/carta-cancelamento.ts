@@ -167,6 +167,10 @@ export function extrairDadosCarta(textoOriginal: string): DadosCartaNfse {
   if (mData) dataEmissao = mData[1];
 
   // Valor: prioriza Valor Líquido, depois Valor da Operação / Serviço
+  const acharValor = (rotulo: RegExp): string | null => {
+    const m = aposRotulo(texto, rotulo).match(/R\$\s*([\d.]+,\d{2})/);
+    return m ? m[1] : null;
+  };
   // Valor: prioriza "Valor da Operação / Serviço", depois Valor Líquido e Valor Total
   let valor =
     acharValor(/valor\s+da\s+opera[çc][aã]o\s*\/\s*servi[çc]o\s*/i) ||
