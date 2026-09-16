@@ -92,18 +92,33 @@ export function BloqueioDialog({ open, onOpenChange, editing, preselectDate, can
           <DialogTitle>{isEdit ? (editMode ? "Editar bloqueio" : "Detalhes do bloqueio") : "Novo bloqueio de agenda"}</DialogTitle>
         </DialogHeader>
         {showView ? (
-          <div className="grid gap-3 py-2 text-sm">
-            <div className="grid gap-1">
-              <span className="text-xs font-medium text-muted-foreground">Data</span>
-              <span>{data ? format(data, "dd/MM/yyyy", { locale: ptBR }) : "—"}</span>
+          <div className="grid gap-3 py-2">
+            <div className="flex items-center gap-2 rounded-lg border border-red-500/30 bg-red-500/10 px-3 py-2">
+              <Ban className="h-4 w-4 text-red-400" />
+              <span className="text-sm font-medium text-red-400">Agenda bloqueada neste dia</span>
             </div>
-            <div className="grid gap-1">
-              <span className="text-xs font-medium text-muted-foreground">Período</span>
-              <span>{periodoLabel(periodo)}{periodo === "horario" ? ` (${horaInicio}–${horaFim})` : ""}</span>
-            </div>
-            <div className="grid gap-1">
-              <span className="text-xs font-medium text-muted-foreground">Motivo</span>
-              <span>{motivo || "—"}</span>
+            <div className="grid gap-2">
+              <div className="flex items-center gap-3 rounded-lg border border-border/60 bg-muted/40 px-3 py-2.5">
+                <CalendarDays className="h-4 w-4 shrink-0 text-muted-foreground" />
+                <div className="grid">
+                  <span className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">Data</span>
+                  <span className="text-sm font-medium">{data ? format(data, "EEEE, dd 'de' MMMM 'de' yyyy", { locale: ptBR }) : "—"}</span>
+                </div>
+              </div>
+              <div className="flex items-center gap-3 rounded-lg border border-border/60 bg-muted/40 px-3 py-2.5">
+                <Clock3 className="h-4 w-4 shrink-0 text-muted-foreground" />
+                <div className="grid">
+                  <span className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">Período</span>
+                  <span className="text-sm font-medium">{periodoLabel(periodo)}{periodo === "horario" ? ` · ${horaInicio} às ${horaFim}` : ""}</span>
+                </div>
+              </div>
+              <div className="flex items-start gap-3 rounded-lg border border-border/60 bg-muted/40 px-3 py-2.5">
+                <MessageSquareText className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" />
+                <div className="grid">
+                  <span className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">Motivo</span>
+                  <span className="text-sm font-medium">{motivo || "—"}</span>
+                </div>
+              </div>
             </div>
           </div>
         ) : (
