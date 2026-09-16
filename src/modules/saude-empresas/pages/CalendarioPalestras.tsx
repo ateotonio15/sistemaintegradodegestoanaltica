@@ -337,19 +337,27 @@ export default function CalendarioPalestras() {
                     {bl && (
                       <button
                         onClick={(e) => { e.stopPropagation(); if (podeEditar) openBloqEdit(bl); }}
-                        className="mb-1 w-full inline-flex items-center gap-1 bg-red-500/20 text-red-400 border border-red-500/50 rounded px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide hover:bg-red-500/30"
+                        className="mb-1 w-full text-left bg-red-500/20 text-red-400 border border-red-500/50 rounded px-1.5 py-0.5 hover:bg-red-500/30"
                         title={bl.motivo}
                       >
-                        <Ban className="h-3 w-3" />
-                        {bl.periodo === "dia_todo"
-                          ? "Dia bloqueado"
-                          : bl.periodo === "manha"
-                            ? "Manhã bloqueada"
-                            : bl.periodo === "tarde"
-                              ? "Tarde bloqueada"
-                              : `${(bl.hora_inicio ?? "").slice(0, 5)}–${(bl.hora_fim ?? "").slice(0, 5)} bloqueado`}
+                        <span className="flex items-center gap-1 text-[10px] font-bold uppercase tracking-wide">
+                          <Ban className="h-3 w-3 shrink-0" />
+                          {bl.periodo === "dia_todo"
+                            ? "Dia bloqueado"
+                            : bl.periodo === "manha"
+                              ? "Manhã bloqueada"
+                              : bl.periodo === "tarde"
+                                ? "Tarde bloqueada"
+                                : `${(bl.hora_inicio ?? "").slice(0, 5)}–${(bl.hora_fim ?? "").slice(0, 5)} bloqueado`}
+                        </span>
+                        {bl.motivo && (
+                          <span className="block text-[9px] font-medium normal-case leading-tight text-red-300/90 break-words">
+                            {bl.motivo}
+                          </span>
+                        )}
                       </button>
                     )}
+
                     <div className="space-y-1.5">
                       {evs.map((ev) => (
                         <button
