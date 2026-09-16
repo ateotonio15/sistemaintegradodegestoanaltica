@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { CalendarIcon, Trash2 } from "lucide-react";
+import { CalendarIcon, Pencil, Trash2 } from "lucide-react";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -34,9 +34,11 @@ export function BloqueioDialog({ open, onOpenChange, editing, preselectDate, can
   const [horaFim, setHoraFim] = useState("09:00");
   const [motivo, setMotivo] = useState("");
   const [popOpen, setPopOpen] = useState(false);
+  const [editMode, setEditMode] = useState(false);
 
   useEffect(() => {
     if (!open) return;
+    setEditMode(false);
     if (editing) {
       const [y, m, d] = editing.data.split("-").map(Number);
       setData(new Date(y, m - 1, d));
@@ -78,12 +80,33 @@ export function BloqueioDialog({ open, onOpenChange, editing, preselectDate, can
     onOpenChange(false);
   };
 
+  const periodoLabel = (p: BloqueioPeriodo) =>
+    p === "dia_todo" ? "Dia todo" : p === "manha" ? "Manhã (antes das 12h)" : p === "tarde" ? "Tarde (a partir das 12h)" : "Horário específico";
+
+  const showView = isEdit && !editMode;
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-md">
         <DialogHeader>
-          <DialogTitle>{isEdit ? "Editar bloqueio" : "Novo bloqueio de agenda"}</DialogTitle>
+          <DialogTitle>{isEdit ? (editMode ? "Editar bloqueio" : "Detalhes do bloqueio") : "Novo bloqueio de agenda"}</DialogTitle>
         </DialogHeader>
+        {showView ? (
+          <div className="grid gap-3 py-2 text-sm">
+            <div className="grid gap-1">
+              <span className="text-xs font-medium text-muted-foreground">Data</span>
+              <span>{data ? format(data, "dd/MM/yyyy", { locale: ptBR }) : "—"}</span>
+            </div>
+            <div className="grid gap-1">
+              <span className="text-xs font-medium text-muted-foreground">Período</span>
+              <span>{periodoLabel(periodo)}{periodo === "horario" ? ` (${horaInicio}–${horaFim})` : ""}</span>
+            </div>
+            <div className="grid gap-1">
+              <span className="text-xs font-medium text-muted-foreground">Motivo</span>
+              <span>{motivo || "—"}</span>
+            </div>
+          </div>
+        ) : (
         <div className="grid gap-4 py-2">
           <div className="grid gap-2">
             <Label>Data *</Label>
@@ -128,17 +151,31 @@ export function BloqueioDialog({ open, onOpenChange, editing, preselectDate, can
             <Input value={motivo} onChange={(e) => setMotivo(e.target.value)} disabled={!canEdit} placeholder="Ex.: Reunião interna, congresso, etc." />
           </div>
         </div>
+        )}
         <DialogFooter className="flex sm:justify-between gap-2">
           <div>
-            {isEdit && canEdit && (
+            {isEdit && canEdit && editMode && (
               <Button variant="destructive" size="sm" onClick={handleDelete}>
                 <Trash2 className="h-4 w-4 mr-1" /> Excluir
               </Button>
             )}
           </div>
           <div className="flex gap-2">
-            <Button variant="outline" onClick={() => onOpenChange(false)}>Fechar</Button>
-            {canEdit && <Button onClick={handleSubmit} disabled={upsert.isPending}>Salvar</Button>}
+            {showView && canEdit ? (
+              <>
+                <Button variant="outline" onClick={() => onOpenChange(false)}>Fechar</Button>
+                <Button onClick={() => setEditMode(true)}>
+                  <Pencil className="h-4 w-4 mr-1" /> Editar
+                </Button>
+              </>
+            ) : (
+              <>
+                <Button variant="outline" onClick={() => (isEdit && canEdit ? setEditMode(false) : onOpenChange(false))}>
+                  {isEdit && canEdit ? "Voltar" : "Fechar"}
+                </Button>
+                {canEdit && <Button onClick={handleSubmit} disabled={upsert.isPending}>Salvar</Button>}
+              </>
+            )}
           </div>
         </DialogFooter>
       </DialogContent>
