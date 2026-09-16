@@ -110,7 +110,6 @@ export function BloqueioDialog({ open, onOpenChange, editing, preselectDate, can
           </div>
         ) : (
         <div className="grid gap-4 py-2">
-        <div className="grid gap-4 py-2">
           <div className="grid gap-2">
             <Label>Data *</Label>
             <Popover open={popOpen} onOpenChange={setPopOpen}>
