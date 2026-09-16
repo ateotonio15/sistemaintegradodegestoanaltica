@@ -337,7 +337,7 @@ export default function CalendarioPalestras() {
                     {bl && (
                       <button
                         onClick={(e) => { e.stopPropagation(); if (podeEditar) openBloqEdit(bl); }}
-                        className="mb-1 w-full text-left bg-red-500/20 text-red-400 border border-red-500/50 rounded px-1.5 py-0.5 hover:bg-red-500/30"
+                        className="mb-1.5 w-full text-left bg-red-500/20 text-red-400 border border-red-500/50 rounded px-2 py-1.5 hover:bg-red-500/30"
                         title={bl.motivo}
                       >
                         <span className="flex items-center gap-1 text-[10px] font-bold uppercase tracking-wide">
@@ -351,7 +351,7 @@ export default function CalendarioPalestras() {
                                 : `${(bl.hora_inicio ?? "").slice(0, 5)}–${(bl.hora_fim ?? "").slice(0, 5)} bloqueado`}
                         </span>
                         {bl.motivo && (
-                          <span className="block text-[9px] font-medium normal-case leading-tight text-red-300/90 break-words">
+                          <span className="mt-1 block text-[11px] font-semibold normal-case leading-snug text-red-200 break-words">
                             {bl.motivo}
                           </span>
                         )}
