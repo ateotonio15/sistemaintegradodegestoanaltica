@@ -82,10 +82,34 @@ export function BloqueioDialog({ open, onOpenChange, editing, preselectDate, can
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
+  const periodoLabel = (p: BloqueioPeriodo) =>
+    p === "dia_todo" ? "Dia todo" : p === "manha" ? "Manhã (antes das 12h)" : p === "tarde" ? "Tarde (a partir das 12h)" : "Horário específico";
+
+  const showView = isEdit && !editMode;
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-md">
         <DialogHeader>
-          <DialogTitle>{isEdit ? "Editar bloqueio" : "Novo bloqueio de agenda"}</DialogTitle>
+          <DialogTitle>{isEdit ? (editMode ? "Editar bloqueio" : "Detalhes do bloqueio") : "Novo bloqueio de agenda"}</DialogTitle>
         </DialogHeader>
+        {showView ? (
+          <div className="grid gap-3 py-2 text-sm">
+            <div className="grid gap-1">
+              <span className="text-xs font-medium text-muted-foreground">Data</span>
+              <span>{data ? format(data, "dd/MM/yyyy", { locale: ptBR }) : "—"}</span>
+            </div>
+            <div className="grid gap-1">
+              <span className="text-xs font-medium text-muted-foreground">Período</span>
+              <span>{periodoLabel(periodo)}{periodo === "horario" ? ` (${horaInicio}–${horaFim})` : ""}</span>
+            </div>
+            <div className="grid gap-1">
+              <span className="text-xs font-medium text-muted-foreground">Motivo</span>
+              <span>{motivo || "—"}</span>
+            </div>
+          </div>
+        ) : (
+        <div className="grid gap-4 py-2">
         <div className="grid gap-4 py-2">
           <div className="grid gap-2">
             <Label>Data *</Label>
