@@ -167,7 +167,6 @@ export function extrairDadosCarta(textoOriginal: string): DadosCartaNfse {
   if (mData) dataEmissao = mData[1];
 
   const acharValor = (rotulo: RegExp): string | null => {
-  const acharValor = (rotulo: RegExp): string | null => {
     const m = aposRotulo(texto, rotulo).match(/R\$\s*([\d.]+,\d{2})/);
     return m ? m[1] : null;
   };
