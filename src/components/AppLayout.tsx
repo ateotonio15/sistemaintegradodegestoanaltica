@@ -165,6 +165,8 @@ export function AppLayout({ children }: { children?: React.ReactNode }) {
             { to: "/empresas", label: "Empresas", icon: Building2 },
             { to: "/implantacao", label: "Análise de Contratos", icon: FileSignature },
             { to: "/vidas", label: "Vidas", icon: Activity },
+            { to: "/uber", label: "Uber Corporativo", icon: Car },
+            { to: "/uber/dashboard", label: "Dashboard Uber", icon: LayoutDashboard },
           ]
       : isFinanceiro
         ? [
