@@ -114,6 +114,8 @@ interface ArquivoRow {
   lanc?: LancamentoRetroativo;
   /** PDF vinculado ao lançamento, quando existir. */
   arquivoVinculado?: ArquivoRow | null;
+  /** Nome do anexo (PDF) enviado junto com o lançamento retroativo. */
+  anexoNome?: string | null;
 }
 
 function iconForExt(ext: string | null) {
