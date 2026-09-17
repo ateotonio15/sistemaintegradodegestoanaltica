@@ -142,7 +142,9 @@ function formatDateTime(iso: string): string {
 
 export default function Arquivos() {
   const queryClient = useQueryClient();
-  const { canEditFinanceiro } = useAuth();
+  const { canEditFinanceiro, user } = useAuth();
+  const [conferindo, setConferindo] = useState<string | null>(null);
+  const [acaoPendente, setAcaoPendente] = useState<string | null>(null);
   const [uploadOpen, setUploadOpen] = useState(false);
   const [uploadDefaults, setUploadDefaults] = useState<{ empresaId?: string }>({});
   const [searchEmpresa, setSearchEmpresa] = useState("");
