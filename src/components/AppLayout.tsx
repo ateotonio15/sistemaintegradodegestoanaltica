@@ -1,7 +1,7 @@
 import { useState, useMemo, useCallback, useEffect, useRef } from "react";
 import { Link, Outlet, useLocation, useNavigate } from "react-router-dom";
 import { Building2, ArrowLeftRight, LayoutDashboard, Bell, Sun, Moon, LogOut, Users, Check, CheckCheck, PanelLeftClose, PanelLeft, UserCheck, CalendarClock, Building, FileText, User, Calendar, Wallet, TrendingUp, FolderArchive, FileSignature, HeartPulse, Activity, ChevronDown, ClockAlert, Bike, Briefcase, MessageSquareWarning, Phone, Car, Stethoscope, Mic, Star, ShieldPlus, Home as HomeIcon, Plus, ExternalLink } from "lucide-react";
-import { useApplyUserTheme } from "@/hooks/useUserPreferences";
+import { useApplyUserTheme, usePersistentThemeToggle } from "@/hooks/useUserPreferences";
 import { useCanAccessHonda } from "@/hooks/useHondaExclusoes";
 import { useAtivarContratosPendentes } from "@/hooks/useAtivarContratosPendentes";
 import logoImg from "@/assets/logo-cs-control.png";
@@ -112,8 +112,9 @@ export function AppLayout({ children }: { children?: React.ReactNode }) {
   const location = useLocation();
   const navigate = useNavigate();
   const { signOut, user, isAdmin, isExecutivo, isViewOnly, isEnfermeira, isFinanceiro, isExecutivoExterno, role, isAdminInterno } = useAuth();
-  const { theme, toggleTheme } = useTheme();
+  const { theme } = useTheme();
   useApplyUserTheme();
+  const toggleTheme = usePersistentThemeToggle();
   const isMobile = useIsMobile();
   const queryClient = useQueryClient();
   useAtivarContratosPendentes();
