@@ -844,55 +844,127 @@ export default function Arquivos() {
 
                 {/* Prévia */}
                 <div className="flex-1 min-h-0 overflow-hidden relative">
-                  <ArquivoPreviewInline
-                    key={selectedArquivo.id}
-                    bucket={selectedArquivo.bucket || DEFAULT_BUCKET}
-                    storagePath={selectedArquivo.storage_path}
-                    nomeArquivo={selectedArquivo.nome_original}
-                    mimeType={selectedArquivo.mime_type}
-                  />
+                  {selectedArquivo.storage_path ? (
+                    <ArquivoPreviewInline
+                      key={selectedArquivo.id}
+                      bucket={selectedArquivo.bucket || DEFAULT_BUCKET}
+                      storagePath={selectedArquivo.storage_path}
+                      nomeArquivo={selectedArquivo.nome_original}
+                      mimeType={selectedArquivo.mime_type}
+                    />
+                  ) : (
+                    <div className="h-full flex flex-col items-center justify-center gap-3 text-center p-8">
+                      <div className="h-16 w-16 rounded-2xl bg-purple-500/10 flex items-center justify-center">
+                        <Receipt className="h-8 w-8 text-purple-500" />
+                      </div>
+                      <div>
+                        <p className="text-sm font-medium">Lançamento sem PDF anexado</p>
+                        <p className="text-xs text-muted-foreground mt-1">
+                          Este lançamento foi registrado manualmente na aba Financeiro.
+                        </p>
+                      </div>
+                    </div>
+                  )}
                 </div>
 
-                {/* Detalhes do documento */}
-                <div className="border-t bg-muted/20 px-4 py-3">
-                  <div className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground mb-2">
-                    Detalhes do documento
+                {/* Detalhes do lançamento retroativo */}
+                {selectedArquivo.lanc && (
+                  <div className="border-t bg-purple-500/[0.05] px-4 py-3">
+                    <div className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground mb-2">
+                      Lançamento de cobrança retroativa
+                    </div>
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-xs">
+                      <div>
+                        <div className="text-[10px] text-muted-foreground">Valor</div>
+                        <div className="font-semibold">
+                          {formatBRLCentavos(selectedArquivo.lanc.valor_centavos)}
+                        </div>
+                      </div>
+                      <div>
+                        <div className="text-[10px] text-muted-foreground">Tipo</div>
+                        <div className="font-medium">
+                          {selectedArquivo.lanc.tipo === "devolucao" ? "Devolução" : "Cobrança retroativa"}
+                        </div>
+                      </div>
+                      <div>
+                        <div className="text-[10px] text-muted-foreground">Origem</div>
+                        <div className="font-medium">
+                          {origemDoLancamento(selectedArquivo.lanc) === "reajuste"
+                            ? "Reajuste"
+                            : "Beneficiários"}
+                        </div>
+                      </div>
+                      <div>
+                        <div className="text-[10px] text-muted-foreground">Situação</div>
+                        <div className="font-medium">
+                          {selectedArquivo.lanc.confirmado
+                            ? "Confirmada"
+                            : selectedArquivo.lanc.conferencia_status === "divergente"
+                              ? "Divergente"
+                              : "Não conferida"}
+                        </div>
+                      </div>
+                    </div>
                   </div>
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-xs">
-                    <div>
-                      <div className="text-[10px] text-muted-foreground">Enviado por</div>
-                      <div className="font-medium truncate">{selectedArquivo.uploaded_by_nome ?? "—"}</div>
-                    </div>
-                    <div>
-                      <div className="text-[10px] text-muted-foreground">Data do envio</div>
-                      <div className="font-medium">{formatDateTime(selectedArquivo.created_at)}</div>
-                    </div>
-                    <div>
-                      <div className="text-[10px] text-muted-foreground">Competência</div>
-                      <div className="font-medium">{compLabel(selectedArquivo.competencia)}</div>
-                    </div>
-                    <div>
-                      <div className="text-[10px] text-muted-foreground">Categoria</div>
-                      <div className="font-medium">{selectedArquivo.categoria}</div>
-                    </div>
-                  </div>
-                </div>
+                )}
 
                 {/* Ações */}
-                <div className="border-t px-4 py-3 flex items-center gap-2">
-                  <Button className="flex-1 gap-2" onClick={() => handleDownload(selectedArquivo)}>
-                    <Download className="h-4 w-4" /> Baixar
-                  </Button>
-                  {canEditFinanceiro && (
+                <div className="border-t px-4 py-3 flex items-center gap-2 flex-wrap">
+                  {selectedArquivo.storage_path && (
+                    <Button className="flex-1 gap-2" onClick={() => handleDownload(selectedArquivo)}>
+                      <Download className="h-4 w-4" /> Baixar
+                    </Button>
+                  )}
+                  {canEditFinanceiro && selectedArquivo.lanc && (
+                    <>
+                      <Button
+                        variant="outline"
+                        className="flex-1 gap-2"
+                        disabled={conferindo === selectedArquivo.id}
+                        onClick={() => handleConferir(selectedArquivo)}
+                      >
+                        {conferindo === selectedArquivo.id ? (
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                        ) : (
+                          <ShieldCheck className="h-4 w-4" />
+                        )}
+                        Conferir
+                      </Button>
+                      <Button
+                        variant="outline"
+                        className="flex-1 gap-2"
+                        disabled={acaoPendente === selectedArquivo.id}
+                        onClick={() => handleConfirmar(selectedArquivo)}
+                      >
+                        <CheckCircle2 className="h-4 w-4" />
+                        {selectedArquivo.lanc.confirmado ? "Desfazer" : "Confirmar"}
+                      </Button>
+                    </>
+                  )}
+                  {canEditFinanceiro && !selectedArquivo.lanc && (
                     <>
                       <Button variant="outline" className="flex-1 gap-2" onClick={() => openUpload(selectedArquivo.empresa_id)}>
                         <Upload className="h-4 w-4" /> Substituir
                       </Button>
-                      <Button variant="outline" className="flex-1 gap-2 text-destructive hover:text-destructive hover:bg-destructive/10 border-destructive/30"
-                        onClick={() => setConfirmDelete(selectedArquivo)}>
-                        <Trash2 className="h-4 w-4" /> Excluir
-                      </Button>
+                      {(selectedArquivo.categoria === "Retroativo" ||
+                        selectedArquivo.categoria === "Reajuste") && (
+                        <Button
+                          variant="outline"
+                          className="flex-1 gap-2"
+                          disabled={acaoPendente === selectedArquivo.id}
+                          onClick={() => handleConfirmar(selectedArquivo)}
+                        >
+                          <CheckCircle2 className="h-4 w-4" />
+                          {selectedArquivo.cobranca_confirmada ? "Desfazer" : "Confirmar"}
+                        </Button>
+                      )}
                     </>
+                  )}
+                  {canEditFinanceiro && (
+                    <Button variant="outline" className="flex-1 gap-2 text-destructive hover:text-destructive hover:bg-destructive/10 border-destructive/30"
+                      onClick={() => setConfirmDelete(selectedArquivo)}>
+                      <Trash2 className="h-4 w-4" /> Excluir
+                    </Button>
                   )}
                 </div>
               </>
