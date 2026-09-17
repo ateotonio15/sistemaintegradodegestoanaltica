@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { LogOut, Building2, FileText, Users, Wallet, CalendarClock, AlertTriangle, CheckCircle2, Clock, Moon, Sun, Briefcase } from "lucide-react";
 import { useTheme } from "@/hooks/useTheme";
+import { usePersistentThemeToggle } from "@/hooks/useUserPreferences";
 import { format, parseISO } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { ChatAtendimento } from "@/components/portal/ChatAtendimento";
