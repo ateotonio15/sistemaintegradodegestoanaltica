@@ -712,7 +712,11 @@ export default function Arquivos() {
                                 )}
                               >
                                 <div className="shrink-0 mt-0.5 h-6 w-6 flex items-center justify-center">
-                                  {iconForExt(a.extensao)}
+                                  {a.lanc ? (
+                                    <Receipt className="h-4 w-4 text-purple-500" />
+                                  ) : (
+                                    iconForExt(a.extensao)
+                                  )}
                                 </div>
                                 <div className="min-w-0 flex-1">
                                   <div className={cn("text-sm font-medium truncate leading-snug", active && "text-primary")} title={a.nome_original}>
@@ -725,49 +729,79 @@ export default function Arquivos() {
                                     >
                                       {a.categoria}
                                     </Badge>
-                                    {canEditFinanceiro && (
-                                      <DropdownMenu>
-                                        <DropdownMenuTrigger asChild>
-                                          <button
-                                            type="button"
-                                            onClick={(e) => e.stopPropagation()}
-                                            className="h-5 w-5 rounded hover:bg-muted flex items-center justify-center text-muted-foreground"
-                                            title="Mover para outra pasta"
-                                          >
-                                            <MoreHorizontal className="h-3.5 w-3.5" />
-                                          </button>
-                                        </DropdownMenuTrigger>
-                                        <DropdownMenuContent align="start" onClick={(e) => e.stopPropagation()}>
-                                          <DropdownMenuLabel className="flex items-center gap-2 text-xs">
-                                            <FolderInput className="h-3.5 w-3.5" />
-                                            Mover para pasta
-                                          </DropdownMenuLabel>
-                                          <DropdownMenuSeparator />
-                                          {CATEGORIAS.map((cat) => (
-                                            <DropdownMenuItem
-                                              key={cat}
-                                              disabled={a.categoria === cat}
-                                              onClick={(e) => {
-                                                e.stopPropagation();
-                                                handleChangeCategoria(a, cat);
-                                              }}
+                                    {a.lanc ? (
+                                      <>
+                                        <Badge
+                                          variant="outline"
+                                          className="h-5 text-[10px] px-1.5 font-medium border-purple-500/30 bg-purple-500/10 text-purple-700 dark:text-purple-300"
+                                        >
+                                          Lançamento
+                                        </Badge>
+                                        {a.lanc.confirmado ? (
+                                          <Badge className="h-5 gap-1 bg-emerald-600/15 text-emerald-600 dark:text-emerald-400 border-emerald-600/30 text-[10px]">
+                                            <ShieldCheck className="h-3 w-3" /> Confirmada
+                                          </Badge>
+                                        ) : a.lanc.conferencia_status === "divergente" ? (
+                                          <Badge className="h-5 text-[10px] bg-amber-500/15 text-amber-600 dark:text-amber-300 border-amber-500/30">
+                                            Divergente
+                                          </Badge>
+                                        ) : (
+                                          <Badge variant="outline" className="h-5 text-[10px] text-muted-foreground">
+                                            Não conferida
+                                          </Badge>
+                                        )}
+                                      </>
+                                    ) : (
+                                      canEditFinanceiro && (
+                                        <DropdownMenu>
+                                          <DropdownMenuTrigger asChild>
+                                            <button
+                                              type="button"
+                                              onClick={(e) => e.stopPropagation()}
+                                              className="h-5 w-5 rounded hover:bg-muted flex items-center justify-center text-muted-foreground"
+                                              title="Mover para outra pasta"
                                             >
-                                              <Badge
-                                                variant="outline"
-                                                className={cn("h-5 text-[10px] px-1.5 mr-2 border", categoriaChipClass(cat))}
+                                              <MoreHorizontal className="h-3.5 w-3.5" />
+                                            </button>
+                                          </DropdownMenuTrigger>
+                                          <DropdownMenuContent align="start" onClick={(e) => e.stopPropagation()}>
+                                            <DropdownMenuLabel className="flex items-center gap-2 text-xs">
+                                              <FolderInput className="h-3.5 w-3.5" />
+                                              Mover para pasta
+                                            </DropdownMenuLabel>
+                                            <DropdownMenuSeparator />
+                                            {CATEGORIAS.map((cat) => (
+                                              <DropdownMenuItem
+                                                key={cat}
+                                                disabled={a.categoria === cat}
+                                                onClick={(e) => {
+                                                  e.stopPropagation();
+                                                  handleChangeCategoria(a, cat);
+                                                }}
                                               >
-                                                {cat}
-                                              </Badge>
-                                              {a.categoria === cat && (
-                                                <span className="ml-auto text-[10px] text-muted-foreground">atual</span>
-                                              )}
-                                            </DropdownMenuItem>
-                                          ))}
-                                        </DropdownMenuContent>
-                                      </DropdownMenu>
+                                                <Badge
+                                                  variant="outline"
+                                                  className={cn("h-5 text-[10px] px-1.5 mr-2 border", categoriaChipClass(cat))}
+                                                >
+                                                  {cat}
+                                                </Badge>
+                                                {a.categoria === cat && (
+                                                  <span className="ml-auto text-[10px] text-muted-foreground">atual</span>
+                                                )}
+                                              </DropdownMenuItem>
+                                            ))}
+                                          </DropdownMenuContent>
+                                        </DropdownMenu>
+                                      )
                                     )}
                                     <span className="text-muted-foreground/40">·</span>
-                                    <span>{formatBytes(a.tamanho_bytes)}</span>
+                                    <span>
+                                      {a.lanc
+                                        ? a.arquivoVinculado
+                                          ? "PDF anexado"
+                                          : "sem PDF"
+                                        : formatBytes(a.tamanho_bytes)}
+                                    </span>
                                   </div>
                                 </div>
                                 <div className="text-xs text-muted-foreground text-right shrink-0 mt-0.5">
