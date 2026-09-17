@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useCallback, useEffect, useRef } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
@@ -9,6 +9,8 @@ export const IDIOMAS_DISPONIVEIS = [{ value: "pt-BR", label: "Português (Brasil
 export interface UserPreferences {
   tema: ThemeMode;
   idioma: string;
+  /** true quando o usuário já tem preferência gravada no banco */
+  salvo?: boolean;
 }
 
 const DEFAULTS: UserPreferences = { tema: "system", idioma: "pt-BR" };
