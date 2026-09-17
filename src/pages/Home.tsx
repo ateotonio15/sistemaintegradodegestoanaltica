@@ -350,14 +350,6 @@ const SHORTCUTS: Shortcut[] = [
     show: (c) => c.isAdmin,
   },
   {
-    to: "/honda-exclusoes",
-    label: "Honda Exclusões",
-    description: "Controle de exclusões Moto Honda",
-    icon: Bike,
-    group: "utilitarios",
-    show: (c) => c.canHonda,
-  },
-  {
     to: "/admin/empresas-acesso",
     label: "Acessos das Empresas",
     description: "Usuários, senhas e visibilidade do portal",
