@@ -171,7 +171,7 @@ export default function Arquivos() {
     },
   });
 
-  const { data: arquivos = [], isLoading } = useQuery({
+  const { data: arquivosRaw = [], isLoading } = useQuery({
     queryKey: ["financeiro-arquivos"],
     queryFn: async () => {
       const pageSize = 1000;
@@ -196,6 +196,53 @@ export default function Arquivos() {
       return all;
     },
   });
+
+  // Lançamentos de cobrança retroativa/devolução — os mesmos exibidos na aba Financeiro
+  const { data: lancamentos = [] } = useQuery({
+    queryKey: ["retroativos-lancamentos"],
+    queryFn: () => fetchLancamentosRetroativos(),
+  });
+
+  /** Arquivos + lançamentos retroativos, na mesma lista (pasta "Retroativo"). */
+  const arquivos = useMemo<ArquivoRow[]>(() => {
+    const extras: ArquivoRow[] = lancamentos.map((l) => {
+      const vinc =
+        (l.financeiro_movimentacao_id
+          ? arquivosRaw.find(
+              (a) =>
+                a.financeiro_movimentacao_id === l.financeiro_movimentacao_id &&
+                a.categoria === "Retroativo",
+            )
+          : null) ?? null;
+      const titulo = `${
+        l.tipo === "devolucao" ? "Devolução" : "Cobrança retroativa"
+      } · ${formatBRLCentavos(l.valor_centavos)}`;
+      return {
+        id: `lanc-${l.id}`,
+        empresa_id: l.empresa_id,
+        competencia: l.competencia,
+        categoria: "Retroativo",
+        nome_original: titulo,
+        extensao: vinc?.extensao ?? null,
+        mime_type: vinc?.mime_type ?? null,
+        tamanho_bytes: vinc?.tamanho_bytes ?? null,
+        observacao: l.descricao,
+        uploaded_by: l.created_by,
+        uploaded_by_nome: vinc?.uploaded_by_nome ?? null,
+        storage_path: vinc?.storage_path ?? "",
+        status: "ativo",
+        versao: 1,
+        created_at: l.created_at,
+        bucket: vinc?.bucket ?? DEFAULT_BUCKET,
+        origem: "lancamento_retroativo",
+        financeiro_movimentacao_id: l.financeiro_movimentacao_id,
+        lanc: l,
+        arquivoVinculado: vinc,
+      };
+    });
+    return [...arquivosRaw, ...extras];
+  }, [arquivosRaw, lancamentos]);
+
 
   // Movimentações da empresa selecionada — para mostrar o período ao lado da competência
   const { data: movsEmpresa = [] } = useQuery({
