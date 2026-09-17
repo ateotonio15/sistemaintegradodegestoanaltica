@@ -412,6 +412,18 @@ export default function Arquivos() {
 
   async function handleDelete(a: ArquivoRow) {
     try {
+      if (a.lanc) {
+        const { error } = await supabase
+          .from("cobrancas_retroativas")
+          .delete()
+          .eq("id", a.lanc.id);
+        if (error) throw error;
+        toast.success("Lançamento removido");
+        queryClient.invalidateQueries({ queryKey: ["retroativos-lancamentos"] });
+        queryClient.invalidateQueries({ queryKey: ["cobrancas-retroativas"] });
+        if (selectedArquivoId === a.id) setSelectedArquivoId(null);
+        return;
+      }
       const { error } = await supabase
         .from("financeiro_arquivos")
         .update({ status: "removido" })
@@ -427,6 +439,58 @@ export default function Arquivos() {
       toast.error("Erro ao remover: " + (e?.message ?? "desconhecido"));
     } finally {
       setConfirmDelete(null);
+    }
+  }
+
+  /** Confere o lançamento contra a planilha de faturamento (mesma regra da aba Financeiro). */
+  async function handleConferir(a: ArquivoRow) {
+    if (!a.lanc) return;
+    setConferindo(a.id);
+    try {
+      const res = await conferirLancamentoRetroativo(a.lanc, user?.id ?? null);
+      const label = res.ehDevolucao ? "Devolução" : "Cobrança";
+      if (res.status === "confirmada") toast.success(`${label} confirmada na planilha.`);
+      else if (res.status === "divergente")
+        toast.warning(
+          `${label} — divergência: planilha ${formatBRLCentavos(
+            res.encontradoCentavos ?? 0,
+          )} × registrado ${formatBRLCentavos(res.registradoCentavos)}.`,
+        );
+      else if (res.planilha && !res.baldeExiste)
+        toast.info(
+          res.origem === "reajuste"
+            ? "A planilha não tem abas de cobrança retroativa (só há lançamentos de beneficiários)."
+            : "A planilha não tem retroativo de beneficiários (só há abas de reajuste).",
+        );
+      else toast.info("Nenhuma planilha de faturamento encontrada para esta competência.");
+      queryClient.invalidateQueries({ queryKey: ["retroativos-lancamentos"] });
+      queryClient.invalidateQueries({ queryKey: ["cobrancas-retroativas"] });
+    } catch (e: any) {
+      toast.error("Erro ao conferir: " + (e?.message ?? "desconhecido"));
+    } finally {
+      setConferindo(null);
+    }
+  }
+
+  /** Confirma/desfaz manualmente a cobrança — de um lançamento ou de um arquivo. */
+  async function handleConfirmar(a: ArquivoRow) {
+    setAcaoPendente(a.id);
+    try {
+      if (a.lanc) {
+        const novo = await confirmarLancamentoManual(a.lanc, user?.id ?? null);
+        toast.success(novo ? "Cobrança confirmada." : "Confirmação removida.");
+        queryClient.invalidateQueries({ queryKey: ["retroativos-lancamentos"] });
+        queryClient.invalidateQueries({ queryKey: ["cobrancas-retroativas"] });
+      } else {
+        const novo = await confirmarCobrancaArquivo(a, user?.id ?? null);
+        toast.success(novo ? "Cobrança do arquivo confirmada." : "Confirmação removida.");
+        queryClient.invalidateQueries({ queryKey: ["financeiro-arquivos"] });
+        queryClient.invalidateQueries({ queryKey: ["arquivos-reajuste-rcr"] });
+      }
+    } catch (e: any) {
+      toast.error("Erro ao confirmar: " + (e?.message ?? "desconhecido"));
+    } finally {
+      setAcaoPendente(null);
     }
   }
 
