@@ -2,6 +2,7 @@ import { useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import { conferirLancamentoRetroativo } from "@/lib/retroativos-espelho";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -668,133 +669,13 @@ export function ReajusteCobrancaRetroativa({ competencia }: { competencia?: stri
   const [conferindo, setConferindo] = useState<string | null>(null);
   const [conferindoTodas, setConferindoTodas] = useState(false);
 
-  interface RetroPlanilha {
-    /** Retroativo de reajuste — abas dedicadas "C.RETROATIVA <MES>". */
-    reajusteCentavos: number;
-    /** Retroativo/devolução de beneficiários específicos — relatório principal. */
-    beneficiariosCentavos: number;
-    meses: string[];
-    detalhe: Array<{ mes: string; total: number }>;
-    temReajuste: boolean;
-    temBeneficiarios: boolean;
-  }
-
-  /** Lê as planilhas da empresa/competência e separa o retroativo por origem. */
-  const buscarRetroativoPlanilha = async (
-    empresaId: string,
-    compet: string,
-  ): Promise<RetroPlanilha | null> => {
-    const { data: movs, error: movErr } = await supabase
-      .from("financeiro_movimentacoes")
-      .select("id")
-      .eq("empresa_id", empresaId)
-      .eq("mes_referencia", compet);
-    if (movErr) throw movErr;
-    const movIds = (movs || []).map((m: any) => m.id);
-    if (movIds.length === 0) return null;
-
-    const { data: anexos, error: anxErr } = await supabase
-      .from("anexos_financeiro")
-      .select("nome_arquivo, storage_path, mime_type")
-      .in("financeiro_movimentacao_id", movIds);
-    if (anxErr) throw anxErr;
-
-    const { isXlsAnexo } = await import("@/lib/financeiro-utils");
-    const xls = (anexos || []).filter((a: any) => isXlsAnexo(a) && a.storage_path);
-    if (xls.length === 0) return null;
-
-    const { analisarExcelFinanceiroPorCnpj } = await import("@/lib/excel-analysis-utils");
-    let reajusteReais = 0;
-    let beneficiariosReais = 0;
-    let temReajuste = false;
-    let temBeneficiarios = false;
-    const mesesSet = new Set<string>();
-    const detalheMap = new Map<string, number>();
-    let algumLido = false;
-    for (const a of xls) {
-      try {
-        const { data, error } = await supabase.storage
-          .from("anexos-financeiro")
-          .download((a as any).storage_path);
-        if (error) throw error;
-        const blocos = await analisarExcelFinanceiroPorCnpj(await data.arrayBuffer());
-        algumLido = true;
-        blocos.forEach((b: any) => {
-          const rea = b.retroativasReajuste?.total ?? 0;
-          const benRetro = b.retroativasBeneficiarios?.total ?? 0;
-          const benDev = b.devolucoes?.total ?? 0;
-          if (b.retroativasReajuste) temReajuste = true;
-          if (b.retroativasBeneficiarios || b.devolucoes) temBeneficiarios = true;
-          reajusteReais += rea;
-          beneficiariosReais += benRetro + benDev;
-          (b.retroativasReajuste?.meses || b.retroativas?.meses || []).forEach((m: string) =>
-            mesesSet.add(m),
-          );
-          (b.retroativasReajuste?.mesesDetalhe || b.retroativas?.mesesDetalhe || []).forEach(
-            (d: any) => detalheMap.set(d.mes, (detalheMap.get(d.mes) || 0) + (d.total || 0)),
-          );
-        });
-      } catch {
-        /* ignora arquivo ilegível */
-      }
-    }
-    if (!algumLido) return null;
-    return {
-      reajusteCentavos: Math.round(reajusteReais * 100),
-      beneficiariosCentavos: Math.round(beneficiariosReais * 100),
-      meses: Array.from(mesesSet),
-      detalhe: Array.from(detalheMap.entries()).map(([mes, total]) => ({ mes, total })),
-      temReajuste,
-      temBeneficiarios,
-    };
-  };
-
   const conferirCobranca = async (c: any, silencioso = false) => {
     setConferindo(c.id);
     try {
-      const planilha = await buscarRetroativoPlanilha(c.empresa_id, c.competencia);
-      const ehDevolucao = c.tipo === "devolucao";
-      const origem: "reajuste" | "beneficiarios" =
-        c.origem_retroativo === "beneficiarios" || c.origem_retroativo === "reajuste"
-          ? c.origem_retroativo
-          : ehDevolucao
-            ? "beneficiarios"
-            : "reajuste";
-      const registrado = c.valor_centavos || 0;
-
-      const balde =
-        origem === "reajuste" ? planilha?.reajusteCentavos ?? null : planilha?.beneficiariosCentavos ?? null;
-      const baldeExiste =
-        origem === "reajuste" ? !!planilha?.temReajuste : !!planilha?.temBeneficiarios;
-      const encontrado = planilha && baldeExiste ? balde : null;
-
-      const status =
-        encontrado === null
-          ? "nao_encontrada"
-          : Math.abs(
-              ehDevolucao
-                ? Math.abs(encontrado) - Math.abs(registrado)
-                : encontrado - registrado,
-            ) <= 5
-            ? "confirmada"
-            : "divergente";
-      const { error } = await supabase
-        .from("cobrancas_retroativas")
-        .update({
-          conferencia_status: status,
-          conferido_em: new Date().toISOString(),
-          valor_planilha_centavos: encontrado,
-          ...(status === "confirmada"
-            ? {
-                confirmado: true,
-                confirmado_em: new Date().toISOString(),
-                confirmado_por: user?.id ?? null,
-                confirmado_origem: "planilha",
-              }
-            : {}),
-        } as any)
-        .eq("id", c.id);
-      if (error) throw error;
+      const res = await conferirLancamentoRetroativo(c, user?.id ?? null);
+      const { status, planilha, baldeExiste, origem, ehDevolucao } = res;
+      const encontrado = res.encontradoCentavos;
+      const registrado = res.registradoCentavos;
       if (!silencioso) {
         const label = ehDevolucao ? "Devolução" : "Cobrança";
         const fonte =

@@ -38,6 +38,10 @@ import {
   FileQuestion,
   MoreHorizontal,
   FolderInput,
+  Receipt,
+  ShieldCheck,
+  CheckCircle2,
+  Loader2,
 } from "lucide-react";
 import { toast } from "sonner";
 import { formatDateBR } from "@/lib/date-utils";
@@ -46,6 +50,15 @@ import { ArquivoPreviewInline } from "@/components/arquivos/ArquivoPreviewInline
 import { useAuth } from "@/hooks/useAuth";
 import { compLabel, formatBytes, tipoArquivo } from "@/lib/arquivos-utils";
 import { cn } from "@/lib/utils";
+import {
+  type LancamentoRetroativo,
+  conferirLancamentoRetroativo,
+  confirmarCobrancaArquivo,
+  confirmarLancamentoManual,
+  fetchLancamentosRetroativos,
+  formatBRLCentavos,
+  origemDoLancamento,
+} from "@/lib/retroativos-espelho";
 
 const CATEGORIAS = ["Mensalidade", "Reajuste", "Implantação", "Retroativo", "Fluxo"] as const;
 type Categoria = (typeof CATEGORIAS)[number];
@@ -95,6 +108,12 @@ interface ArquivoRow {
   created_at: string;
   bucket?: string | null;
   origem?: string | null;
+  financeiro_movimentacao_id?: string | null;
+  cobranca_confirmada?: boolean | null;
+  /** Preenchido quando a linha é um lançamento de cobrança retroativa/devolução. */
+  lanc?: LancamentoRetroativo;
+  /** PDF vinculado ao lançamento, quando existir. */
+  arquivoVinculado?: ArquivoRow | null;
 }
 
 function iconForExt(ext: string | null) {
@@ -123,7 +142,9 @@ function formatDateTime(iso: string): string {
 
 export default function Arquivos() {
   const queryClient = useQueryClient();
-  const { canEditFinanceiro } = useAuth();
+  const { canEditFinanceiro, user } = useAuth();
+  const [conferindo, setConferindo] = useState<string | null>(null);
+  const [acaoPendente, setAcaoPendente] = useState<string | null>(null);
   const [uploadOpen, setUploadOpen] = useState(false);
   const [uploadDefaults, setUploadDefaults] = useState<{ empresaId?: string }>({});
   const [searchEmpresa, setSearchEmpresa] = useState("");
@@ -150,7 +171,7 @@ export default function Arquivos() {
     },
   });
 
-  const { data: arquivos = [], isLoading } = useQuery({
+  const { data: arquivosRaw = [], isLoading } = useQuery({
     queryKey: ["financeiro-arquivos"],
     queryFn: async () => {
       const pageSize = 1000;
@@ -175,6 +196,53 @@ export default function Arquivos() {
       return all;
     },
   });
+
+  // Lançamentos de cobrança retroativa/devolução — os mesmos exibidos na aba Financeiro
+  const { data: lancamentos = [] } = useQuery({
+    queryKey: ["retroativos-lancamentos"],
+    queryFn: () => fetchLancamentosRetroativos(),
+  });
+
+  /** Arquivos + lançamentos retroativos, na mesma lista (pasta "Retroativo"). */
+  const arquivos = useMemo<ArquivoRow[]>(() => {
+    const extras: ArquivoRow[] = lancamentos.map((l) => {
+      const vinc =
+        (l.financeiro_movimentacao_id
+          ? arquivosRaw.find(
+              (a) =>
+                a.financeiro_movimentacao_id === l.financeiro_movimentacao_id &&
+                a.categoria === "Retroativo",
+            )
+          : null) ?? null;
+      const titulo = `${
+        l.tipo === "devolucao" ? "Devolução" : "Cobrança retroativa"
+      } · ${formatBRLCentavos(l.valor_centavos)}`;
+      return {
+        id: `lanc-${l.id}`,
+        empresa_id: l.empresa_id,
+        competencia: l.competencia,
+        categoria: "Retroativo",
+        nome_original: titulo,
+        extensao: vinc?.extensao ?? null,
+        mime_type: vinc?.mime_type ?? null,
+        tamanho_bytes: vinc?.tamanho_bytes ?? null,
+        observacao: l.descricao,
+        uploaded_by: l.created_by,
+        uploaded_by_nome: vinc?.uploaded_by_nome ?? null,
+        storage_path: vinc?.storage_path ?? "",
+        status: "ativo",
+        versao: 1,
+        created_at: l.created_at,
+        bucket: vinc?.bucket ?? DEFAULT_BUCKET,
+        origem: "lancamento_retroativo",
+        financeiro_movimentacao_id: l.financeiro_movimentacao_id,
+        lanc: l,
+        arquivoVinculado: vinc,
+      };
+    });
+    return [...arquivosRaw, ...extras];
+  }, [arquivosRaw, lancamentos]);
+
 
   // Movimentações da empresa selecionada — para mostrar o período ao lado da competência
   const { data: movsEmpresa = [] } = useQuery({
@@ -344,6 +412,18 @@ export default function Arquivos() {
 
   async function handleDelete(a: ArquivoRow) {
     try {
+      if (a.lanc) {
+        const { error } = await supabase
+          .from("cobrancas_retroativas")
+          .delete()
+          .eq("id", a.lanc.id);
+        if (error) throw error;
+        toast.success("Lançamento removido");
+        queryClient.invalidateQueries({ queryKey: ["retroativos-lancamentos"] });
+        queryClient.invalidateQueries({ queryKey: ["cobrancas-retroativas"] });
+        if (selectedArquivoId === a.id) setSelectedArquivoId(null);
+        return;
+      }
       const { error } = await supabase
         .from("financeiro_arquivos")
         .update({ status: "removido" })
@@ -359,6 +439,58 @@ export default function Arquivos() {
       toast.error("Erro ao remover: " + (e?.message ?? "desconhecido"));
     } finally {
       setConfirmDelete(null);
+    }
+  }
+
+  /** Confere o lançamento contra a planilha de faturamento (mesma regra da aba Financeiro). */
+  async function handleConferir(a: ArquivoRow) {
+    if (!a.lanc) return;
+    setConferindo(a.id);
+    try {
+      const res = await conferirLancamentoRetroativo(a.lanc, user?.id ?? null);
+      const label = res.ehDevolucao ? "Devolução" : "Cobrança";
+      if (res.status === "confirmada") toast.success(`${label} confirmada na planilha.`);
+      else if (res.status === "divergente")
+        toast.warning(
+          `${label} — divergência: planilha ${formatBRLCentavos(
+            res.encontradoCentavos ?? 0,
+          )} × registrado ${formatBRLCentavos(res.registradoCentavos)}.`,
+        );
+      else if (res.planilha && !res.baldeExiste)
+        toast.info(
+          res.origem === "reajuste"
+            ? "A planilha não tem abas de cobrança retroativa (só há lançamentos de beneficiários)."
+            : "A planilha não tem retroativo de beneficiários (só há abas de reajuste).",
+        );
+      else toast.info("Nenhuma planilha de faturamento encontrada para esta competência.");
+      queryClient.invalidateQueries({ queryKey: ["retroativos-lancamentos"] });
+      queryClient.invalidateQueries({ queryKey: ["cobrancas-retroativas"] });
+    } catch (e: any) {
+      toast.error("Erro ao conferir: " + (e?.message ?? "desconhecido"));
+    } finally {
+      setConferindo(null);
+    }
+  }
+
+  /** Confirma/desfaz manualmente a cobrança — de um lançamento ou de um arquivo. */
+  async function handleConfirmar(a: ArquivoRow) {
+    setAcaoPendente(a.id);
+    try {
+      if (a.lanc) {
+        const novo = await confirmarLancamentoManual(a.lanc, user?.id ?? null);
+        toast.success(novo ? "Cobrança confirmada." : "Confirmação removida.");
+        queryClient.invalidateQueries({ queryKey: ["retroativos-lancamentos"] });
+        queryClient.invalidateQueries({ queryKey: ["cobrancas-retroativas"] });
+      } else {
+        const novo = await confirmarCobrancaArquivo(a, user?.id ?? null);
+        toast.success(novo ? "Cobrança do arquivo confirmada." : "Confirmação removida.");
+        queryClient.invalidateQueries({ queryKey: ["financeiro-arquivos"] });
+        queryClient.invalidateQueries({ queryKey: ["arquivos-reajuste-rcr"] });
+      }
+    } catch (e: any) {
+      toast.error("Erro ao confirmar: " + (e?.message ?? "desconhecido"));
+    } finally {
+      setAcaoPendente(null);
     }
   }
 
@@ -580,7 +712,11 @@ export default function Arquivos() {
                                 )}
                               >
                                 <div className="shrink-0 mt-0.5 h-6 w-6 flex items-center justify-center">
-                                  {iconForExt(a.extensao)}
+                                  {a.lanc ? (
+                                    <Receipt className="h-4 w-4 text-purple-500" />
+                                  ) : (
+                                    iconForExt(a.extensao)
+                                  )}
                                 </div>
                                 <div className="min-w-0 flex-1">
                                   <div className={cn("text-sm font-medium truncate leading-snug", active && "text-primary")} title={a.nome_original}>
@@ -593,49 +729,79 @@ export default function Arquivos() {
                                     >
                                       {a.categoria}
                                     </Badge>
-                                    {canEditFinanceiro && (
-                                      <DropdownMenu>
-                                        <DropdownMenuTrigger asChild>
-                                          <button
-                                            type="button"
-                                            onClick={(e) => e.stopPropagation()}
-                                            className="h-5 w-5 rounded hover:bg-muted flex items-center justify-center text-muted-foreground"
-                                            title="Mover para outra pasta"
-                                          >
-                                            <MoreHorizontal className="h-3.5 w-3.5" />
-                                          </button>
-                                        </DropdownMenuTrigger>
-                                        <DropdownMenuContent align="start" onClick={(e) => e.stopPropagation()}>
-                                          <DropdownMenuLabel className="flex items-center gap-2 text-xs">
-                                            <FolderInput className="h-3.5 w-3.5" />
-                                            Mover para pasta
-                                          </DropdownMenuLabel>
-                                          <DropdownMenuSeparator />
-                                          {CATEGORIAS.map((cat) => (
-                                            <DropdownMenuItem
-                                              key={cat}
-                                              disabled={a.categoria === cat}
-                                              onClick={(e) => {
-                                                e.stopPropagation();
-                                                handleChangeCategoria(a, cat);
-                                              }}
+                                    {a.lanc ? (
+                                      <>
+                                        <Badge
+                                          variant="outline"
+                                          className="h-5 text-[10px] px-1.5 font-medium border-purple-500/30 bg-purple-500/10 text-purple-700 dark:text-purple-300"
+                                        >
+                                          Lançamento
+                                        </Badge>
+                                        {a.lanc.confirmado ? (
+                                          <Badge className="h-5 gap-1 bg-emerald-600/15 text-emerald-600 dark:text-emerald-400 border-emerald-600/30 text-[10px]">
+                                            <ShieldCheck className="h-3 w-3" /> Confirmada
+                                          </Badge>
+                                        ) : a.lanc.conferencia_status === "divergente" ? (
+                                          <Badge className="h-5 text-[10px] bg-amber-500/15 text-amber-600 dark:text-amber-300 border-amber-500/30">
+                                            Divergente
+                                          </Badge>
+                                        ) : (
+                                          <Badge variant="outline" className="h-5 text-[10px] text-muted-foreground">
+                                            Não conferida
+                                          </Badge>
+                                        )}
+                                      </>
+                                    ) : (
+                                      canEditFinanceiro && (
+                                        <DropdownMenu>
+                                          <DropdownMenuTrigger asChild>
+                                            <button
+                                              type="button"
+                                              onClick={(e) => e.stopPropagation()}
+                                              className="h-5 w-5 rounded hover:bg-muted flex items-center justify-center text-muted-foreground"
+                                              title="Mover para outra pasta"
                                             >
-                                              <Badge
-                                                variant="outline"
-                                                className={cn("h-5 text-[10px] px-1.5 mr-2 border", categoriaChipClass(cat))}
+                                              <MoreHorizontal className="h-3.5 w-3.5" />
+                                            </button>
+                                          </DropdownMenuTrigger>
+                                          <DropdownMenuContent align="start" onClick={(e) => e.stopPropagation()}>
+                                            <DropdownMenuLabel className="flex items-center gap-2 text-xs">
+                                              <FolderInput className="h-3.5 w-3.5" />
+                                              Mover para pasta
+                                            </DropdownMenuLabel>
+                                            <DropdownMenuSeparator />
+                                            {CATEGORIAS.map((cat) => (
+                                              <DropdownMenuItem
+                                                key={cat}
+                                                disabled={a.categoria === cat}
+                                                onClick={(e) => {
+                                                  e.stopPropagation();
+                                                  handleChangeCategoria(a, cat);
+                                                }}
                                               >
-                                                {cat}
-                                              </Badge>
-                                              {a.categoria === cat && (
-                                                <span className="ml-auto text-[10px] text-muted-foreground">atual</span>
-                                              )}
-                                            </DropdownMenuItem>
-                                          ))}
-                                        </DropdownMenuContent>
-                                      </DropdownMenu>
+                                                <Badge
+                                                  variant="outline"
+                                                  className={cn("h-5 text-[10px] px-1.5 mr-2 border", categoriaChipClass(cat))}
+                                                >
+                                                  {cat}
+                                                </Badge>
+                                                {a.categoria === cat && (
+                                                  <span className="ml-auto text-[10px] text-muted-foreground">atual</span>
+                                                )}
+                                              </DropdownMenuItem>
+                                            ))}
+                                          </DropdownMenuContent>
+                                        </DropdownMenu>
+                                      )
                                     )}
                                     <span className="text-muted-foreground/40">·</span>
-                                    <span>{formatBytes(a.tamanho_bytes)}</span>
+                                    <span>
+                                      {a.lanc
+                                        ? a.arquivoVinculado
+                                          ? "PDF anexado"
+                                          : "sem PDF"
+                                        : formatBytes(a.tamanho_bytes)}
+                                    </span>
                                   </div>
                                 </div>
                                 <div className="text-xs text-muted-foreground text-right shrink-0 mt-0.5">
@@ -678,55 +844,127 @@ export default function Arquivos() {
 
                 {/* Prévia */}
                 <div className="flex-1 min-h-0 overflow-hidden relative">
-                  <ArquivoPreviewInline
-                    key={selectedArquivo.id}
-                    bucket={selectedArquivo.bucket || DEFAULT_BUCKET}
-                    storagePath={selectedArquivo.storage_path}
-                    nomeArquivo={selectedArquivo.nome_original}
-                    mimeType={selectedArquivo.mime_type}
-                  />
+                  {selectedArquivo.storage_path ? (
+                    <ArquivoPreviewInline
+                      key={selectedArquivo.id}
+                      bucket={selectedArquivo.bucket || DEFAULT_BUCKET}
+                      storagePath={selectedArquivo.storage_path}
+                      nomeArquivo={selectedArquivo.nome_original}
+                      mimeType={selectedArquivo.mime_type}
+                    />
+                  ) : (
+                    <div className="h-full flex flex-col items-center justify-center gap-3 text-center p-8">
+                      <div className="h-16 w-16 rounded-2xl bg-purple-500/10 flex items-center justify-center">
+                        <Receipt className="h-8 w-8 text-purple-500" />
+                      </div>
+                      <div>
+                        <p className="text-sm font-medium">Lançamento sem PDF anexado</p>
+                        <p className="text-xs text-muted-foreground mt-1">
+                          Este lançamento foi registrado manualmente na aba Financeiro.
+                        </p>
+                      </div>
+                    </div>
+                  )}
                 </div>
 
-                {/* Detalhes do documento */}
-                <div className="border-t bg-muted/20 px-4 py-3">
-                  <div className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground mb-2">
-                    Detalhes do documento
+                {/* Detalhes do lançamento retroativo */}
+                {selectedArquivo.lanc && (
+                  <div className="border-t bg-purple-500/[0.05] px-4 py-3">
+                    <div className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground mb-2">
+                      Lançamento de cobrança retroativa
+                    </div>
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-xs">
+                      <div>
+                        <div className="text-[10px] text-muted-foreground">Valor</div>
+                        <div className="font-semibold">
+                          {formatBRLCentavos(selectedArquivo.lanc.valor_centavos)}
+                        </div>
+                      </div>
+                      <div>
+                        <div className="text-[10px] text-muted-foreground">Tipo</div>
+                        <div className="font-medium">
+                          {selectedArquivo.lanc.tipo === "devolucao" ? "Devolução" : "Cobrança retroativa"}
+                        </div>
+                      </div>
+                      <div>
+                        <div className="text-[10px] text-muted-foreground">Origem</div>
+                        <div className="font-medium">
+                          {origemDoLancamento(selectedArquivo.lanc) === "reajuste"
+                            ? "Reajuste"
+                            : "Beneficiários"}
+                        </div>
+                      </div>
+                      <div>
+                        <div className="text-[10px] text-muted-foreground">Situação</div>
+                        <div className="font-medium">
+                          {selectedArquivo.lanc.confirmado
+                            ? "Confirmada"
+                            : selectedArquivo.lanc.conferencia_status === "divergente"
+                              ? "Divergente"
+                              : "Não conferida"}
+                        </div>
+                      </div>
+                    </div>
                   </div>
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-xs">
-                    <div>
-                      <div className="text-[10px] text-muted-foreground">Enviado por</div>
-                      <div className="font-medium truncate">{selectedArquivo.uploaded_by_nome ?? "—"}</div>
-                    </div>
-                    <div>
-                      <div className="text-[10px] text-muted-foreground">Data do envio</div>
-                      <div className="font-medium">{formatDateTime(selectedArquivo.created_at)}</div>
-                    </div>
-                    <div>
-                      <div className="text-[10px] text-muted-foreground">Competência</div>
-                      <div className="font-medium">{compLabel(selectedArquivo.competencia)}</div>
-                    </div>
-                    <div>
-                      <div className="text-[10px] text-muted-foreground">Categoria</div>
-                      <div className="font-medium">{selectedArquivo.categoria}</div>
-                    </div>
-                  </div>
-                </div>
+                )}
 
                 {/* Ações */}
-                <div className="border-t px-4 py-3 flex items-center gap-2">
-                  <Button className="flex-1 gap-2" onClick={() => handleDownload(selectedArquivo)}>
-                    <Download className="h-4 w-4" /> Baixar
-                  </Button>
-                  {canEditFinanceiro && (
+                <div className="border-t px-4 py-3 flex items-center gap-2 flex-wrap">
+                  {selectedArquivo.storage_path && (
+                    <Button className="flex-1 gap-2" onClick={() => handleDownload(selectedArquivo)}>
+                      <Download className="h-4 w-4" /> Baixar
+                    </Button>
+                  )}
+                  {canEditFinanceiro && selectedArquivo.lanc && (
+                    <>
+                      <Button
+                        variant="outline"
+                        className="flex-1 gap-2"
+                        disabled={conferindo === selectedArquivo.id}
+                        onClick={() => handleConferir(selectedArquivo)}
+                      >
+                        {conferindo === selectedArquivo.id ? (
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                        ) : (
+                          <ShieldCheck className="h-4 w-4" />
+                        )}
+                        Conferir
+                      </Button>
+                      <Button
+                        variant="outline"
+                        className="flex-1 gap-2"
+                        disabled={acaoPendente === selectedArquivo.id}
+                        onClick={() => handleConfirmar(selectedArquivo)}
+                      >
+                        <CheckCircle2 className="h-4 w-4" />
+                        {selectedArquivo.lanc.confirmado ? "Desfazer" : "Confirmar"}
+                      </Button>
+                    </>
+                  )}
+                  {canEditFinanceiro && !selectedArquivo.lanc && (
                     <>
                       <Button variant="outline" className="flex-1 gap-2" onClick={() => openUpload(selectedArquivo.empresa_id)}>
                         <Upload className="h-4 w-4" /> Substituir
                       </Button>
-                      <Button variant="outline" className="flex-1 gap-2 text-destructive hover:text-destructive hover:bg-destructive/10 border-destructive/30"
-                        onClick={() => setConfirmDelete(selectedArquivo)}>
-                        <Trash2 className="h-4 w-4" /> Excluir
-                      </Button>
+                      {(selectedArquivo.categoria === "Retroativo" ||
+                        selectedArquivo.categoria === "Reajuste") && (
+                        <Button
+                          variant="outline"
+                          className="flex-1 gap-2"
+                          disabled={acaoPendente === selectedArquivo.id}
+                          onClick={() => handleConfirmar(selectedArquivo)}
+                        >
+                          <CheckCircle2 className="h-4 w-4" />
+                          {selectedArquivo.cobranca_confirmada ? "Desfazer" : "Confirmar"}
+                        </Button>
+                      )}
                     </>
+                  )}
+                  {canEditFinanceiro && (
+                    <Button variant="outline" className="flex-1 gap-2 text-destructive hover:text-destructive hover:bg-destructive/10 border-destructive/30"
+                      onClick={() => setConfirmDelete(selectedArquivo)}>
+                      <Trash2 className="h-4 w-4" /> Excluir
+                    </Button>
                   )}
                 </div>
               </>
