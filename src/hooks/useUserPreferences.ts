@@ -33,9 +33,10 @@ export function useUserPreferences() {
         .eq("user_id", user!.id)
         .maybeSingle();
       if (error) throw error;
-      if (!data) return DEFAULTS;
-      return { tema: normalizeTema(data.tema), idioma: data.idioma || DEFAULTS.idioma };
+      if (!data) return { ...DEFAULTS, salvo: false };
+      return { tema: normalizeTema(data.tema), idioma: data.idioma || DEFAULTS.idioma, salvo: true };
     },
+    staleTime: Infinity,
   });
 }
 
@@ -53,19 +54,40 @@ export function useSaveUserPreferences() {
       return prefs;
     },
     onSuccess: (prefs) => {
-      queryClient.setQueryData(["user-preferences", user?.id], prefs);
+      queryClient.setQueryData(["user-preferences", user?.id], { ...prefs, salvo: true });
     },
   });
 }
 
-/** Aplica o tema salvo do usuário logado ao entrar no sistema. */
+/**
+ * Aplica o tema salvo do usuário UMA vez por sessão/login.
+ * Não reaplica em refetches para não desfazer a troca feita no botão de tema.
+ */
 export function useApplyUserTheme() {
   const { user } = useAuth();
   const { setMode } = useTheme();
   const { data } = useUserPreferences();
+  const aplicadoPara = useRef<string | null>(null);
 
   useEffect(() => {
     if (!user?.id || !data) return;
+    if (aplicadoPara.current === user.id) return;
+    aplicadoPara.current = user.id;
+    // Sem preferência gravada: mantém a escolha local do dispositivo.
+    if (!data.salvo) return;
     setMode(data.tema);
-  }, [user?.id, data?.tema, data, setMode]);
+  }, [user?.id, data, setMode]);
+}
+
+/** Troca claro/escuro e grava a escolha no perfil do usuário. */
+export function usePersistentThemeToggle() {
+  const { theme, setMode } = useTheme();
+  const { data } = useUserPreferences();
+  const salvar = useSaveUserPreferences();
+
+  return useCallback(() => {
+    const proximo: ThemeMode = theme === "dark" ? "light" : "dark";
+    setMode(proximo);
+    salvar.mutate({ tema: proximo, idioma: data?.idioma || DEFAULTS.idioma });
+  }, [theme, setMode, salvar, data?.idioma]);
 }
