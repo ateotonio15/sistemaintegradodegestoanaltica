@@ -833,9 +833,11 @@ export default function Arquivos() {
                                     <span className="text-muted-foreground/40">·</span>
                                     <span>
                                       {a.lanc
-                                        ? a.arquivoVinculado
-                                          ? "PDF anexado"
-                                          : "sem PDF"
+                                        ? a.storage_path
+                                          ? a.tamanho_bytes
+                                            ? `Anexo · ${formatBytes(a.tamanho_bytes)}`
+                                            : "Anexo"
+                                          : "sem anexo"
                                         : formatBytes(a.tamanho_bytes)}
                                     </span>
                                   </div>
