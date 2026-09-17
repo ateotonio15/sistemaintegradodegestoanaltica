@@ -108,6 +108,12 @@ interface ArquivoRow {
   created_at: string;
   bucket?: string | null;
   origem?: string | null;
+  financeiro_movimentacao_id?: string | null;
+  cobranca_confirmada?: boolean | null;
+  /** Preenchido quando a linha é um lançamento de cobrança retroativa/devolução. */
+  lanc?: LancamentoRetroativo;
+  /** PDF vinculado ao lançamento, quando existir. */
+  arquivoVinculado?: ArquivoRow | null;
 }
 
 function iconForExt(ext: string | null) {
