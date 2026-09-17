@@ -203,6 +203,29 @@ export default function Arquivos() {
     queryFn: () => fetchLancamentosRetroativos(),
   });
 
+  // Anexos enviados junto com a cobrança retroativa (aba Financeiro)
+  const { data: anexosRetro = [] } = useQuery({
+    queryKey: ["anexos-retroativos"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("anexos_financeiro")
+        .select(
+          "id, nome_arquivo, storage_path, mime_type, tamanho_bytes, created_at, financeiro_movimentacao_id, origem",
+        )
+        .eq("origem", "retroativo");
+      if (error) throw error;
+      return (data ?? []) as Array<{
+        id: string;
+        nome_arquivo: string;
+        storage_path: string;
+        mime_type: string | null;
+        tamanho_bytes: number | null;
+        created_at: string;
+        financeiro_movimentacao_id: string | null;
+      }>;
+    },
+  });
+
   /** Arquivos + lançamentos retroativos, na mesma lista (pasta "Retroativo"). */
   const arquivos = useMemo<ArquivoRow[]>(() => {
     const extras: ArquivoRow[] = lancamentos.map((l) => {
@@ -214,6 +237,14 @@ export default function Arquivos() {
                 a.categoria === "Retroativo",
             )
           : null) ?? null;
+      // Sem linha no repositório: usa o anexo original enviado na aba Financeiro
+      const anexo =
+        !vinc && l.financeiro_movimentacao_id
+          ? anexosRetro.find(
+              (x) => x.financeiro_movimentacao_id === l.financeiro_movimentacao_id,
+            ) ?? null
+          : null;
+      const nomeAnexo = vinc?.nome_original ?? anexo?.nome_arquivo ?? null;
       const titulo = `${
         l.tipo === "devolucao" ? "Devolução" : "Cobrança retroativa"
       } · ${formatBRLCentavos(l.valor_centavos)}`;
@@ -222,26 +253,29 @@ export default function Arquivos() {
         empresa_id: l.empresa_id,
         competencia: l.competencia,
         categoria: "Retroativo",
-        nome_original: titulo,
-        extensao: vinc?.extensao ?? null,
-        mime_type: vinc?.mime_type ?? null,
-        tamanho_bytes: vinc?.tamanho_bytes ?? null,
+        nome_original: nomeAnexo ? `${titulo} · ${nomeAnexo}` : titulo,
+        extensao:
+          vinc?.extensao ??
+          (anexo?.nome_arquivo?.split(".").pop()?.toLowerCase() ?? null),
+        mime_type: vinc?.mime_type ?? anexo?.mime_type ?? null,
+        tamanho_bytes: vinc?.tamanho_bytes ?? anexo?.tamanho_bytes ?? null,
         observacao: l.descricao,
         uploaded_by: l.created_by,
         uploaded_by_nome: vinc?.uploaded_by_nome ?? null,
-        storage_path: vinc?.storage_path ?? "",
+        storage_path: vinc?.storage_path ?? anexo?.storage_path ?? "",
         status: "ativo",
         versao: 1,
         created_at: l.created_at,
-        bucket: vinc?.bucket ?? DEFAULT_BUCKET,
+        bucket: vinc?.bucket ?? (anexo ? "anexos-financeiro" : DEFAULT_BUCKET),
         origem: "lancamento_retroativo",
         financeiro_movimentacao_id: l.financeiro_movimentacao_id,
         lanc: l,
         arquivoVinculado: vinc,
+        anexoNome: nomeAnexo,
       };
     });
     return [...arquivosRaw, ...extras];
-  }, [arquivosRaw, lancamentos]);
+  }, [arquivosRaw, lancamentos, anexosRetro]);
 
 
   // Movimentações da empresa selecionada — para mostrar o período ao lado da competência
