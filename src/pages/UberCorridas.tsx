@@ -21,8 +21,8 @@ const fmtDate = (s: string) => {
 };
 
 export default function UberCorridas() {
-  const { user, isAdmin, isViewOnly } = useAuth();
-  const canManageCorridas = !!user && !isViewOnly;
+  const { user, isAdmin, isViewOnly, isVendas } = useAuth();
+  const canManageCorridas = !!user && !isViewOnly && !isVendas;
   const { data: corridas = [], isLoading } = useUberCorridas();
   const del = useDeleteCorrida();
 
