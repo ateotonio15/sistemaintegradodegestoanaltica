@@ -38,6 +38,10 @@ import {
   FileQuestion,
   MoreHorizontal,
   FolderInput,
+  Receipt,
+  ShieldCheck,
+  CheckCircle2,
+  Loader2,
 } from "lucide-react";
 import { toast } from "sonner";
 import { formatDateBR } from "@/lib/date-utils";
@@ -46,6 +50,15 @@ import { ArquivoPreviewInline } from "@/components/arquivos/ArquivoPreviewInline
 import { useAuth } from "@/hooks/useAuth";
 import { compLabel, formatBytes, tipoArquivo } from "@/lib/arquivos-utils";
 import { cn } from "@/lib/utils";
+import {
+  type LancamentoRetroativo,
+  conferirLancamentoRetroativo,
+  confirmarCobrancaArquivo,
+  confirmarLancamentoManual,
+  fetchLancamentosRetroativos,
+  formatBRLCentavos,
+  origemDoLancamento,
+} from "@/lib/retroativos-espelho";
 
 const CATEGORIAS = ["Mensalidade", "Reajuste", "Implantação", "Retroativo", "Fluxo"] as const;
 type Categoria = (typeof CATEGORIAS)[number];
