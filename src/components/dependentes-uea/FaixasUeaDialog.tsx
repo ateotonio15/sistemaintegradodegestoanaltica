@@ -478,7 +478,7 @@ export function FaixasUeaDialog({ open, onOpenChange }: Props) {
                       onClick={() => setCapaSel(c.chave)}
                     >
                       <TableCell className="font-mono text-xs">
-                        {String(capas.length - i).padStart(6, "0")}
+                        {c.sequencia || String(capas.length - i).padStart(6, "0")}
                       </TableCell>
                       <TableCell className="font-medium">{c.descricao}</TableCell>
                       <TableCell>{formatDataBR(c.vigencia_inicio)}</TableCell>
