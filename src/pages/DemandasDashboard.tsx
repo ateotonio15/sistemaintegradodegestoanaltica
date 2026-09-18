@@ -510,7 +510,8 @@ export default function DemandasDashboard() {
 
 
 
-  // ===== Reincidências =====
+  // ===== Recorrência por setor =====
+  // Taxa = clientes com mais de uma demanda no setor / total de clientes do setor.
   const reincidencias = useMemo(() => {
     const bySetor = new Map<string, Demanda[]>();
     filtered.forEach((d) => {
@@ -526,15 +527,17 @@ export default function DemandasDashboard() {
         if (!k) return;
         counts.set(k, (counts.get(k) ?? 0) + 1);
       });
-      const reincidentes = Array.from(counts.values()).filter((v) => v > 1).reduce((a, b) => a + b, 0);
-      const taxa = arr.length ? Math.round((reincidentes / arr.length) * 100) : 0;
-      return { setor, total: arr.length, reinc: reincidentes, taxa };
+      const clientesTotal = counts.size;
+      const clientesRecorrentes = Array.from(counts.values()).filter((v) => v > 1).length;
+      const taxa = clientesTotal ? Math.round((clientesRecorrentes / clientesTotal) * 100) : 0;
+      return { setor, total: clientesTotal, reinc: clientesRecorrentes, taxa };
     });
     return list.sort((a, b) => b.taxa - a.taxa).slice(0, 8);
   }, [filtered]);
 
   // ===== Gargalos (setor + tipo) =====
-  const gargalos = useMemo(() => {
+  // Impacto = fora do prazo (45%) + tempo médio frente ao prazo do setor (35%) + share do volume (20%).
+  const gargalos = useMemo<GargaloRow[]>(() => {
     const map = new Map<string, { setor: string; tipo: string; arr: Demanda[] }>();
     filtered.forEach((d) => {
       const s = d.setor_responsavel || "—";
@@ -544,16 +547,19 @@ export default function DemandasDashboard() {
       cur.arr.push(d);
       map.set(key, cur);
     });
+    const totalGeral = filtered.length || 1;
     return Array.from(map.values())
       .map((v) => {
         const tempos = v.arr.filter(isResolved).map(diasCorridos);
         const tempoMedio = tempos.length ? tempos.reduce((a, b) => a + b, 0) / tempos.length : 0;
-        const foraPct = v.arr.length
-          ? Math.round((v.arr.filter(isForaPrazo).length / v.arr.length) * 100)
-          : 0;
-        return { setor: v.setor, tipo: v.tipo, qtd: v.arr.length, tempoMedio, foraPct };
+        const foraPct = Math.round((v.arr.filter(isForaPrazo).length / v.arr.length) * 100);
+        const prazoDias = (isAgendaCirurgica(v.setor) ? PRAZO_AGENDA_CIRURGICA_HORAS : PRAZO_PADRAO_HORAS) / 24;
+        const tempoPct = Math.min(100, Math.round((tempoMedio / prazoDias) * 100));
+        const sharePct = Math.round((v.arr.length / totalGeral) * 100);
+        const impacto = Math.round(foraPct * 0.45 + tempoPct * 0.35 + Math.min(100, sharePct * 2) * 0.2);
+        return { setor: v.setor, tipo: v.tipo, qtd: v.arr.length, tempoMedio, foraPct, impacto };
       })
-      .sort((a, b) => b.tempoMedio * b.qtd - a.tempoMedio * a.qtd)
+      .sort((a, b) => b.impacto - a.impacto || b.tempoMedio - a.tempoMedio)
       .slice(0, 5);
   }, [filtered]);
 
