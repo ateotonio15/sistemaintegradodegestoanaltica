@@ -92,24 +92,35 @@ export function FaixasUeaDialog({ open, onOpenChange }: Props) {
         });
         return;
       }
+      const primeira = linhas.find((l) => !l.erro) ?? linhas[0];
+      setCapaForm({
+        sequencia: primeira?.sequencia ?? String(capas.length + 1).padStart(6, "0"),
+        descricao: primeira?.tabela_nome ?? "",
+        vigencia_inicio: primeira?.vigencia_inicio ?? toISODateLocal(new Date()),
+        plano: primeira?.plano ?? "",
+      });
       setPreview({ nome: file.name, linhas });
     } catch (e: any) {
       toast({ title: "Não foi possível ler a planilha", description: e.message, variant: "destructive" });
     }
   };
 
+  const capaValida =
+    capaForm.descricao.trim().length > 0 && capaForm.vigencia_inicio.trim().length > 0;
+
   const confirmarImportacao = async () => {
-    if (validas.length === 0) return;
+    if (validas.length === 0 || !capaValida) return;
     await importar.mutateAsync({
       faixas: validas.map((l) => ({
         idade_inicial: l.idade_inicial,
         idade_final: l.idade_final,
         valor_mensal: l.valor_mensal,
-        vigencia_inicio: l.vigencia_inicio,
+        vigencia_inicio: capaForm.vigencia_inicio,
         vigencia_fim: l.vigencia_fim,
         observacao: l.observacao,
-        tabela_nome: l.tabela_nome,
-        plano: l.plano,
+        tabela_nome: capaForm.descricao.trim(),
+        plano: capaForm.plano.trim() || null,
+        sequencia: capaForm.sequencia.trim() || null,
       })),
       substituir,
     });
