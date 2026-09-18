@@ -1375,7 +1375,7 @@ export default function Financeiro() {
     mutationFn: async () => {
       const { data: empresas, error: empErr } = await supabase
         .from("empresas")
-        .select("id, nome, tipo_movimentacao, periodo_movimentacao, data_corte, status_empresa, responsavel_contrato, nao_faturado_financeiro, data_implantacao")
+        .select("id, nome, tipo_movimentacao, periodo_movimentacao, data_corte, status_empresa, responsavel_contrato, nao_faturado_financeiro, data_implantacao, vencimento_competencia")
         .eq("nao_faturado_financeiro", false);
       if (empErr) throw empErr;
 
