@@ -5085,6 +5085,50 @@ export type Database = {
         }
         Relationships: []
       }
+      uea_dependente_historico: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          dependente_id: string
+          faixa_anterior: string | null
+          faixa_nova: string | null
+          id: string
+          motivo: string | null
+          valor_anterior: number | null
+          valor_novo: number | null
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          dependente_id: string
+          faixa_anterior?: string | null
+          faixa_nova?: string | null
+          id?: string
+          motivo?: string | null
+          valor_anterior?: number | null
+          valor_novo?: number | null
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          dependente_id?: string
+          faixa_anterior?: string | null
+          faixa_nova?: string | null
+          id?: string
+          motivo?: string | null
+          valor_anterior?: number | null
+          valor_novo?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "uea_dependente_historico_dependente_id_fkey"
+            columns: ["dependente_id"]
+            isOneToOne: false
+            referencedRelation: "uea_dependentes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       uea_dependentes: {
         Row: {
           cpf: string | null
@@ -5143,6 +5187,42 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      uea_faixas: {
+        Row: {
+          created_at: string
+          id: string
+          idade_final: number | null
+          idade_inicial: number
+          observacao: string | null
+          updated_at: string
+          valor_mensal: number
+          vigencia_fim: string | null
+          vigencia_inicio: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          idade_final?: number | null
+          idade_inicial: number
+          observacao?: string | null
+          updated_at?: string
+          valor_mensal?: number
+          vigencia_fim?: string | null
+          vigencia_inicio?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          idade_final?: number | null
+          idade_inicial?: number
+          observacao?: string | null
+          updated_at?: string
+          valor_mensal?: number
+          vigencia_fim?: string | null
+          vigencia_inicio?: string
+        }
+        Relationships: []
       }
       uea_titulares: {
         Row: {
