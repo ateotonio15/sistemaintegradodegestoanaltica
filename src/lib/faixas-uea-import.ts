@@ -164,10 +164,10 @@ export async function lerPlanilhaFaixas(file: File): Promise<FaixaImportLinha[]>
 
 export function modeloPlanilhaFaixas(): Blob {
   const dados = [
-    ["Faixa", "Idade inicial", "Idade final", "Valor mensal", "Vigência início", "Vigência fim", "Tabela", "Plano", "Observação"],
-    ["0 a 18", 0, 18, 263.71, "01/01/2026", "", "Tabela UEA - 1", "Quality Plus - Apartamento", ""],
-    ["19 a 23", 19, 23, 298.9, "01/01/2026", "", "Tabela UEA - 1", "Quality Plus - Apartamento", ""],
-    ["59+", 59, "", 780.5, "01/01/2026", "", "Tabela UEA - 1", "Quality - Enfermaria", "Última faixa"],
+    ["Nº Sequência", "Faixa", "Idade inicial", "Idade final", "Valor mensal", "Vigência início", "Vigência fim", "Tabela", "Plano", "Observação"],
+    ["000001", "0 a 18", 0, 18, 263.71, "01/01/2026", "", "Tabela UEA - 1", "Quality Plus - Apartamento", ""],
+    ["000001", "19 a 23", 19, 23, 298.9, "01/01/2026", "", "Tabela UEA - 1", "Quality Plus - Apartamento", ""],
+    ["000001", "59+", 59, "", 780.5, "01/01/2026", "", "Tabela UEA - 1", "Quality - Enfermaria", "Última faixa"],
   ];
   const ws = XLSX.utils.aoa_to_sheet(dados);
   const wb = XLSX.utils.book_new();
