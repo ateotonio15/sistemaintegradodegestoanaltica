@@ -61,8 +61,10 @@ export interface DependenteUea {
   titular_id: string;
   nome_completo: string;
   cpf: string | null;
+  carteirinha: string | null;
   data_nascimento: string | null;
   parentesco: string | null;
+  situacao: string | null;
   faixa_etaria: string | null;
   valor_mensal: number;
   status: DependenteStatus;
@@ -77,8 +79,11 @@ export interface TitularUea {
   id: string;
   nome_completo: string;
   cpf: string;
+  carteirinha: string | null;
   matricula: string | null;
   contrato: string | null;
+  data_nascimento: string | null;
+  situacao: string | null;
   valor_margem: number;
   observacao: string | null;
   created_at: string;

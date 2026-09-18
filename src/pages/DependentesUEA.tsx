@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { Fragment, useMemo, useState } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -26,6 +26,7 @@ import { cn } from "@/lib/utils";
 import {
   AlertTriangle,
   CalendarClock,
+  ChevronDown,
   Pencil,
   Plus,
   Search,
@@ -118,6 +119,7 @@ export default function DependentesUEA() {
   const [novoOpen, setNovoOpen] = useState(false);
   const [depsTitular, setDepsTitular] = useState<TitularCalculado | null>(null);
   const [excluirId, setExcluirId] = useState<string | null>(null);
+  const [expandidoId, setExpandidoId] = useState<string | null>(null);
   const [filtroMudanca, setFiltroMudanca] = useState<FiltroMudanca>("90");
 
   const mudancas = useMemo(() => proximasMudancasFaixa(titulares, 90), [titulares]);
@@ -347,6 +349,7 @@ export default function DependentesUEA() {
         <Table>
           <TableHeader>
             <TableRow>
+              <TableHead className="w-10" />
               <TableHead>Titular</TableHead>
               <TableHead>CPF</TableHead>
               <TableHead className="text-right">Margem</TableHead>
@@ -383,29 +386,43 @@ export default function DependentesUEA() {
                 const prox = t.proxima_mudanca_faixa;
                 const proxProxima = !!prox && prox.dias <= DIAS_PROXIMA_FAIXA;
                 return (
-                  <TableRow
-                    key={t.id}
-                    className={cn(
-                      "hover:bg-muted/40",
-                      t.requer_analise_faixa && "bg-warning/10 hover:bg-warning/15",
-                      !t.requer_analise_faixa && t.margem_restante < 0 && "bg-destructive/5",
-                    )}
-                  >
-                    <TableCell>
-                      <div className="font-medium">{t.nome_completo}</div>
-                      <div className="text-[11px] text-muted-foreground">
-                        {[t.matricula && `Matrícula ${t.matricula}`, t.contrato && `Contrato ${t.contrato}`]
-                          .filter(Boolean)
-                          .join(" · ") || "—"}
-                      </div>
-                    </TableCell>
-                    <TableCell>{formatCPF(t.cpf)}</TableCell>
-                    <TableCell className="text-right">{formatBRL(t.valor_margem)}</TableCell>
-                    <TableCell className="text-center">
-                      <button
-                        className="underline-offset-2 hover:underline"
-                        onClick={() => setDepsTitular(t)}
-                      >
+                  <Fragment key={t.id}>
+                    <TableRow
+                      className={cn(
+                        "hover:bg-muted/40",
+                        t.requer_analise_faixa && "bg-warning/10 hover:bg-warning/15",
+                        !t.requer_analise_faixa && t.margem_restante < 0 && "bg-destructive/5",
+                      )}
+                    >
+                      <TableCell className="w-10">
+                        <button
+                          className="flex h-7 w-7 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+                          onClick={() => setExpandidoId((cur) => (cur === t.id ? null : t.id))}
+                          title={expandidoId === t.id ? "Recolher dependentes" : "Ver dependentes"}
+                        >
+                          <ChevronDown
+                            className={cn(
+                              "h-4 w-4 transition-transform",
+                              expandidoId === t.id && "rotate-180",
+                            )}
+                          />
+                        </button>
+                      </TableCell>
+                      <TableCell>
+                        <div className="font-medium">{t.nome_completo}</div>
+                        <div className="text-[11px] text-muted-foreground">
+                          {[t.matricula && `Matrícula ${t.matricula}`, t.contrato && `Contrato ${t.contrato}`]
+                            .filter(Boolean)
+                            .join(" · ") || "—"}
+                        </div>
+                      </TableCell>
+                      <TableCell>{formatCPF(t.cpf)}</TableCell>
+                      <TableCell className="text-right">{formatBRL(t.valor_margem)}</TableCell>
+                      <TableCell className="text-center">
+                        <button
+                          className="underline-offset-2 hover:underline"
+                          onClick={() => setDepsTitular(t)}
+                        >
                         {t.quantidade_dependentes_ativos}
                         {t.quantidade_dependentes_desligados > 0 && (
                           <span className="ml-1 text-[11px] text-muted-foreground">
@@ -486,6 +503,104 @@ export default function DependentesUEA() {
                       </div>
                     </TableCell>
                   </TableRow>
+                  {expandidoId === t.id && (
+                    <TableRow className="bg-muted/20 hover:bg-muted/20">
+                      <TableCell colSpan={10} className="p-0">
+                        <div className="border-l-2 border-primary/50 px-6 py-4">
+                          <div className="mb-3 flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                            <Users className="h-3.5 w-3.5" />
+                            Dependentes deste titular
+                            <Badge variant="outline" className="ml-1">
+                              {t.dependentes_calculados.length}
+                            </Badge>
+                          </div>
+                          {t.dependentes_calculados.length === 0 ? (
+                            <p className="text-sm text-muted-foreground">
+                              Nenhum dependente cadastrado para este titular.
+                            </p>
+                          ) : (
+                            <div className="overflow-hidden rounded-lg border border-border/60">
+                              <Table>
+                                <TableHeader>
+                                  <TableRow className="bg-muted/40">
+                                    <TableHead>Dependente</TableHead>
+                                    <TableHead>Carteirinha</TableHead>
+                                    <TableHead>Nascimento / Idade</TableHead>
+                                    <TableHead>Faixa atual</TableHead>
+                                    <TableHead className="text-right">Mensalidade</TableHead>
+                                    <TableHead>Próxima mudança</TableHead>
+                                    <TableHead>Status</TableHead>
+                                  </TableRow>
+                                </TableHeader>
+                                <TableBody>
+                                  {t.dependentes_calculados.map((d) => (
+                                    <TableRow
+                                      key={d.id}
+                                      className={cn(
+                                        "hover:bg-muted/30",
+                                        d.status !== "ativo" && "opacity-60",
+                                      )}
+                                    >
+                                      <TableCell>
+                                        <div className="font-medium">{d.nome_completo}</div>
+                                        {d.parentesco && (
+                                          <div className="text-[11px] text-muted-foreground">
+                                            {d.parentesco}
+                                          </div>
+                                        )}
+                                      </TableCell>
+                                      <TableCell className="font-mono text-xs">
+                                        {d.carteirinha ?? "—"}
+                                      </TableCell>
+                                      <TableCell className="text-xs">
+                                        {d.data_nascimento
+                                          ? `${formatDataBR(d.data_nascimento)} · ${
+                                              d.idade_atual != null ? `${d.idade_atual} anos` : "—"
+                                            }`
+                                          : "—"}
+                                      </TableCell>
+                                      <TableCell className="text-xs">{d.faixa_atual_label}</TableCell>
+                                      <TableCell className="text-right">
+                                        {formatBRL(d.valor_aplicavel)}
+                                      </TableCell>
+                                      <TableCell className="text-xs">
+                                        {d.data_proxima_mudanca ? (
+                                          <span>
+                                            {formatDataBR(d.data_proxima_mudanca)}
+                                            {d.proximo_valor != null && (
+                                              <span className="text-muted-foreground">
+                                                {" "}
+                                                → {formatBRL(d.proximo_valor)}
+                                              </span>
+                                            )}
+                                          </span>
+                                        ) : (
+                                          <span className="text-muted-foreground">—</span>
+                                        )}
+                                      </TableCell>
+                                      <TableCell>
+                                        <span
+                                          className={cn(
+                                            "inline-flex rounded-full px-2 py-0.5 text-[11px] font-medium",
+                                            d.status === "ativo"
+                                              ? "bg-success/10 text-success"
+                                              : "bg-destructive/10 text-destructive",
+                                          )}
+                                        >
+                                          {d.status_label}
+                                        </span>
+                                      </TableCell>
+                                    </TableRow>
+                                  ))}
+                                </TableBody>
+                              </Table>
+                            </div>
+                          )}
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  )}
+                  </Fragment>
                 );
               })}
           </TableBody>
