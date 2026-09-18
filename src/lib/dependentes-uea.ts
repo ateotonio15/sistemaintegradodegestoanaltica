@@ -344,3 +344,93 @@ export function analisarReativacao(
 }
 
 export const MOTIVO_FALTA_MARGEM = "Falta de margem";
+
+/* --------------------- Próximas mudanças de faixa etária -------------------- */
+
+export interface MudancaFaixaPrevista {
+  dependente_id: string;
+  dependente_nome: string;
+  titular_id: string;
+  titular_nome: string;
+  data_nascimento: string | null;
+  data_mudanca: string;
+  dias: number;
+  faixa_atual_label: string;
+  proxima_faixa_label: string | null;
+  valor_atual: number;
+  novo_valor: number;
+  diferenca: number;
+  margem_atual: number;
+  margem_apos: number;
+  ficara_sem_margem: boolean;
+}
+
+/** Dependentes ativos que mudarão de valor dentro da janela informada (em dias). */
+export function proximasMudancasFaixa(
+  titulares: TitularCalculado[],
+  dias = DIAS_PROXIMA_FAIXA,
+): MudancaFaixaPrevista[] {
+  const lista: MudancaFaixaPrevista[] = [];
+  titulares.forEach((t) => {
+    t.dependentes_calculados
+      .filter(
+        (d) =>
+          d.status === "ativo" &&
+          d.data_proxima_mudanca &&
+          d.proximo_valor !== null &&
+          (d.dias_proxima_mudanca ?? -1) >= 0 &&
+          (d.dias_proxima_mudanca ?? 0) <= dias,
+      )
+      .forEach((d) => {
+        const valorAtual = Number(d.valor_mensal || 0);
+        const novoValor = Number(d.proximo_valor ?? 0);
+        const diferenca = Number((novoValor - valorAtual).toFixed(2));
+        const margemApos = Number((t.margem_restante - diferenca).toFixed(2));
+        lista.push({
+          dependente_id: d.id,
+          dependente_nome: d.nome_completo,
+          titular_id: t.id,
+          titular_nome: t.nome_completo,
+          data_nascimento: d.data_nascimento,
+          data_mudanca: d.data_proxima_mudanca as string,
+          dias: d.dias_proxima_mudanca as number,
+          faixa_atual_label: d.faixa_atual_label,
+          proxima_faixa_label: d.proxima_faixa_label,
+          valor_atual: valorAtual,
+          novo_valor: novoValor,
+          diferenca,
+          margem_atual: t.margem_restante,
+          margem_apos: margemApos,
+          ficara_sem_margem: margemApos < 0,
+        });
+      });
+  });
+  return lista.sort((a, b) => a.dias - b.dias);
+}
+
+export type FiltroMudanca = "30" | "60" | "90" | "sem_margem" | "com_margem";
+
+export const FILTROS_MUDANCA: { value: FiltroMudanca; label: string }[] = [
+  { value: "30", label: "Mudança nos próximos 30 dias" },
+  { value: "60", label: "Mudança nos próximos 60 dias" },
+  { value: "90", label: "Mudança nos próximos 90 dias" },
+  { value: "sem_margem", label: "Ficará sem margem" },
+  { value: "com_margem", label: "Com margem suficiente" },
+];
+
+export function aplicaFiltroMudanca(m: MudancaFaixaPrevista, filtro: FiltroMudanca): boolean {
+  switch (filtro) {
+    case "30":
+      return m.dias <= 30;
+    case "60":
+      return m.dias <= 60;
+    case "90":
+      return m.dias <= 90;
+    case "sem_margem":
+      return m.ficara_sem_margem;
+    case "com_margem":
+      return !m.ficara_sem_margem;
+    default:
+      return true;
+  }
+}

@@ -40,8 +40,13 @@ import { useExcluirTitularUea, useTitularesUea } from "@/hooks/useDependentesUea
 import { TitularUeaDialog } from "@/components/dependentes-uea/TitularUeaDialog";
 import { TitularDetalheUeaDialog } from "@/components/dependentes-uea/TitularDetalheUeaDialog";
 import { FaixasUeaDialog } from "@/components/dependentes-uea/FaixasUeaDialog";
+import { useMinhaPermissaoUea } from "@/hooks/useUeaPermissoes";
 import {
   aplicaFiltro,
+  aplicaFiltroMudanca,
+  FILTROS_MUDANCA,
+  proximasMudancasFaixa,
+  type FiltroMudanca,
   buscaTitular,
   DIAS_PROXIMA_FAIXA,
   FILTROS_UEA,
@@ -100,6 +105,7 @@ function KpiCard({
 
 export default function DependentesUEA() {
   const { titulares, faixas, isLoading } = useTitularesUea();
+  const { canEditarUea } = useMinhaPermissaoUea();
   const [faixasOpen, setFaixasOpen] = useState(false);
   const excluir = useExcluirTitularUea();
 
@@ -109,6 +115,13 @@ export default function DependentesUEA() {
   const [novoOpen, setNovoOpen] = useState(false);
   const [depsTitular, setDepsTitular] = useState<TitularCalculado | null>(null);
   const [excluirId, setExcluirId] = useState<string | null>(null);
+  const [filtroMudanca, setFiltroMudanca] = useState<FiltroMudanca>("90");
+
+  const mudancas = useMemo(() => proximasMudancasFaixa(titulares, 90), [titulares]);
+  const mudancasFiltradas = useMemo(
+    () => mudancas.filter((m) => aplicaFiltroMudanca(m, filtroMudanca)),
+    [mudancas, filtroMudanca],
+  );
 
   const lista = useMemo(
     () => titulares.filter((t) => buscaTitular(t, busca) && aplicaFiltro(t, filtro)),
@@ -147,9 +160,11 @@ export default function DependentesUEA() {
           <Button variant="outline" onClick={() => setFaixasOpen(true)}>
             <Settings2 className="mr-1.5 h-4 w-4" /> Faixas etárias e valores
           </Button>
-          <Button onClick={() => setNovoOpen(true)}>
-            <Plus className="mr-1.5 h-4 w-4" /> Novo titular
-          </Button>
+          {canEditarUea && (
+            <Button onClick={() => setNovoOpen(true)}>
+              <Plus className="mr-1.5 h-4 w-4" /> Novo titular
+            </Button>
+          )}
         </div>
       </div>
 
@@ -185,6 +200,113 @@ export default function DependentesUEA() {
           tone="success"
         />
       </div>
+
+      {/* PRÓXIMAS MUDANÇAS DE FAIXA */}
+      <Card className="rounded-2xl border-border/60 p-4">
+        <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+          <div>
+            <p className="flex items-center gap-1.5 text-sm font-semibold">
+              <CalendarClock className="h-4 w-4 text-primary" /> Próximas mudanças de faixa
+            </p>
+            <p className="text-xs text-muted-foreground">
+              Dependentes ativos que mudarão de valor nos próximos 90 dias.
+            </p>
+          </div>
+          <div className="flex items-center gap-2">
+            <Select value={filtroMudanca} onValueChange={(v) => setFiltroMudanca(v as FiltroMudanca)}>
+              <SelectTrigger className="w-[280px]">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {FILTROS_MUDANCA.map((f) => (
+                  <SelectItem key={f.value} value={f.value}>
+                    {f.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <Badge variant="outline">{mudancasFiltradas.length} dependente(s)</Badge>
+          </div>
+        </div>
+        {mudancasFiltradas.length === 0 ? (
+          <p className="py-6 text-center text-sm text-muted-foreground">
+            Nenhuma mudança de faixa prevista para o filtro selecionado.
+          </p>
+        ) : (
+          <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+            {mudancasFiltradas.map((m) => (
+              <Card
+                key={m.dependente_id}
+                className={cn(
+                  "rounded-xl border-border/60 p-3",
+                  m.ficara_sem_margem && "border-destructive/50 bg-destructive/5",
+                )}
+              >
+                <div className="mb-2">
+                  <p className="font-semibold uppercase leading-tight">{m.dependente_nome}</p>
+                  <p className="text-[11px] text-muted-foreground">Titular: {m.titular_nome}</p>
+                </div>
+                <div className="grid grid-cols-2 gap-x-3 gap-y-1 text-xs">
+                  <span className="text-muted-foreground">Data de nascimento</span>
+                  <span className="text-right">{formatDataBR(m.data_nascimento)}</span>
+                  <span className="text-muted-foreground">Mudança</span>
+                  <span className="text-right font-medium">
+                    {formatDataBR(m.data_mudanca)} · em {m.dias} dia(s)
+                  </span>
+                  <span className="text-muted-foreground">Valor atual</span>
+                  <span className="text-right">{formatBRL(m.valor_atual)}</span>
+                  <span className="text-muted-foreground">Novo valor</span>
+                  <span className="text-right font-medium">{formatBRL(m.novo_valor)}</span>
+                  <span className="text-muted-foreground">Diferença</span>
+                  <span className="text-right font-medium">
+                    {m.diferenca >= 0 ? "+ " : "- "}
+                    {formatBRL(Math.abs(m.diferenca))}
+                  </span>
+                  <span className="text-muted-foreground">Margem atual do titular</span>
+                  <span className="text-right">{formatBRL(m.margem_atual)}</span>
+                  <span className="text-muted-foreground">Margem após reajuste</span>
+                  <span
+                    className={cn(
+                      "text-right font-medium",
+                      m.ficara_sem_margem && "text-destructive",
+                    )}
+                  >
+                    {formatBRL(m.margem_apos)}
+                  </span>
+                </div>
+                <div className="mt-2 flex items-center justify-between gap-2">
+                  <span
+                    className={cn(
+                      "inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-medium",
+                      m.ficara_sem_margem
+                        ? "bg-destructive/10 text-destructive"
+                        : "bg-success/10 text-success",
+                    )}
+                  >
+                    {m.ficara_sem_margem ? (
+                      <>
+                        <AlertTriangle className="h-3 w-3" /> Ficará sem margem
+                      </>
+                    ) : (
+                      "Possui margem"
+                    )}
+                  </span>
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    onClick={() => {
+                      const t = titulares.find((x) => x.id === m.titular_id);
+                      if (t) setDepsTitular(t);
+                    }}
+                  >
+                    Ver titular
+                  </Button>
+                </div>
+              </Card>
+            ))}
+          </div>
+        )}
+      </Card>
 
       <Card className="rounded-2xl border-border/60 p-3">
         <div className="flex flex-wrap items-center gap-2">
@@ -338,17 +460,21 @@ export default function DependentesUEA() {
                         <Button size="icon" variant="ghost" onClick={() => setDepsTitular(t)} title="Dependentes">
                           <Users className="h-4 w-4" />
                         </Button>
-                        <Button size="icon" variant="ghost" onClick={() => setEditando(t)} title="Editar titular">
-                          <Pencil className="h-4 w-4" />
-                        </Button>
-                        <Button
-                          size="icon"
-                          variant="ghost"
-                          onClick={() => setExcluirId(t.id)}
-                          title="Excluir titular"
-                        >
-                          <Trash2 className="h-4 w-4 text-destructive" />
-                        </Button>
+                        {canEditarUea && (
+                          <>
+                            <Button size="icon" variant="ghost" onClick={() => setEditando(t)} title="Editar titular">
+                              <Pencil className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              size="icon"
+                              variant="ghost"
+                              onClick={() => setExcluirId(t.id)}
+                              title="Excluir titular"
+                            >
+                              <Trash2 className="h-4 w-4 text-destructive" />
+                            </Button>
+                          </>
+                        )}
                       </div>
                     </TableCell>
                   </TableRow>
@@ -369,6 +495,7 @@ export default function DependentesUEA() {
         onOpenChange={(v) => !v && setDepsTitular(null)}
         titular={titularAtual}
         faixas={faixas}
+        podeEditar={canEditarUea}
       />
       <FaixasUeaDialog open={faixasOpen} onOpenChange={setFaixasOpen} />
 

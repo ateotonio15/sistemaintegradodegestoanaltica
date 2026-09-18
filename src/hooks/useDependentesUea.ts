@@ -17,6 +17,47 @@ import {
 const KEY = ["uea-titulares"];
 const KEY_FAIXAS = ["uea-faixas"];
 
+/* ------------------------- Histórico do titular (append-only) ------------------------ */
+
+export type TipoEventoUea =
+  | "margem"
+  | "inclusao_dependente"
+  | "alteracao_manual"
+  | "mudanca_valor"
+  | "mudanca_faixa"
+  | "desligamento_margem"
+  | "reativacao";
+
+interface EventoTitularInput {
+  titular_id: string;
+  dependente_id?: string | null;
+  dependente_nome?: string | null;
+  tipo: TipoEventoUea;
+  descricao?: string | null;
+  valor_anterior?: number | null;
+  valor_novo?: number | null;
+  margem_momento?: number | null;
+  margem_restante_momento?: number | null;
+  motivo?: string | null;
+}
+
+/** Registra um evento no histórico do titular. Registros nunca são alterados nem apagados. */
+async function registrarEventoTitular(evento: EventoTitularInput) {
+  const { error } = await supabase.from("uea_titular_historico").insert({
+    titular_id: evento.titular_id,
+    dependente_id: evento.dependente_id ?? null,
+    dependente_nome: evento.dependente_nome ?? null,
+    tipo: evento.tipo,
+    descricao: evento.descricao ?? null,
+    valor_anterior: evento.valor_anterior ?? null,
+    valor_novo: evento.valor_novo ?? null,
+    margem_momento: evento.margem_momento ?? null,
+    margem_restante_momento: evento.margem_restante_momento ?? null,
+    motivo: evento.motivo ?? null,
+  });
+  if (error) throw error;
+}
+
 /* ------------------------------ Faixas etárias ----------------------------- */
 
 export function useFaixasUea() {
@@ -183,12 +224,29 @@ export function useAtualizarMargemUea() {
   const qc = useQueryClient();
   const { toast } = useToast();
   return useMutation({
-    mutationFn: async ({ id, valor_margem }: { id: string; valor_margem: number }) => {
+    mutationFn: async ({
+      id,
+      valor_margem,
+      valor_anterior,
+    }: {
+      id: string;
+      valor_margem: number;
+      valor_anterior?: number;
+    }) => {
       const { error } = await supabase.from("uea_titulares").update({ valor_margem }).eq("id", id);
       if (error) throw error;
+      await registrarEventoTitular({
+        titular_id: id,
+        tipo: "margem",
+        descricao: "Margem alterada",
+        valor_anterior: valor_anterior ?? null,
+        valor_novo: valor_margem,
+        margem_momento: valor_margem,
+      });
     },
-    onSuccess: () => {
+    onSuccess: (_d, vars) => {
       qc.invalidateQueries({ queryKey: KEY });
+      qc.invalidateQueries({ queryKey: ["uea-historico-titular", vars.id] });
       toast({ title: "Margem atualizada" });
     },
     onError: (e: any) =>
@@ -249,15 +307,44 @@ export function useSalvarDependenteUea() {
         observacao: input.observacao || null,
       };
       if (input.id) {
+        const { data: antes } = await supabase
+          .from("uea_dependentes")
+          .select("valor_mensal")
+          .eq("id", input.id)
+          .maybeSingle();
         const { error } = await supabase.from("uea_dependentes").update(payload).eq("id", input.id);
         if (error) throw error;
+        const valorAntes = Number((antes as any)?.valor_mensal ?? 0);
+        const mudouValor = valorAntes.toFixed(2) !== Number(input.valor_mensal || 0).toFixed(2);
+        await registrarEventoTitular({
+          titular_id: input.titular_id,
+          dependente_id: input.id,
+          dependente_nome: payload.nome_completo,
+          tipo: mudouValor ? "mudanca_valor" : "alteracao_manual",
+          descricao: mudouValor ? "Valor do dependente alterado" : "Alteração manual do dependente",
+          valor_anterior: valorAntes,
+          valor_novo: Number(input.valor_mensal || 0),
+        });
         return;
       }
-      const { error } = await supabase.from("uea_dependentes").insert(payload);
+      const { data: novo, error } = await supabase
+        .from("uea_dependentes")
+        .insert(payload)
+        .select("id")
+        .single();
       if (error) throw error;
+      await registrarEventoTitular({
+        titular_id: input.titular_id,
+        dependente_id: (novo as any)?.id ?? null,
+        dependente_nome: payload.nome_completo,
+        tipo: "inclusao_dependente",
+        descricao: "Dependente incluído",
+        valor_novo: Number(input.valor_mensal || 0),
+      });
     },
-    onSuccess: () => {
+    onSuccess: (_d, vars) => {
       qc.invalidateQueries({ queryKey: KEY });
+      qc.invalidateQueries({ queryKey: ["uea-historico-titular", vars.titular_id] });
       toast({ title: "Dependente salvo" });
     },
     onError: (e: any) =>
@@ -386,10 +473,21 @@ export function useAplicarFaixaDependenteUea() {
         motivo,
       });
       if (e2) throw e2;
+      await registrarEventoTitular({
+        titular_id: dependente.titular_id,
+        dependente_id: dependente.id,
+        dependente_nome: dependente.nome_completo,
+        tipo: "mudanca_faixa",
+        descricao: `Mudança de faixa: ${dependente.faixa_etaria || "—"} → ${novaFaixa}`,
+        valor_anterior: Number(dependente.valor_mensal || 0),
+        valor_novo: novoValor,
+        motivo,
+      });
     },
     onSuccess: (_d, vars) => {
       qc.invalidateQueries({ queryKey: KEY });
       qc.invalidateQueries({ queryKey: ["uea-historico", vars.dependente.titular_id] });
+      qc.invalidateQueries({ queryKey: ["uea-historico-titular", vars.dependente.titular_id] });
     },
     onError: (e: any) =>
       toast({ title: "Erro ao aplicar faixa", description: e.message, variant: "destructive" }),
@@ -437,10 +535,23 @@ export function useDesligarPorMargemUea() {
         motivo: motivo || MOTIVO_FALTA_MARGEM,
       });
       if (e2) throw e2;
+      await registrarEventoTitular({
+        titular_id: titular.id,
+        dependente_id: dependente.id,
+        dependente_nome: dependente.nome_completo,
+        tipo: "desligamento_margem",
+        descricao: "Dependente desligado por falta de margem",
+        valor_anterior: valorMomento,
+        valor_novo: 0,
+        margem_momento: titular.valor_margem,
+        margem_restante_momento: titular.margem_restante,
+        motivo: motivo || MOTIVO_FALTA_MARGEM,
+      });
     },
     onSuccess: (_d, vars) => {
       qc.invalidateQueries({ queryKey: KEY });
       qc.invalidateQueries({ queryKey: ["uea-historico", vars.titular.id] });
+      qc.invalidateQueries({ queryKey: ["uea-historico-titular", vars.titular.id] });
       toast({ title: "Dependente desligado por falta de margem" });
     },
     onError: (e: any) =>
@@ -480,13 +591,142 @@ export function useReativarDependenteUea() {
         motivo: "Reativação com margem disponível",
       });
       if (e2) throw e2;
+      await registrarEventoTitular({
+        titular_id: titular.id,
+        dependente_id: dependente.id,
+        dependente_nome: dependente.nome_completo,
+        tipo: "reativacao",
+        descricao: "Dependente reativado",
+        valor_anterior: Number(dependente.valor_mensal || 0),
+        valor_novo: valorMomento,
+        margem_momento: titular.valor_margem,
+        margem_restante_momento: titular.margem_restante,
+        motivo: "Reativação com margem disponível",
+      });
     },
     onSuccess: (_d, vars) => {
       qc.invalidateQueries({ queryKey: KEY });
       qc.invalidateQueries({ queryKey: ["uea-historico", vars.titular.id] });
+      qc.invalidateQueries({ queryKey: ["uea-historico-titular", vars.titular.id] });
       toast({ title: "Dependente reativado" });
     },
     onError: (e: any) =>
       toast({ title: "Não foi possível reativar", description: e.message, variant: "destructive" }),
+  });
+}
+
+/* ------------------------- Histórico unificado do titular ------------------------ */
+
+export interface EventoHistoricoUea {
+  id: string;
+  created_at: string;
+  tipo: string;
+  evento: string;
+  dependente_nome: string;
+  valor_anterior: number | null;
+  valor_novo: number | null;
+  margem_momento: number | null;
+  margem_restante_momento: number | null;
+  motivo: string | null;
+  responsavel: string;
+}
+
+const LABEL_EVENTO: Record<string, string> = {
+  margem: "Margem alterada",
+  inclusao_dependente: "Dependente incluído",
+  alteracao_manual: "Alteração manual",
+  mudanca_valor: "Valor alterado",
+  mudanca_faixa: "Mudança de faixa",
+  desligamento_margem: "Desligado por falta de margem",
+  reativacao: "Dependente reativado",
+  faixa: "Mudança de faixa",
+};
+
+/**
+ * Histórico completo do titular: eventos do titular (margem, inclusões, alterações,
+ * desligamentos, reativações) somados aos registros de faixa dos dependentes.
+ */
+export function useHistoricoTitularUea(titularId: string | null) {
+  return useQuery({
+    queryKey: ["uea-historico-titular", titularId],
+    enabled: !!titularId,
+    queryFn: async (): Promise<EventoHistoricoUea[]> => {
+      const { data: deps, error: e0 } = await supabase
+        .from("uea_dependentes")
+        .select("id, nome_completo")
+        .eq("titular_id", titularId as string);
+      if (e0) throw e0;
+      const nomeDep = new Map<string, string>(
+        ((deps ?? []) as any[]).map((d) => [d.id as string, d.nome_completo as string]),
+      );
+      const ids = ((deps ?? []) as any[]).map((d) => d.id as string);
+
+      const [titRes, depRes] = await Promise.all([
+        supabase
+          .from("uea_titular_historico")
+          .select("*")
+          .eq("titular_id", titularId as string)
+          .order("created_at", { ascending: false }),
+        ids.length
+          ? supabase
+              .from("uea_dependente_historico")
+              .select("*")
+              .in("dependente_id", ids)
+              .order("created_at", { ascending: false })
+          : Promise.resolve({ data: [], error: null } as any),
+      ]);
+      if (titRes.error) throw titRes.error;
+      if (depRes.error) throw depRes.error;
+
+      const num = (v: any) => (v === null || v === undefined ? null : Number(v));
+      const titRows = ((titRes.data ?? []) as any[]).map((h) => ({
+        id: h.id as string,
+        created_at: h.created_at as string,
+        tipo: (h.tipo as string) ?? "",
+        evento: (h.descricao as string) || LABEL_EVENTO[h.tipo] || "Registro",
+        dependente_nome: (h.dependente_nome as string) || nomeDep.get(h.dependente_id) || "—",
+        valor_anterior: num(h.valor_anterior),
+        valor_novo: num(h.valor_novo),
+        margem_momento: num(h.margem_momento),
+        margem_restante_momento: num(h.margem_restante_momento),
+        motivo: (h.motivo as string) ?? null,
+        created_by: (h.created_by as string) ?? null,
+      }));
+
+      // Eventos já registrados nos dependentes (faixa/valor) que não têm par no titular.
+      const depRows = ((depRes.data ?? []) as any[])
+        .filter((h) => !["desligamento_margem", "reativacao"].includes(h.tipo ?? ""))
+        .map((h) => ({
+          id: `dep-${h.id}`,
+          created_at: h.created_at as string,
+          tipo: (h.tipo as string) || "faixa",
+          evento:
+            LABEL_EVENTO[h.tipo ?? "faixa"] ??
+            `Faixa ${h.faixa_anterior ?? "—"} → ${h.faixa_nova ?? "—"}`,
+          dependente_nome: nomeDep.get(h.dependente_id) ?? "—",
+          valor_anterior: num(h.valor_anterior),
+          valor_novo: num(h.valor_novo),
+          margem_momento: num(h.margem_titular_momento),
+          margem_restante_momento: num(h.margem_restante_momento),
+          motivo: (h.motivo as string) ?? null,
+          created_by: (h.created_by as string) ?? null,
+        }));
+
+      const rows = [...titRows, ...depRows].sort((a, b) =>
+        a.created_at < b.created_at ? 1 : a.created_at > b.created_at ? -1 : 0,
+      );
+
+      const userIds = Array.from(new Set(rows.map((r) => r.created_by).filter(Boolean))) as string[];
+      const nomes = new Map<string, string>();
+      if (userIds.length > 0) {
+        const { data } = await supabase.rpc("get_user_display_names", { _ids: userIds });
+        (data ?? []).forEach((n: any) => nomes.set(n.user_id, n.display_name));
+      }
+
+      return rows.map(({ created_by, ...r }) => ({
+        ...r,
+        responsavel: created_by ? nomes.get(created_by) ?? "—" : "—",
+      }));
+    },
   });
 }
