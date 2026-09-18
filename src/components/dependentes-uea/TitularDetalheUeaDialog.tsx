@@ -123,6 +123,27 @@ export function TitularDetalheUeaDialog({
   const [aba, setAba] = useState("dependentes");
   const [confirmarDesligar, setConfirmarDesligar] = useState<DependenteCalculado | null>(null);
   const [confirmarReativar, setConfirmarReativar] = useState<DependenteCalculado | null>(null);
+  const [valorInlineId, setValorInlineId] = useState<string | null>(null);
+  const [valorInlineTxt, setValorInlineTxt] = useState("");
+
+  const salvarValorInline = async (d: DependenteCalculado) => {
+    const novo = parseValorBr(valorInlineTxt);
+    await salvar.mutateAsync({
+      id: d.id,
+      titular_id: d.titular_id,
+      nome_completo: d.nome_completo,
+      cpf: d.cpf ?? null,
+      data_nascimento: d.data_nascimento ?? null,
+      parentesco: d.parentesco ?? null,
+      faixa_etaria: d.faixa_etaria ?? null,
+      valor_mensal: Number((novo || 0).toFixed(2)),
+      status: d.status,
+      motivo_desligamento: d.motivo_desligamento ?? null,
+      data_desligamento: d.data_desligamento ?? null,
+      observacao: d.observacao ?? null,
+    });
+    setValorInlineId(null);
+  };
 
   useEffect(() => {
     if (open && titular) setMargemTxt(String(titular.valor_margem));
