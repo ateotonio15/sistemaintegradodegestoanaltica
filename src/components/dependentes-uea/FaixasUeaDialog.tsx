@@ -1,0 +1,199 @@
+import { useState } from "react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Pencil, Plus, Trash2 } from "lucide-react";
+import {
+  useExcluirFaixaUea,
+  useFaixasUea,
+  useSalvarFaixaUea,
+  type FaixaInput,
+} from "@/hooks/useDependentesUea";
+import { faixaLabel, formatBRL, formatDataBR, toISODateLocal } from "@/lib/dependentes-uea";
+
+interface Props {
+  open: boolean;
+  onOpenChange: (v: boolean) => void;
+}
+
+const vazio = (): FaixaInput & { idade_final_txt: string; valor_txt: string } => ({
+  idade_inicial: 0,
+  idade_final: null,
+  valor_mensal: 0,
+  vigencia_inicio: toISODateLocal(new Date()),
+  vigencia_fim: null,
+  observacao: "",
+  idade_final_txt: "",
+  valor_txt: "",
+});
+
+export function FaixasUeaDialog({ open, onOpenChange }: Props) {
+  const { data: faixas = [], isLoading } = useFaixasUea();
+  const salvar = useSalvarFaixaUea();
+  const excluir = useExcluirFaixaUea();
+  const [form, setForm] = useState<ReturnType<typeof vazio> | null>(null);
+
+  const submit = async () => {
+    if (!form) return;
+    await salvar.mutateAsync({
+      id: form.id,
+      idade_inicial: Number(form.idade_inicial) || 0,
+      idade_final: form.idade_final_txt.trim() === "" ? null : Number(form.idade_final_txt),
+      valor_mensal: Number(String(form.valor_txt).replace(",", ".")) || 0,
+      vigencia_inicio: form.vigencia_inicio,
+      vigencia_fim: form.vigencia_fim || null,
+      observacao: form.observacao,
+    });
+    setForm(null);
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-3xl">
+        <DialogHeader>
+          <DialogTitle>Configuração de faixas etárias e valores</DialogTitle>
+        </DialogHeader>
+
+        {!form ? (
+          <div className="space-y-3">
+            <div className="flex items-center justify-between">
+              <p className="text-sm text-muted-foreground">
+                O sistema identifica a faixa do dependente pela data de nascimento e usa o valor
+                configurado aqui.
+              </p>
+              <Button size="sm" onClick={() => setForm(vazio())}>
+                <Plus className="mr-1.5 h-4 w-4" /> Nova faixa
+              </Button>
+            </div>
+            <div className="rounded-lg border">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Faixa</TableHead>
+                    <TableHead className="text-right">Valor mensal</TableHead>
+                    <TableHead>Vigência início</TableHead>
+                    <TableHead>Vigência fim</TableHead>
+                    <TableHead className="w-20" />
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {!isLoading && faixas.length === 0 && (
+                    <TableRow>
+                      <TableCell colSpan={5} className="py-8 text-center text-sm text-muted-foreground">
+                        Nenhuma faixa configurada. Cadastre as faixas para que os valores sejam
+                        calculados.
+                      </TableCell>
+                    </TableRow>
+                  )}
+                  {faixas.map((f) => (
+                    <TableRow key={f.id}>
+                      <TableCell className="font-medium">{faixaLabel(f)} anos</TableCell>
+                      <TableCell className="text-right">{formatBRL(f.valor_mensal)}</TableCell>
+                      <TableCell>{formatDataBR(f.vigencia_inicio)}</TableCell>
+                      <TableCell>{f.vigencia_fim ? formatDataBR(f.vigencia_fim) : "—"}</TableCell>
+                      <TableCell>
+                        <div className="flex gap-1">
+                          <Button
+                            size="icon"
+                            variant="ghost"
+                            onClick={() =>
+                              setForm({
+                                id: f.id,
+                                idade_inicial: f.idade_inicial,
+                                idade_final: f.idade_final,
+                                valor_mensal: f.valor_mensal,
+                                vigencia_inicio: f.vigencia_inicio.slice(0, 10),
+                                vigencia_fim: f.vigencia_fim ? f.vigencia_fim.slice(0, 10) : null,
+                                observacao: f.observacao ?? "",
+                                idade_final_txt: f.idade_final === null ? "" : String(f.idade_final),
+                                valor_txt: String(f.valor_mensal),
+                              })
+                            }
+                          >
+                            <Pencil className="h-4 w-4" />
+                          </Button>
+                          <Button size="icon" variant="ghost" onClick={() => excluir.mutate(f.id)}>
+                            <Trash2 className="h-4 w-4 text-destructive" />
+                          </Button>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+          </div>
+        ) : (
+          <div className="space-y-3">
+            <div className="grid gap-3 sm:grid-cols-3">
+              <div className="grid gap-1.5">
+                <Label>Idade inicial *</Label>
+                <Input
+                  inputMode="numeric"
+                  value={String(form.idade_inicial)}
+                  onChange={(e) =>
+                    setForm((f) => f && { ...f, idade_inicial: Number(e.target.value.replace(/\D/g, "")) || 0 })
+                  }
+                />
+              </div>
+              <div className="grid gap-1.5">
+                <Label>Idade final</Label>
+                <Input
+                  inputMode="numeric"
+                  placeholder="Vazio = sem limite"
+                  value={form.idade_final_txt}
+                  onChange={(e) =>
+                    setForm((f) => f && { ...f, idade_final_txt: e.target.value.replace(/\D/g, "") })
+                  }
+                />
+              </div>
+              <div className="grid gap-1.5">
+                <Label>Valor mensal (R$) *</Label>
+                <Input
+                  inputMode="decimal"
+                  value={form.valor_txt}
+                  onChange={(e) => setForm((f) => f && { ...f, valor_txt: e.target.value })}
+                />
+              </div>
+            </div>
+            <div className="grid gap-3 sm:grid-cols-2">
+              <div className="grid gap-1.5">
+                <Label>Vigência início *</Label>
+                <Input
+                  type="date"
+                  value={form.vigencia_inicio}
+                  onChange={(e) => setForm((f) => f && { ...f, vigencia_inicio: e.target.value })}
+                />
+              </div>
+              <div className="grid gap-1.5">
+                <Label>Vigência fim</Label>
+                <Input
+                  type="date"
+                  value={form.vigencia_fim ?? ""}
+                  onChange={(e) => setForm((f) => f && { ...f, vigencia_fim: e.target.value || null })}
+                />
+              </div>
+            </div>
+            <div className="grid gap-1.5">
+              <Label>Observação</Label>
+              <Input
+                value={form.observacao ?? ""}
+                onChange={(e) => setForm((f) => f && { ...f, observacao: e.target.value })}
+              />
+            </div>
+            <div className="flex justify-end gap-2">
+              <Button variant="outline" onClick={() => setForm(null)}>
+                Voltar
+              </Button>
+              <Button onClick={submit} disabled={salvar.isPending}>
+                Salvar faixa
+              </Button>
+            </div>
+          </div>
+        )}
+      </DialogContent>
+    </Dialog>
+  );
+}
