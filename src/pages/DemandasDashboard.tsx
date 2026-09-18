@@ -1360,8 +1360,15 @@ export default function DemandasDashboard() {
                     title="Visão comparativa dos setores"
                     subtitle="Leitura conjunta de volume, SLA, backlog, tempo médio e recorrência"
                   />
-                  <VisaoComparativaSetores rows={setorAgg} />
-                  <p className="text-[11px] text-muted-foreground">Dados referentes ao período selecionado.</p>
+                  <VisaoComparativaSetores rows={setorAgg} onSelect={(s) => setSetorDrill(s)} />
+                  <p className="text-[11px] text-muted-foreground">
+                    Dados referentes ao período selecionado. Clique em um setor para abrir o detalhamento.
+                  </p>
+                  <SetorDrilldown
+                    detalhe={setorDetalhe}
+                    periodoLabel={periodoLabel}
+                    onClose={() => setSetorDrill(null)}
+                  />
                 </section>
               </>
             )}
