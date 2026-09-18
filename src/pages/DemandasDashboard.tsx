@@ -242,13 +242,11 @@ export default function DemandasDashboard() {
     // Vigência da demanda intersecta o período filtrado
     if (fim && abertura > fim) return false;
     if (ini && encerramento < ini) return false;
-    if (empresa !== "__all__" && d.empresa !== empresa) return false;
-    if (executiva !== "__all__" && d.executiva !== executiva) return false;
-    return true;
+    return matchDimensoes(d);
   };
 
   const filtered = useMemo(() => demandas.filter(matchFilter), [
-    demandas, dataIni, dataFim, empresa, executiva,
+    demandas, dataIni, dataFim, empresa, executiva, setorFiltro, statusFiltro, tipoFiltro,
   ]);
 
   // ===== Métricas agregadas =====
