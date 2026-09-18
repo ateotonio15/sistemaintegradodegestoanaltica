@@ -5093,8 +5093,12 @@ export type Database = {
           faixa_anterior: string | null
           faixa_nova: string | null
           id: string
+          margem_restante_momento: number | null
+          margem_titular_momento: number | null
           motivo: string | null
+          tipo: string
           valor_anterior: number | null
+          valor_mensal_momento: number | null
           valor_novo: number | null
         }
         Insert: {
@@ -5104,8 +5108,12 @@ export type Database = {
           faixa_anterior?: string | null
           faixa_nova?: string | null
           id?: string
+          margem_restante_momento?: number | null
+          margem_titular_momento?: number | null
           motivo?: string | null
+          tipo?: string
           valor_anterior?: number | null
+          valor_mensal_momento?: number | null
           valor_novo?: number | null
         }
         Update: {
@@ -5115,8 +5123,12 @@ export type Database = {
           faixa_anterior?: string | null
           faixa_nova?: string | null
           id?: string
+          margem_restante_momento?: number | null
+          margem_titular_momento?: number | null
           motivo?: string | null
+          tipo?: string
           valor_anterior?: number | null
+          valor_mensal_momento?: number | null
           valor_novo?: number | null
         }
         Relationships: [
