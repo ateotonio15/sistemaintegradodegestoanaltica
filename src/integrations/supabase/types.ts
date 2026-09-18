@@ -5207,6 +5207,8 @@ export type Database = {
           idade_final: number | null
           idade_inicial: number
           observacao: string | null
+          plano: string | null
+          tabela_nome: string | null
           updated_at: string
           valor_mensal: number
           vigencia_fim: string | null
@@ -5218,6 +5220,8 @@ export type Database = {
           idade_final?: number | null
           idade_inicial: number
           observacao?: string | null
+          plano?: string | null
+          tabela_nome?: string | null
           updated_at?: string
           valor_mensal?: number
           vigencia_fim?: string | null
@@ -5229,6 +5233,8 @@ export type Database = {
           idade_final?: number | null
           idade_inicial?: number
           observacao?: string | null
+          plano?: string | null
+          tabela_nome?: string | null
           updated_at?: string
           valor_mensal?: number
           vigencia_fim?: string | null
