@@ -31,6 +31,7 @@ import {
   Search,
   Settings2,
   Trash2,
+  Upload,
   UserCheck,
   UserMinus,
   Users,
@@ -40,6 +41,7 @@ import { useExcluirTitularUea, useTitularesUea } from "@/hooks/useDependentesUea
 import { TitularUeaDialog } from "@/components/dependentes-uea/TitularUeaDialog";
 import { TitularDetalheUeaDialog } from "@/components/dependentes-uea/TitularDetalheUeaDialog";
 import { FaixasUeaDialog } from "@/components/dependentes-uea/FaixasUeaDialog";
+import { ImportarVidasUeaDialog } from "@/components/dependentes-uea/ImportarVidasUeaDialog";
 import { useMinhaPermissaoUea } from "@/hooks/useUeaPermissoes";
 import {
   aplicaFiltro,
@@ -107,6 +109,7 @@ export default function DependentesUEA() {
   const { titulares, faixas, isLoading } = useTitularesUea();
   const { canEditarUea } = useMinhaPermissaoUea();
   const [faixasOpen, setFaixasOpen] = useState(false);
+  const [importarOpen, setImportarOpen] = useState(false);
   const excluir = useExcluirTitularUea();
 
   const [busca, setBusca] = useState("");
@@ -160,6 +163,11 @@ export default function DependentesUEA() {
           <Button variant="outline" onClick={() => setFaixasOpen(true)}>
             <Settings2 className="mr-1.5 h-4 w-4" /> Faixas etárias e valores
           </Button>
+          {canEditarUea && (
+            <Button variant="outline" onClick={() => setImportarOpen(true)}>
+              <Upload className="mr-1.5 h-4 w-4" /> Importar Layout de Vidas
+            </Button>
+          )}
           {canEditarUea && (
             <Button onClick={() => setNovoOpen(true)}>
               <Plus className="mr-1.5 h-4 w-4" /> Novo titular
@@ -498,6 +506,7 @@ export default function DependentesUEA() {
         podeEditar={canEditarUea}
       />
       <FaixasUeaDialog open={faixasOpen} onOpenChange={setFaixasOpen} />
+      <ImportarVidasUeaDialog open={importarOpen} onOpenChange={setImportarOpen} faixas={faixas} />
 
       <AlertDialog open={!!excluirId} onOpenChange={(v) => !v && setExcluirId(null)}>
         <AlertDialogContent>

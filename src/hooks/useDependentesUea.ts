@@ -6,6 +6,8 @@ import {
   analisarReativacao,
   calcularTitular,
   faixaLabel,
+  faixaParaIdade,
+  idadeEm,
   MOTIVO_FALTA_MARGEM,
   type DependenteCalculado,
   type DependenteUea,
@@ -13,6 +15,7 @@ import {
   type TitularCalculado,
   type TitularUea,
 } from "@/lib/dependentes-uea";
+import type { FamiliaUeaImport } from "@/lib/vidas-layout-uea-import";
 
 const KEY = ["uea-titulares"];
 const KEY_FAIXAS = ["uea-faixas"];
@@ -782,5 +785,119 @@ export function useHistoricoTitularUea(titularId: string | null) {
         responsavel: created_by ? nomes.get(created_by) ?? "—" : "—",
       }));
     },
+  });
+}
+
+/* ------------------- Importação do Layout de Vidas (famílias) ------------------ */
+
+export interface ImportarVidasArgs {
+  familias: FamiliaUeaImport[];
+  faixas: FaixaUea[];
+}
+
+export interface ResultadoImportarVidas {
+  titularesCriados: number;
+  titularesExistentes: number;
+  dependentesCriados: number;
+  dependentesExistentes: number;
+}
+
+/**
+ * Grava as famílias lidas do Layout de Vidas. Não duplica titular nem dependente
+ * (chave: carteirinha) e vincula cada dependente ao titular da mesma base.
+ */
+export function useImportarVidasUea() {
+  const qc = useQueryClient();
+  const { toast } = useToast();
+  return useMutation({
+    mutationFn: async ({ familias, faixas }: ImportarVidasArgs): Promise<ResultadoImportarVidas> => {
+      const res: ResultadoImportarVidas = {
+        titularesCriados: 0,
+        titularesExistentes: 0,
+        dependentesCriados: 0,
+        dependentesExistentes: 0,
+      };
+
+      for (const fam of familias) {
+        const cart = fam.titular.carteirinha;
+        const { data: existente, error: eSel } = await supabase
+          .from("uea_titulares")
+          .select("id")
+          .eq("carteirinha", cart)
+          .maybeSingle();
+        if (eSel) throw eSel;
+
+        let titularId = (existente as any)?.id as string | undefined;
+        if (titularId) {
+          res.titularesExistentes += 1;
+        } else {
+          const { data: novo, error } = await supabase
+            .from("uea_titulares")
+            .insert({
+              nome_completo: fam.titular.nome,
+              cpf: fam.titular.cpf ?? cart,
+              carteirinha: cart,
+              matricula: fam.titular.matricula,
+              contrato: fam.titular.contrato,
+              data_nascimento: fam.titular.data_nascimento,
+              situacao: fam.titular.situacao,
+              valor_margem: 0,
+              observacao: null,
+            })
+            .select("id")
+            .single();
+          if (error) throw error;
+          titularId = (novo as any).id as string;
+          res.titularesCriados += 1;
+        }
+
+        for (const dep of fam.dependentes) {
+          const { data: depExistente, error: eDep } = await supabase
+            .from("uea_dependentes")
+            .select("id")
+            .eq("carteirinha", dep.carteirinha)
+            .maybeSingle();
+          if (eDep) throw eDep;
+          if (depExistente) {
+            res.dependentesExistentes += 1;
+            continue;
+          }
+          const idade = dep.data_nascimento ? idadeEm(dep.data_nascimento) : dep.idade;
+          const faixa = idade === null ? null : faixaParaIdade(faixas, idade);
+          const { error } = await supabase.from("uea_dependentes").insert({
+            titular_id: titularId,
+            nome_completo: dep.nome,
+            cpf: dep.cpf,
+            carteirinha: dep.carteirinha,
+            data_nascimento: dep.data_nascimento,
+            parentesco: dep.parentesco,
+            situacao: dep.situacao,
+            faixa_etaria: faixa ? faixaLabel(faixa) : null,
+            valor_mensal: faixa ? Number(faixa.valor_mensal) : 0,
+            status: "ativo",
+            observacao: null,
+          });
+          if (error) throw error;
+          res.dependentesCriados += 1;
+          await registrarEventoTitular({
+            titular_id: titularId as string,
+            dependente_nome: dep.nome,
+            tipo: "inclusao_dependente",
+            descricao: "Dependente incluído pela importação do Layout de Vidas",
+            valor_novo: faixa ? Number(faixa.valor_mensal) : 0,
+          });
+        }
+      }
+      return res;
+    },
+    onSuccess: (r) => {
+      qc.invalidateQueries({ queryKey: KEY });
+      toast({
+        title: "Importação concluída",
+        description: `${r.titularesCriados} titular(es) e ${r.dependentesCriados} dependente(s) importados.`,
+      });
+    },
+    onError: (e: any) =>
+      toast({ title: "Erro na importação", description: e.message, variant: "destructive" }),
   });
 }
