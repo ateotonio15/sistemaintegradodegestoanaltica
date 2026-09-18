@@ -1,8 +1,15 @@
-import { ReactNode } from "react";
+import { ReactNode, useState } from "react";
 import { Link } from "react-router-dom";
-import { ArrowDown, ArrowUp, Minus } from "lucide-react";
+import { ArrowDown, ArrowUp, ChevronDown, ChevronUp, Minus } from "lucide-react";
 import { Card } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import {
   Tooltip as UiTooltip,
   TooltipContent,
@@ -22,6 +29,9 @@ export const execTone: Record<ExecTone, { text: string; bg: string; dot: string;
   warning: { text: "text-warning", bg: "bg-warning/10", dot: "bg-warning", ring: "ring-warning/20" },
   danger: { text: "text-destructive", bg: "bg-destructive/10", dot: "bg-destructive", ring: "ring-destructive/20" },
 };
+
+export const fmt1 = (v: number) =>
+  v.toLocaleString("pt-BR", { minimumFractionDigits: 1, maximumFractionDigits: 1 });
 
 export function StatusPill({ label, tone = "neutral" }: { label: string; tone?: ExecTone }) {
   const t = execTone[tone];
@@ -77,57 +87,60 @@ export function InfoHint({ children }: { children: ReactNode }) {
             i
           </button>
         </TooltipTrigger>
-        <TooltipContent className="max-w-xs text-xs leading-relaxed">{children}</TooltipContent>
+        <TooltipContent className="max-w-xs whitespace-pre-line text-xs leading-relaxed">{children}</TooltipContent>
       </UiTooltip>
     </TooltipProvider>
   );
 }
 
-function Delta({ pct, inverse }: { pct: number | null | undefined; inverse?: boolean }) {
-  if (typeof pct !== "number" || Number.isNaN(pct)) {
-    return <span className="text-[11px] text-muted-foreground">sem base comparativa</span>;
-  }
-  const up = pct > 0;
-  const flat = pct === 0;
-  const positive = inverse ? !up : up;
-  const Icon = flat ? Minus : up ? ArrowUp : ArrowDown;
+/* ============================================================
+   Insights automáticos (topo)
+============================================================ */
+export type Insight = { categoria: string; texto: string; tone: ExecTone };
+
+export function InsightsExecutivos({ itens }: { itens: Insight[] }) {
+  if (itens.length === 0) return null;
   return (
-    <span
-      className={cn(
-        "inline-flex items-center gap-0.5 text-[11px] font-semibold",
-        flat ? "text-muted-foreground" : positive ? "text-success" : "text-destructive",
-      )}
-    >
-      <Icon className="h-3 w-3" />
-      {Math.abs(pct)}% vs. período anterior
-    </span>
+    <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
+      {itens.map((i, idx) => (
+        <Card key={i.categoria + idx} className="flex items-start gap-3 border-border/70 p-4 shadow-sm">
+          <span className="text-sm font-semibold tabular-nums text-muted-foreground/60">
+            {String(idx + 1).padStart(2, "0")}
+          </span>
+          <div className="min-w-0">
+            <p className={cn("text-[10px] font-semibold uppercase tracking-wider", execTone[i.tone].text)}>
+              {i.categoria}
+            </p>
+            <p className="mt-0.5 text-xs leading-snug text-foreground/90">{i.texto}</p>
+          </div>
+        </Card>
+      ))}
+    </div>
   );
 }
 
 /* ============================================================
-   1. Resumo executivo
+   Resumo executivo
 ============================================================ */
 export function ResumoExecutivo({
-  texto,
-  destaques,
+  periodoLabel,
+  blocos,
 }: {
-  texto: string;
-  destaques: { label: string; value: string; hint?: string }[];
+  periodoLabel: string;
+  blocos: { label: string; value: string; hint?: string }[];
 }) {
   return (
     <Card className="overflow-hidden border-border/70 shadow-sm">
-      <div className="border-b border-border/60 bg-muted/30 px-5 py-3">
-        <p className="text-[10px] font-semibold uppercase tracking-[0.22em] text-muted-foreground">
-          Resumo executivo
-        </p>
-        <p className="mt-1 text-sm leading-relaxed text-foreground/90">{texto}</p>
+      <div className="flex flex-wrap items-center justify-between gap-2 border-b border-border/60 bg-muted/30 px-5 py-3">
+        <p className="text-[10px] font-semibold uppercase tracking-[0.22em] text-muted-foreground">Resumo executivo</p>
+        <p className="text-[11px] text-muted-foreground">{periodoLabel}</p>
       </div>
       <div className="grid grid-cols-1 divide-y divide-border/60 sm:grid-cols-2 sm:divide-y-0 lg:grid-cols-4 lg:divide-x">
-        {destaques.map((d) => (
+        {blocos.map((d) => (
           <div key={d.label} className="px-5 py-4">
             <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">{d.label}</p>
-            <p className="mt-1 truncate text-base font-semibold text-foreground">{d.value}</p>
-            {d.hint && <p className="text-[11px] text-muted-foreground">{d.hint}</p>}
+            <p className="mt-1 text-sm font-semibold leading-snug text-foreground">{d.value}</p>
+            {d.hint && <p className="mt-0.5 text-[11px] leading-snug text-muted-foreground">{d.hint}</p>}
           </div>
         ))}
       </div>
@@ -136,27 +149,29 @@ export function ResumoExecutivo({
 }
 
 /* ============================================================
-   2. KPI executivo
+   KPI executivo com contexto
 ============================================================ */
 export function KpiExecutivo({
   label,
   value,
-  deltaPct,
-  deltaInverse,
   descricao,
+  comparacao,
+  meta,
   status,
   tone = "neutral",
   metodologia,
 }: {
   label: string;
   value: string;
-  deltaPct?: number | null;
-  deltaInverse?: boolean;
   descricao?: string;
+  /** valor anterior + variação absoluta/percentual já formatados */
+  comparacao?: { anteriorLabel: string; anteriorValor: string; variacao: string; direcao: "up" | "down" | "flat" } | null;
+  meta?: { texto: string; diferenca?: string };
   status?: string;
   tone?: ExecTone;
   metodologia?: string;
 }) {
+  const Icon = comparacao?.direcao === "flat" ? Minus : comparacao?.direcao === "up" ? ArrowUp : ArrowDown;
   return (
     <Card className="flex flex-col gap-2 border-border/70 p-4 shadow-sm transition-colors hover:border-primary/30">
       <div className="flex items-start justify-between gap-2">
@@ -167,20 +182,36 @@ export function KpiExecutivo({
         {status && <StatusPill label={status} tone={tone} />}
       </div>
       <p className="text-3xl font-semibold tabular-nums leading-none tracking-tight text-foreground">{value}</p>
-      <Delta pct={deltaPct} inverse={deltaInverse} />
       {descricao && <p className="text-[11px] leading-snug text-muted-foreground">{descricao}</p>}
+      {comparacao ? (
+        <p className="flex flex-wrap items-center gap-1 text-[11px] text-muted-foreground">
+          <Icon className="h-3 w-3" />
+          <span className="font-semibold text-foreground/90">{comparacao.variacao}</span>
+          <span>
+            · {comparacao.anteriorLabel}: {comparacao.anteriorValor}
+          </span>
+        </p>
+      ) : (
+        <p className="text-[11px] text-muted-foreground">Sem base comparativa no período anterior</p>
+      )}
+      {meta && (
+        <p className="text-[11px] text-muted-foreground">
+          {meta.texto}
+          {meta.diferenca && <span className="ml-1 font-semibold text-foreground/90">({meta.diferenca})</span>}
+        </p>
+      )}
     </Card>
   );
 }
 
 /* ============================================================
-   3. Concentração de demandas
+   Concentração de demandas
 ============================================================ */
 export function ConcentracaoDemandas({
   data,
   total,
 }: {
-  data: { setor: string; n: number; pct: number }[];
+  data: { setor: string; n: number; pct: number; pctExato: number }[];
   total: number;
 }) {
   const max = Math.max(1, ...data.map((d) => d.n));
@@ -189,7 +220,7 @@ export function ConcentracaoDemandas({
     <div className="grid grid-cols-1 gap-4 xl:grid-cols-[1fr_280px]">
       <Card className="border-border/70 p-5 shadow-sm">
         {data.length === 0 ? (
-          <p className="text-sm text-muted-foreground">Sem dados para o período selecionado.</p>
+          <p className="text-sm text-muted-foreground">Nenhuma demanda encontrada para os filtros selecionados.</p>
         ) : (
           <div className="space-y-3">
             <div className="grid grid-cols-12 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
@@ -201,7 +232,12 @@ export function ConcentracaoDemandas({
               <div key={d.setor} className="grid grid-cols-12 items-center gap-2">
                 <span className="col-span-6 truncate text-sm text-foreground/90">{d.setor}</span>
                 <span className="col-span-3 text-right text-sm font-semibold tabular-nums">{d.n}</span>
-                <span className="col-span-3 text-right text-sm tabular-nums text-muted-foreground">{d.pct}%</span>
+                <span
+                  className="col-span-3 cursor-help text-right text-sm tabular-nums text-muted-foreground"
+                  title={`${fmt1(d.pctExato)}% de ${total} demandas`}
+                >
+                  {d.pct}%
+                </span>
                 <div className="col-span-12 h-1.5 overflow-hidden rounded-full bg-muted">
                   <div className="h-full rounded-full bg-primary/70" style={{ width: `${(d.n / max) * 100}%` }} />
                 </div>
@@ -219,11 +255,11 @@ export function ConcentracaoDemandas({
             <p className="text-lg font-semibold leading-tight text-foreground">{principal.setor}</p>
             <p className="text-3xl font-semibold tabular-nums text-foreground">{principal.n}</p>
             <p className="text-xs text-muted-foreground">
-              {principal.pct}% do volume total ({total} demandas no período)
+              {fmt1(principal.pctExato)}% do volume total ({total} demandas no período)
             </p>
           </>
         ) : (
-          <p className="text-sm text-muted-foreground">Sem dados para o período selecionado.</p>
+          <p className="text-sm text-muted-foreground">Nenhuma demanda encontrada para os filtros selecionados.</p>
         )}
       </Card>
     </div>
@@ -231,44 +267,86 @@ export function ConcentracaoDemandas({
 }
 
 /* ============================================================
-   4. Mapa de pressão operacional
+   Mapa de pressão operacional
 ============================================================ */
+export type Pressao = "BAIXA" | "MODERADA" | "ALTA" | "CRÍTICA";
+
 export type SetorAgg = {
   setor: string;
   volume: number;
   pctVolume: number;
+  pctVolumeExato: number;
   slaPct: number;
   foraPct: number;
   backlog: number;
+  backlogPct: number;
   tempoMedio: number;
+  prazoDias: number;
   recorrenciaPct: number;
   clientesRecorrentes: number;
   clientesTotal: number;
-  impacto: number;
-  classificacao: "ESTÁVEL" | "MONITORAR" | "ATENÇÃO" | "CRÍTICO" | null;
+  pressaoScore: number;
+  pressao: Pressao | null;
   motivos: string[];
   volumeAlto: boolean;
 };
 
-const CLASSIF_TONE: Record<string, ExecTone> = {
-  "ESTÁVEL": "success",
-  MONITORAR: "info",
-  "ATENÇÃO": "warning",
-  "CRÍTICO": "danger",
+export const PRESSAO_TONE: Record<Pressao, ExecTone> = {
+  BAIXA: "success",
+  MODERADA: "info",
+  ALTA: "warning",
+  "CRÍTICA": "danger",
 };
+
+const METODOLOGIA_PRESSAO = `Índice de pressão (0 a 100) calculado a partir dos indicadores disponíveis do setor no período filtrado:
+
+• Devolutivas fora do prazo — peso 40%
+• Backlog proporcional ao volume — peso 30%
+• Tempo médio frente ao prazo do setor (72h, ou 168h na Agenda Cirúrgica) — peso 20%
+• Taxa de recorrência de clientes — peso 10%
+
+Faixas: até 20 = Baixa · 20 a 39 = Moderada · 40 a 59 = Alta · 60 ou mais = Crítica.
+Setores com menos de 3 demandas no período não são classificados.
+Volume alto, isoladamente, não eleva a classificação.`;
+
+export function MetodologiaPressaoButton() {
+  const [open, setOpen] = useState(false);
+  return (
+    <>
+      <Button variant="ghost" size="sm" className="h-7 text-xs" onClick={() => setOpen(true)}>
+        Como é calculado?
+      </Button>
+      <Dialog open={open} onOpenChange={setOpen}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Classificação de pressão operacional</DialogTitle>
+          </DialogHeader>
+          <p className="whitespace-pre-line text-sm leading-relaxed text-muted-foreground">{METODOLOGIA_PRESSAO}</p>
+        </DialogContent>
+      </Dialog>
+    </>
+  );
+}
 
 export function MapaPressao({ rows }: { rows: SetorAgg[] }) {
   const quadrantes = [
-    { titulo: "Volume alto · impacto alto", filtro: (r: SetorAgg) => r.volumeAlto && r.impacto >= 50 },
-    { titulo: "Volume baixo · impacto alto", filtro: (r: SetorAgg) => !r.volumeAlto && r.impacto >= 50 },
-    { titulo: "Volume alto · impacto controlado", filtro: (r: SetorAgg) => r.volumeAlto && r.impacto < 50 },
-    { titulo: "Volume baixo · impacto controlado", filtro: (r: SetorAgg) => !r.volumeAlto && r.impacto < 50 },
+    { titulo: "Volume alto · pressão elevada", filtro: (r: SetorAgg) => r.volumeAlto && r.pressaoScore >= 40 },
+    { titulo: "Volume baixo · pressão elevada", filtro: (r: SetorAgg) => !r.volumeAlto && r.pressaoScore >= 40 },
+    { titulo: "Volume alto · pressão controlada", filtro: (r: SetorAgg) => r.volumeAlto && r.pressaoScore < 40 },
+    { titulo: "Volume baixo · pressão controlada", filtro: (r: SetorAgg) => !r.volumeAlto && r.pressaoScore < 40 },
   ];
-  const classificados = rows.filter((r) => r.classificacao);
-  const semDados = rows.filter((r) => !r.classificacao);
+  const classificados = rows.filter((r) => r.pressao);
+  const semDados = rows.filter((r) => !r.pressao);
 
   return (
     <Card className="border-border/70 p-5 shadow-sm">
+      <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+        <p className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
+          Classificação calculada a partir dos indicadores disponíveis.
+          <InfoHint>{METODOLOGIA_PRESSAO}</InfoHint>
+        </p>
+        <MetodologiaPressaoButton />
+      </div>
       {classificados.length === 0 ? (
         <p className="text-sm text-muted-foreground">Dados insuficientes para classificação.</p>
       ) : (
@@ -286,13 +364,11 @@ export function MapaPressao({ rows }: { rows: SetorAgg[] }) {
                       <div key={r.setor} className="rounded-lg bg-background/70 p-3">
                         <div className="flex items-start justify-between gap-2">
                           <p className="truncate text-sm font-medium text-foreground">{r.setor}</p>
-                          <StatusPill
-                            label={r.classificacao!}
-                            tone={CLASSIF_TONE[r.classificacao!] ?? "neutral"}
-                          />
+                          <StatusPill label={r.pressao!} tone={PRESSAO_TONE[r.pressao!]} />
                         </div>
                         <p className="mt-1 text-[11px] tabular-nums text-muted-foreground">
-                          {r.volume} demandas · SLA {r.slaPct}% · backlog {r.backlog} · {r.tempoMedio.toFixed(1)}d
+                          {r.volume} demandas · SLA {r.slaPct}% · backlog {r.backlog} · {fmt1(r.tempoMedio)}d ·
+                          recorrência {r.recorrenciaPct}% · índice {r.pressaoScore}
                         </p>
                       </div>
                     ))
@@ -314,7 +390,7 @@ export function MapaPressao({ rows }: { rows: SetorAgg[] }) {
 }
 
 /* ============================================================
-   5. Pontos de atenção
+   Pontos de atenção
 ============================================================ */
 export function PontosAtencao({
   itens,
@@ -355,15 +431,19 @@ export function PontosAtencao({
 }
 
 /* ============================================================
-   6. Recorrência por setor
+   Recorrência por setor
 ============================================================ */
 export function RecorrenciaSetor({ rows }: { rows: SetorAgg[] }) {
   const badge = (taxa: number): { label: string; tone: ExecTone } =>
-    taxa >= 30 ? { label: "Alta", tone: "warning" } : taxa >= 15 ? { label: "Moderada", tone: "info" } : { label: "Baixa", tone: "success" };
+    taxa >= 30
+      ? { label: "Alta", tone: "warning" }
+      : taxa >= 15
+      ? { label: "Moderada", tone: "info" }
+      : { label: "Baixa", tone: "success" };
   return (
     <Card className="overflow-hidden border-border/70 shadow-sm">
       {rows.length === 0 ? (
-        <p className="p-5 text-sm text-muted-foreground">Sem dados para o período selecionado.</p>
+        <p className="p-5 text-sm text-muted-foreground">Nenhuma demanda encontrada para os filtros selecionados.</p>
       ) : (
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
@@ -408,19 +488,28 @@ export function RecorrenciaSetor({ rows }: { rows: SetorAgg[] }) {
 }
 
 /* ============================================================
-   7. Gargalos operacionais
+   Gargalos operacionais
 ============================================================ */
-export function GargalosTabela({
-  rows,
-}: {
-  rows: { setor: string; tipo: string; qtd: number; tempoMedio: number; foraPct: number }[];
-}) {
-  const impacto = (foraPct: number): { label: string; tone: ExecTone } =>
-    foraPct >= 40 ? { label: "Alto", tone: "danger" } : foraPct >= 15 ? { label: "Médio", tone: "warning" } : { label: "Baixo", tone: "success" };
+export type GargaloRow = {
+  setor: string;
+  tipo: string;
+  qtd: number;
+  tempoMedio: number;
+  foraPct: number;
+  impacto: number;
+};
+
+export function GargalosTabela({ rows }: { rows: GargaloRow[] }) {
+  const faixa = (impacto: number): { label: string; tone: ExecTone } =>
+    impacto >= 60
+      ? { label: "Alto", tone: "danger" }
+      : impacto >= 35
+      ? { label: "Médio", tone: "warning" }
+      : { label: "Baixo", tone: "success" };
   return (
     <Card className="overflow-hidden border-border/70 shadow-sm">
       {rows.length === 0 ? (
-        <p className="p-5 text-sm text-muted-foreground">Sem dados para o período selecionado.</p>
+        <p className="p-5 text-sm text-muted-foreground">Nenhuma demanda encontrada para os filtros selecionados.</p>
       ) : (
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
@@ -428,29 +517,39 @@ export function GargalosTabela({
               <tr className="border-b border-border/60 bg-muted/25 text-[10px] uppercase tracking-wider text-muted-foreground">
                 <th className="px-4 py-2.5 text-left font-semibold">Setor</th>
                 <th className="px-4 py-2.5 text-left font-semibold">Tipo de demanda</th>
-                <th className="px-4 py-2.5 text-right font-semibold">Volume</th>
+                <th className="px-4 py-2.5 text-right font-semibold">Quantidade</th>
                 <th className="px-4 py-2.5 text-right font-semibold">Tempo médio</th>
-                <th className="px-4 py-2.5 text-right font-semibold">Impacto</th>
+                <th className="px-4 py-2.5 text-right font-semibold">Fora do prazo</th>
+                <th className="px-4 py-2.5 text-right font-semibold">
+                  <span className="inline-flex items-center gap-1">
+                    Impacto
+                    <InfoHint>
+                      Índice de 0 a 100 que combina percentual fora do prazo (45%), tempo médio frente ao prazo do
+                      setor (35%) e participação no volume do período (20%).
+                    </InfoHint>
+                  </span>
+                </th>
               </tr>
             </thead>
             <tbody>
               {rows.map((r) => {
-                const imp = impacto(r.foraPct);
+                const imp = faixa(r.impacto);
                 return (
                   <tr key={`${r.setor}-${r.tipo}`} className="border-b border-border/40 last:border-0">
                     <td className="px-4 py-2.5 text-foreground/90">{r.setor}</td>
                     <td className="px-4 py-2.5 text-muted-foreground">{r.tipo}</td>
                     <td className="px-4 py-2.5 text-right font-semibold tabular-nums">{r.qtd}</td>
-                    <td className="px-4 py-2.5 text-right tabular-nums">{r.tempoMedio.toFixed(1)}d</td>
+                    <td className="px-4 py-2.5 text-right tabular-nums">{fmt1(r.tempoMedio)}d</td>
+                    <td className="px-4 py-2.5 text-right tabular-nums text-muted-foreground">{r.foraPct}%</td>
                     <td className="px-4 py-2.5 text-right">
                       <span className="inline-flex items-center gap-2">
                         <span className="hidden h-1.5 w-16 overflow-hidden rounded-full bg-muted sm:inline-block">
                           <span
                             className={cn("block h-full rounded-full", execTone[imp.tone].dot)}
-                            style={{ width: `${Math.min(100, r.foraPct)}%` }}
+                            style={{ width: `${Math.min(100, r.impacto)}%` }}
                           />
                         </span>
-                        <StatusPill label={imp.label} tone={imp.tone} />
+                        <StatusPill label={`${imp.label} · ${r.impacto}`} tone={imp.tone} />
                       </span>
                     </td>
                   </tr>
@@ -465,12 +564,12 @@ export function GargalosTabela({
 }
 
 /* ============================================================
-   8. Prioridades de atuação
+   Prioridades de atuação
 ============================================================ */
 export function PrioridadesAtuacao({
   itens,
 }: {
-  itens: { setor: string; motivo: string; indicadores: string; tone: ExecTone }[];
+  itens: { setor: string; motivo: string; indicadores: string; tone: ExecTone; status: string }[];
 }) {
   if (itens.length === 0) {
     return (
@@ -491,7 +590,7 @@ export function PrioridadesAtuacao({
           <div className="min-w-0 flex-1">
             <div className="flex flex-wrap items-center gap-2">
               <p className="text-sm font-semibold text-foreground">{i.setor}</p>
-              <StatusPill label={i.tone === "danger" ? "Crítico" : i.tone === "warning" ? "Atenção" : "Monitorar"} tone={i.tone} />
+              <StatusPill label={i.status} tone={i.tone} />
             </div>
             <p className="mt-0.5 text-xs text-foreground/80">{i.motivo}</p>
             <p className="mt-1 text-[11px] tabular-nums text-muted-foreground">{i.indicadores}</p>
@@ -503,33 +602,80 @@ export function PrioridadesAtuacao({
 }
 
 /* ============================================================
-   9. Visão comparativa dos setores
+   Visão comparativa dos setores (ordenável + drill-down)
 ============================================================ */
-export function VisaoComparativaSetores({ rows }: { rows: SetorAgg[] }) {
+type SortKey = "volume" | "slaPct" | "backlog" | "tempoMedio" | "recorrenciaPct" | "pressaoScore";
+
+export function VisaoComparativaSetores({
+  rows,
+  onSelect,
+}: {
+  rows: SetorAgg[];
+  onSelect?: (setor: string) => void;
+}) {
+  const [sortKey, setSortKey] = useState<SortKey>("pressaoScore");
+  const [asc, setAsc] = useState(false);
+
+  const sorted = [...rows].sort((a, b) => {
+    const diff = (a[sortKey] as number) - (b[sortKey] as number);
+    return asc ? diff : -diff;
+  });
+
+  const th = (label: string, key: SortKey) => (
+    <th className="px-4 py-2.5 text-right font-semibold">
+      <button
+        type="button"
+        className="inline-flex items-center gap-1 hover:text-foreground"
+        onClick={() => {
+          if (sortKey === key) setAsc(!asc);
+          else {
+            setSortKey(key);
+            setAsc(false);
+          }
+        }}
+        aria-label={`Ordenar por ${label}`}
+      >
+        {label}
+        {sortKey === key ? (
+          asc ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />
+        ) : null}
+      </button>
+    </th>
+  );
+
   return (
     <Card className="overflow-hidden border-border/70 shadow-sm">
       {rows.length === 0 ? (
-        <p className="p-5 text-sm text-muted-foreground">Sem dados para o período selecionado.</p>
+        <p className="p-5 text-sm text-muted-foreground">Nenhuma demanda encontrada para os filtros selecionados.</p>
       ) : (
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-border/60 bg-muted/25 text-[10px] uppercase tracking-wider text-muted-foreground">
                 <th className="px-4 py-2.5 text-left font-semibold">Setor</th>
-                <th className="px-4 py-2.5 text-right font-semibold">Volume</th>
-                <th className="px-4 py-2.5 text-right font-semibold">SLA</th>
-                <th className="px-4 py-2.5 text-right font-semibold">Backlog</th>
-                <th className="px-4 py-2.5 text-right font-semibold">Tempo médio</th>
-                <th className="px-4 py-2.5 text-right font-semibold">Recorrência</th>
-                <th className="px-4 py-2.5 text-right font-semibold">Classificação</th>
+                {th("Demandas", "volume")}
+                <th className="px-4 py-2.5 text-right font-semibold">% do total</th>
+                {th("SLA", "slaPct")}
+                {th("Backlog", "backlog")}
+                {th("Tempo médio", "tempoMedio")}
+                {th("Recorrência", "recorrenciaPct")}
+                {th("Status", "pressaoScore")}
               </tr>
             </thead>
             <tbody>
-              {rows.map((r) => (
-                <tr key={r.setor} className="border-b border-border/40 last:border-0">
-                  <td className="px-4 py-2.5 text-foreground/90">{r.setor}</td>
-                  <td className="px-4 py-2.5 text-right tabular-nums">
-                    {r.volume} <span className="text-[11px] text-muted-foreground">({r.pctVolume}%)</span>
+              {sorted.map((r) => (
+                <tr
+                  key={r.setor}
+                  className={cn(
+                    "border-b border-border/40 last:border-0",
+                    onSelect && "cursor-pointer transition-colors hover:bg-muted/30",
+                  )}
+                  onClick={onSelect ? () => onSelect(r.setor) : undefined}
+                >
+                  <td className="px-4 py-2.5 font-medium text-foreground/90">{r.setor}</td>
+                  <td className="px-4 py-2.5 text-right tabular-nums">{r.volume}</td>
+                  <td className="px-4 py-2.5 text-right tabular-nums text-muted-foreground" title={`${fmt1(r.pctVolumeExato)}%`}>
+                    {r.pctVolume}%
                   </td>
                   <td
                     className={cn(
@@ -540,11 +686,11 @@ export function VisaoComparativaSetores({ rows }: { rows: SetorAgg[] }) {
                     {r.slaPct}%
                   </td>
                   <td className="px-4 py-2.5 text-right tabular-nums">{r.backlog}</td>
-                  <td className="px-4 py-2.5 text-right tabular-nums">{r.tempoMedio.toFixed(1)}d</td>
+                  <td className="px-4 py-2.5 text-right tabular-nums">{fmt1(r.tempoMedio)}d</td>
                   <td className="px-4 py-2.5 text-right tabular-nums text-muted-foreground">{r.recorrenciaPct}%</td>
                   <td className="px-4 py-2.5 text-right">
-                    {r.classificacao ? (
-                      <StatusPill label={r.classificacao} tone={CLASSIF_TONE[r.classificacao] ?? "neutral"} />
+                    {r.pressao ? (
+                      <StatusPill label={r.pressao} tone={PRESSAO_TONE[r.pressao]} />
                     ) : (
                       <span className="text-[11px] text-muted-foreground">Dados insuficientes</span>
                     )}
@@ -554,6 +700,11 @@ export function VisaoComparativaSetores({ rows }: { rows: SetorAgg[] }) {
             </tbody>
           </table>
         </div>
+      )}
+      {onSelect && rows.length > 0 && (
+        <p className="border-t border-border/50 px-4 py-2 text-[11px] text-muted-foreground">
+          Clique em um setor para abrir o detalhamento.
+        </p>
       )}
     </Card>
   );
