@@ -998,6 +998,10 @@ export default function DemandasDashboard() {
     setDataFim(toISO(lastDayOfMonth()));
     setEmpresa("__all__");
     setExecutiva("__all__");
+    setSetorFiltro("__all__");
+    setStatusFiltro("__all__");
+    setTipoFiltro("__all__");
+    setSetorDrill(null);
   };
 
   const exportar = async () => {
