@@ -1148,72 +1148,80 @@ export default function DemandasDashboard() {
             {!isLoading && filtered.length > 0 && (
               <>
                 {/* ===== 2. Resumo executivo ===== */}
-                <ResumoExecutivo texto={resumoTexto} destaques={resumoDestaques} />
+                <ResumoExecutivo periodoLabel={periodoLabel} blocos={resumoBlocos} />
+                <InsightsExecutivos itens={insightsExec} />
 
                 {/* ===== 3. KPIs principais ===== */}
                 <section className="space-y-3">
                   <SectionHeader
                     eyebrow="Como está?"
                     title="Indicadores principais"
-                    subtitle="Período selecionado, comparado ao período imediatamente anterior"
+                    subtitle={`Período selecionado, comparado ao ${prevPeriodoLabel.toLowerCase()}`}
                   />
                   <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-6">
                     <KpiExecutivo
                       label="Demandas no período"
                       value={String(metrics.total)}
-                      deltaPct={deltaVs(metrics.total, prevMetrics?.total)}
-                      deltaInverse
+                      comparacao={cmpQtd(metrics.total, prevMetrics?.total)}
                       descricao={`${metrics.resolvidas} resolvidas · ${metrics.emAberto} em aberto`}
-                      metodologia="Demandas cuja vigência (abertura até encerramento) intersecta o período filtrado."
+                      metodologia="Demandas cuja vigência (abertura até encerramento) intersecta o período filtrado. Aumento de volume indica mais demandas recebidas, não necessariamente pior desempenho."
                     />
                     <KpiExecutivo
                       label="SLA cumprido"
                       value={`${metrics.slaNoPrazoPct}%`}
-                      deltaPct={deltaVs(metrics.slaNoPrazoPct, prevMetrics?.slaNoPrazoPct)}
-                      descricao={`${noPrazoQtd} de ${metrics.total} dentro do prazo`}
+                      comparacao={cmpPP(metrics.slaNoPrazoPct, prevMetrics?.slaNoPrazoPct)}
+                      descricao={`${noPrazoQtd} de ${metrics.total} demandas dentro do prazo`}
                       status={metrics.slaNoPrazoPct >= 95 ? "Saudável" : metrics.slaNoPrazoPct >= 85 ? "Atenção" : "Crítico"}
                       tone={slaTone}
-                      metodologia="Prazo de 72h úteis (168h para Agenda Cirúrgica), medido sobre o total de demandas do período."
+                      metodologia="Prazo de 72h úteis (168h para Agenda Cirúrgica), medido sobre o total de demandas do período. Aumento do índice indica evolução."
                     />
                     <KpiExecutivo
                       label="Backlog atual"
                       value={String(metrics.emAberto)}
-                      deltaPct={backlogDeltaPrev}
-                      deltaInverse
-                      descricao={`${metrics.pctEmAberto}% do total ainda sem resolução`}
+                      comparacao={cmpQtd(metrics.emAberto, prevMetrics?.emAberto)}
+                      descricao={`${metrics.pctEmAberto}% do total ainda sem resolução${backlogDeltaPP === null ? "" : backlogDeltaPP < 0 ? ` · ${Math.abs(backlogDeltaPP)} demandas em aberto a menos que no período anterior` : backlogDeltaPP > 0 ? ` · ${backlogDeltaPP} demandas em aberto a mais que no período anterior` : ""}`}
                       status={metrics.emAberto === 0 ? "Zerado" : metrics.pctEmAberto > 30 ? "Atenção" : "Controlado"}
                       tone={metrics.emAberto === 0 ? "success" : metrics.pctEmAberto > 30 ? "warning" : "info"}
-                      metodologia="Fotografia do momento: demandas do período que seguem sem resolução do setor ou da executiva."
+                      metodologia="Fotografia do momento: demandas do período que seguem sem resolução do setor ou da executiva. Redução significa menos demandas em aberto."
                     />
                     <KpiExecutivo
                       label="Tempo médio de resolução"
-                      value={`${metrics.tempoMedioDias.toFixed(1)}d`}
-                      deltaPct={
+                      value={`${fmt1(metrics.tempoMedioDias)}d`}
+                      comparacao={
                         prevMetrics
-                          ? deltaVs(
-                              Math.round(metrics.tempoMedioDias * 10),
-                              Math.round(prevMetrics.tempoMedioDias * 10),
-                            )
+                          ? {
+                              anteriorLabel: prevCurto,
+                              anteriorValor: `${fmt1(prevMetrics.tempoMedioDias)}d`,
+                              variacao: `${metrics.tempoMedioDias - prevMetrics.tempoMedioDias > 0 ? "+" : ""}${fmt1(metrics.tempoMedioDias - prevMetrics.tempoMedioDias)}d`,
+                              direcao:
+                                metrics.tempoMedioDias > prevMetrics.tempoMedioDias
+                                  ? "up"
+                                  : metrics.tempoMedioDias < prevMetrics.tempoMedioDias
+                                    ? "down"
+                                    : "flat",
+                            }
                           : null
                       }
-                      deltaInverse
-                      descricao={`Agenda Cirúrgica ${temposSegmentados.cirurgica.horas.toFixed(0)}h · demais ${temposSegmentados.demais.horas.toFixed(0)}h`}
-                      metodologia="Média de dias corridos entre abertura e resolução, considerando apenas demandas já resolvidas."
+                      descricao={`Agenda Cirúrgica ${temposSegmentados.cirurgica.horas.toFixed(0)}h · demais setores ${temposSegmentados.demais.horas.toFixed(0)}h`}
+                      metodologia="Média de dias corridos entre abertura e resolução, considerando apenas demandas já resolvidas no período."
                     />
                     <KpiExecutivo
                       label="Devolutivas fora do prazo"
                       value={`${metrics.pctForaDoPrazo}%`}
-                      deltaPct={deltaVs(metrics.pctForaDoPrazo, prevMetrics?.pctForaDoPrazo)}
-                      deltaInverse
-                      descricao={`Meta interna: ≤ ${META_FORA_PRAZO}%`}
+                      comparacao={cmpPP(metrics.pctForaDoPrazo, prevMetrics?.pctForaDoPrazo)}
+                      descricao={`${metrics.total - noPrazoQtd} de ${metrics.total} demandas excederam o prazo`}
+                      meta={{
+                        texto: `≤ ${META_FORA_PRAZO}%`,
+                        diferenca: `${metrics.pctForaDoPrazo - META_FORA_PRAZO > 0 ? "+" : ""}${metrics.pctForaDoPrazo - META_FORA_PRAZO} p.p.`,
+                      }}
                       status={metrics.acimaDaMeta ? "Acima da meta" : "Dentro da meta"}
                       tone={metrics.acimaDaMeta ? "danger" : "success"}
-                      metodologia="Percentual de demandas que excederam o prazo aplicável ao setor."
+                      metodologia="Percentual de demandas que excederam o prazo aplicável ao setor. Meta interna cadastrada no sistema."
                     />
                     <KpiExecutivo
                       label="Eficiência operacional"
                       value={String(metrics.score)}
-                      deltaPct={deltaVs(metrics.score, prevMetrics?.score)}
+                      comparacao={cmpQtd(metrics.score, prevMetrics?.score, " pts")}
                       descricao="Índice de 0 a 100 ponderando SLA, resolução, prazo e backlog"
                       status={scoreStatus === "saudavel" ? "Saudável" : scoreStatus === "atencao" ? "Atenção" : "Crítico"}
                       tone={scoreStatus === "saudavel" ? "success" : scoreStatus === "atencao" ? "warning" : "danger"}
