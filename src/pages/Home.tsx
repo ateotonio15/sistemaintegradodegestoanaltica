@@ -5,6 +5,7 @@ import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useCanAccessHonda } from "@/hooks/useHondaExclusoes";
+import { useMinhaPermissaoUea } from "@/hooks/useUeaPermissoes";
 import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -193,6 +194,7 @@ type Ctx = {
   isVendas: boolean;
   role: string | null | undefined;
   canHonda: boolean;
+  canVerUea: boolean;
 };
 
 type LeafShortcut = {
@@ -384,6 +386,14 @@ const SHORTCUTS: Shortcut[] = [
       ["comum", "diretora", "administradoras"].includes(c.role as string),
   },
   {
+    to: "/dependentes-uea",
+    label: "Dependentes UEA",
+    description: "Margem dos titulares e faixas dos dependentes",
+    icon: Users,
+    group: "funcoes",
+    show: (c) => c.canVerUea,
+  },
+  {
     to: "/configuracoes",
     label: "Configurações",
     description: "Preferências, segurança e informações do sistema",
@@ -397,6 +407,7 @@ export default function Home() {
   const { isAdmin, isExecutivo, isExecutivoExterno, isViewOnly, isEnfermeira, isFinanceiro, isVendas, role, user } = useAuth();
   const soSaude = role === "tec_enfermagem";
   const { data: canHonda } = useCanAccessHonda();
+  const { canVerUea } = useMinhaPermissaoUea();
   const [query, setQuery] = useState("");
   const [tab, setTab] = useState<"funcoes" | "utilitarios">("funcoes");
   const [openGroup, setOpenGroup] = useState<string | null>(null);
@@ -412,6 +423,7 @@ export default function Home() {
     isVendas,
     role,
     canHonda: !!canHonda,
+    canVerUea,
   };
 
   const visible = useMemo(() => {
