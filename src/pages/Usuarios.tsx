@@ -14,6 +14,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { Plus, Pencil, Search, Shield, User, Eye, KeyRound, Trash2, HeartPulse, Wallet, Building2 } from "lucide-react";
 import { Navigate } from "react-router-dom";
 import { FeriasSection } from "@/components/ferias/FeriasSection";
+import { useUeaPermissoes, useSalvarPermissaoUea } from "@/hooks/useUeaPermissoes";
 
 type AppRole = "admin" | "comum" | "executivo" | "executivo_externo" | "visualizacao" | "diretora" | "enfermeira" | "tec_enfermagem" | "financeiro" | "vendas" | "administradoras";
 
@@ -80,10 +81,17 @@ export default function Usuarios() {
   const [newEmpresas, setNewEmpresas] = useState<string[]>([]);
   const [editDisplayName, setEditDisplayName] = useState("");
   const [editUsername, setEditUsername] = useState("");
+  const [ueaVer, setUeaVer] = useState(false);
+  const [ueaEditar, setUeaEditar] = useState(false);
+  const [newUeaVer, setNewUeaVer] = useState(false);
+  const [newUeaEditar, setNewUeaEditar] = useState(false);
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
   if (!isAdmin) return <Navigate to="/" replace />;
+
+  const { data: ueaPermissoes = {} } = useUeaPermissoes();
+  const salvarPermissaoUea = useSalvarPermissaoUea();
 
   const { data: empresas = [] } = useQuery({
     queryKey: ["empresas-list"],
@@ -183,6 +191,14 @@ export default function Usuarios() {
 
       await supabase.from("user_roles").insert({ user_id: userId, role: newRole });
 
+      if (newUeaVer || newUeaEditar) {
+        await salvarPermissaoUea.mutateAsync({
+          userId,
+          pode_visualizar: newUeaVer || newUeaEditar,
+          pode_editar: newUeaEditar,
+        });
+      }
+
       if (newEmpresas.length > 0) {
         const rows = newEmpresas.map((empresa_id) => ({ user_id: userId, empresa_id }));
         await supabase.from("empresa_usuarios").insert(rows);
@@ -192,6 +208,7 @@ export default function Usuarios() {
       queryClient.invalidateQueries({ queryKey: ["users-management"] });
       setCreateDialogOpen(false);
       setNewEmail(""); setNewName(""); setNewUsername(""); setNewPassword(""); setNewRole("comum"); setNewEmpresas([]);
+      setNewUeaVer(false); setNewUeaEditar(false);
       toast({ title: "Usuário criado com sucesso!" });
     },
     onError: async (err: any) => {
@@ -266,6 +283,9 @@ export default function Usuarios() {
     setSelectedEmpresas(u.empresas.map((e) => e.id));
     setEditDisplayName(u.display_name || "");
     setEditUsername(u.username || "");
+    const perm = ueaPermissoes[u.user_id];
+    setUeaVer(!!perm?.pode_visualizar || !!perm?.pode_editar);
+    setUeaEditar(!!perm?.pode_editar);
     setDialogOpen(true);
   };
 
@@ -274,6 +294,11 @@ export default function Usuarios() {
     updateProfileMutation.mutate({ userId: editingUser.user_id, displayName: editDisplayName, username: editUsername });
     updateRoleMutation.mutate({ userId: editingUser.user_id, role: selectedRole });
     updateEmpresasMutation.mutate({ userId: editingUser.user_id, empresaIds: selectedEmpresas });
+    salvarPermissaoUea.mutate({
+      userId: editingUser.user_id,
+      pode_visualizar: ueaVer || ueaEditar,
+      pode_editar: ueaEditar,
+    });
     setDialogOpen(false);
   };
 
@@ -351,6 +376,29 @@ export default function Usuarios() {
                       </label>
                     ))}
                     {empresas.length === 0 && <p className="text-xs text-muted-foreground">Nenhuma empresa cadastrada</p>}
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <Label className="text-sm font-medium">Permissões adicionais</Label>
+                  <div className="space-y-1 rounded-lg border p-2.5">
+                    <label className="flex cursor-pointer items-center gap-2 rounded-md px-2 py-1 text-sm transition-colors hover:bg-accent/50">
+                      <input
+                        type="checkbox"
+                        className="rounded"
+                        checked={newUeaVer || newUeaEditar}
+                        onChange={(e) => { setNewUeaVer(e.target.checked); if (!e.target.checked) setNewUeaEditar(false); }}
+                      />
+                      Visualizar Dependentes UEA
+                    </label>
+                    <label className="flex cursor-pointer items-center gap-2 rounded-md px-2 py-1 text-sm transition-colors hover:bg-accent/50">
+                      <input
+                        type="checkbox"
+                        className="rounded"
+                        checked={newUeaEditar}
+                        onChange={(e) => { setNewUeaEditar(e.target.checked); if (e.target.checked) setNewUeaVer(true); }}
+                      />
+                      Editar Dependentes UEA
+                    </label>
                   </div>
                 </div>
                 <div className="flex justify-end gap-2">
@@ -480,6 +528,32 @@ export default function Usuarios() {
                     </label>
                   ))}
                 </div>
+              </div>
+              <div className="space-y-2">
+                <Label className="text-sm font-medium">Permissões adicionais</Label>
+                <div className="space-y-1 rounded-lg border p-2.5">
+                  <label className="flex cursor-pointer items-center gap-2 rounded-md px-2 py-1 text-sm transition-colors hover:bg-accent/50">
+                    <input
+                      type="checkbox"
+                      className="rounded"
+                      checked={ueaVer || ueaEditar}
+                      onChange={(e) => { setUeaVer(e.target.checked); if (!e.target.checked) setUeaEditar(false); }}
+                    />
+                    Visualizar Dependentes UEA
+                  </label>
+                  <label className="flex cursor-pointer items-center gap-2 rounded-md px-2 py-1 text-sm transition-colors hover:bg-accent/50">
+                    <input
+                      type="checkbox"
+                      className="rounded"
+                      checked={ueaEditar}
+                      onChange={(e) => { setUeaEditar(e.target.checked); if (e.target.checked) setUeaVer(true); }}
+                    />
+                    Editar Dependentes UEA
+                  </label>
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  Somente "Visualizar" permite consultar titulares, dependentes, valores, margem e histórico, sem alterações.
+                </p>
               </div>
               <div className="flex justify-end gap-2">
                 <Button variant="outline" onClick={() => setDialogOpen(false)} className="rounded-lg">Cancelar</Button>
