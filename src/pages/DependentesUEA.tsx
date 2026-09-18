@@ -119,6 +119,7 @@ export default function DependentesUEA() {
   const [novoOpen, setNovoOpen] = useState(false);
   const [depsTitular, setDepsTitular] = useState<TitularCalculado | null>(null);
   const [excluirId, setExcluirId] = useState<string | null>(null);
+  const [expandidoId, setExpandidoId] = useState<string | null>(null);
   const [filtroMudanca, setFiltroMudanca] = useState<FiltroMudanca>("90");
 
   const mudancas = useMemo(() => proximasMudancasFaixa(titulares, 90), [titulares]);
