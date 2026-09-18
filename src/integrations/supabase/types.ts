@@ -5208,6 +5208,7 @@ export type Database = {
           idade_inicial: number
           observacao: string | null
           plano: string | null
+          sequencia: string | null
           tabela_nome: string | null
           updated_at: string
           valor_mensal: number
@@ -5221,6 +5222,7 @@ export type Database = {
           idade_inicial: number
           observacao?: string | null
           plano?: string | null
+          sequencia?: string | null
           tabela_nome?: string | null
           updated_at?: string
           valor_mensal?: number
@@ -5234,6 +5236,7 @@ export type Database = {
           idade_inicial?: number
           observacao?: string | null
           plano?: string | null
+          sequencia?: string | null
           tabela_nome?: string | null
           updated_at?: string
           valor_mensal?: number
