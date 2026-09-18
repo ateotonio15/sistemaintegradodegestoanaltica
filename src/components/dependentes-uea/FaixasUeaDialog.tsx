@@ -118,16 +118,96 @@ export function FaixasUeaDialog({ open, onOpenChange }: Props) {
           <DialogTitle>Configuração de faixas etárias e valores</DialogTitle>
         </DialogHeader>
 
-        {!form ? (
+        {preview ? (
           <div className="space-y-3">
-            <div className="flex items-center justify-between">
-              <p className="text-sm text-muted-foreground">
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <div>
+                <p className="text-sm font-medium">{preview.nome}</p>
+                <p className="text-xs text-muted-foreground">
+                  {validas.length} faixa(s) prontas para importar
+                  {invalidas.length > 0 && ` · ${invalidas.length} com problema`}
+                </p>
+              </div>
+              <label className="flex items-center gap-2 text-sm">
+                <Checkbox
+                  checked={substituir}
+                  onCheckedChange={(v) => setSubstituir(v === true)}
+                />
+                Substituir as faixas atuais
+              </label>
+            </div>
+            <div className="max-h-[320px] overflow-auto rounded-lg border">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Faixa</TableHead>
+                    <TableHead className="text-right">Valor mensal</TableHead>
+                    <TableHead>Vigência início</TableHead>
+                    <TableHead>Vigência fim</TableHead>
+                    <TableHead>Situação</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {preview.linhas.map((l) => (
+                    <TableRow key={l.linha} className={l.erro ? "opacity-70" : undefined}>
+                      <TableCell className="font-medium">
+                        {l.idade_inicial} a {l.idade_final ?? "+"} anos
+                      </TableCell>
+                      <TableCell className="text-right">{formatBRL(l.valor_mensal)}</TableCell>
+                      <TableCell>{formatDataBR(l.vigencia_inicio)}</TableCell>
+                      <TableCell>{l.vigencia_fim ? formatDataBR(l.vigencia_fim) : "—"}</TableCell>
+                      <TableCell>
+                        {l.erro ? (
+                          <Badge variant="destructive">{l.erro}</Badge>
+                        ) : (
+                          <Badge variant="secondary">Ok</Badge>
+                        )}
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+            <div className="flex justify-end gap-2">
+              <Button variant="outline" onClick={() => setPreview(null)}>
+                Cancelar
+              </Button>
+              <Button
+                onClick={confirmarImportacao}
+                disabled={validas.length === 0 || importar.isPending}
+              >
+                Importar {validas.length} faixa(s)
+              </Button>
+            </div>
+          </div>
+        ) : !form ? (
+          <div className="space-y-3">
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <p className="max-w-sm text-sm text-muted-foreground">
                 O sistema identifica a faixa do dependente pela data de nascimento e usa o valor
                 configurado aqui.
               </p>
-              <Button size="sm" onClick={() => setForm(vazio())}>
-                <Plus className="mr-1.5 h-4 w-4" /> Nova faixa
-              </Button>
+              <div className="flex flex-wrap gap-2">
+                <Button size="sm" variant="ghost" onClick={baixarModelo}>
+                  <Download className="mr-1.5 h-4 w-4" /> Modelo
+                </Button>
+                <Button size="sm" variant="outline" onClick={() => fileRef.current?.click()}>
+                  <Upload className="mr-1.5 h-4 w-4" /> Importar planilha
+                </Button>
+                <Button size="sm" onClick={() => setForm(vazio())}>
+                  <Plus className="mr-1.5 h-4 w-4" /> Nova faixa
+                </Button>
+              </div>
+              <input
+                ref={fileRef}
+                type="file"
+                accept=".xlsx,.xls,.csv"
+                className="hidden"
+                onChange={(e) => {
+                  escolherArquivo(e.target.files?.[0]);
+                  e.target.value = "";
+                }}
+              />
             </div>
             <div className="rounded-lg border">
               <Table>
