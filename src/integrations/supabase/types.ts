@@ -5143,6 +5143,7 @@ export type Database = {
       }
       uea_dependentes: {
         Row: {
+          carteirinha: string | null
           cpf: string | null
           created_at: string
           data_desligamento: string | null
@@ -5153,12 +5154,14 @@ export type Database = {
           nome_completo: string
           observacao: string | null
           parentesco: string | null
+          situacao: string | null
           status: string
           titular_id: string
           updated_at: string
           valor_mensal: number
         }
         Insert: {
+          carteirinha?: string | null
           cpf?: string | null
           created_at?: string
           data_desligamento?: string | null
@@ -5169,12 +5172,14 @@ export type Database = {
           nome_completo: string
           observacao?: string | null
           parentesco?: string | null
+          situacao?: string | null
           status?: string
           titular_id: string
           updated_at?: string
           valor_mensal?: number
         }
         Update: {
+          carteirinha?: string | null
           cpf?: string | null
           created_at?: string
           data_desligamento?: string | null
@@ -5185,6 +5190,7 @@ export type Database = {
           nome_completo?: string
           observacao?: string | null
           parentesco?: string | null
+          situacao?: string | null
           status?: string
           titular_id?: string
           updated_at?: string
@@ -5327,38 +5333,47 @@ export type Database = {
       }
       uea_titulares: {
         Row: {
+          carteirinha: string | null
           contrato: string | null
           cpf: string
           created_at: string
           created_by: string | null
+          data_nascimento: string | null
           id: string
           matricula: string | null
           nome_completo: string
           observacao: string | null
+          situacao: string | null
           updated_at: string
           valor_margem: number
         }
         Insert: {
+          carteirinha?: string | null
           contrato?: string | null
           cpf: string
           created_at?: string
           created_by?: string | null
+          data_nascimento?: string | null
           id?: string
           matricula?: string | null
           nome_completo: string
           observacao?: string | null
+          situacao?: string | null
           updated_at?: string
           valor_margem?: number
         }
         Update: {
+          carteirinha?: string | null
           contrato?: string | null
           cpf?: string
           created_at?: string
           created_by?: string | null
+          data_nascimento?: string | null
           id?: string
           matricula?: string | null
           nome_completo?: string
           observacao?: string | null
+          situacao?: string | null
           updated_at?: string
           valor_margem?: number
         }
