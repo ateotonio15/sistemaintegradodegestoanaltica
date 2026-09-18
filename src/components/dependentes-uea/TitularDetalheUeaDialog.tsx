@@ -123,6 +123,27 @@ export function TitularDetalheUeaDialog({
   const [aba, setAba] = useState("dependentes");
   const [confirmarDesligar, setConfirmarDesligar] = useState<DependenteCalculado | null>(null);
   const [confirmarReativar, setConfirmarReativar] = useState<DependenteCalculado | null>(null);
+  const [valorInlineId, setValorInlineId] = useState<string | null>(null);
+  const [valorInlineTxt, setValorInlineTxt] = useState("");
+
+  const salvarValorInline = async (d: DependenteCalculado) => {
+    const novo = parseValorBr(valorInlineTxt);
+    await salvar.mutateAsync({
+      id: d.id,
+      titular_id: d.titular_id,
+      nome_completo: d.nome_completo,
+      cpf: d.cpf ?? null,
+      data_nascimento: d.data_nascimento ?? null,
+      parentesco: d.parentesco ?? null,
+      faixa_etaria: d.faixa_etaria ?? null,
+      valor_mensal: Number((novo || 0).toFixed(2)),
+      status: d.status,
+      motivo_desligamento: d.motivo_desligamento ?? null,
+      data_desligamento: d.data_desligamento ?? null,
+      observacao: d.observacao ?? null,
+    });
+    setValorInlineId(null);
+  };
 
   useEffect(() => {
     if (open && titular) setMargemTxt(String(titular.valor_margem));
@@ -513,7 +534,61 @@ export function TitularDetalheUeaDialog({
                         value={d.idade_atual === null ? "—" : `${d.idade_atual} anos`}
                       />
                       <Campo label="Faixa atual" value={d.faixa_atual_label} />
-                      <Campo label="Mensalidade" value={formatBRL(d.valor_mensal)} />
+                      <div className="rounded-lg border border-border/60 bg-muted/30 p-2.5">
+                        <p className="text-[11px] uppercase tracking-wide text-muted-foreground">
+                          Mensalidade
+                        </p>
+                        {valorInlineId === d.id ? (
+                          <div className="mt-1 flex items-center gap-1.5">
+                            <Input
+                              autoFocus
+                              inputMode="decimal"
+                              className="h-8"
+                              value={valorInlineTxt}
+                              onChange={(e) => setValorInlineTxt(e.target.value)}
+                              onKeyDown={(e) => {
+                                if (e.key === "Enter") salvarValorInline(d);
+                                if (e.key === "Escape") setValorInlineId(null);
+                              }}
+                            />
+                            <Button
+                              size="sm"
+                              className="h-8"
+                              disabled={salvar.isPending}
+                              onClick={() => salvarValorInline(d)}
+                            >
+                              Salvar
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              className="h-8"
+                              onClick={() => setValorInlineId(null)}
+                            >
+                              Cancelar
+                            </Button>
+                          </div>
+                        ) : (
+                          <div className="mt-0.5 flex items-center gap-1.5">
+                            <p className="text-sm font-medium">{formatBRL(d.valor_mensal)}</p>
+                            {podeEditar && (
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                className="h-6 px-2 text-[11px]"
+                                onClick={() => {
+                                  setValorInlineId(d.id);
+                                  setValorInlineTxt(
+                                    Number(d.valor_mensal || 0).toFixed(2).replace(".", ","),
+                                  );
+                                }}
+                              >
+                                <Pencil className="mr-1 h-3 w-3" /> Editar valor
+                              </Button>
+                            )}
+                          </div>
+                        )}
+                      </div>
                       <Campo
                         label="Próxima mudança"
                         value={
