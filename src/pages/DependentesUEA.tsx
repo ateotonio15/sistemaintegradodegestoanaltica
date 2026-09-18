@@ -503,6 +503,104 @@ export default function DependentesUEA() {
                       </div>
                     </TableCell>
                   </TableRow>
+                  {expandidoId === t.id && (
+                    <TableRow className="bg-muted/20 hover:bg-muted/20">
+                      <TableCell colSpan={10} className="p-0">
+                        <div className="border-l-2 border-primary/50 px-6 py-4">
+                          <div className="mb-3 flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                            <Users className="h-3.5 w-3.5" />
+                            Dependentes deste titular
+                            <Badge variant="outline" className="ml-1">
+                              {t.dependentes_calculados.length}
+                            </Badge>
+                          </div>
+                          {t.dependentes_calculados.length === 0 ? (
+                            <p className="text-sm text-muted-foreground">
+                              Nenhum dependente cadastrado para este titular.
+                            </p>
+                          ) : (
+                            <div className="overflow-hidden rounded-lg border border-border/60">
+                              <Table>
+                                <TableHeader>
+                                  <TableRow className="bg-muted/40">
+                                    <TableHead>Dependente</TableHead>
+                                    <TableHead>Carteirinha</TableHead>
+                                    <TableHead>Nascimento / Idade</TableHead>
+                                    <TableHead>Faixa atual</TableHead>
+                                    <TableHead className="text-right">Mensalidade</TableHead>
+                                    <TableHead>Próxima mudança</TableHead>
+                                    <TableHead>Status</TableHead>
+                                  </TableRow>
+                                </TableHeader>
+                                <TableBody>
+                                  {t.dependentes_calculados.map((d) => (
+                                    <TableRow
+                                      key={d.id}
+                                      className={cn(
+                                        "hover:bg-muted/30",
+                                        d.status !== "ativo" && "opacity-60",
+                                      )}
+                                    >
+                                      <TableCell>
+                                        <div className="font-medium">{d.nome_completo}</div>
+                                        {d.parentesco && (
+                                          <div className="text-[11px] text-muted-foreground">
+                                            {d.parentesco}
+                                          </div>
+                                        )}
+                                      </TableCell>
+                                      <TableCell className="font-mono text-xs">
+                                        {d.carteirinha ?? "—"}
+                                      </TableCell>
+                                      <TableCell className="text-xs">
+                                        {d.data_nascimento
+                                          ? `${formatDataBR(d.data_nascimento)} · ${
+                                              d.idade_atual != null ? `${d.idade_atual} anos` : "—"
+                                            }`
+                                          : "—"}
+                                      </TableCell>
+                                      <TableCell className="text-xs">{d.faixa_atual_label}</TableCell>
+                                      <TableCell className="text-right">
+                                        {formatBRL(d.valor_aplicavel)}
+                                      </TableCell>
+                                      <TableCell className="text-xs">
+                                        {d.data_proxima_mudanca ? (
+                                          <span>
+                                            {formatDataBR(d.data_proxima_mudanca)}
+                                            {d.proximo_valor != null && (
+                                              <span className="text-muted-foreground">
+                                                {" "}
+                                                → {formatBRL(d.proximo_valor)}
+                                              </span>
+                                            )}
+                                          </span>
+                                        ) : (
+                                          <span className="text-muted-foreground">—</span>
+                                        )}
+                                      </TableCell>
+                                      <TableCell>
+                                        <span
+                                          className={cn(
+                                            "inline-flex rounded-full px-2 py-0.5 text-[11px] font-medium",
+                                            d.status === "ativo"
+                                              ? "bg-success/10 text-success"
+                                              : "bg-destructive/10 text-destructive",
+                                          )}
+                                        >
+                                          {d.status_label}
+                                        </span>
+                                      </TableCell>
+                                    </TableRow>
+                                  ))}
+                                </TableBody>
+                              </Table>
+                            </div>
+                          )}
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  )}
+                  </Fragment>
                 );
               })}
           </TableBody>
