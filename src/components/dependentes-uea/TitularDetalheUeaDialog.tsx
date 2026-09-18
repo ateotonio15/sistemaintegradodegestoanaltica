@@ -176,6 +176,7 @@ export function TitularDetalheUeaDialog({
       observacao: d.observacao ?? "",
     });
     setValorTexto(String(d.valor_mensal));
+    setValorCustom(true);
   };
 
   return (
@@ -461,7 +462,7 @@ export function TitularDetalheUeaDialog({
               <TabsContent value="dependentes" className="space-y-3 pt-3">
                 {podeEditar && (
                   <div className="flex justify-end">
-                    <Button size="sm" onClick={() => { setEditando(vazio(titular.id)); setValorTexto(""); }}>
+                    <Button size="sm" onClick={() => { setEditando(vazio(titular.id)); setValorTexto(""); setValorCustom(false); }}>
                       <UserPlus className="mr-1.5 h-4 w-4" /> Novo dependente
                     </Button>
                   </div>
