@@ -21,6 +21,7 @@ import {
   formatDataBR,
   toISODateLocal,
   type FaixaTabelaCapa,
+  parseValorBr,
 } from "@/lib/dependentes-uea";
 import {
   lerPlanilhaFaixas,

@@ -59,6 +59,7 @@ import {
   type FaixaUea,
   type StatusMargem,
   type TitularCalculado,
+  parseValorBr,
 } from "@/lib/dependentes-uea";
 
 const STATUS_CLS: Record<StatusMargem, string> = {

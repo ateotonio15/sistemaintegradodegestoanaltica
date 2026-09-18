@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { useSalvarTitularUea } from "@/hooks/useDependentesUea";
-import { soDigitos, type TitularCalculado } from "@/lib/dependentes-uea";
+import { parseValorBr, soDigitos, type TitularCalculado } from "@/lib/dependentes-uea";
 
 interface Props {
   open: boolean;
