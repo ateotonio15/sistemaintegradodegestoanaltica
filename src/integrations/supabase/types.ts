@@ -5085,6 +5085,104 @@ export type Database = {
         }
         Relationships: []
       }
+      uea_dependentes: {
+        Row: {
+          cpf: string | null
+          created_at: string
+          data_desligamento: string | null
+          data_nascimento: string | null
+          faixa_etaria: string | null
+          id: string
+          motivo_desligamento: string | null
+          nome_completo: string
+          observacao: string | null
+          parentesco: string | null
+          status: string
+          titular_id: string
+          updated_at: string
+          valor_mensal: number
+        }
+        Insert: {
+          cpf?: string | null
+          created_at?: string
+          data_desligamento?: string | null
+          data_nascimento?: string | null
+          faixa_etaria?: string | null
+          id?: string
+          motivo_desligamento?: string | null
+          nome_completo: string
+          observacao?: string | null
+          parentesco?: string | null
+          status?: string
+          titular_id: string
+          updated_at?: string
+          valor_mensal?: number
+        }
+        Update: {
+          cpf?: string | null
+          created_at?: string
+          data_desligamento?: string | null
+          data_nascimento?: string | null
+          faixa_etaria?: string | null
+          id?: string
+          motivo_desligamento?: string | null
+          nome_completo?: string
+          observacao?: string | null
+          parentesco?: string | null
+          status?: string
+          titular_id?: string
+          updated_at?: string
+          valor_mensal?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "uea_dependentes_titular_id_fkey"
+            columns: ["titular_id"]
+            isOneToOne: false
+            referencedRelation: "uea_titulares"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      uea_titulares: {
+        Row: {
+          contrato: string | null
+          cpf: string
+          created_at: string
+          created_by: string | null
+          id: string
+          matricula: string | null
+          nome_completo: string
+          observacao: string | null
+          updated_at: string
+          valor_margem: number
+        }
+        Insert: {
+          contrato?: string | null
+          cpf: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          matricula?: string | null
+          nome_completo: string
+          observacao?: string | null
+          updated_at?: string
+          valor_margem?: number
+        }
+        Update: {
+          contrato?: string | null
+          cpf?: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          matricula?: string | null
+          nome_completo?: string
+          observacao?: string | null
+          updated_at?: string
+          valor_margem?: number
+        }
+        Relationships: []
+      }
       user_preferences: {
         Row: {
           created_at: string
