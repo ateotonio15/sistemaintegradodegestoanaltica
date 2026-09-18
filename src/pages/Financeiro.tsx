@@ -35,6 +35,7 @@ import { HistoricoAnalisesDialog } from "@/components/financeiro/HistoricoAnalis
 import { RegrasEmpresariaisDialog } from "@/components/financeiro/RegrasEmpresariaisDialog";
 import { getForceGroupByNamePatterns } from "@/lib/regras-empresariais";
 import { periodoDaDataCorte } from "@/lib/movimentacao-utils";
+import { aplicarOffsetCompetencia } from "@/lib/historico-utils";
 import { identificarContratoDoAnexo, type ContratoAlvo } from "@/lib/anexo-contrato-match";
 import { formatDateBR, calcularPeriodoCobranca, formatPeriodoCobranca } from "@/lib/date-utils";
 

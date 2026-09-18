@@ -41,6 +41,7 @@ import {
   TIPOS_FINANCEIRO,
   calcularDiaEmissaoPadrao,
 } from "@/lib/financeiro-utils";
+import { aplicarOffsetCompetencia } from "@/lib/historico-utils";
 import { todayLocalISO } from "@/lib/date-utils";
 import { validarRelatorioVidas } from "@/lib/relatorio-vidas-validator";
 import {
