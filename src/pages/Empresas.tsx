@@ -1144,7 +1144,30 @@ export default function Empresas() {
                       </div>
                       <div className="space-y-2">
                         <Label className="text-sm font-medium">Dia Vencimento Fatura (1-31) *</Label>
-                        <Input type="number" min={1} max={31} value={dataVencimentoFatura} onChange={(e) => setDataVencimentoFatura(e.target.value ? Number(e.target.value) : "")} required placeholder="Ex: 10" className="rounded-lg" />
+                         <Input type="number" min={1} max={31} value={dataVencimentoFatura} onChange={(e) => setDataVencimentoFatura(e.target.value ? Number(e.target.value) : "")} required placeholder="Ex: 10" className="rounded-lg" />
+                       </div>
+                      <div className="space-y-2">
+                        <Label className="text-sm font-medium">Competência do Vencimento</Label>
+                        <Select
+                          value={((form as any).vencimento_competencia as string) || "atual"}
+                          onValueChange={(v) => setForm({ ...form, vencimento_competencia: v } as any)}
+                        >
+                          <SelectTrigger className="rounded-lg"><SelectValue /></SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="anterior">Mês anterior</SelectItem>
+                            <SelectItem value="atual">Mês atual (padrão)</SelectItem>
+                            <SelectItem value="posterior">Mês posterior</SelectItem>
+                          </SelectContent>
+                        </Select>
+                        <p className="text-xs text-muted-foreground">
+                          {(() => {
+                            const dia = Number(dataVencimentoFatura) || 25;
+                            const d2 = String(Math.min(Math.max(dia, 1), 31)).padStart(2, "0");
+                            const regra = ((form as any).vencimento_competencia as string) || "atual";
+                            const mesEx = regra === "anterior" ? "09" : regra === "posterior" ? "11" : "10";
+                            return `Faturamento de Outubro → vence em ${d2}/${mesEx}.`;
+                          })()}
+                        </p>
                       </div>
                       <div className="space-y-2">
                         <Label className="text-sm font-medium">Dia Emissão Fatura (1-31) *</Label>
