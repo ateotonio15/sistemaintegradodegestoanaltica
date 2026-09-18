@@ -422,6 +422,7 @@ export default function Home() {
     isVendas,
     role,
     canHonda: !!canHonda,
+    canVerUea,
   };
 
   const visible = useMemo(() => {
