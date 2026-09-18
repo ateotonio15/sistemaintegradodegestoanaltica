@@ -430,7 +430,6 @@ export function FaixasUeaDialog({ open, onOpenChange }: Props) {
                         {c.faixas.length} Faixa{c.faixas.length === 1 ? "" : "s"} Etária
                         {c.faixas.length === 1 ? "" : "s"}
                       </TableCell>
-                    </TableRow>
                   ))}
                 </TableBody>
               </Table>
