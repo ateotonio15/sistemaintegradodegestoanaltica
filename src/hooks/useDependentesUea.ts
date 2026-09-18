@@ -17,6 +17,47 @@ import {
 const KEY = ["uea-titulares"];
 const KEY_FAIXAS = ["uea-faixas"];
 
+/* ------------------------- Histórico do titular (append-only) ------------------------ */
+
+export type TipoEventoUea =
+  | "margem"
+  | "inclusao_dependente"
+  | "alteracao_manual"
+  | "mudanca_valor"
+  | "mudanca_faixa"
+  | "desligamento_margem"
+  | "reativacao";
+
+interface EventoTitularInput {
+  titular_id: string;
+  dependente_id?: string | null;
+  dependente_nome?: string | null;
+  tipo: TipoEventoUea;
+  descricao?: string | null;
+  valor_anterior?: number | null;
+  valor_novo?: number | null;
+  margem_momento?: number | null;
+  margem_restante_momento?: number | null;
+  motivo?: string | null;
+}
+
+/** Registra um evento no histórico do titular. Registros nunca são alterados nem apagados. */
+async function registrarEventoTitular(evento: EventoTitularInput) {
+  const { error } = await supabase.from("uea_titular_historico").insert({
+    titular_id: evento.titular_id,
+    dependente_id: evento.dependente_id ?? null,
+    dependente_nome: evento.dependente_nome ?? null,
+    tipo: evento.tipo,
+    descricao: evento.descricao ?? null,
+    valor_anterior: evento.valor_anterior ?? null,
+    valor_novo: evento.valor_novo ?? null,
+    margem_momento: evento.margem_momento ?? null,
+    margem_restante_momento: evento.margem_restante_momento ?? null,
+    motivo: evento.motivo ?? null,
+  });
+  if (error) throw error;
+}
+
 /* ------------------------------ Faixas etárias ----------------------------- */
 
 export function useFaixasUea() {
@@ -183,12 +224,29 @@ export function useAtualizarMargemUea() {
   const qc = useQueryClient();
   const { toast } = useToast();
   return useMutation({
-    mutationFn: async ({ id, valor_margem }: { id: string; valor_margem: number }) => {
+    mutationFn: async ({
+      id,
+      valor_margem,
+      valor_anterior,
+    }: {
+      id: string;
+      valor_margem: number;
+      valor_anterior?: number;
+    }) => {
       const { error } = await supabase.from("uea_titulares").update({ valor_margem }).eq("id", id);
       if (error) throw error;
+      await registrarEventoTitular({
+        titular_id: id,
+        tipo: "margem",
+        descricao: "Margem alterada",
+        valor_anterior: valor_anterior ?? null,
+        valor_novo: valor_margem,
+        margem_momento: valor_margem,
+      });
     },
-    onSuccess: () => {
+    onSuccess: (_d, vars) => {
       qc.invalidateQueries({ queryKey: KEY });
+      qc.invalidateQueries({ queryKey: ["uea-historico-titular", vars.id] });
       toast({ title: "Margem atualizada" });
     },
     onError: (e: any) =>
@@ -249,15 +307,44 @@ export function useSalvarDependenteUea() {
         observacao: input.observacao || null,
       };
       if (input.id) {
+        const { data: antes } = await supabase
+          .from("uea_dependentes")
+          .select("valor_mensal")
+          .eq("id", input.id)
+          .maybeSingle();
         const { error } = await supabase.from("uea_dependentes").update(payload).eq("id", input.id);
         if (error) throw error;
+        const valorAntes = Number((antes as any)?.valor_mensal ?? 0);
+        const mudouValor = valorAntes.toFixed(2) !== Number(input.valor_mensal || 0).toFixed(2);
+        await registrarEventoTitular({
+          titular_id: input.titular_id,
+          dependente_id: input.id,
+          dependente_nome: payload.nome_completo,
+          tipo: mudouValor ? "mudanca_valor" : "alteracao_manual",
+          descricao: mudouValor ? "Valor do dependente alterado" : "Alteração manual do dependente",
+          valor_anterior: valorAntes,
+          valor_novo: Number(input.valor_mensal || 0),
+        });
         return;
       }
-      const { error } = await supabase.from("uea_dependentes").insert(payload);
+      const { data: novo, error } = await supabase
+        .from("uea_dependentes")
+        .insert(payload)
+        .select("id")
+        .single();
       if (error) throw error;
+      await registrarEventoTitular({
+        titular_id: input.titular_id,
+        dependente_id: (novo as any)?.id ?? null,
+        dependente_nome: payload.nome_completo,
+        tipo: "inclusao_dependente",
+        descricao: "Dependente incluído",
+        valor_novo: Number(input.valor_mensal || 0),
+      });
     },
-    onSuccess: () => {
+    onSuccess: (_d, vars) => {
       qc.invalidateQueries({ queryKey: KEY });
+      qc.invalidateQueries({ queryKey: ["uea-historico-titular", vars.titular_id] });
       toast({ title: "Dependente salvo" });
     },
     onError: (e: any) =>
