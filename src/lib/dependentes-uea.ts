@@ -228,6 +228,13 @@ export function calcularTitular(
     valor_total_dependentes_ativos: Number(valorAtivos.toFixed(2)),
     margem_restante: restante,
     status_margem: statusMargem(ativos.length, restante),
+    excedente_margem: restante < 0 ? Number(Math.abs(restante).toFixed(2)) : 0,
+    valor_total_aplicavel: valorAplicavel,
+    margem_restante_projetada: restanteProjetada,
+    requer_analise_faixa: requerAnaliseFaixa,
+    status_exibicao: requerAnaliseFaixa
+      ? "Sem margem — requer análise"
+      : statusMargem(ativos.length, restante),
     desligado_por_falta_de_margem: desligados.some((d) => d.desligado_por_falta_de_margem),
     proxima_mudanca_faixa: prox
       ? {
