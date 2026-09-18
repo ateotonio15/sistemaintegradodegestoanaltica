@@ -386,29 +386,43 @@ export default function DependentesUEA() {
                 const prox = t.proxima_mudanca_faixa;
                 const proxProxima = !!prox && prox.dias <= DIAS_PROXIMA_FAIXA;
                 return (
-                  <TableRow
-                    key={t.id}
-                    className={cn(
-                      "hover:bg-muted/40",
-                      t.requer_analise_faixa && "bg-warning/10 hover:bg-warning/15",
-                      !t.requer_analise_faixa && t.margem_restante < 0 && "bg-destructive/5",
-                    )}
-                  >
-                    <TableCell>
-                      <div className="font-medium">{t.nome_completo}</div>
-                      <div className="text-[11px] text-muted-foreground">
-                        {[t.matricula && `Matrícula ${t.matricula}`, t.contrato && `Contrato ${t.contrato}`]
-                          .filter(Boolean)
-                          .join(" · ") || "—"}
-                      </div>
-                    </TableCell>
-                    <TableCell>{formatCPF(t.cpf)}</TableCell>
-                    <TableCell className="text-right">{formatBRL(t.valor_margem)}</TableCell>
-                    <TableCell className="text-center">
-                      <button
-                        className="underline-offset-2 hover:underline"
-                        onClick={() => setDepsTitular(t)}
-                      >
+                  <Fragment key={t.id}>
+                    <TableRow
+                      className={cn(
+                        "hover:bg-muted/40",
+                        t.requer_analise_faixa && "bg-warning/10 hover:bg-warning/15",
+                        !t.requer_analise_faixa && t.margem_restante < 0 && "bg-destructive/5",
+                      )}
+                    >
+                      <TableCell className="w-10">
+                        <button
+                          className="flex h-7 w-7 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+                          onClick={() => setExpandidoId((cur) => (cur === t.id ? null : t.id))}
+                          title={expandidoId === t.id ? "Recolher dependentes" : "Ver dependentes"}
+                        >
+                          <ChevronDown
+                            className={cn(
+                              "h-4 w-4 transition-transform",
+                              expandidoId === t.id && "rotate-180",
+                            )}
+                          />
+                        </button>
+                      </TableCell>
+                      <TableCell>
+                        <div className="font-medium">{t.nome_completo}</div>
+                        <div className="text-[11px] text-muted-foreground">
+                          {[t.matricula && `Matrícula ${t.matricula}`, t.contrato && `Contrato ${t.contrato}`]
+                            .filter(Boolean)
+                            .join(" · ") || "—"}
+                        </div>
+                      </TableCell>
+                      <TableCell>{formatCPF(t.cpf)}</TableCell>
+                      <TableCell className="text-right">{formatBRL(t.valor_margem)}</TableCell>
+                      <TableCell className="text-center">
+                        <button
+                          className="underline-offset-2 hover:underline"
+                          onClick={() => setDepsTitular(t)}
+                        >
                         {t.quantidade_dependentes_ativos}
                         {t.quantidade_dependentes_desligados > 0 && (
                           <span className="ml-1 text-[11px] text-muted-foreground">
