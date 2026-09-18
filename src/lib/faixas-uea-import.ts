@@ -93,7 +93,7 @@ export async function lerPlanilhaFaixas(file: File): Promise<FaixaImportLinha[]>
   if (matriz.length === 0) return [];
 
   const headerIdx = matriz.findIndex((r) =>
-    (r ?? []).some((c) => /valor/i.test(String(c ?? ""))),
+    (r ?? []).some((c) => /valor|pre[çc]o|mensalidade/i.test(String(c ?? ""))),
   );
   const hIdx = headerIdx >= 0 ? headerIdx : 0;
   const headers = (matriz[hIdx] ?? []).map((c) => String(c ?? ""));
@@ -113,6 +113,7 @@ export async function lerPlanilhaFaixas(file: File): Promise<FaixaImportLinha[]>
   const cObs = acharCol(headers, ["observacao", "obs"]);
   const cTabela = acharCol(headers, ["tabela", "descricao", "tabela nome", "capa"]);
   const cPlano = acharCol(headers, ["plano", "produto"]);
+  const cSeq = acharCol(headers, ["n sequencia", "no sequencia", "sequencia", "seq"]);
 
   const hoje = toISODateLocal(new Date());
   const linhas: FaixaImportLinha[] = [];
@@ -134,6 +135,9 @@ export async function lerPlanilhaFaixas(file: File): Promise<FaixaImportLinha[]>
     const obs = cObs >= 0 && row[cObs] ? String(row[cObs]).trim() : null;
     const tabela = cTabela >= 0 && row[cTabela] ? String(row[cTabela]).trim() : null;
     const plano = cPlano >= 0 && row[cPlano] ? String(row[cPlano]).trim() : null;
+    const seq = cSeq >= 0 && row[cSeq] ? String(row[cSeq]).trim() : null;
+    // Idades "abertas" nas planilhas (99, 120, 999...) significam sem limite superior.
+    if (final !== null && final >= 99) final = null;
 
     const erros: string[] = [];
     if (inicial === null) erros.push("idade inicial não identificada");
@@ -149,6 +153,7 @@ export async function lerPlanilhaFaixas(file: File): Promise<FaixaImportLinha[]>
       observacao: obs,
       tabela_nome: tabela,
       plano,
+      sequencia: seq,
       linha: i + 1,
       erro: erros.length ? erros.join("; ") : undefined,
     });
