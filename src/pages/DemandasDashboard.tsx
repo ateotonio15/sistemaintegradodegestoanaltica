@@ -56,6 +56,20 @@ import { useDemandas } from "@/hooks/useDemandas";
 import { parseLocalDate, type Demanda } from "@/lib/demandas-utils";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import {
+  ResumoExecutivo,
+  SectionHeader,
+  KpiExecutivo,
+  ConcentracaoDemandas,
+  MapaPressao,
+  PontosAtencao,
+  RecorrenciaSetor,
+  GargalosTabela,
+  PrioridadesAtuacao,
+  VisaoComparativaSetores,
+  type SetorAgg,
+  type ExecTone,
+} from "@/components/demandas/exec/ExecSections";
 
 /* ============================================================
    Constantes de SLA / Negócio
