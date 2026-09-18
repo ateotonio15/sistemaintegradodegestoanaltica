@@ -137,7 +137,7 @@ export function PlantaoDialog({
     datas.length > 0 &&
     !!horaInicio &&
     !!horaFim &&
-    horaFim > horaInicio &&
+    horaFim !== horaInicio &&
     !upsertPlantao.isPending;
 
   const handleSave = async () => {
@@ -249,6 +249,9 @@ export function PlantaoDialog({
             <div>
               <Label>Fim *</Label>
               <Input type="time" value={horaFim} onChange={(e) => setHoraFim(e.target.value)} />
+              {!!horaInicio && !!horaFim && horaFim < horaInicio && (
+                <p className="text-[11px] text-muted-foreground mt-1">Termina no dia seguinte</p>
+              )}
             </div>
           </div>
           <div>
