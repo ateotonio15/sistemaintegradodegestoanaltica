@@ -206,6 +206,13 @@ export function calcularTitular(
   const valorAtivos = ativos.reduce((acc, d) => acc + Number(d.valor_mensal || 0), 0);
   const margem = Number(titular.valor_margem || 0);
   const restante = Number((margem - valorAtivos).toFixed(2));
+  const valorAplicavel = Number(
+    ativos.reduce((acc, d) => acc + Number(d.valor_aplicavel || 0), 0).toFixed(2),
+  );
+  const restanteProjetada = Number((margem - valorAplicavel).toFixed(2));
+  const requerAnaliseFaixa =
+    ativos.some((d) => d.valor_desatualizado) && restanteProjetada < 0;
+
 
   const proximas = ativos
     .filter((d) => d.data_proxima_mudanca && (d.dias_proxima_mudanca ?? -1) >= 0)
