@@ -1,17 +1,26 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Pencil, Plus, Trash2 } from "lucide-react";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Badge } from "@/components/ui/badge";
+import { Download, Pencil, Plus, Trash2, Upload } from "lucide-react";
 import {
   useExcluirFaixaUea,
   useFaixasUea,
+  useImportarFaixasUea,
   useSalvarFaixaUea,
   type FaixaInput,
 } from "@/hooks/useDependentesUea";
 import { faixaLabel, formatBRL, formatDataBR, toISODateLocal } from "@/lib/dependentes-uea";
+import {
+  lerPlanilhaFaixas,
+  modeloPlanilhaFaixas,
+  type FaixaImportLinha,
+} from "@/lib/faixas-uea-import";
+import { useToast } from "@/hooks/use-toast";
 
 interface Props {
   open: boolean;
@@ -33,7 +42,59 @@ export function FaixasUeaDialog({ open, onOpenChange }: Props) {
   const { data: faixas = [], isLoading } = useFaixasUea();
   const salvar = useSalvarFaixaUea();
   const excluir = useExcluirFaixaUea();
+  const importar = useImportarFaixasUea();
+  const { toast } = useToast();
+  const fileRef = useRef<HTMLInputElement>(null);
   const [form, setForm] = useState<ReturnType<typeof vazio> | null>(null);
+  const [preview, setPreview] = useState<{ nome: string; linhas: FaixaImportLinha[] } | null>(null);
+  const [substituir, setSubstituir] = useState(false);
+
+  const validas = preview ? preview.linhas.filter((l) => !l.erro) : [];
+  const invalidas = preview ? preview.linhas.filter((l) => l.erro) : [];
+
+  const escolherArquivo = async (file: File | undefined) => {
+    if (!file) return;
+    try {
+      const linhas = await lerPlanilhaFaixas(file);
+      if (linhas.length === 0) {
+        toast({
+          title: "Nenhuma linha encontrada",
+          description: "Confira se a planilha tem as colunas de faixa e valor mensal.",
+          variant: "destructive",
+        });
+        return;
+      }
+      setPreview({ nome: file.name, linhas });
+    } catch (e: any) {
+      toast({ title: "Não foi possível ler a planilha", description: e.message, variant: "destructive" });
+    }
+  };
+
+  const confirmarImportacao = async () => {
+    if (validas.length === 0) return;
+    await importar.mutateAsync({
+      faixas: validas.map((l) => ({
+        idade_inicial: l.idade_inicial,
+        idade_final: l.idade_final,
+        valor_mensal: l.valor_mensal,
+        vigencia_inicio: l.vigencia_inicio,
+        vigencia_fim: l.vigencia_fim,
+        observacao: l.observacao,
+      })),
+      substituir,
+    });
+    setPreview(null);
+    setSubstituir(false);
+  };
+
+  const baixarModelo = () => {
+    const url = URL.createObjectURL(modeloPlanilhaFaixas());
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "modelo-faixas-uea.xlsx";
+    a.click();
+    URL.revokeObjectURL(url);
+  };
 
   const submit = async () => {
     if (!form) return;
@@ -48,6 +109,7 @@ export function FaixasUeaDialog({ open, onOpenChange }: Props) {
     });
     setForm(null);
   };
+
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
