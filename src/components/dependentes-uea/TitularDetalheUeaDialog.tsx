@@ -149,11 +149,13 @@ export function TitularDetalheUeaDialog({
   const submit = async () => {
     if (!editando || !editando.nome_completo.trim()) return;
     const valorManual = parseValorBr(valorTexto);
+    const valorFinal =
+      valorCustom || !faixaEditando ? valorManual || 0 : Number(faixaEditando.valor_mensal);
     await salvar.mutateAsync({
       ...editando,
       cpf: editando.cpf ? soDigitos(editando.cpf) : null,
       faixa_etaria: faixaEditando ? faixaLabel(faixaEditando) : editando.faixa_etaria || null,
-      valor_mensal: faixaEditando ? Number(faixaEditando.valor_mensal) : valorManual || 0,
+      valor_mensal: Number(valorFinal.toFixed(2)),
     });
     setEditando(null);
   };
