@@ -95,6 +95,7 @@ const emptyForm: TablesInsert<"empresas"> & { responsavel_user_id?: string | nul
   periodo_especifico_cobranca: false,
   periodo_cobranca_inicio: null,
   contrato_via_portal: false,
+  vencimento_competencia: "atual",
 
 
 } as any;
@@ -661,6 +662,7 @@ export default function Empresas() {
       periodo_especifico_cobranca: (e as any).periodo_especifico_cobranca ?? false,
       periodo_cobranca_inicio: (e as any).periodo_cobranca_inicio ?? null,
       contrato_via_portal: (e as any).contrato_via_portal ?? false,
+      vencimento_competencia: (e as any).vencimento_competencia ?? "atual",
 
 
     } as any);
