@@ -37,7 +37,8 @@ import {
 } from "lucide-react";
 import { useExcluirTitularUea, useTitularesUea } from "@/hooks/useDependentesUea";
 import { TitularUeaDialog } from "@/components/dependentes-uea/TitularUeaDialog";
-import { DependentesUeaDialog } from "@/components/dependentes-uea/DependentesUeaDialog";
+import { TitularDetalheUeaDialog } from "@/components/dependentes-uea/TitularDetalheUeaDialog";
+import { FaixasUeaDialog } from "@/components/dependentes-uea/FaixasUeaDialog";
 import {
   aplicaFiltro,
   buscaTitular,
@@ -97,7 +98,8 @@ function KpiCard({
 }
 
 export default function DependentesUEA() {
-  const { titulares, isLoading } = useTitularesUea();
+  const { titulares, faixas, isLoading } = useTitularesUea();
+  const [faixasOpen, setFaixasOpen] = useState(false);
   const excluir = useExcluirTitularUea();
 
   const [busca, setBusca] = useState("");
