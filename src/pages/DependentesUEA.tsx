@@ -349,6 +349,7 @@ export default function DependentesUEA() {
         <Table>
           <TableHeader>
             <TableRow>
+              <TableHead className="w-10" />
               <TableHead>Titular</TableHead>
               <TableHead>CPF</TableHead>
               <TableHead className="text-right">Margem</TableHead>
