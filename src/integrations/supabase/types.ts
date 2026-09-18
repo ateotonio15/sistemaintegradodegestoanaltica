@@ -5236,6 +5236,86 @@ export type Database = {
         }
         Relationships: []
       }
+      uea_permissoes: {
+        Row: {
+          created_at: string
+          pode_editar: boolean
+          pode_visualizar: boolean
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          pode_editar?: boolean
+          pode_visualizar?: boolean
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          pode_editar?: boolean
+          pode_visualizar?: boolean
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      uea_titular_historico: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          dependente_id: string | null
+          dependente_nome: string | null
+          descricao: string | null
+          id: string
+          margem_momento: number | null
+          margem_restante_momento: number | null
+          motivo: string | null
+          tipo: string
+          titular_id: string
+          valor_anterior: number | null
+          valor_novo: number | null
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          dependente_id?: string | null
+          dependente_nome?: string | null
+          descricao?: string | null
+          id?: string
+          margem_momento?: number | null
+          margem_restante_momento?: number | null
+          motivo?: string | null
+          tipo: string
+          titular_id: string
+          valor_anterior?: number | null
+          valor_novo?: number | null
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          dependente_id?: string | null
+          dependente_nome?: string | null
+          descricao?: string | null
+          id?: string
+          margem_momento?: number | null
+          margem_restante_momento?: number | null
+          motivo?: string | null
+          tipo?: string
+          titular_id?: string
+          valor_anterior?: number | null
+          valor_novo?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "uea_titular_historico_titular_id_fkey"
+            columns: ["titular_id"]
+            isOneToOne: false
+            referencedRelation: "uea_titulares"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       uea_titulares: {
         Row: {
           contrato: string | null
@@ -5715,6 +5795,10 @@ export type Database = {
           _role: Database["public"]["Enums"]["app_role"]
           _user_id: string
         }
+        Returns: boolean
+      }
+      has_uea_access: {
+        Args: { _nivel: string; _user_id: string }
         Returns: boolean
       }
       is_admin_interno: { Args: never; Returns: boolean }
