@@ -591,13 +591,142 @@ export function useReativarDependenteUea() {
         motivo: "Reativação com margem disponível",
       });
       if (e2) throw e2;
+      await registrarEventoTitular({
+        titular_id: titular.id,
+        dependente_id: dependente.id,
+        dependente_nome: dependente.nome_completo,
+        tipo: "reativacao",
+        descricao: "Dependente reativado",
+        valor_anterior: Number(dependente.valor_mensal || 0),
+        valor_novo: valorMomento,
+        margem_momento: titular.valor_margem,
+        margem_restante_momento: titular.margem_restante,
+        motivo: "Reativação com margem disponível",
+      });
     },
     onSuccess: (_d, vars) => {
       qc.invalidateQueries({ queryKey: KEY });
       qc.invalidateQueries({ queryKey: ["uea-historico", vars.titular.id] });
+      qc.invalidateQueries({ queryKey: ["uea-historico-titular", vars.titular.id] });
       toast({ title: "Dependente reativado" });
     },
     onError: (e: any) =>
       toast({ title: "Não foi possível reativar", description: e.message, variant: "destructive" }),
+  });
+}
+
+/* ------------------------- Histórico unificado do titular ------------------------ */
+
+export interface EventoHistoricoUea {
+  id: string;
+  created_at: string;
+  tipo: string;
+  evento: string;
+  dependente_nome: string;
+  valor_anterior: number | null;
+  valor_novo: number | null;
+  margem_momento: number | null;
+  margem_restante_momento: number | null;
+  motivo: string | null;
+  responsavel: string;
+}
+
+const LABEL_EVENTO: Record<string, string> = {
+  margem: "Margem alterada",
+  inclusao_dependente: "Dependente incluído",
+  alteracao_manual: "Alteração manual",
+  mudanca_valor: "Valor alterado",
+  mudanca_faixa: "Mudança de faixa",
+  desligamento_margem: "Desligado por falta de margem",
+  reativacao: "Dependente reativado",
+  faixa: "Mudança de faixa",
+};
+
+/**
+ * Histórico completo do titular: eventos do titular (margem, inclusões, alterações,
+ * desligamentos, reativações) somados aos registros de faixa dos dependentes.
+ */
+export function useHistoricoTitularUea(titularId: string | null) {
+  return useQuery({
+    queryKey: ["uea-historico-titular", titularId],
+    enabled: !!titularId,
+    queryFn: async (): Promise<EventoHistoricoUea[]> => {
+      const { data: deps, error: e0 } = await supabase
+        .from("uea_dependentes")
+        .select("id, nome_completo")
+        .eq("titular_id", titularId as string);
+      if (e0) throw e0;
+      const nomeDep = new Map<string, string>(
+        ((deps ?? []) as any[]).map((d) => [d.id as string, d.nome_completo as string]),
+      );
+      const ids = ((deps ?? []) as any[]).map((d) => d.id as string);
+
+      const [titRes, depRes] = await Promise.all([
+        supabase
+          .from("uea_titular_historico")
+          .select("*")
+          .eq("titular_id", titularId as string)
+          .order("created_at", { ascending: false }),
+        ids.length
+          ? supabase
+              .from("uea_dependente_historico")
+              .select("*")
+              .in("dependente_id", ids)
+              .order("created_at", { ascending: false })
+          : Promise.resolve({ data: [], error: null } as any),
+      ]);
+      if (titRes.error) throw titRes.error;
+      if (depRes.error) throw depRes.error;
+
+      const num = (v: any) => (v === null || v === undefined ? null : Number(v));
+      const titRows = ((titRes.data ?? []) as any[]).map((h) => ({
+        id: h.id as string,
+        created_at: h.created_at as string,
+        tipo: (h.tipo as string) ?? "",
+        evento: (h.descricao as string) || LABEL_EVENTO[h.tipo] || "Registro",
+        dependente_nome: (h.dependente_nome as string) || nomeDep.get(h.dependente_id) || "—",
+        valor_anterior: num(h.valor_anterior),
+        valor_novo: num(h.valor_novo),
+        margem_momento: num(h.margem_momento),
+        margem_restante_momento: num(h.margem_restante_momento),
+        motivo: (h.motivo as string) ?? null,
+        created_by: (h.created_by as string) ?? null,
+      }));
+
+      // Eventos já registrados nos dependentes (faixa/valor) que não têm par no titular.
+      const depRows = ((depRes.data ?? []) as any[])
+        .filter((h) => !["desligamento_margem", "reativacao"].includes(h.tipo ?? ""))
+        .map((h) => ({
+          id: `dep-${h.id}`,
+          created_at: h.created_at as string,
+          tipo: (h.tipo as string) || "faixa",
+          evento:
+            LABEL_EVENTO[h.tipo ?? "faixa"] ??
+            `Faixa ${h.faixa_anterior ?? "—"} → ${h.faixa_nova ?? "—"}`,
+          dependente_nome: nomeDep.get(h.dependente_id) ?? "—",
+          valor_anterior: num(h.valor_anterior),
+          valor_novo: num(h.valor_novo),
+          margem_momento: num(h.margem_titular_momento),
+          margem_restante_momento: num(h.margem_restante_momento),
+          motivo: (h.motivo as string) ?? null,
+          created_by: (h.created_by as string) ?? null,
+        }));
+
+      const rows = [...titRows, ...depRows].sort((a, b) =>
+        a.created_at < b.created_at ? 1 : a.created_at > b.created_at ? -1 : 0,
+      );
+
+      const userIds = Array.from(new Set(rows.map((r) => r.created_by).filter(Boolean))) as string[];
+      const nomes = new Map<string, string>();
+      if (userIds.length > 0) {
+        const { data } = await supabase.rpc("get_user_display_names", { _ids: userIds });
+        (data ?? []).forEach((n: any) => nomes.set(n.user_id, n.display_name));
+      }
+
+      return rows.map(({ created_by, ...r }) => ({
+        ...r,
+        responsavel: created_by ? nomes.get(created_by) ?? "—" : "—",
+      }));
+    },
   });
 }
