@@ -244,13 +244,12 @@ export function FaixasUeaDialog({ open, onOpenChange }: Props) {
                 <TableBody>
                   {preview.linhas.map((l) => (
                     <TableRow key={l.linha} className={l.erro ? "opacity-70" : undefined}>
-                      <TableCell className="text-xs">{l.tabela_nome ?? "—"}</TableCell>
                       <TableCell className="font-medium">
                         {l.idade_inicial} a {l.idade_final ?? "+"} anos
                       </TableCell>
                       <TableCell className="text-right">{formatBRL(l.valor_mensal)}</TableCell>
-                      <TableCell>{formatDataBR(l.vigencia_inicio)}</TableCell>
-                      <TableCell className="text-xs">{l.plano ?? "—"}</TableCell>
+                      <TableCell>{formatDataBR(capaForm.vigencia_inicio)}</TableCell>
+                      <TableCell className="text-xs">{capaForm.plano || "—"}</TableCell>
                       <TableCell>
                         {l.erro ? (
                           <Badge variant="destructive">{l.erro}</Badge>
@@ -269,7 +268,7 @@ export function FaixasUeaDialog({ open, onOpenChange }: Props) {
               </Button>
               <Button
                 onClick={confirmarImportacao}
-                disabled={validas.length === 0 || importar.isPending}
+                disabled={validas.length === 0 || !capaValida || importar.isPending}
               >
                 Importar {validas.length} faixa(s)
               </Button>
