@@ -318,10 +318,34 @@ export function useHistoricoDependentesUea(titularId: string | null) {
         .in("dependente_id", ids)
         .order("created_at", { ascending: false });
       if (error) throw error;
-      return ((data ?? []) as any[]).map((h) => ({
+      const rows = (data ?? []) as any[];
+      const nomesMap = new Map<string, string>();
+      const userIds = Array.from(new Set(rows.map((h) => h.created_by).filter(Boolean)));
+      if (userIds.length > 0) {
+        const { data: nomes } = await supabase.rpc("get_user_display_names", { _ids: userIds });
+        (nomes ?? []).forEach((n: any) => nomesMap.set(n.user_id, n.display_name));
+      }
+      const nomeDep = new Map<string, string>(
+        ((deps ?? []) as any[]).map((d) => [d.id, d.nome_completo as string]),
+      );
+      return rows.map((h) => ({
         ...h,
         valor_anterior: h.valor_anterior === null ? null : Number(h.valor_anterior),
         valor_novo: h.valor_novo === null ? null : Number(h.valor_novo),
+        valor_mensal_momento:
+          h.valor_mensal_momento === null || h.valor_mensal_momento === undefined
+            ? null
+            : Number(h.valor_mensal_momento),
+        margem_titular_momento:
+          h.margem_titular_momento === null || h.margem_titular_momento === undefined
+            ? null
+            : Number(h.margem_titular_momento),
+        margem_restante_momento:
+          h.margem_restante_momento === null || h.margem_restante_momento === undefined
+            ? null
+            : Number(h.margem_restante_momento),
+        responsavel: h.created_by ? nomesMap.get(h.created_by) ?? "—" : "—",
+        dependente_nome: nomeDep.get(h.dependente_id) ?? "—",
       })) as HistoricoDependente[];
     },
   });
