@@ -473,10 +473,21 @@ export function useAplicarFaixaDependenteUea() {
         motivo,
       });
       if (e2) throw e2;
+      await registrarEventoTitular({
+        titular_id: dependente.titular_id,
+        dependente_id: dependente.id,
+        dependente_nome: dependente.nome_completo,
+        tipo: "mudanca_faixa",
+        descricao: `Mudança de faixa: ${dependente.faixa_etaria || "—"} → ${novaFaixa}`,
+        valor_anterior: Number(dependente.valor_mensal || 0),
+        valor_novo: novoValor,
+        motivo,
+      });
     },
     onSuccess: (_d, vars) => {
       qc.invalidateQueries({ queryKey: KEY });
       qc.invalidateQueries({ queryKey: ["uea-historico", vars.dependente.titular_id] });
+      qc.invalidateQueries({ queryKey: ["uea-historico-titular", vars.dependente.titular_id] });
     },
     onError: (e: any) =>
       toast({ title: "Erro ao aplicar faixa", description: e.message, variant: "destructive" }),
@@ -524,10 +535,23 @@ export function useDesligarPorMargemUea() {
         motivo: motivo || MOTIVO_FALTA_MARGEM,
       });
       if (e2) throw e2;
+      await registrarEventoTitular({
+        titular_id: titular.id,
+        dependente_id: dependente.id,
+        dependente_nome: dependente.nome_completo,
+        tipo: "desligamento_margem",
+        descricao: "Dependente desligado por falta de margem",
+        valor_anterior: valorMomento,
+        valor_novo: 0,
+        margem_momento: titular.valor_margem,
+        margem_restante_momento: titular.margem_restante,
+        motivo: motivo || MOTIVO_FALTA_MARGEM,
+      });
     },
     onSuccess: (_d, vars) => {
       qc.invalidateQueries({ queryKey: KEY });
       qc.invalidateQueries({ queryKey: ["uea-historico", vars.titular.id] });
+      qc.invalidateQueries({ queryKey: ["uea-historico-titular", vars.titular.id] });
       toast({ title: "Dependente desligado por falta de margem" });
     },
     onError: (e: any) =>
