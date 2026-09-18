@@ -44,7 +44,7 @@ export function TitularUeaDialog({ open, onOpenChange, titular }: Props) {
       cpf: soDigitos(form.cpf),
       matricula: form.matricula,
       contrato: form.contrato,
-      valor_margem: Number(String(form.valor_margem).replace(",", ".")) || 0,
+      valor_margem: parseValorBr(form.valor_margem),
       observacao: form.observacao,
     });
     onOpenChange(false);

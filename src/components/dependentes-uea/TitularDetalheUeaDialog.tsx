@@ -146,7 +146,7 @@ export function TitularDetalheUeaDialog({
 
   const submit = async () => {
     if (!editando || !editando.nome_completo.trim()) return;
-    const valorManual = Number(String(valorTexto).replace(",", "."));
+    const valorManual = parseValorBr(valorTexto);
     await salvar.mutateAsync({
       ...editando,
       cpf: editando.cpf ? soDigitos(editando.cpf) : null,
@@ -359,7 +359,7 @@ export function TitularDetalheUeaDialog({
                       onClick={() =>
                         atualizarMargem.mutate({
                           id: titular.id,
-                          valor_margem: Number(String(margemTxt).replace(",", ".")) || 0,
+                          valor_margem: parseValorBr(margemTxt),
                           valor_anterior: titular.valor_margem,
                         })
                       }
