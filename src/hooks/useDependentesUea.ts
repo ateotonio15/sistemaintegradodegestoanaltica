@@ -293,6 +293,11 @@ export interface HistoricoDependente {
   valor_novo: number | null;
   motivo: string | null;
   created_at: string;
+  tipo?: string | null;
+  valor_mensal_momento?: number | null;
+  margem_titular_momento?: number | null;
+  margem_restante_momento?: number | null;
+  created_by?: string | null;
 }
 
 export function useHistoricoDependentesUea(titularId: string | null) {
