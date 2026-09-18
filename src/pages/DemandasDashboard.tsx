@@ -312,8 +312,7 @@ export default function DemandasDashboard() {
       const e = new Date(s.getFullYear(), s.getMonth() + 1, 0);
       const label = s.toLocaleDateString("pt-BR", { month: "short" }).replace(".", "");
       const arr = demandas.filter((d) => {
-        if (empresa !== "__all__" && d.empresa !== empresa) return false;
-        if (executiva !== "__all__" && d.executiva !== executiva) return false;
+        if (!matchDimensoes(d)) return false;
         const x = parseLocalDate(d.data_reclamacao);
         return x && x >= s && x <= e;
       });
@@ -323,7 +322,7 @@ export default function DemandasDashboard() {
       out.push({ label, sla, fora, aberto });
     }
     return out;
-  }, [demandas, empresa, executiva, fim]);
+  }, [demandas, empresa, executiva, setorFiltro, statusFiltro, tipoFiltro, fim]);
 
 
   const scoreStatus =
