@@ -58,6 +58,12 @@ export function FaixasUeaDialog({ open, onOpenChange }: Props) {
   const [form, setForm] = useState<ReturnType<typeof vazio> | null>(null);
   const [preview, setPreview] = useState<{ nome: string; linhas: FaixaImportLinha[] } | null>(null);
   const [substituir, setSubstituir] = useState(false);
+  const [capaForm, setCapaForm] = useState({
+    sequencia: "",
+    descricao: "",
+    vigencia_inicio: toISODateLocal(new Date()),
+    plano: "",
+  });
 
   const capas = agruparFaixasEmCapas(faixas);
   const capaAtual = capas.find((c) => c.chave === capaSel) ?? null;
@@ -86,24 +92,35 @@ export function FaixasUeaDialog({ open, onOpenChange }: Props) {
         });
         return;
       }
+      const primeira = linhas.find((l) => !l.erro) ?? linhas[0];
+      setCapaForm({
+        sequencia: primeira?.sequencia ?? String(capas.length + 1).padStart(6, "0"),
+        descricao: primeira?.tabela_nome ?? "",
+        vigencia_inicio: primeira?.vigencia_inicio ?? toISODateLocal(new Date()),
+        plano: primeira?.plano ?? "",
+      });
       setPreview({ nome: file.name, linhas });
     } catch (e: any) {
       toast({ title: "Não foi possível ler a planilha", description: e.message, variant: "destructive" });
     }
   };
 
+  const capaValida =
+    capaForm.descricao.trim().length > 0 && capaForm.vigencia_inicio.trim().length > 0;
+
   const confirmarImportacao = async () => {
-    if (validas.length === 0) return;
+    if (validas.length === 0 || !capaValida) return;
     await importar.mutateAsync({
       faixas: validas.map((l) => ({
         idade_inicial: l.idade_inicial,
         idade_final: l.idade_final,
         valor_mensal: l.valor_mensal,
-        vigencia_inicio: l.vigencia_inicio,
+        vigencia_inicio: capaForm.vigencia_inicio,
         vigencia_fim: l.vigencia_fim,
         observacao: l.observacao,
-        tabela_nome: l.tabela_nome,
-        plano: l.plano,
+        tabela_nome: capaForm.descricao.trim(),
+        plano: capaForm.plano.trim() || null,
+        sequencia: capaForm.sequencia.trim() || null,
       })),
       substituir,
     });
@@ -171,11 +188,52 @@ export function FaixasUeaDialog({ open, onOpenChange }: Props) {
                 Substituir as faixas atuais
               </label>
             </div>
-            <div className="max-h-[320px] overflow-auto rounded-lg border">
+            <div className="space-y-3 rounded-lg border bg-muted/30 p-3">
+              <p className="text-sm font-medium">Dados da capa da tabela</p>
+              <div className="grid gap-3 sm:grid-cols-2">
+                <div className="grid gap-1.5">
+                  <Label>Nº Sequência</Label>
+                  <Input
+                    value={capaForm.sequencia}
+                    placeholder="Ex.: 000001"
+                    onChange={(e) => setCapaForm((f) => ({ ...f, sequencia: e.target.value }))}
+                  />
+                </div>
+                <div className="grid gap-1.5">
+                  <Label>Descrição *</Label>
+                  <Input
+                    value={capaForm.descricao}
+                    placeholder="Ex.: Tabela UEA - 1"
+                    onChange={(e) => setCapaForm((f) => ({ ...f, descricao: e.target.value }))}
+                  />
+                </div>
+                <div className="grid gap-1.5">
+                  <Label>Início Vigência *</Label>
+                  <Input
+                    type="date"
+                    value={capaForm.vigencia_inicio}
+                    onChange={(e) => setCapaForm((f) => ({ ...f, vigencia_inicio: e.target.value }))}
+                  />
+                </div>
+                <div className="grid gap-1.5">
+                  <Label>Plano</Label>
+                  <Input
+                    value={capaForm.plano}
+                    placeholder="Ex.: Quality Plus - Apartamento"
+                    onChange={(e) => setCapaForm((f) => ({ ...f, plano: e.target.value }))}
+                  />
+                </div>
+              </div>
+              {!capaValida && (
+                <p className="text-xs text-destructive">
+                  Informe a descrição e o início da vigência para importar.
+                </p>
+              )}
+            </div>
+            <div className="max-h-[300px] overflow-auto rounded-lg border">
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Tabela</TableHead>
                     <TableHead>Faixa</TableHead>
                     <TableHead className="text-right">Valor mensal</TableHead>
                     <TableHead>Vigência início</TableHead>
@@ -186,13 +244,12 @@ export function FaixasUeaDialog({ open, onOpenChange }: Props) {
                 <TableBody>
                   {preview.linhas.map((l) => (
                     <TableRow key={l.linha} className={l.erro ? "opacity-70" : undefined}>
-                      <TableCell className="text-xs">{l.tabela_nome ?? "—"}</TableCell>
                       <TableCell className="font-medium">
                         {l.idade_inicial} a {l.idade_final ?? "+"} anos
                       </TableCell>
                       <TableCell className="text-right">{formatBRL(l.valor_mensal)}</TableCell>
-                      <TableCell>{formatDataBR(l.vigencia_inicio)}</TableCell>
-                      <TableCell className="text-xs">{l.plano ?? "—"}</TableCell>
+                      <TableCell>{formatDataBR(capaForm.vigencia_inicio)}</TableCell>
+                      <TableCell className="text-xs">{capaForm.plano || "—"}</TableCell>
                       <TableCell>
                         {l.erro ? (
                           <Badge variant="destructive">{l.erro}</Badge>
@@ -211,7 +268,7 @@ export function FaixasUeaDialog({ open, onOpenChange }: Props) {
               </Button>
               <Button
                 onClick={confirmarImportacao}
-                disabled={validas.length === 0 || importar.isPending}
+                disabled={validas.length === 0 || !capaValida || importar.isPending}
               >
                 Importar {validas.length} faixa(s)
               </Button>
@@ -421,7 +478,7 @@ export function FaixasUeaDialog({ open, onOpenChange }: Props) {
                       onClick={() => setCapaSel(c.chave)}
                     >
                       <TableCell className="font-mono text-xs">
-                        {String(capas.length - i).padStart(6, "0")}
+                        {c.sequencia || String(capas.length - i).padStart(6, "0")}
                       </TableCell>
                       <TableCell className="font-medium">{c.descricao}</TableCell>
                       <TableCell>{formatDataBR(c.vigencia_inicio)}</TableCell>

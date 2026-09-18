@@ -22,6 +22,8 @@ export interface FaixaUea {
   tabela_nome: string | null;
   /** Plano da capa (ex.: "Quality Plus - Apartamento"). */
   plano: string | null;
+  /** Nº de sequência informado na capa. */
+  sequencia: string | null;
 }
 
 /** Capa de tabela de faixas (agrupamento visual das faixas). */
@@ -29,6 +31,7 @@ export interface FaixaTabelaCapa {
   chave: string;
   descricao: string;
   plano: string | null;
+  sequencia: string | null;
   vigencia_inicio: string;
   faixas: FaixaUea[];
 }
@@ -41,7 +44,9 @@ export function agruparFaixasEmCapas(faixas: FaixaUea[]): FaixaTabelaCapa[] {
     const plano = f.plano?.trim() || null;
     const vig = f.vigencia_inicio.slice(0, 10);
     const chave = `${descricao}::${plano ?? ""}::${vig}`;
-    const capa = mapa.get(chave) ?? { chave, descricao, plano, vigencia_inicio: vig, faixas: [] };
+    const capa =
+      mapa.get(chave) ?? { chave, descricao, plano, sequencia: null, vigencia_inicio: vig, faixas: [] };
+    capa.sequencia = capa.sequencia ?? (f.sequencia?.trim() || null);
     capa.faixas.push(f);
     mapa.set(chave, capa);
   }

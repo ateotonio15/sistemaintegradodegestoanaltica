@@ -11,6 +11,7 @@ export interface FaixaImportLinha {
   /** Capa da tabela (descrição), opcional na planilha. */
   tabela_nome: string | null;
   plano: string | null;
+  sequencia: string | null;
   linha: number;
   erro?: string;
 }
@@ -92,7 +93,7 @@ export async function lerPlanilhaFaixas(file: File): Promise<FaixaImportLinha[]>
   if (matriz.length === 0) return [];
 
   const headerIdx = matriz.findIndex((r) =>
-    (r ?? []).some((c) => /valor/i.test(String(c ?? ""))),
+    (r ?? []).some((c) => /valor|pre[çc]o|mensalidade/i.test(String(c ?? ""))),
   );
   const hIdx = headerIdx >= 0 ? headerIdx : 0;
   const headers = (matriz[hIdx] ?? []).map((c) => String(c ?? ""));
@@ -100,12 +101,19 @@ export async function lerPlanilhaFaixas(file: File): Promise<FaixaImportLinha[]>
   const cFaixa = acharCol(headers, ["faixa", "faixa etaria", "idade"]);
   const cIni = acharCol(headers, ["idade inicial", "de", "inicio", "idade de"]);
   const cFim = acharCol(headers, ["idade final", "ate", "fim", "idade ate"]);
-  const cValor = acharCol(headers, ["valor mensal", "valor", "mensalidade", "preco"]);
+  const cValor = acharCol(headers, [
+    "valor mensal",
+    "preco atual",
+    "valor",
+    "mensalidade",
+    "preco",
+  ]);
   const cVigIni = acharCol(headers, ["vigencia inicio", "vigencia", "inicio vigencia"]);
   const cVigFim = acharCol(headers, ["vigencia fim", "fim vigencia"]);
   const cObs = acharCol(headers, ["observacao", "obs"]);
   const cTabela = acharCol(headers, ["tabela", "descricao", "tabela nome", "capa"]);
   const cPlano = acharCol(headers, ["plano", "produto"]);
+  const cSeq = acharCol(headers, ["n sequencia", "no sequencia", "sequencia", "seq"]);
 
   const hoje = toISODateLocal(new Date());
   const linhas: FaixaImportLinha[] = [];
@@ -127,6 +135,9 @@ export async function lerPlanilhaFaixas(file: File): Promise<FaixaImportLinha[]>
     const obs = cObs >= 0 && row[cObs] ? String(row[cObs]).trim() : null;
     const tabela = cTabela >= 0 && row[cTabela] ? String(row[cTabela]).trim() : null;
     const plano = cPlano >= 0 && row[cPlano] ? String(row[cPlano]).trim() : null;
+    const seq = cSeq >= 0 && row[cSeq] ? String(row[cSeq]).trim() : null;
+    // Idades "abertas" nas planilhas (99, 120, 999...) significam sem limite superior.
+    if (final !== null && final >= 99) final = null;
 
     const erros: string[] = [];
     if (inicial === null) erros.push("idade inicial não identificada");
@@ -142,6 +153,7 @@ export async function lerPlanilhaFaixas(file: File): Promise<FaixaImportLinha[]>
       observacao: obs,
       tabela_nome: tabela,
       plano,
+      sequencia: seq,
       linha: i + 1,
       erro: erros.length ? erros.join("; ") : undefined,
     });
@@ -152,10 +164,10 @@ export async function lerPlanilhaFaixas(file: File): Promise<FaixaImportLinha[]>
 
 export function modeloPlanilhaFaixas(): Blob {
   const dados = [
-    ["Faixa", "Idade inicial", "Idade final", "Valor mensal", "Vigência início", "Vigência fim", "Tabela", "Plano", "Observação"],
-    ["0 a 18", 0, 18, 263.71, "01/01/2026", "", "Tabela UEA - 1", "Quality Plus - Apartamento", ""],
-    ["19 a 23", 19, 23, 298.9, "01/01/2026", "", "Tabela UEA - 1", "Quality Plus - Apartamento", ""],
-    ["59+", 59, "", 780.5, "01/01/2026", "", "Tabela UEA - 1", "Quality - Enfermaria", "Última faixa"],
+    ["Nº Sequência", "Faixa", "Idade inicial", "Idade final", "Valor mensal", "Vigência início", "Vigência fim", "Tabela", "Plano", "Observação"],
+    ["000001", "0 a 18", 0, 18, 263.71, "01/01/2026", "", "Tabela UEA - 1", "Quality Plus - Apartamento", ""],
+    ["000001", "19 a 23", 19, 23, 298.9, "01/01/2026", "", "Tabela UEA - 1", "Quality Plus - Apartamento", ""],
+    ["000001", "59+", 59, "", 780.5, "01/01/2026", "", "Tabela UEA - 1", "Quality - Enfermaria", "Última faixa"],
   ];
   const ws = XLSX.utils.aoa_to_sheet(dados);
   const wb = XLSX.utils.book_new();
