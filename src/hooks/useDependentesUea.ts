@@ -136,6 +136,51 @@ export function useExcluirFaixaUea() {
   });
 }
 
+/**
+ * Importa várias faixas de uma vez (planilha). Quando `substituir` é true,
+ * as faixas atuais são removidas antes da inserção.
+ */
+export function useImportarFaixasUea() {
+  const qc = useQueryClient();
+  const { toast } = useToast();
+  return useMutation({
+    mutationFn: async ({
+      faixas,
+      substituir,
+    }: {
+      faixas: FaixaInput[];
+      substituir: boolean;
+    }) => {
+      if (substituir) {
+        const { error } = await supabase
+          .from("uea_faixas")
+          .delete()
+          .not("id", "is", null);
+        if (error) throw error;
+      }
+      const payload = faixas.map((f) => ({
+        idade_inicial: f.idade_inicial,
+        idade_final: f.idade_final,
+        valor_mensal: f.valor_mensal,
+        vigencia_inicio: f.vigencia_inicio,
+        vigencia_fim: f.vigencia_fim || null,
+        observacao: f.observacao || null,
+      }));
+      const { error } = await supabase.from("uea_faixas").insert(payload);
+      if (error) throw error;
+      return payload.length;
+    },
+    onSuccess: (total) => {
+      qc.invalidateQueries({ queryKey: KEY_FAIXAS });
+      qc.invalidateQueries({ queryKey: KEY });
+      toast({ title: `${total} faixa(s) importada(s)` });
+    },
+    onError: (e: any) =>
+      toast({ title: "Erro ao importar faixas", description: e.message, variant: "destructive" }),
+  });
+}
+
+
 /* --------------------------------- Titulares -------------------------------- */
 
 export function useTitularesUea() {
