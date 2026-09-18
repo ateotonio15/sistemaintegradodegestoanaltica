@@ -70,6 +70,7 @@ import MeuPainel from "./pages/MeuPainel";
 import EmpresasAcesso from "./pages/EmpresasAcesso";
 import AnaliseContrato from "./pages/AnaliseContrato";
 import DependentesUEA from "./pages/DependentesUEA";
+import { useMinhaPermissaoUea } from "@/hooks/useUeaPermissoes";
 
 // Desativa gatilhos globais de foco/reconexão: voltar para a aba não deve reiniciar/refazer telas.
 focusManager.setEventListener(() => () => {});
@@ -243,8 +244,9 @@ const AppRoutes = () => (
 
       <Route element={<RoleGate allow={["admin"]} />}>
         <Route path="/usuarios" element={<Usuarios />} />
-        <Route path="/dependentes-uea" element={<DependentesUEA />} />
       </Route>
+
+      <Route path="/dependentes-uea" element={<UeaGate><DependentesUEA /></UeaGate>} />
 
       <Route element={<RoleGate allow={["admin", "comum", "vendas", "diretora", "financeiro", "administradoras"]} />}>
         <Route path="/analise-contrato" element={<AnaliseContrato />} />
