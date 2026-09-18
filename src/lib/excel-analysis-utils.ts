@@ -1722,6 +1722,11 @@ function analisarResumoSheet(wb: ExcelJS.Workbook): AnalisePorCnpj[] | null {
   if (coparticipItems.length === 0) {
     coparticipItems = parseCoparticipacaoResumoPorCnpj(rows, idxLabel, idxValor);
   }
+  // Fallback pivot por Tipo de Cobrança (ex.: EPER — "Co-participação" como
+  // sub-linha da empresa, sem CNPJ e sem rótulo "Empresarial").
+  if (coparticipItems.length === 0) {
+    coparticipItems = parseCoparticipacaoPivotTipoCobranca(rows);
+  }
 
   // Distribui itens de coparticipação nos blocos por match de nome. Fallback:
   // se houver apenas um bloco, tudo vai para ele.
@@ -2564,7 +2569,10 @@ export async function analisarExcelFinanceiroPorCnpj(
   // Coparticipação — Empresarial: lê pivot da aba RESUMO e distribui nos blocos.
   const rowsResumo = lerRowsAbaResumo(wb);
   if (rowsResumo && blocos.length > 0) {
-    const coparticipItems = parseCoparticipacaoRows(rowsResumo);
+    let coparticipItems = parseCoparticipacaoRows(rowsResumo);
+    if (coparticipItems.length === 0) {
+      coparticipItems = parseCoparticipacaoPivotTipoCobranca(rowsResumo);
+    }
     if (coparticipItems.length > 0) {
       const acumPorChave = new Map<
         string,
