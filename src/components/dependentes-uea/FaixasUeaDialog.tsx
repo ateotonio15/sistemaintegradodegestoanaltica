@@ -188,11 +188,52 @@ export function FaixasUeaDialog({ open, onOpenChange }: Props) {
                 Substituir as faixas atuais
               </label>
             </div>
-            <div className="max-h-[320px] overflow-auto rounded-lg border">
+            <div className="space-y-3 rounded-lg border bg-muted/30 p-3">
+              <p className="text-sm font-medium">Dados da capa da tabela</p>
+              <div className="grid gap-3 sm:grid-cols-2">
+                <div className="grid gap-1.5">
+                  <Label>Nº Sequência</Label>
+                  <Input
+                    value={capaForm.sequencia}
+                    placeholder="Ex.: 000001"
+                    onChange={(e) => setCapaForm((f) => ({ ...f, sequencia: e.target.value }))}
+                  />
+                </div>
+                <div className="grid gap-1.5">
+                  <Label>Descrição *</Label>
+                  <Input
+                    value={capaForm.descricao}
+                    placeholder="Ex.: Tabela UEA - 1"
+                    onChange={(e) => setCapaForm((f) => ({ ...f, descricao: e.target.value }))}
+                  />
+                </div>
+                <div className="grid gap-1.5">
+                  <Label>Início Vigência *</Label>
+                  <Input
+                    type="date"
+                    value={capaForm.vigencia_inicio}
+                    onChange={(e) => setCapaForm((f) => ({ ...f, vigencia_inicio: e.target.value }))}
+                  />
+                </div>
+                <div className="grid gap-1.5">
+                  <Label>Plano</Label>
+                  <Input
+                    value={capaForm.plano}
+                    placeholder="Ex.: Quality Plus - Apartamento"
+                    onChange={(e) => setCapaForm((f) => ({ ...f, plano: e.target.value }))}
+                  />
+                </div>
+              </div>
+              {!capaValida && (
+                <p className="text-xs text-destructive">
+                  Informe a descrição e o início da vigência para importar.
+                </p>
+              )}
+            </div>
+            <div className="max-h-[300px] overflow-auto rounded-lg border">
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Tabela</TableHead>
                     <TableHead>Faixa</TableHead>
                     <TableHead className="text-right">Valor mensal</TableHead>
                     <TableHead>Vigência início</TableHead>
