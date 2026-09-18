@@ -42,7 +42,7 @@ import {
   useReativarDependenteUea,
   useAtualizarMargemUea,
   useExcluirDependenteUea,
-  useHistoricoDependentesUea,
+  useHistoricoTitularUea,
   useSalvarDependenteUea,
   type DependenteInput,
 } from "@/hooks/useDependentesUea";
@@ -73,6 +73,8 @@ interface Props {
   onOpenChange: (v: boolean) => void;
   titular: TitularCalculado | null;
   faixas: FaixaUea[];
+  /** Quando falso, a visão é somente leitura (permissão "Visualizar Dependentes UEA"). */
+  podeEditar?: boolean;
 }
 
 const vazio = (titularId: string): DependenteInput => ({
@@ -98,14 +100,20 @@ function Campo({ label, value }: { label: string; value: React.ReactNode }) {
   );
 }
 
-export function TitularDetalheUeaDialog({ open, onOpenChange, titular, faixas }: Props) {
+export function TitularDetalheUeaDialog({
+  open,
+  onOpenChange,
+  titular,
+  faixas,
+  podeEditar = true,
+}: Props) {
   const salvar = useSalvarDependenteUea();
   const excluir = useExcluirDependenteUea();
   const aplicarFaixa = useAplicarFaixaDependenteUea();
   const desligarMargem = useDesligarPorMargemUea();
   const reativar = useReativarDependenteUea();
   const atualizarMargem = useAtualizarMargemUea();
-  const { data: historico = [] } = useHistoricoDependentesUea(open ? titular?.id ?? null : null);
+  const { data: historico = [] } = useHistoricoTitularUea(open ? titular?.id ?? null : null);
 
   const [margemTxt, setMargemTxt] = useState("");
   const [editando, setEditando] = useState<DependenteInput | null>(null);
@@ -339,10 +347,11 @@ export function TitularDetalheUeaDialog({ open, onOpenChange, titular, faixas }:
                   <div className="flex gap-2">
                     <Input
                       inputMode="decimal"
+                      readOnly={!podeEditar}
                       value={margemTxt}
                       onChange={(e) => setMargemTxt(e.target.value)}
                     />
-                    <Button
+                    {podeEditar && <Button
                       size="icon"
                       variant="outline"
                       title="Salvar margem"
@@ -351,11 +360,12 @@ export function TitularDetalheUeaDialog({ open, onOpenChange, titular, faixas }:
                         atualizarMargem.mutate({
                           id: titular.id,
                           valor_margem: Number(String(margemTxt).replace(",", ".")) || 0,
+                          valor_anterior: titular.valor_margem,
                         })
                       }
                     >
                       <Check className="h-4 w-4" />
-                    </Button>
+                    </Button>}
                   </div>
                 </div>
                 <Campo
@@ -433,11 +443,13 @@ export function TitularDetalheUeaDialog({ open, onOpenChange, titular, faixas }:
 
               {/* DEPENDENTES — um bloco por dependente */}
               <TabsContent value="dependentes" className="space-y-3 pt-3">
-                <div className="flex justify-end">
-                  <Button size="sm" onClick={() => { setEditando(vazio(titular.id)); setValorTexto(""); }}>
-                    <UserPlus className="mr-1.5 h-4 w-4" /> Novo dependente
-                  </Button>
-                </div>
+                {podeEditar && (
+                  <div className="flex justify-end">
+                    <Button size="sm" onClick={() => { setEditando(vazio(titular.id)); setValorTexto(""); }}>
+                      <UserPlus className="mr-1.5 h-4 w-4" /> Novo dependente
+                    </Button>
+                  </div>
+                )}
                 {deps.length === 0 && (
                   <Card className="p-8 text-center text-sm text-muted-foreground">
                     Nenhum dependente cadastrado para este titular.
@@ -453,7 +465,7 @@ export function TitularDetalheUeaDialog({ open, onOpenChange, titular, faixas }:
                         </Badge>
                         {d.parentesco && <Badge variant="outline">{d.parentesco}</Badge>}
                       </div>
-                      <div className="flex gap-1">
+                      {podeEditar && <div className="flex gap-1">
                         <Button size="icon" variant="ghost" onClick={() => abrirEdicao(d)}>
                           <Pencil className="h-4 w-4" />
                         </Button>
@@ -474,7 +486,7 @@ export function TitularDetalheUeaDialog({ open, onOpenChange, titular, faixas }:
                         <Button size="icon" variant="ghost" onClick={() => excluir.mutate(d.id)}>
                           <Trash2 className="h-4 w-4 text-destructive" />
                         </Button>
-                      </div>
+                      </div>}
                     </div>
                     <div className="grid gap-3 sm:grid-cols-4">
                       <Campo label="CPF" value={formatCPF(d.cpf)} />
@@ -518,7 +530,7 @@ export function TitularDetalheUeaDialog({ open, onOpenChange, titular, faixas }:
                           {formatBRL(d.faixa_atual.valor_mensal)} e o cadastro está em{" "}
                           {formatBRL(d.valor_mensal)}.
                         </p>
-                        <Button
+                        {podeEditar && <Button
                           size="sm"
                           variant="outline"
                           disabled={aplicarFaixa.isPending}
@@ -531,7 +543,7 @@ export function TitularDetalheUeaDialog({ open, onOpenChange, titular, faixas }:
                           }
                         >
                           Aplicar novo valor
-                        </Button>
+                        </Button>}
                       </div>
                     )}
                   </Card>
@@ -590,9 +602,9 @@ export function TitularDetalheUeaDialog({ open, onOpenChange, titular, faixas }:
                     <TableHeader>
                       <TableRow>
                         <TableHead>Data e hora</TableHead>
+                        <TableHead>Evento</TableHead>
                         <TableHead>Dependente</TableHead>
-                        <TableHead>Faixa</TableHead>
-                        <TableHead className="text-right">Valor</TableHead>
+                        <TableHead className="text-right">De → Para</TableHead>
                         <TableHead className="text-right">Margem do titular</TableHead>
                         <TableHead>Responsável</TableHead>
                         <TableHead>Motivo</TableHead>
@@ -610,21 +622,21 @@ export function TitularDetalheUeaDialog({ open, onOpenChange, titular, faixas }:
                       {historico.map((h) => (
                         <TableRow key={h.id}>
                           <TableCell>{new Date(h.created_at).toLocaleString("pt-BR")}</TableCell>
+                          <TableCell className="font-medium">{h.evento}</TableCell>
                           <TableCell>{h.dependente_nome || "—"}</TableCell>
-                          <TableCell>
-                            {(h.faixa_anterior || "—")} → {(h.faixa_nova || "—")}
-                          </TableCell>
                           <TableCell className="text-right">
-                            {h.tipo === "desligamento_margem" || h.tipo === "reativacao"
-                              ? formatBRL(h.valor_mensal_momento)
+                            {h.valor_anterior === null && h.valor_novo === null
+                              ? "—"
                               : `${formatBRL(h.valor_anterior)} → ${formatBRL(h.valor_novo)}`}
                           </TableCell>
                           <TableCell className="text-right">
-                            {h.margem_titular_momento === null || h.margem_titular_momento === undefined
+                            {h.margem_momento === null
                               ? "—"
-                              : `${formatBRL(h.margem_titular_momento)} (restante ${formatBRL(
-                                  h.margem_restante_momento,
-                                )})`}
+                              : `${formatBRL(h.margem_momento)}${
+                                  h.margem_restante_momento === null
+                                    ? ""
+                                    : ` (restante ${formatBRL(h.margem_restante_momento)})`
+                                }`}
                           </TableCell>
                           <TableCell>{h.responsavel || "—"}</TableCell>
                           <TableCell>{h.motivo || "—"}</TableCell>
