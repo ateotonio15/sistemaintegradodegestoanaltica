@@ -210,6 +210,9 @@ export function AgendamentoPlantaoDialog({ open, onOpenChange, editing, defaultD
             <div className="space-y-1">
               <Label>Horário fim</Label>
               <Input type="time" value={horaFim} onChange={(e) => setHoraFim(e.target.value)} />
+              {!!horaInicio && !!horaFim && horaFim < horaInicio && (
+                <p className="text-[11px] text-muted-foreground">Termina no dia seguinte</p>
+              )}
             </div>
           </div>
 
