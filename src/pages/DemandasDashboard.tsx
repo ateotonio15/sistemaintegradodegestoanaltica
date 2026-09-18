@@ -452,7 +452,12 @@ export default function DemandasDashboard() {
     });
     const tot = filtered.length || 1;
     return Array.from(map.entries())
-      .map(([setor, n]) => ({ setor, n, pct: Math.round((n / tot) * 100) }))
+      .map(([setor, n]) => ({
+        setor,
+        n,
+        pct: Math.round((n / tot) * 100),
+        pctExato: (n / tot) * 100,
+      }))
       .sort((a, b) => b.n - a.n)
       .slice(0, 8);
   }, [filtered]);
