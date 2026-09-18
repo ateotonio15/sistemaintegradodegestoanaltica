@@ -1246,6 +1246,83 @@ function parseCoparticipacaoResumoPorCnpj(
 
 
 /**
+ * Fallback para RESUMO em formato de tabela dinâmica por Tipo de Cobrança
+ * (ex.: faturamento formatado "Pagador | Tipo Cobrança | Soma de QTD | Soma de Valor"):
+ *   EPER ENGENHARIA E ENERGIAS LTDA | 95 | 31.703,70
+ *     Co-participação             | 10 |    298,75
+ *     Mensalidade                 | 85 | 31.404,95
+ *   Total Geral                   | 95 | 31.703,70
+ * Não há CNPJ nem rótulo "Empresarial" — a empresa é a linha-mãe e a
+ * coparticipação é a sub-linha logo abaixo dela.
+ */
+function parseCoparticipacaoPivotTipoCobranca(
+  rows: unknown[][],
+): { nome: string; quantidade: number; total: number }[] {
+  const items: { nome: string; quantidade: number; total: number }[] = [];
+
+  // Localiza o cabeçalho da pivot ("Soma de QTD" / "Soma de Valor").
+  let headerRow = -1;
+  let qtdCol = -1;
+  let valCol = -1;
+  for (let i = 0; i < rows.length; i++) {
+    const r = rows[i] || [];
+    let q = -1;
+    let v = -1;
+    for (let c = 0; c < r.length; c++) {
+      const t = norm(r[c]);
+      if (!t) continue;
+      if (q < 0 && (t.includes("soma de qtd") || t === "qtd")) q = c;
+      if (v < 0 && (t.includes("soma de valor") || t === "valor")) v = c;
+    }
+    if (q >= 0 && v >= 0) {
+      headerRow = i;
+      qtdCol = q;
+      valCol = v;
+      break;
+    }
+  }
+  if (headerRow < 0) return items;
+
+  let empresaAtual = "";
+  for (let i = headerRow + 1; i < rows.length; i++) {
+    const r = rows[i] || [];
+    // Rótulo = primeiro texto não vazio da linha (funciona com sub-linhas
+    // indentadas na segunda coluna e com pivots de coluna única).
+    let label = "";
+    for (const c of r) {
+      const t = cellToText(c).trim();
+      if (t) {
+        label = t;
+        break;
+      }
+    }
+    if (!label) continue;
+    const lblNorm = norm(label);
+    if (lblNorm.startsWith("total geral")) break;
+    const lblSemSep = lblNorm.replace(/[^a-z0-9]/g, "");
+    if (lblNorm.includes("soma de")) continue;
+    if (lblSemSep.includes("coparticipacao")) {
+      if (!empresaAtual) continue;
+      const qtdN = Math.round(toNumber(r[qtdCol]));
+      const valN = toNumber(r[valCol]);
+      const qtdOk = !isNaN(qtdN) && qtdN !== 0;
+      const valOk = !isNaN(valN) && valN !== 0;
+      if (qtdOk || valOk) {
+        items.push({
+          nome: empresaAtual,
+          quantidade: isNaN(qtdN) ? 0 : qtdN,
+          total: isNaN(valN) ? 0 : valN,
+        });
+      }
+      continue;
+    }
+    if (lblSemSep.includes("mensalidade")) continue;
+    empresaAtual = label;
+  }
+  return items;
+}
+
+/**
  * Lê a aba RESUMO do workbook (se existir) e retorna as linhas como matriz.
  */
 function lerRowsAbaResumo(wb: ExcelJS.Workbook): unknown[][] | null {
@@ -1644,6 +1721,11 @@ function analisarResumoSheet(wb: ExcelJS.Workbook): AnalisePorCnpj[] | null {
   // Fallback SECULUS: bloco "CO-PARTICIPAÇÃO MMM/AA" logo abaixo de cada CNPJ.
   if (coparticipItems.length === 0) {
     coparticipItems = parseCoparticipacaoResumoPorCnpj(rows, idxLabel, idxValor);
+  }
+  // Fallback pivot por Tipo de Cobrança (ex.: EPER — "Co-participação" como
+  // sub-linha da empresa, sem CNPJ e sem rótulo "Empresarial").
+  if (coparticipItems.length === 0) {
+    coparticipItems = parseCoparticipacaoPivotTipoCobranca(rows);
   }
 
   // Distribui itens de coparticipação nos blocos por match de nome. Fallback:
@@ -2487,7 +2569,10 @@ export async function analisarExcelFinanceiroPorCnpj(
   // Coparticipação — Empresarial: lê pivot da aba RESUMO e distribui nos blocos.
   const rowsResumo = lerRowsAbaResumo(wb);
   if (rowsResumo && blocos.length > 0) {
-    const coparticipItems = parseCoparticipacaoRows(rowsResumo);
+    let coparticipItems = parseCoparticipacaoRows(rowsResumo);
+    if (coparticipItems.length === 0) {
+      coparticipItems = parseCoparticipacaoPivotTipoCobranca(rowsResumo);
+    }
     if (coparticipItems.length > 0) {
       const acumPorChave = new Map<
         string,
