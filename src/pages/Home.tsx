@@ -385,6 +385,14 @@ const SHORTCUTS: Shortcut[] = [
       ["comum", "diretora", "administradoras"].includes(c.role as string),
   },
   {
+    to: "/dependentes-uea",
+    label: "Dependentes UEA",
+    description: "Margem dos titulares e faixas dos dependentes",
+    icon: Users,
+    group: "funcoes",
+    show: (c) => c.canVerUea,
+  },
+  {
     to: "/configuracoes",
     label: "Configurações",
     description: "Preferências, segurança e informações do sistema",
