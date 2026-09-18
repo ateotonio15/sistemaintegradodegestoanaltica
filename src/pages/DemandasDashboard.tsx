@@ -370,7 +370,11 @@ export default function DemandasDashboard() {
       const setorQtd = arr.filter((d) => d.resolvido_setor && !d.resolvido_executiva).length;
       const resolvidas = execQtd + setorQtd;
       const execPct = resolvidas ? Math.round((execQtd / resolvidas) * 100) : 0;
-      return { label: m.label, sla, fora, aberto, execQtd, setorQtd, execPct };
+      const temposMes = arr.filter(isResolved).map(diasCorridos);
+      const tempoMedio = temposMes.length
+        ? Math.round((temposMes.reduce((a, b) => a + b, 0) / temposMes.length) * 10) / 10
+        : 0;
+      return { label: m.label, sla, fora, aberto, execQtd, setorQtd, execPct, tempoMedio };
     });
   }, [filtered, ini, fim]);
 
@@ -533,6 +537,227 @@ export default function DemandasDashboard() {
       .sort((a, b) => b.tempoMedio * b.qtd - a.tempoMedio * a.qtd)
       .slice(0, 5);
   }, [filtered]);
+
+  /* ========= Base executiva por setor ========= */
+  const setorAgg = useMemo<SetorAgg[]>(() => {
+    const map = new Map<string, Demanda[]>();
+    filtered.forEach((d) => {
+      const s = d.setor_responsavel || "—";
+      const arr = map.get(s) ?? [];
+      arr.push(d);
+      map.set(s, arr);
+    });
+    const totalGeral = filtered.length || 1;
+    const base = Array.from(map.entries()).map(([setor, arr]) => {
+      const volume = arr.length;
+      const foraPct = Math.round((arr.filter(isForaPrazo).length / volume) * 100);
+      const slaPct = 100 - foraPct;
+      const backlog = arr.filter((d) => !isResolved(d)).length;
+      const tempos = arr.filter(isResolved).map(diasCorridos);
+      const tempoMedio = tempos.length ? tempos.reduce((a, b) => a + b, 0) / tempos.length : 0;
+      const counts = new Map<string, number>();
+      arr.forEach((d) => {
+        const k = (d.nome_cliente || "").trim().toLowerCase();
+        if (!k) return;
+        counts.set(k, (counts.get(k) ?? 0) + 1);
+      });
+      const clientesTotal = counts.size;
+      const clientesRecorrentes = Array.from(counts.values()).filter((v) => v > 1).length;
+      const recorrenciaPct = clientesTotal ? Math.round((clientesRecorrentes / clientesTotal) * 100) : 0;
+      const prazoDias = (isAgendaCirurgica(setor) ? PRAZO_AGENDA_CIRURGICA_HORAS : PRAZO_PADRAO_HORAS) / 24;
+      const backlogPct = Math.round((backlog / volume) * 100);
+      const tempoPct = Math.min(100, Math.round((tempoMedio / Math.max(1, prazoDias)) * 100));
+      const impacto = Math.round(foraPct * 0.4 + backlogPct * 0.3 + tempoPct * 0.2 + recorrenciaPct * 0.1);
+      const motivos: string[] = [];
+      if (foraPct >= 15) motivos.push(`${foraPct}% fora do prazo`);
+      if (backlogPct >= 25) motivos.push(`${backlog} demandas em aberto`);
+      if (tempoPct >= 100) motivos.push(`tempo médio de ${tempoMedio.toFixed(1)}d acima do prazo de ${prazoDias.toFixed(0)}d`);
+      if (recorrenciaPct >= 30) motivos.push(`${recorrenciaPct}% de clientes recorrentes`);
+      return {
+        setor,
+        volume,
+        pctVolume: Math.round((volume / totalGeral) * 100),
+        slaPct,
+        foraPct,
+        backlog,
+        tempoMedio,
+        recorrenciaPct,
+        clientesRecorrentes,
+        clientesTotal,
+        impacto,
+        motivos,
+      };
+    });
+    const volumes = base.map((b) => b.volume).sort((a, b) => a - b);
+    const mediana = volumes.length ? volumes[Math.floor(volumes.length / 2)] : 0;
+    return base
+      .map<SetorAgg>((b) => {
+        const volumeAlto = b.volume >= mediana;
+        const classificacao: SetorAgg["classificacao"] =
+          b.volume < 3
+            ? null
+            : b.impacto >= 60 && volumeAlto
+            ? "CRÍTICO"
+            : b.impacto >= 60
+            ? "ATENÇÃO"
+            : b.impacto >= 35
+            ? "MONITORAR"
+            : "ESTÁVEL";
+        return { ...b, volumeAlto, classificacao };
+      })
+      .sort((a, b) => b.impacto - a.impacto || b.volume - a.volume);
+  }, [filtered]);
+
+  const noPrazoQtd = useMemo(() => filtered.filter((d) => !isForaPrazo(d)).length, [filtered]);
+
+  const deltaVs = (atual: number, anterior: number | undefined | null): number | null => {
+    if (anterior === undefined || anterior === null) return null;
+    if (anterior === 0) return atual > 0 ? 100 : 0;
+    return Math.round(((atual - anterior) / anterior) * 100);
+  };
+
+  const backlogDeltaPrev = deltaVs(metrics.emAberto, prevMetrics?.emAberto);
+
+  /* ========= Pontos de atenção ========= */
+  const pontosAtencao = useMemo(() => {
+    const out: {
+      titulo: string;
+      valor: string;
+      detalhe: string;
+      tone: ExecTone;
+      href?: string;
+      linkLabel?: string;
+    }[] = [];
+    const piorSla = setorAgg.filter((s) => s.volume >= 3 && s.foraPct >= 15).sort((a, b) => b.foraPct - a.foraPct)[0];
+    if (piorSla) {
+      out.push({
+        titulo: piorSla.setor,
+        valor: `${piorSla.foraPct}% fora do prazo`,
+        detalhe: `${piorSla.volume} demandas no período · tempo médio de ${piorSla.tempoMedio.toFixed(1)} dias.`,
+        tone: piorSla.foraPct >= 40 ? "danger" : "warning",
+        href: "/demandas/fora-do-prazo",
+      });
+    }
+    const conc = volumeSetor[0];
+    if (conc && conc.pct >= 30) {
+      out.push({
+        titulo: conc.setor,
+        valor: `${conc.pct}% do volume total`,
+        detalhe: `Principal concentração do período (${conc.n} de ${filtered.length} demandas).`,
+        tone: "info",
+        href: "/demandas",
+        linkLabel: "Ver registros",
+      });
+    }
+    if (backlogDeltaPrev !== null) {
+      out.push({
+        titulo: "Backlog",
+        valor: `${backlogDeltaPrev > 0 ? "+" : ""}${backlogDeltaPrev}%`,
+        detalhe: `${metrics.emAberto} demandas em aberto contra ${prevMetrics?.emAberto ?? 0} no período anterior.`,
+        tone: backlogDeltaPrev > 20 ? "warning" : backlogDeltaPrev < 0 ? "success" : "neutral",
+      });
+    }
+    const reinc = setorAgg.filter((s) => s.clientesTotal >= 3 && s.recorrenciaPct >= 30)[0];
+    if (reinc) {
+      out.push({
+        titulo: `Recorrência · ${reinc.setor}`,
+        valor: `${reinc.recorrenciaPct}%`,
+        detalhe: `${reinc.clientesRecorrentes} de ${reinc.clientesTotal} clientes abriram mais de uma demanda no setor.`,
+        tone: "warning",
+      });
+    }
+    if (metrics.acimaDaMeta) {
+      out.push({
+        titulo: "Devolutivas fora do prazo",
+        valor: `${metrics.pctForaDoPrazo}%`,
+        detalhe: `Acima da meta interna de ${META_FORA_PRAZO}% para o período selecionado.`,
+        tone: "danger",
+        href: "/demandas/fora-do-prazo",
+      });
+    }
+    return out.slice(0, 6);
+  }, [setorAgg, volumeSetor, filtered.length, backlogDeltaPrev, metrics, prevMetrics]);
+
+  /* ========= Prioridades de atuação ========= */
+  const prioridades = useMemo(
+    () =>
+      setorAgg
+        .filter((s) => s.classificacao && s.classificacao !== "ESTÁVEL" && s.motivos.length > 0)
+        .slice(0, 4)
+        .map((s) => ({
+          setor: s.setor,
+          motivo: s.motivos.join(" · "),
+          indicadores: `Volume ${s.volume} · SLA ${s.slaPct}% · backlog ${s.backlog} · tempo médio ${s.tempoMedio.toFixed(1)}d · recorrência ${s.recorrenciaPct}%`,
+          tone: (s.classificacao === "CRÍTICO"
+            ? "danger"
+            : s.classificacao === "ATENÇÃO"
+            ? "warning"
+            : "info") as ExecTone,
+        })),
+    [setorAgg],
+  );
+
+  /* ========= Resumo executivo ========= */
+  const resumoTexto = useMemo(() => {
+    if (filtered.length === 0) return "Sem dados para o período selecionado.";
+    const partes = [
+      `Neste período foram registradas ${filtered.length} demandas, com SLA de ${metrics.slaNoPrazoPct}% (${noPrazoQtd} de ${filtered.length} dentro do prazo) e backlog de ${metrics.emAberto} demandas em aberto.`,
+      `O tempo médio de resolução foi de ${metrics.tempoMedioDias.toFixed(1)} dias.`,
+    ];
+    if (backlogDeltaPrev !== null) {
+      partes.push(
+        backlogDeltaPrev === 0
+          ? "O backlog permaneceu estável em relação ao período anterior."
+          : `O backlog ${backlogDeltaPrev > 0 ? "aumentou" : "reduziu"} ${Math.abs(backlogDeltaPrev)}% em relação ao período anterior.`,
+      );
+    }
+    return partes.join(" ");
+  }, [filtered.length, metrics, noPrazoQtd, backlogDeltaPrev]);
+
+  const resumoDestaques = useMemo(() => {
+    const conc = volumeSetor[0];
+    const garg = gargalos[0];
+    const atencao = setorAgg.find((s) => s.classificacao === "CRÍTICO" || s.classificacao === "ATENÇÃO");
+    return [
+      {
+        label: "Principal concentração",
+        value: conc ? conc.setor : "—",
+        hint: conc ? `${conc.n} demandas · ${conc.pct}% do total` : "Sem dados no período",
+      },
+      {
+        label: "Principal gargalo",
+        value: garg ? `${garg.setor} · ${garg.tipo}` : "—",
+        hint: garg ? `${garg.qtd} demandas · ${garg.tempoMedio.toFixed(1)}d de tempo médio` : "Sem dados no período",
+      },
+      {
+        label: "Evolução do backlog",
+        value: backlogDeltaPrev === null ? "—" : `${backlogDeltaPrev > 0 ? "+" : ""}${backlogDeltaPrev}%`,
+        hint:
+          backlogDeltaPrev === null
+            ? "Sem base comparativa"
+            : `${metrics.emAberto} em aberto vs. ${prevMetrics?.emAberto ?? 0} no período anterior`,
+      },
+      {
+        label: "Indicador de atenção",
+        value: atencao
+          ? `${atencao.setor} · ${atencao.classificacao}`
+          : metrics.acimaDaMeta
+          ? `Fora do prazo ${metrics.pctForaDoPrazo}%`
+          : "Nenhum indicador fora da faixa",
+        hint: atencao
+          ? atencao.motivos[0] ?? `Impacto operacional ${atencao.impacto}`
+          : `Meta de devolutivas fora do prazo: ≤ ${META_FORA_PRAZO}%`,
+      },
+    ];
+  }, [volumeSetor, gargalos, setorAgg, backlogDeltaPrev, metrics, prevMetrics]);
+
+  const ultimaAtualizacao = useMemo(() => {
+    const ts = demandas
+      .map((d) => new Date(d.updated_at || d.created_at).getTime())
+      .filter((n) => !Number.isNaN(n));
+    if (ts.length === 0) return null;
+    return new Date(Math.max(...ts)).toLocaleString("pt-BR", { dateStyle: "short", timeStyle: "short" });
+  }, [demandas]);
 
   // ===== Insights =====
   const insights = useMemo(() => {
