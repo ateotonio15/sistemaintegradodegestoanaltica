@@ -322,3 +322,25 @@ export function buscaTitular(t: TitularCalculado, termo: string): boolean {
     (!!digits && soDigitos(t.cpf).includes(digits))
   );
 }
+
+/* ------------------------- Controle de margem financeira ------------------------ */
+
+export interface AnaliseReativacao {
+  ok: boolean;
+  disponivel: number;
+  necessario: number;
+  faltante: number;
+}
+
+/** Verifica se há margem suficiente para reativar um dependente desligado. */
+export function analisarReativacao(
+  titular: TitularCalculado,
+  dependente: DependenteCalculado,
+): AnaliseReativacao {
+  const disponivel = Number(titular.margem_restante.toFixed(2));
+  const necessario = Number(Number(dependente.valor_aplicavel || dependente.valor_mensal || 0).toFixed(2));
+  const faltante = Number(Math.max(0, necessario - disponivel).toFixed(2));
+  return { ok: faltante === 0, disponivel, necessario, faltante };
+}
+
+export const MOTIVO_FALTA_MARGEM = "Falta de margem";
