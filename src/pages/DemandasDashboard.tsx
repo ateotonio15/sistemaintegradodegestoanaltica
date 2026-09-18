@@ -67,6 +67,7 @@ import {
   GargalosTabela,
   PrioridadesAtuacao,
   VisaoComparativaSetores,
+  fmt1,
   InsightsExecutivos,
   type SetorAgg,
   type ExecTone,
