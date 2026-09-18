@@ -11,6 +11,7 @@ export interface FaixaImportLinha {
   /** Capa da tabela (descrição), opcional na planilha. */
   tabela_nome: string | null;
   plano: string | null;
+  sequencia: string | null;
   linha: number;
   erro?: string;
 }
@@ -100,7 +101,13 @@ export async function lerPlanilhaFaixas(file: File): Promise<FaixaImportLinha[]>
   const cFaixa = acharCol(headers, ["faixa", "faixa etaria", "idade"]);
   const cIni = acharCol(headers, ["idade inicial", "de", "inicio", "idade de"]);
   const cFim = acharCol(headers, ["idade final", "ate", "fim", "idade ate"]);
-  const cValor = acharCol(headers, ["valor mensal", "valor", "mensalidade", "preco"]);
+  const cValor = acharCol(headers, [
+    "valor mensal",
+    "preco atual",
+    "valor",
+    "mensalidade",
+    "preco",
+  ]);
   const cVigIni = acharCol(headers, ["vigencia inicio", "vigencia", "inicio vigencia"]);
   const cVigFim = acharCol(headers, ["vigencia fim", "fim vigencia"]);
   const cObs = acharCol(headers, ["observacao", "obs"]);
