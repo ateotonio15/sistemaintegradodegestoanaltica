@@ -236,7 +236,7 @@ export function agruparPorCarteirinha(linhas: VidaLinha[]): ResultadoLeituraVida
   return {
     familias,
     titularesSemDependentes: titularesSemDependentes.sort((a, b) =>
-      a.titular ? 0 : a.nome.localeCompare(b.nome, "pt-BR"),
+      a.nome.localeCompare(b.nome, "pt-BR"),
     ),
     inconsistencias,
     totalLinhas: linhas.length,
