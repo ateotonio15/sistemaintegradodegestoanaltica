@@ -58,6 +58,12 @@ export function FaixasUeaDialog({ open, onOpenChange }: Props) {
   const [form, setForm] = useState<ReturnType<typeof vazio> | null>(null);
   const [preview, setPreview] = useState<{ nome: string; linhas: FaixaImportLinha[] } | null>(null);
   const [substituir, setSubstituir] = useState(false);
+  const [capaForm, setCapaForm] = useState({
+    sequencia: "",
+    descricao: "",
+    vigencia_inicio: toISODateLocal(new Date()),
+    plano: "",
+  });
 
   const capas = agruparFaixasEmCapas(faixas);
   const capaAtual = capas.find((c) => c.chave === capaSel) ?? null;
