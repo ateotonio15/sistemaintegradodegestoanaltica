@@ -115,7 +115,8 @@ export function AgendamentoPlantaoDialog({ open, onOpenChange, editing, defaultD
   const handleSalvar = async () => {
     if (!empresaId || !empresaNome) return toast.error("Selecione uma empresa");
     if (datas.length === 0) return toast.error("Selecione ao menos uma data");
-    if (horaFim <= horaInicio) return toast.error("Horário de término deve ser maior que o de início");
+    // Plantões que viram o dia (ex.: 16:45 às 01:45) são permitidos: o término vale para o dia seguinte.
+    if (horaFim === horaInicio) return toast.error("Horário de término não pode ser igual ao de início");
     for (const d of datas) {
       if (isWeekend(d)) return toast.error("Agendamento apenas em dias úteis");
       const fer = feriadoMap.get(toISO(d));
