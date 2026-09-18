@@ -1412,14 +1412,28 @@ export default function Financeiro() {
       if (finPrevErr) throw finPrevErr;
 
       // Calcula data_vencimento para o novo mês mantendo o mesmo dia (com clamp para o último dia)
+      // e respeitando a regra de competência do vencimento da empresa
+      // (mês anterior / atual / posterior à competência do faturamento).
       const [yrNew, mrNew] = mes.split("-").map(Number);
-      const ultimoDiaNovoMes = new Date(yrNew, mrNew, 0).getDate();
-      const buildVencimentoNovo = (vencAnterior: string | null | undefined): string | null => {
+      const regraVencimentoPorEmpresa = new Map<string, string>();
+      (empresas || []).forEach((e: any) => {
+        regraVencimentoPorEmpresa.set(e.id, e.vencimento_competencia ?? "atual");
+      });
+      const buildVencimentoNovo = (
+        vencAnterior: string | null | undefined,
+        empresaId: string,
+      ): string | null => {
         if (!vencAnterior) return null;
         const dia = Number(vencAnterior.slice(8, 10));
         if (!dia) return null;
-        const diaFinal = Math.min(dia, ultimoDiaNovoMes);
-        return `${yrNew}-${String(mrNew).padStart(2, "0")}-${String(diaFinal).padStart(2, "0")}`;
+        const base = aplicarOffsetCompetencia(
+          mrNew - 1,
+          yrNew,
+          regraVencimentoPorEmpresa.get(empresaId),
+        );
+        const ultimoDia = new Date(base.ano, base.mes0 + 1, 0).getDate();
+        const diaFinal = Math.min(dia, ultimoDia);
+        return `${base.ano}-${String(base.mes0 + 1).padStart(2, "0")}-${String(diaFinal).padStart(2, "0")}`;
       };
 
       // Configurações por contrato (empresa+periodo) replicadas da competência anterior
@@ -1430,7 +1444,7 @@ export default function Financeiro() {
           dia_emissao: m.dia_emissao,
           tipo_cobranca: m.tipo_cobranca,
           possui_prorrogacao: m.possui_prorrogacao,
-          data_vencimento: buildVencimentoNovo(m.data_vencimento),
+          data_vencimento: buildVencimentoNovo(m.data_vencimento, m.empresa_id),
         });
       });
 
