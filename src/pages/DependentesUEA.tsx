@@ -253,7 +253,14 @@ export default function DependentesUEA() {
                 const prox = t.proxima_mudanca_faixa;
                 const proxProxima = !!prox && prox.dias <= DIAS_PROXIMA_FAIXA;
                 return (
-                  <TableRow key={t.id} className="hover:bg-muted/40">
+                  <TableRow
+                    key={t.id}
+                    className={cn(
+                      "hover:bg-muted/40",
+                      t.requer_analise_faixa && "bg-warning/10 hover:bg-warning/15",
+                      !t.requer_analise_faixa && t.margem_restante < 0 && "bg-destructive/5",
+                    )}
+                  >
                     <TableCell>
                       <div className="font-medium">{t.nome_completo}</div>
                       <div className="text-[11px] text-muted-foreground">
@@ -292,11 +299,24 @@ export default function DependentesUEA() {
                       <span
                         className={cn(
                           "inline-flex rounded-full px-2 py-0.5 text-[11px] font-medium",
-                          STATUS_CLS[t.status_margem],
+                          t.requer_analise_faixa
+                            ? "bg-warning/15 text-warning"
+                            : STATUS_CLS[t.status_margem],
                         )}
                       >
-                        {t.status_margem}
+                        {t.status_exibicao}
                       </span>
+                      {t.margem_restante < 0 && (
+                        <div className="mt-1 flex items-center gap-1 text-[11px] text-destructive">
+                          <AlertTriangle className="h-3 w-3" />
+                          Ultrapassa em {formatBRL(t.excedente_margem)}
+                        </div>
+                      )}
+                      {t.requer_analise_faixa && (
+                        <div className="mt-1 text-[11px] text-warning">
+                          Nova mensalidade ultrapassa a margem disponível.
+                        </div>
+                      )}
                     </TableCell>
                     <TableCell>
                       {prox ? (

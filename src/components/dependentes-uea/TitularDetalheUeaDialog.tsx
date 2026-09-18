@@ -16,10 +16,30 @@ import {
 } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { CalendarClock, Check, History, Pencil, Trash2, UserPlus } from "lucide-react";
+import {
+  AlertTriangle,
+  CalendarClock,
+  Check,
+  History,
+  Pencil,
+  RotateCcw,
+  Trash2,
+  UserMinus,
+  UserPlus,
+} from "lucide-react";
+import {
+  AlertDialog,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { cn } from "@/lib/utils";
 import {
   useAplicarFaixaDependenteUea,
+  useDesligarPorMargemUea,
+  useReativarDependenteUea,
   useAtualizarMargemUea,
   useExcluirDependenteUea,
   useHistoricoDependentesUea,
@@ -27,6 +47,7 @@ import {
   type DependenteInput,
 } from "@/hooks/useDependentesUea";
 import {
+  analisarReativacao,
   faixaLabel,
   faixaParaIdade,
   formatBRL,
@@ -81,12 +102,17 @@ export function TitularDetalheUeaDialog({ open, onOpenChange, titular, faixas }:
   const salvar = useSalvarDependenteUea();
   const excluir = useExcluirDependenteUea();
   const aplicarFaixa = useAplicarFaixaDependenteUea();
+  const desligarMargem = useDesligarPorMargemUea();
+  const reativar = useReativarDependenteUea();
   const atualizarMargem = useAtualizarMargemUea();
   const { data: historico = [] } = useHistoricoDependentesUea(open ? titular?.id ?? null : null);
 
   const [margemTxt, setMargemTxt] = useState("");
   const [editando, setEditando] = useState<DependenteInput | null>(null);
   const [valorTexto, setValorTexto] = useState("");
+  const [aba, setAba] = useState("dependentes");
+  const [confirmarDesligar, setConfirmarDesligar] = useState<DependenteCalculado | null>(null);
+  const [confirmarReativar, setConfirmarReativar] = useState<DependenteCalculado | null>(null);
 
   useEffect(() => {
     if (open && titular) setMargemTxt(String(titular.valor_margem));
@@ -358,7 +384,47 @@ export function TitularDetalheUeaDialog({ open, onOpenChange, titular, faixas }:
               </div>
             </Card>
 
-            <Tabs defaultValue="dependentes">
+            {/* ALERTA DE MARGEM */}
+            {titular.margem_restante < 0 && (
+              <Card className="rounded-2xl border-destructive/50 bg-destructive/10 p-4">
+                <div className="flex flex-wrap items-center justify-between gap-3">
+                  <div className="flex items-start gap-2">
+                    <AlertTriangle className="mt-0.5 h-4 w-4 text-destructive" />
+                    <div>
+                      <p className="text-sm font-semibold text-destructive">SEM MARGEM</p>
+                      <p className="text-sm text-destructive">
+                        Os valores dos dependentes ultrapassam a margem disponível do titular em{" "}
+                        {formatBRL(titular.excedente_margem)}.
+                      </p>
+                    </div>
+                  </div>
+                  <Button variant="outline" size="sm" onClick={() => setAba("dependentes")}>
+                    Analisar Dependentes
+                  </Button>
+                </div>
+              </Card>
+            )}
+
+            {titular.requer_analise_faixa && (
+              <Card className="rounded-2xl border-warning/50 bg-warning/10 p-4">
+                <div className="flex items-start gap-2">
+                  <AlertTriangle className="mt-0.5 h-4 w-4 text-warning" />
+                  <div>
+                    <p className="text-sm font-semibold text-warning">
+                      Nova mensalidade ultrapassa a margem disponível.
+                    </p>
+                    <p className="text-sm text-warning">
+                      Status: Sem margem — requer análise. Com os valores das faixas vigentes o total dos
+                      ativos seria {formatBRL(titular.valor_total_aplicavel)} e a margem restante{" "}
+                      {formatBRL(titular.margem_restante_projetada)}. Nenhum dependente foi desligado
+                      automaticamente.
+                    </p>
+                  </div>
+                </div>
+              </Card>
+            )}
+
+            <Tabs value={aba} onValueChange={setAba}>
               <TabsList>
                 <TabsTrigger value="dependentes">Dependentes ({deps.length})</TabsTrigger>
                 <TabsTrigger value="resumo">Resumo</TabsTrigger>
@@ -391,6 +457,20 @@ export function TitularDetalheUeaDialog({ open, onOpenChange, titular, faixas }:
                         <Button size="icon" variant="ghost" onClick={() => abrirEdicao(d)}>
                           <Pencil className="h-4 w-4" />
                         </Button>
+                        {d.status === "ativo" ? (
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => setConfirmarDesligar(d)}
+                          >
+                            <UserMinus className="mr-1.5 h-4 w-4" /> Marcar como desligado por falta de
+                            margem
+                          </Button>
+                        ) : (
+                          <Button size="sm" variant="outline" onClick={() => setConfirmarReativar(d)}>
+                            <RotateCcw className="mr-1.5 h-4 w-4" /> Reativar dependente
+                          </Button>
+                        )}
                         <Button size="icon" variant="ghost" onClick={() => excluir.mutate(d.id)}>
                           <Trash2 className="h-4 w-4 text-destructive" />
                         </Button>
@@ -509,30 +589,44 @@ export function TitularDetalheUeaDialog({ open, onOpenChange, titular, faixas }:
                   <Table>
                     <TableHeader>
                       <TableRow>
-                        <TableHead>Data</TableHead>
+                        <TableHead>Data e hora</TableHead>
+                        <TableHead>Dependente</TableHead>
                         <TableHead>Faixa</TableHead>
                         <TableHead className="text-right">Valor</TableHead>
+                        <TableHead className="text-right">Margem do titular</TableHead>
+                        <TableHead>Responsável</TableHead>
                         <TableHead>Motivo</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
                       {historico.length === 0 && (
                         <TableRow>
-                          <TableCell colSpan={4} className="py-8 text-center text-sm text-muted-foreground">
+                          <TableCell colSpan={7} className="py-8 text-center text-sm text-muted-foreground">
                             <History className="mx-auto mb-1 h-4 w-4" />
-                            Nenhuma alteração de faixa registrada.
+                            Nenhum registro no histórico.
                           </TableCell>
                         </TableRow>
                       )}
                       {historico.map((h) => (
                         <TableRow key={h.id}>
                           <TableCell>{new Date(h.created_at).toLocaleString("pt-BR")}</TableCell>
+                          <TableCell>{h.dependente_nome || "—"}</TableCell>
                           <TableCell>
                             {(h.faixa_anterior || "—")} → {(h.faixa_nova || "—")}
                           </TableCell>
                           <TableCell className="text-right">
-                            {formatBRL(h.valor_anterior)} → {formatBRL(h.valor_novo)}
+                            {h.tipo === "desligamento_margem" || h.tipo === "reativacao"
+                              ? formatBRL(h.valor_mensal_momento)
+                              : `${formatBRL(h.valor_anterior)} → ${formatBRL(h.valor_novo)}`}
                           </TableCell>
+                          <TableCell className="text-right">
+                            {h.margem_titular_momento === null || h.margem_titular_momento === undefined
+                              ? "—"
+                              : `${formatBRL(h.margem_titular_momento)} (restante ${formatBRL(
+                                  h.margem_restante_momento,
+                                )})`}
+                          </TableCell>
+                          <TableCell>{h.responsavel || "—"}</TableCell>
                           <TableCell>{h.motivo || "—"}</TableCell>
                         </TableRow>
                       ))}
@@ -543,6 +637,106 @@ export function TitularDetalheUeaDialog({ open, onOpenChange, titular, faixas }:
             </Tabs>
           </div>
         )}
+        {/* CONFIRMAÇÃO DE DESLIGAMENTO POR FALTA DE MARGEM */}
+        <AlertDialog
+          open={!!confirmarDesligar}
+          onOpenChange={(v) => !v && setConfirmarDesligar(null)}
+        >
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>
+                Confirmar desligamento deste dependente por falta de margem?
+              </AlertDialogTitle>
+            </AlertDialogHeader>
+            <div className="space-y-1 text-sm">
+              <p>
+                <span className="text-muted-foreground">Dependente: </span>
+                <span className="font-medium uppercase">{confirmarDesligar?.nome_completo}</span>
+              </p>
+              <p>
+                <span className="text-muted-foreground">Valor: </span>
+                <span className="font-medium">{formatBRL(confirmarDesligar?.valor_mensal)}</span>
+              </p>
+              <p>
+                <span className="text-muted-foreground">Margem atual do titular: </span>
+                <span className="font-medium">
+                  {formatBRL(titular?.valor_margem)} · restante {formatBRL(titular?.margem_restante)}
+                </span>
+              </p>
+            </div>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Cancelar</AlertDialogCancel>
+              <Button
+                variant="destructive"
+                disabled={desligarMargem.isPending}
+                onClick={async () => {
+                  if (!confirmarDesligar || !titular) return;
+                  await desligarMargem.mutateAsync({ dependente: confirmarDesligar, titular });
+                  setConfirmarDesligar(null);
+                }}
+              >
+                Confirmar desligamento
+              </Button>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+
+        {/* CONFIRMAÇÃO DE REATIVAÇÃO */}
+        <AlertDialog open={!!confirmarReativar} onOpenChange={(v) => !v && setConfirmarReativar(null)}>
+          <AlertDialogContent>
+            {(() => {
+              const analise =
+                confirmarReativar && titular ? analisarReativacao(titular, confirmarReativar) : null;
+              return (
+                <>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>
+                      {analise?.ok
+                        ? "Confirmar reativação deste dependente?"
+                        : "Não há margem suficiente para reativar este dependente."}
+                    </AlertDialogTitle>
+                  </AlertDialogHeader>
+                  <div className="space-y-1 text-sm">
+                    <p>
+                      <span className="text-muted-foreground">Dependente: </span>
+                      <span className="font-medium uppercase">{confirmarReativar?.nome_completo}</span>
+                    </p>
+                    <p>
+                      <span className="text-muted-foreground">Margem disponível: </span>
+                      <span className="font-medium">{formatBRL(analise?.disponivel)}</span>
+                    </p>
+                    <p>
+                      <span className="text-muted-foreground">Valor necessário: </span>
+                      <span className="font-medium">{formatBRL(analise?.necessario)}</span>
+                    </p>
+                    {!analise?.ok && (
+                      <p className="text-destructive">
+                        Valor faltante: {formatBRL(analise?.faltante)}
+                      </p>
+                    )}
+                  </div>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel>
+                      {analise?.ok ? "Cancelar" : "Fechar"}
+                    </AlertDialogCancel>
+                    {analise?.ok && (
+                      <Button
+                        disabled={reativar.isPending}
+                        onClick={async () => {
+                          if (!confirmarReativar || !titular) return;
+                          await reativar.mutateAsync({ dependente: confirmarReativar, titular });
+                          setConfirmarReativar(null);
+                        }}
+                      >
+                        Confirmar reativação
+                      </Button>
+                    )}
+                  </AlertDialogFooter>
+                </>
+              );
+            })()}
+          </AlertDialogContent>
+        </AlertDialog>
       </DialogContent>
     </Dialog>
   );

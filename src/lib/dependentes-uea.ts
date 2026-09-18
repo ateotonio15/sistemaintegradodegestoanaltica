@@ -75,6 +75,15 @@ export interface TitularCalculado extends TitularUea {
   valor_total_dependentes_ativos: number;
   margem_restante: number;
   status_margem: StatusMargem;
+  /** Quanto os dependentes ativos ultrapassam a margem (0 quando não ultrapassa). */
+  excedente_margem: number;
+  /** Total dos ativos considerando o valor da faixa vigente (valor a aplicar). */
+  valor_total_aplicavel: number;
+  margem_restante_projetada: number;
+  /** Mudança de faixa etária faria o titular ultrapassar a margem — requer análise humana. */
+  requer_analise_faixa: boolean;
+  /** Status exibido: inclui "Sem margem — requer análise" na mudança de faixa. */
+  status_exibicao: string;
   desligado_por_falta_de_margem: boolean;
   proxima_mudanca_faixa: { dependente: string; data: string; dias: number; label: string } | null;
   ultima_atualizacao: string;
@@ -197,6 +206,13 @@ export function calcularTitular(
   const valorAtivos = ativos.reduce((acc, d) => acc + Number(d.valor_mensal || 0), 0);
   const margem = Number(titular.valor_margem || 0);
   const restante = Number((margem - valorAtivos).toFixed(2));
+  const valorAplicavel = Number(
+    ativos.reduce((acc, d) => acc + Number(d.valor_aplicavel || 0), 0).toFixed(2),
+  );
+  const restanteProjetada = Number((margem - valorAplicavel).toFixed(2));
+  const requerAnaliseFaixa =
+    ativos.some((d) => d.valor_desatualizado) && restanteProjetada < 0;
+
 
   const proximas = ativos
     .filter((d) => d.data_proxima_mudanca && (d.dias_proxima_mudanca ?? -1) >= 0)
@@ -212,6 +228,13 @@ export function calcularTitular(
     valor_total_dependentes_ativos: Number(valorAtivos.toFixed(2)),
     margem_restante: restante,
     status_margem: statusMargem(ativos.length, restante),
+    excedente_margem: restante < 0 ? Number(Math.abs(restante).toFixed(2)) : 0,
+    valor_total_aplicavel: valorAplicavel,
+    margem_restante_projetada: restanteProjetada,
+    requer_analise_faixa: requerAnaliseFaixa,
+    status_exibicao: requerAnaliseFaixa
+      ? "Sem margem — requer análise"
+      : statusMargem(ativos.length, restante),
     desligado_por_falta_de_margem: desligados.some((d) => d.desligado_por_falta_de_margem),
     proxima_mudanca_faixa: prox
       ? {
@@ -299,3 +322,25 @@ export function buscaTitular(t: TitularCalculado, termo: string): boolean {
     (!!digits && soDigitos(t.cpf).includes(digits))
   );
 }
+
+/* ------------------------- Controle de margem financeira ------------------------ */
+
+export interface AnaliseReativacao {
+  ok: boolean;
+  disponivel: number;
+  necessario: number;
+  faltante: number;
+}
+
+/** Verifica se há margem suficiente para reativar um dependente desligado. */
+export function analisarReativacao(
+  titular: TitularCalculado,
+  dependente: DependenteCalculado,
+): AnaliseReativacao {
+  const disponivel = Number(titular.margem_restante.toFixed(2));
+  const necessario = Number(Number(dependente.valor_aplicavel || dependente.valor_mensal || 0).toFixed(2));
+  const faltante = Number(Math.max(0, necessario - disponivel).toFixed(2));
+  return { ok: faltante === 0, disponivel, necessario, faltante };
+}
+
+export const MOTIVO_FALTA_MARGEM = "Falta de margem";

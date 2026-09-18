@@ -3,8 +3,11 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import {
+  analisarReativacao,
   calcularTitular,
   faixaLabel,
+  MOTIVO_FALTA_MARGEM,
+  type DependenteCalculado,
   type DependenteUea,
   type FaixaUea,
   type TitularCalculado,
@@ -290,6 +293,13 @@ export interface HistoricoDependente {
   valor_novo: number | null;
   motivo: string | null;
   created_at: string;
+  tipo?: string | null;
+  valor_mensal_momento?: number | null;
+  margem_titular_momento?: number | null;
+  margem_restante_momento?: number | null;
+  created_by?: string | null;
+  responsavel?: string;
+  dependente_nome?: string;
 }
 
 export function useHistoricoDependentesUea(titularId: string | null) {
@@ -299,7 +309,7 @@ export function useHistoricoDependentesUea(titularId: string | null) {
     queryFn: async (): Promise<HistoricoDependente[]> => {
       const { data: deps, error: e1 } = await supabase
         .from("uea_dependentes")
-        .select("id")
+        .select("id, nome_completo")
         .eq("titular_id", titularId as string);
       if (e1) throw e1;
       const ids = (deps ?? []).map((d: any) => d.id);
@@ -310,10 +320,34 @@ export function useHistoricoDependentesUea(titularId: string | null) {
         .in("dependente_id", ids)
         .order("created_at", { ascending: false });
       if (error) throw error;
-      return ((data ?? []) as any[]).map((h) => ({
+      const rows = (data ?? []) as any[];
+      const nomesMap = new Map<string, string>();
+      const userIds = Array.from(new Set(rows.map((h) => h.created_by).filter(Boolean)));
+      if (userIds.length > 0) {
+        const { data: nomes } = await supabase.rpc("get_user_display_names", { _ids: userIds });
+        (nomes ?? []).forEach((n: any) => nomesMap.set(n.user_id, n.display_name));
+      }
+      const nomeDep = new Map<string, string>(
+        ((deps ?? []) as any[]).map((d) => [d.id, d.nome_completo as string]),
+      );
+      return rows.map((h) => ({
         ...h,
         valor_anterior: h.valor_anterior === null ? null : Number(h.valor_anterior),
         valor_novo: h.valor_novo === null ? null : Number(h.valor_novo),
+        valor_mensal_momento:
+          h.valor_mensal_momento === null || h.valor_mensal_momento === undefined
+            ? null
+            : Number(h.valor_mensal_momento),
+        margem_titular_momento:
+          h.margem_titular_momento === null || h.margem_titular_momento === undefined
+            ? null
+            : Number(h.margem_titular_momento),
+        margem_restante_momento:
+          h.margem_restante_momento === null || h.margem_restante_momento === undefined
+            ? null
+            : Number(h.margem_restante_momento),
+        responsavel: h.created_by ? nomesMap.get(h.created_by) ?? "—" : "—",
+        dependente_nome: nomeDep.get(h.dependente_id) ?? "—",
       })) as HistoricoDependente[];
     },
   });
@@ -359,5 +393,100 @@ export function useAplicarFaixaDependenteUea() {
     },
     onError: (e: any) =>
       toast({ title: "Erro ao aplicar faixa", description: e.message, variant: "destructive" }),
+  });
+}
+
+/* ---------------------- Desligamento / reativação por margem ---------------------- */
+
+interface EventoMargemArgs {
+  dependente: DependenteCalculado;
+  titular: TitularCalculado;
+  motivo?: string;
+}
+
+/** Desliga um dependente por falta de margem (somente após confirmação humana). */
+export function useDesligarPorMargemUea() {
+  const qc = useQueryClient();
+  const { toast } = useToast();
+  return useMutation({
+    mutationFn: async ({ dependente, titular, motivo }: EventoMargemArgs) => {
+      const hoje = new Date();
+      const dataISO = `${hoje.getFullYear()}-${String(hoje.getMonth() + 1).padStart(2, "0")}-${String(
+        hoje.getDate(),
+      ).padStart(2, "0")}`;
+      const valorMomento = Number(dependente.valor_mensal || 0);
+      const { error } = await supabase
+        .from("uea_dependentes")
+        .update({
+          status: "desligado",
+          motivo_desligamento: motivo || MOTIVO_FALTA_MARGEM,
+          data_desligamento: dataISO,
+        })
+        .eq("id", dependente.id);
+      if (error) throw error;
+      const { error: e2 } = await supabase.from("uea_dependente_historico").insert({
+        dependente_id: dependente.id,
+        tipo: "desligamento_margem",
+        faixa_anterior: dependente.faixa_etaria,
+        faixa_nova: dependente.faixa_etaria,
+        valor_anterior: valorMomento,
+        valor_novo: 0,
+        valor_mensal_momento: valorMomento,
+        margem_titular_momento: titular.valor_margem,
+        margem_restante_momento: titular.margem_restante,
+        motivo: motivo || MOTIVO_FALTA_MARGEM,
+      });
+      if (e2) throw e2;
+    },
+    onSuccess: (_d, vars) => {
+      qc.invalidateQueries({ queryKey: KEY });
+      qc.invalidateQueries({ queryKey: ["uea-historico", vars.titular.id] });
+      toast({ title: "Dependente desligado por falta de margem" });
+    },
+    onError: (e: any) =>
+      toast({ title: "Erro ao desligar dependente", description: e.message, variant: "destructive" }),
+  });
+}
+
+/** Reativa um dependente desligado (valida margem disponível antes). */
+export function useReativarDependenteUea() {
+  const qc = useQueryClient();
+  const { toast } = useToast();
+  return useMutation({
+    mutationFn: async ({ dependente, titular }: EventoMargemArgs) => {
+      const analise = analisarReativacao(titular, dependente);
+      if (!analise.ok) throw new Error("Não há margem suficiente para reativar este dependente.");
+      const valorMomento = Number(dependente.valor_aplicavel || dependente.valor_mensal || 0);
+      const { error } = await supabase
+        .from("uea_dependentes")
+        .update({
+          status: "ativo",
+          motivo_desligamento: null,
+          data_desligamento: null,
+          valor_mensal: valorMomento,
+        })
+        .eq("id", dependente.id);
+      if (error) throw error;
+      const { error: e2 } = await supabase.from("uea_dependente_historico").insert({
+        dependente_id: dependente.id,
+        tipo: "reativacao",
+        faixa_anterior: dependente.faixa_etaria,
+        faixa_nova: dependente.faixa_atual ? faixaLabel(dependente.faixa_atual) : dependente.faixa_etaria,
+        valor_anterior: Number(dependente.valor_mensal || 0),
+        valor_novo: valorMomento,
+        valor_mensal_momento: valorMomento,
+        margem_titular_momento: titular.valor_margem,
+        margem_restante_momento: titular.margem_restante,
+        motivo: "Reativação com margem disponível",
+      });
+      if (e2) throw e2;
+    },
+    onSuccess: (_d, vars) => {
+      qc.invalidateQueries({ queryKey: KEY });
+      qc.invalidateQueries({ queryKey: ["uea-historico", vars.titular.id] });
+      toast({ title: "Dependente reativado" });
+    },
+    onError: (e: any) =>
+      toast({ title: "Não foi possível reativar", description: e.message, variant: "destructive" }),
   });
 }
