@@ -29,6 +29,7 @@ import {
   Pencil,
   Plus,
   Search,
+  Settings2,
   Trash2,
   UserCheck,
   UserMinus,
@@ -37,7 +38,8 @@ import {
 } from "lucide-react";
 import { useExcluirTitularUea, useTitularesUea } from "@/hooks/useDependentesUea";
 import { TitularUeaDialog } from "@/components/dependentes-uea/TitularUeaDialog";
-import { DependentesUeaDialog } from "@/components/dependentes-uea/DependentesUeaDialog";
+import { TitularDetalheUeaDialog } from "@/components/dependentes-uea/TitularDetalheUeaDialog";
+import { FaixasUeaDialog } from "@/components/dependentes-uea/FaixasUeaDialog";
 import {
   aplicaFiltro,
   buscaTitular,
@@ -97,7 +99,8 @@ function KpiCard({
 }
 
 export default function DependentesUEA() {
-  const { titulares, isLoading } = useTitularesUea();
+  const { titulares, faixas, isLoading } = useTitularesUea();
+  const [faixasOpen, setFaixasOpen] = useState(false);
   const excluir = useExcluirTitularUea();
 
   const [busca, setBusca] = useState("");
@@ -140,9 +143,14 @@ export default function DependentesUEA() {
             margem disponível.
           </p>
         </div>
-        <Button onClick={() => setNovoOpen(true)}>
-          <Plus className="mr-1.5 h-4 w-4" /> Novo titular
-        </Button>
+        <div className="flex gap-2">
+          <Button variant="outline" onClick={() => setFaixasOpen(true)}>
+            <Settings2 className="mr-1.5 h-4 w-4" /> Faixas etárias e valores
+          </Button>
+          <Button onClick={() => setNovoOpen(true)}>
+            <Plus className="mr-1.5 h-4 w-4" /> Novo titular
+          </Button>
+        </div>
       </div>
 
       <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-6">
@@ -299,7 +307,7 @@ export default function DependentesUEA() {
                           )}
                         >
                           <CalendarClock className="h-3.5 w-3.5" />
-                          {formatDataBR(prox.data)} · {prox.faixa_atual} → {prox.proxima_faixa}
+                          {formatDataBR(prox.data)} · {prox.label}
                         </span>
                       ) : (
                         <span className="text-xs text-muted-foreground">—</span>
@@ -336,11 +344,13 @@ export default function DependentesUEA() {
         onOpenChange={(v) => !v && setEditando(null)}
         titular={editando}
       />
-      <DependentesUeaDialog
+      <TitularDetalheUeaDialog
         open={!!depsTitular}
         onOpenChange={(v) => !v && setDepsTitular(null)}
         titular={titularAtual}
+        faixas={faixas}
       />
+      <FaixasUeaDialog open={faixasOpen} onOpenChange={setFaixasOpen} />
 
       <AlertDialog open={!!excluirId} onOpenChange={(v) => !v && setExcluirId(null)}>
         <AlertDialogContent>

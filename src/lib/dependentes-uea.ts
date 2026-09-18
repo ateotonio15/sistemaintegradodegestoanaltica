@@ -1,4 +1,6 @@
 // Regras do módulo Dependentes UEA (independente dos demais módulos).
+// As faixas etárias e seus valores são SEMPRE lidos da configuração (uea_faixas),
+// nunca fixados em código.
 
 export type DependenteStatus = "ativo" | "desligado";
 
@@ -7,6 +9,16 @@ export type StatusMargem =
   | "Com margem"
   | "Margem comprometida"
   | "Sem margem";
+
+export interface FaixaUea {
+  id: string;
+  idade_inicial: number;
+  idade_final: number | null;
+  valor_mensal: number;
+  vigencia_inicio: string;
+  vigencia_fim: string | null;
+  observacao: string | null;
+}
 
 export interface DependenteUea {
   id: string;
@@ -38,7 +50,25 @@ export interface TitularUea {
   dependentes: DependenteUea[];
 }
 
+export interface DependenteCalculado extends DependenteUea {
+  idade_atual: number | null;
+  faixa_atual: FaixaUea | null;
+  faixa_atual_label: string;
+  /** Valor da faixa configurada; se não houver configuração aplicável, usa o valor cadastrado. */
+  valor_aplicavel: number;
+  /** Diferença entre o valor cadastrado e o valor da faixa configurada. */
+  valor_desatualizado: boolean;
+  proxima_faixa: FaixaUea | null;
+  proxima_faixa_label: string | null;
+  data_proxima_mudanca: string | null;
+  dias_proxima_mudanca: number | null;
+  proximo_valor: number | null;
+  desligado_por_falta_de_margem: boolean;
+  status_label: string;
+}
+
 export interface TitularCalculado extends TitularUea {
+  dependentes_calculados: DependenteCalculado[];
   quantidade_dependentes: number;
   quantidade_dependentes_ativos: number;
   quantidade_dependentes_desligados: number;
@@ -46,35 +76,13 @@ export interface TitularCalculado extends TitularUea {
   margem_restante: number;
   status_margem: StatusMargem;
   desligado_por_falta_de_margem: boolean;
-  proxima_mudanca_faixa: ProximaFaixa | null;
+  proxima_mudanca_faixa: { dependente: string; data: string; dias: number; label: string } | null;
   ultima_atualizacao: string;
 }
 
-export interface ProximaFaixa {
-  dependente: string;
-  faixa_atual: string;
-  proxima_faixa: string;
-  data: string; // ISO
-  dias: number;
-}
-
-// Faixas etárias padrão (ANS) — limites de idade inicial de cada faixa.
-export const FAIXAS_ETARIAS: { label: string; min: number; max: number | null }[] = [
-  { label: "0 a 18", min: 0, max: 18 },
-  { label: "19 a 23", min: 19, max: 23 },
-  { label: "24 a 28", min: 24, max: 28 },
-  { label: "29 a 33", min: 29, max: 33 },
-  { label: "34 a 38", min: 34, max: 38 },
-  { label: "39 a 43", min: 39, max: 43 },
-  { label: "44 a 48", min: 44, max: 48 },
-  { label: "49 a 53", min: 49, max: 53 },
-  { label: "54 a 58", min: 54, max: 58 },
-  { label: "59 ou mais", min: 59, max: null },
-];
-
 /** Constrói a data local sem deslocamento de fuso (padrão do sistema). */
 export function parseISODateLocal(iso: string): Date {
-  const [y, m, d] = iso.split("-").map(Number);
+  const [y, m, d] = iso.slice(0, 10).split("-").map(Number);
   return new Date(y, (m ?? 1) - 1, d ?? 1);
 }
 
@@ -93,34 +101,82 @@ export function idadeEm(nascimentoISO: string, ref = new Date()): number {
   return idade;
 }
 
-export function faixaDaIdade(idade: number): string {
-  const faixa = FAIXAS_ETARIAS.find((f) => idade >= f.min && (f.max === null || idade <= f.max));
-  return faixa?.label ?? "—";
+export function faixaLabel(f: FaixaUea): string {
+  return f.idade_final === null
+    ? `${f.idade_inicial} ou mais`
+    : `${f.idade_inicial} a ${f.idade_final}`;
 }
 
-/** Próxima data em que o dependente muda de faixa etária. */
-export function proximaMudancaFaixa(dep: DependenteUea, ref = new Date()): ProximaFaixa | null {
-  if (!dep.data_nascimento || dep.status !== "ativo") return null;
-  const idade = idadeEm(dep.data_nascimento, ref);
-  const idxAtual = FAIXAS_ETARIAS.findIndex(
-    (f) => idade >= f.min && (f.max === null || idade <= f.max),
+/** Faixas em vigência na data de referência, ordenadas por idade inicial. */
+export function faixasVigentes(faixas: FaixaUea[], ref = new Date()): FaixaUea[] {
+  const iso = toISODateLocal(ref);
+  return faixas
+    .filter(
+      (f) =>
+        (!f.vigencia_inicio || f.vigencia_inicio.slice(0, 10) <= iso) &&
+        (!f.vigencia_fim || f.vigencia_fim.slice(0, 10) >= iso),
+    )
+    .sort((a, b) => a.idade_inicial - b.idade_inicial);
+}
+
+export function faixaParaIdade(faixas: FaixaUea[], idade: number, ref = new Date()): FaixaUea | null {
+  return (
+    faixasVigentes(faixas, ref).find(
+      (f) => idade >= f.idade_inicial && (f.idade_final === null || idade <= f.idade_final),
+    ) ?? null
   );
-  if (idxAtual < 0 || idxAtual === FAIXAS_ETARIAS.length - 1) return null;
-  const proxima = FAIXAS_ETARIAS[idxAtual + 1];
-  const nasc = parseISODateLocal(dep.data_nascimento);
-  const data = new Date(nasc.getFullYear() + proxima.min, nasc.getMonth(), nasc.getDate());
-  const dias = Math.ceil((data.getTime() - ref.getTime()) / 86_400_000);
-  if (dias < 0) return null;
-  return {
-    dependente: dep.nome_completo,
-    faixa_atual: FAIXAS_ETARIAS[idxAtual].label,
-    proxima_faixa: proxima.label,
-    data: toISODateLocal(data),
-    dias,
-  };
 }
 
 export const DIAS_PROXIMA_FAIXA = 90;
+
+export function calcularDependente(
+  dep: DependenteUea,
+  faixas: FaixaUea[],
+  ref = new Date(),
+): DependenteCalculado {
+  const idade = dep.data_nascimento ? idadeEm(dep.data_nascimento, ref) : null;
+  const vigentes = faixasVigentes(faixas, ref);
+  const faixaAtual = idade === null ? null : faixaParaIdade(faixas, idade, ref);
+  const valorAplicavel = faixaAtual ? Number(faixaAtual.valor_mensal) : Number(dep.valor_mensal || 0);
+
+  let proxima: FaixaUea | null = null;
+  let dataProxima: string | null = null;
+  let diasProxima: number | null = null;
+  if (idade !== null && dep.data_nascimento) {
+    proxima = vigentes.find((f) => f.idade_inicial > idade) ?? null;
+    if (proxima) {
+      const nasc = parseISODateLocal(dep.data_nascimento);
+      const data = new Date(nasc.getFullYear() + proxima.idade_inicial, nasc.getMonth(), nasc.getDate());
+      dataProxima = toISODateLocal(data);
+      diasProxima = Math.ceil((data.getTime() - ref.getTime()) / 86_400_000);
+    }
+  }
+
+  const porFaltaMargem =
+    dep.status === "desligado" && /margem/i.test(dep.motivo_desligamento ?? "");
+
+  return {
+    ...dep,
+    idade_atual: idade,
+    faixa_atual: faixaAtual,
+    faixa_atual_label: faixaAtual ? faixaLabel(faixaAtual) : dep.faixa_etaria || "—",
+    valor_aplicavel: Number(valorAplicavel.toFixed(2)),
+    valor_desatualizado:
+      !!faixaAtual && Number(faixaAtual.valor_mensal).toFixed(2) !== Number(dep.valor_mensal || 0).toFixed(2),
+    proxima_faixa: proxima,
+    proxima_faixa_label: proxima ? faixaLabel(proxima) : null,
+    data_proxima_mudanca: dataProxima,
+    dias_proxima_mudanca: diasProxima,
+    proximo_valor: proxima ? Number(Number(proxima.valor_mensal).toFixed(2)) : null,
+    desligado_por_falta_de_margem: porFaltaMargem,
+    status_label:
+      dep.status === "ativo"
+        ? "Ativo"
+        : porFaltaMargem
+        ? "Desligado por falta de margem"
+        : "Desligado",
+  };
+}
 
 export function statusMargem(ativos: number, margemRestante: number): StatusMargem {
   if (ativos === 0) return "Sem dependentes";
@@ -129,33 +185,42 @@ export function statusMargem(ativos: number, margemRestante: number): StatusMarg
   return "Sem margem";
 }
 
-const RE_FALTA_MARGEM = /(falta|sem)\s+de?\s*margem|margem/i;
-
-export function calcularTitular(titular: TitularUea, ref = new Date()): TitularCalculado {
-  const deps = titular.dependentes ?? [];
+export function calcularTitular(
+  titular: TitularUea,
+  faixas: FaixaUea[] = [],
+  ref = new Date(),
+): TitularCalculado {
+  const deps = (titular.dependentes ?? []).map((d) => calcularDependente(d, faixas, ref));
   const ativos = deps.filter((d) => d.status === "ativo");
   const desligados = deps.filter((d) => d.status === "desligado");
+  // Dependentes desligados NÃO entram no valor mensal atual.
   const valorAtivos = ativos.reduce((acc, d) => acc + Number(d.valor_mensal || 0), 0);
   const margem = Number(titular.valor_margem || 0);
   const restante = Number((margem - valorAtivos).toFixed(2));
 
   const proximas = ativos
-    .map((d) => proximaMudancaFaixa(d, ref))
-    .filter((p): p is ProximaFaixa => !!p)
-    .sort((a, b) => a.dias - b.dias);
+    .filter((d) => d.data_proxima_mudanca && (d.dias_proxima_mudanca ?? -1) >= 0)
+    .sort((a, b) => (a.dias_proxima_mudanca ?? 0) - (b.dias_proxima_mudanca ?? 0));
+  const prox = proximas[0];
 
   return {
     ...titular,
+    dependentes_calculados: deps,
     quantidade_dependentes: deps.length,
     quantidade_dependentes_ativos: ativos.length,
     quantidade_dependentes_desligados: desligados.length,
     valor_total_dependentes_ativos: Number(valorAtivos.toFixed(2)),
     margem_restante: restante,
     status_margem: statusMargem(ativos.length, restante),
-    desligado_por_falta_de_margem: desligados.some((d) =>
-      RE_FALTA_MARGEM.test(d.motivo_desligamento ?? ""),
-    ),
-    proxima_mudanca_faixa: proximas[0] ?? null,
+    desligado_por_falta_de_margem: desligados.some((d) => d.desligado_por_falta_de_margem),
+    proxima_mudanca_faixa: prox
+      ? {
+          dependente: prox.nome_completo,
+          data: prox.data_proxima_mudanca as string,
+          dias: prox.dias_proxima_mudanca as number,
+          label: `${prox.faixa_atual_label} → ${prox.proxima_faixa_label}`,
+        }
+      : null,
     ultima_atualizacao: [titular.updated_at, ...deps.map((d) => d.updated_at)]
       .filter(Boolean)
       .sort()
@@ -211,18 +276,17 @@ export function soDigitos(v: string): string {
 
 export function formatCPF(v: string | null | undefined): string {
   const d = soDigitos(v ?? "");
-  if (d.length !== 11) return v ?? "—";
+  if (d.length !== 11) return v || "—";
   return `${d.slice(0, 3)}.${d.slice(3, 6)}.${d.slice(6, 9)}-${d.slice(9)}`;
 }
 
-export function formatBRL(v: number): string {
-  return v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+export function formatBRL(v: number | null | undefined): string {
+  return Number(v ?? 0).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 }
 
 export function formatDataBR(iso: string | null | undefined): string {
   if (!iso) return "—";
-  const d = parseISODateLocal(iso.slice(0, 10));
-  return d.toLocaleDateString("pt-BR");
+  return parseISODateLocal(iso).toLocaleDateString("pt-BR");
 }
 
 export function buscaTitular(t: TitularCalculado, termo: string): boolean {
