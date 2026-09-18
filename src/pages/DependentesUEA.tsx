@@ -307,7 +307,7 @@ export default function DependentesUEA() {
                           )}
                         >
                           <CalendarClock className="h-3.5 w-3.5" />
-                          {formatDataBR(prox.data)} · {prox.faixa_atual} → {prox.proxima_faixa}
+                          {formatDataBR(prox.data)} · {prox.label}
                         </span>
                       ) : (
                         <span className="text-xs text-muted-foreground">—</span>
