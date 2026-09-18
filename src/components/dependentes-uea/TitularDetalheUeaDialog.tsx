@@ -119,6 +119,7 @@ export function TitularDetalheUeaDialog({
   const [margemTxt, setMargemTxt] = useState("");
   const [editando, setEditando] = useState<DependenteInput | null>(null);
   const [valorTexto, setValorTexto] = useState("");
+  const [valorCustom, setValorCustom] = useState(false);
   const [aba, setAba] = useState("dependentes");
   const [confirmarDesligar, setConfirmarDesligar] = useState<DependenteCalculado | null>(null);
   const [confirmarReativar, setConfirmarReativar] = useState<DependenteCalculado | null>(null);
@@ -148,11 +149,13 @@ export function TitularDetalheUeaDialog({
   const submit = async () => {
     if (!editando || !editando.nome_completo.trim()) return;
     const valorManual = parseValorBr(valorTexto);
+    const valorFinal =
+      valorCustom || !faixaEditando ? valorManual || 0 : Number(faixaEditando.valor_mensal);
     await salvar.mutateAsync({
       ...editando,
       cpf: editando.cpf ? soDigitos(editando.cpf) : null,
       faixa_etaria: faixaEditando ? faixaLabel(faixaEditando) : editando.faixa_etaria || null,
-      valor_mensal: faixaEditando ? Number(faixaEditando.valor_mensal) : valorManual || 0,
+      valor_mensal: Number(valorFinal.toFixed(2)),
     });
     setEditando(null);
   };
@@ -173,6 +176,7 @@ export function TitularDetalheUeaDialog({
       observacao: d.observacao ?? "",
     });
     setValorTexto(String(d.valor_mensal));
+    setValorCustom(true);
   };
 
   return (
@@ -227,14 +231,26 @@ export function TitularDetalheUeaDialog({
                 <Label>Valor mensal (R$)</Label>
                 <Input
                   inputMode="decimal"
-                  readOnly={!!faixaEditando}
-                  value={faixaEditando ? String(faixaEditando.valor_mensal) : valorTexto}
-                  onChange={(e) => setValorTexto(e.target.value)}
+                  value={
+                    faixaEditando && !valorCustom
+                      ? String(faixaEditando.valor_mensal)
+                      : valorTexto
+                  }
+                  onChange={(e) => {
+                    setValorTexto(e.target.value);
+                    setValorCustom(true);
+                  }}
                 />
-                {!faixaEditando && (
+                {faixaEditando && !valorCustom ? (
                   <p className="text-[11px] text-muted-foreground">
-                    Sem faixa configurada para esta idade — informe o valor manualmente.
+                    Valor da faixa {faixaLabel(faixaEditando)} — edite se precisar de um valor diferente.
                   </p>
+                ) : (
+                  !faixaEditando && (
+                    <p className="text-[11px] text-muted-foreground">
+                      Sem faixa configurada para esta idade — informe o valor manualmente.
+                    </p>
+                  )
                 )}
               </div>
               <div className="grid gap-1.5">
@@ -446,7 +462,7 @@ export function TitularDetalheUeaDialog({
               <TabsContent value="dependentes" className="space-y-3 pt-3">
                 {podeEditar && (
                   <div className="flex justify-end">
-                    <Button size="sm" onClick={() => { setEditando(vazio(titular.id)); setValorTexto(""); }}>
+                    <Button size="sm" onClick={() => { setEditando(vazio(titular.id)); setValorTexto(""); setValorCustom(false); }}>
                       <UserPlus className="mr-1.5 h-4 w-4" /> Novo dependente
                     </Button>
                   </div>
