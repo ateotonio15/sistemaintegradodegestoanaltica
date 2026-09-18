@@ -193,6 +193,7 @@ type Ctx = {
   isVendas: boolean;
   role: string | null | undefined;
   canHonda: boolean;
+  canVerUea: boolean;
 };
 
 type LeafShortcut = {
