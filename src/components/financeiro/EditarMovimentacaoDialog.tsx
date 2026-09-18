@@ -357,7 +357,15 @@ export function EditarMovimentacaoDialog({ open, onOpenChange, movimentacao, emp
       const dia = parseInt(diaVencimento, 10);
       const mes = movimentacao.mes_referencia;
       if (mes && /^\d{4}-\d{2}$/.test(mes) && dia >= 1 && dia <= 31) {
-        dataVencimentoIso = `${mes}-${String(dia).padStart(2, "0")}`;
+        // Regra da empresa: vencimento no mês anterior / atual / posterior à competência
+        const base = aplicarOffsetCompetencia(
+          Number(mes.slice(5, 7)) - 1,
+          Number(mes.slice(0, 4)),
+          (empresaCfg as any)?.vencimento_competencia,
+        );
+        const ultimoDia = new Date(base.ano, base.mes0 + 1, 0).getDate();
+        const diaFinal = Math.min(dia, ultimoDia);
+        dataVencimentoIso = `${base.ano}-${String(base.mes0 + 1).padStart(2, "0")}-${String(diaFinal).padStart(2, "0")}`;
       }
     }
     const payload: Record<string, unknown> = {
