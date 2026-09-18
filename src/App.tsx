@@ -148,6 +148,14 @@ function AdminInternoGate() {
   return <Outlet />;
 }
 
+// Dependentes UEA: acesso por permissão individual (bloqueia também a URL direta).
+function UeaGate({ children }: { children: React.ReactNode }) {
+  const { canVerUea, isLoading } = useMinhaPermissaoUea();
+  if (isLoading) return <Loading />;
+  if (!canVerUea) return <Navigate to="/" replace />;
+  return <>{children}</>;
+}
+
 function AdminOuInternoGate() {
   const { loading, isAdmin, isAdminInterno } = useAuth();
   if (loading) return <Loading />;
