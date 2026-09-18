@@ -53,7 +53,7 @@ import { cn } from "@/lib/utils";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import ApresentacaoIndicadores, { type ApresentacaoHandle } from "@/pages/ApresentacaoIndicadores";
 import { useDemandas } from "@/hooks/useDemandas";
-import { parseLocalDate, type Demanda } from "@/lib/demandas-utils";
+import { getStatus, parseLocalDate, type Demanda } from "@/lib/demandas-utils";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import {
@@ -67,9 +67,13 @@ import {
   GargalosTabela,
   PrioridadesAtuacao,
   VisaoComparativaSetores,
+  InsightsExecutivos,
   type SetorAgg,
   type ExecTone,
+  type Insight,
+  type GargaloRow,
 } from "@/components/demandas/exec/ExecSections";
+import { SetorDrilldown, type SetorDetalhe } from "@/components/demandas/exec/SetorDrilldown";
 
 /* ============================================================
    Constantes de SLA / Negócio
