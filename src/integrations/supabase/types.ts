@@ -2021,6 +2021,7 @@ export type Database = {
           updated_at: string
           valor_apartamento_centavos: number | null
           valor_enfermaria_centavos: number | null
+          vencimento_competencia: string
           vidas: number
         }
         Insert: {
@@ -2082,6 +2083,7 @@ export type Database = {
           updated_at?: string
           valor_apartamento_centavos?: number | null
           valor_enfermaria_centavos?: number | null
+          vencimento_competencia?: string
           vidas?: number
         }
         Update: {
@@ -2143,6 +2145,7 @@ export type Database = {
           updated_at?: string
           valor_apartamento_centavos?: number | null
           valor_enfermaria_centavos?: number | null
+          vencimento_competencia?: string
           vidas?: number
         }
         Relationships: [
