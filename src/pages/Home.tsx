@@ -5,6 +5,7 @@ import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useCanAccessHonda } from "@/hooks/useHondaExclusoes";
+import { useMinhaPermissaoUea } from "@/hooks/useUeaPermissoes";
 import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
