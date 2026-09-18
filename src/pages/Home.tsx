@@ -406,6 +406,7 @@ export default function Home() {
   const { isAdmin, isExecutivo, isExecutivoExterno, isViewOnly, isEnfermeira, isFinanceiro, isVendas, role, user } = useAuth();
   const soSaude = role === "tec_enfermagem";
   const { data: canHonda } = useCanAccessHonda();
+  const { canVerUea } = useMinhaPermissaoUea();
   const [query, setQuery] = useState("");
   const [tab, setTab] = useState<"funcoes" | "utilitarios">("funcoes");
   const [openGroup, setOpenGroup] = useState<string | null>(null);
