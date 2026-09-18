@@ -161,6 +161,11 @@ export default function DependentesUEA() {
             <Settings2 className="mr-1.5 h-4 w-4" /> Faixas etárias e valores
           </Button>
           {canEditarUea && (
+            <Button variant="outline" onClick={() => setImportarOpen(true)}>
+              <Upload className="mr-1.5 h-4 w-4" /> Importar Layout de Vidas
+            </Button>
+          )}
+          {canEditarUea && (
             <Button onClick={() => setNovoOpen(true)}>
               <Plus className="mr-1.5 h-4 w-4" /> Novo titular
             </Button>
