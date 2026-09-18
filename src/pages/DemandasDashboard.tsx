@@ -1090,6 +1090,33 @@ export default function DemandasDashboard() {
                     </SelectContent>
                   </Select>
                 </Field>
+                <Field label="Setor">
+                  <Select value={setorFiltro} onValueChange={setSetorFiltro}>
+                    <SelectTrigger className="h-9" aria-label="Filtrar por setor"><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="__all__">Todos</SelectItem>
+                      {setoresOpts.map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
+                </Field>
+                <Field label="Status">
+                  <Select value={statusFiltro} onValueChange={setStatusFiltro}>
+                    <SelectTrigger className="h-9" aria-label="Filtrar por status"><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="__all__">Todos</SelectItem>
+                      {statusOpts.map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
+                </Field>
+                <Field label="Tipo de demanda">
+                  <Select value={tipoFiltro} onValueChange={setTipoFiltro}>
+                    <SelectTrigger className="h-9" aria-label="Filtrar por tipo de demanda"><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="__all__">Todos</SelectItem>
+                      {tiposOpts.map((t) => <SelectItem key={t} value={t}>{t}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
+                </Field>
               </div>
               <div className="flex flex-wrap items-center justify-between gap-3">
                 <p className="text-[11px] text-muted-foreground">
