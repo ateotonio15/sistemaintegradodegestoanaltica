@@ -29,6 +29,7 @@ import {
   Pencil,
   Plus,
   Search,
+  Settings2,
   Trash2,
   UserCheck,
   UserMinus,
@@ -142,9 +143,14 @@ export default function DependentesUEA() {
             margem disponível.
           </p>
         </div>
-        <Button onClick={() => setNovoOpen(true)}>
-          <Plus className="mr-1.5 h-4 w-4" /> Novo titular
-        </Button>
+        <div className="flex gap-2">
+          <Button variant="outline" onClick={() => setFaixasOpen(true)}>
+            <Settings2 className="mr-1.5 h-4 w-4" /> Faixas etárias e valores
+          </Button>
+          <Button onClick={() => setNovoOpen(true)}>
+            <Plus className="mr-1.5 h-4 w-4" /> Novo titular
+          </Button>
+        </div>
       </div>
 
       <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-6">
@@ -338,11 +344,13 @@ export default function DependentesUEA() {
         onOpenChange={(v) => !v && setEditando(null)}
         titular={editando}
       />
-      <DependentesUeaDialog
+      <TitularDetalheUeaDialog
         open={!!depsTitular}
         onOpenChange={(v) => !v && setDepsTitular(null)}
         titular={titularAtual}
+        faixas={faixas}
       />
+      <FaixasUeaDialog open={faixasOpen} onOpenChange={setFaixasOpen} />
 
       <AlertDialog open={!!excluirId} onOpenChange={(v) => !v && setExcluirId(null)}>
         <AlertDialogContent>
