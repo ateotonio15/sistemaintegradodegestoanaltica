@@ -193,6 +193,9 @@ export default function DemandasDashboard() {
   const [dataFim, setDataFim] = useState<string>(toISO(lastDayOfMonth()));
   const [empresa, setEmpresa] = useState<string>("__all__");
   const [executiva, setExecutiva] = useState<string>("__all__");
+  const [setorFiltro, setSetorFiltro] = useState<string>("__all__");
+  const [statusFiltro, setStatusFiltro] = useState<string>("__all__");
+  const [tipoFiltro, setTipoFiltro] = useState<string>("__all__");
   const [activeTab, setActiveTab] = useState<string>("dashboard");
   const apresentacaoRef = useRef<ApresentacaoHandle | null>(null);
 
@@ -206,6 +209,27 @@ export default function DemandasDashboard() {
       Array.from(new Set(demandas.map((d) => d.executiva).filter(Boolean))).sort() as string[],
     [demandas],
   );
+  const setoresOpts = useMemo(
+    () =>
+      Array.from(new Set(demandas.map((d) => d.setor_responsavel).filter(Boolean))).sort() as string[],
+    [demandas],
+  );
+  const tiposOpts = useMemo(
+    () =>
+      Array.from(new Set(demandas.map((d) => d.tipo_reclamacao).filter(Boolean))).sort() as string[],
+    [demandas],
+  );
+  const statusOpts = ["Pendente", "Resolvida", "Finalizada"];
+
+  /** Filtros que não dependem do período — aplicados também no período anterior. */
+  const matchDimensoes = (d: Demanda) => {
+    if (empresa !== "__all__" && d.empresa !== empresa) return false;
+    if (executiva !== "__all__" && d.executiva !== executiva) return false;
+    if (setorFiltro !== "__all__" && d.setor_responsavel !== setorFiltro) return false;
+    if (tipoFiltro !== "__all__" && d.tipo_reclamacao !== tipoFiltro) return false;
+    if (statusFiltro !== "__all__" && getStatus(d) !== statusFiltro) return false;
+    return true;
+  };
 
   const ini = parseLocalDate(dataIni);
   const fim = parseLocalDate(dataFim);
