@@ -21,6 +21,7 @@ import {
   formatDataBR,
   toISODateLocal,
   type FaixaTabelaCapa,
+  parseValorBr,
 } from "@/lib/dependentes-uea";
 import {
   lerPlanilhaFaixas,
@@ -143,7 +144,7 @@ export function FaixasUeaDialog({ open, onOpenChange }: Props) {
       id: form.id,
       idade_inicial: Number(form.idade_inicial) || 0,
       idade_final: form.idade_final_txt.trim() === "" ? null : Number(form.idade_final_txt),
-      valor_mensal: Number(String(form.valor_txt).replace(",", ".")) || 0,
+      valor_mensal: parseValorBr(form.valor_txt),
       vigencia_inicio: form.vigencia_inicio,
       vigencia_fim: form.vigencia_fim || null,
       observacao: form.observacao,

@@ -130,6 +130,23 @@ export interface TitularCalculado extends TitularUea {
   ultima_atualizacao: string;
 }
 
+/** Lê um valor em reais digitado no formato brasileiro (1.234,56) ou simples (1234.56). */
+export function parseValorBr(texto: string | number | null | undefined): number {
+  if (typeof texto === "number") return Number.isFinite(texto) ? texto : 0;
+  let s = String(texto ?? "").replace(/[^\d.,-]/g, "").trim();
+  if (!s) return 0;
+  const temVirgula = s.includes(",");
+  if (temVirgula) {
+    s = s.replace(/\./g, "").replace(",", ".");
+  } else {
+    // Ponto usado como separador de milhar (1.234 / 1.234.567)
+    const partes = s.split(".");
+    if (partes.length > 2 || (partes.length === 2 && partes[1].length === 3)) s = partes.join("");
+  }
+  const n = Number(s);
+  return Number.isFinite(n) ? n : 0;
+}
+
 /** Constrói a data local sem deslocamento de fuso (padrão do sistema). */
 export function parseISODateLocal(iso: string): Date {
   const [y, m, d] = iso.slice(0, 10).split("-").map(Number);

@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { useSalvarTitularUea } from "@/hooks/useDependentesUea";
-import { soDigitos, type TitularCalculado } from "@/lib/dependentes-uea";
+import { parseValorBr, soDigitos, type TitularCalculado } from "@/lib/dependentes-uea";
 
 interface Props {
   open: boolean;
@@ -44,7 +44,7 @@ export function TitularUeaDialog({ open, onOpenChange, titular }: Props) {
       cpf: soDigitos(form.cpf),
       matricula: form.matricula,
       contrato: form.contrato,
-      valor_margem: Number(String(form.valor_margem).replace(",", ".")) || 0,
+      valor_margem: parseValorBr(form.valor_margem),
       observacao: form.observacao,
     });
     onOpenChange(false);
