@@ -230,14 +230,26 @@ export function TitularDetalheUeaDialog({
                 <Label>Valor mensal (R$)</Label>
                 <Input
                   inputMode="decimal"
-                  readOnly={!!faixaEditando}
-                  value={faixaEditando ? String(faixaEditando.valor_mensal) : valorTexto}
-                  onChange={(e) => setValorTexto(e.target.value)}
+                  value={
+                    faixaEditando && !valorCustom
+                      ? String(faixaEditando.valor_mensal)
+                      : valorTexto
+                  }
+                  onChange={(e) => {
+                    setValorTexto(e.target.value);
+                    setValorCustom(true);
+                  }}
                 />
-                {!faixaEditando && (
+                {faixaEditando && !valorCustom ? (
                   <p className="text-[11px] text-muted-foreground">
-                    Sem faixa configurada para esta idade — informe o valor manualmente.
+                    Valor da faixa {faixaLabel(faixaEditando)} — edite se precisar de um valor diferente.
                   </p>
+                ) : (
+                  !faixaEditando && (
+                    <p className="text-[11px] text-muted-foreground">
+                      Sem faixa configurada para esta idade — informe o valor manualmente.
+                    </p>
+                  )
                 )}
               </div>
               <div className="grid gap-1.5">
