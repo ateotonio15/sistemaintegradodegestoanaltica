@@ -75,6 +75,15 @@ export interface TitularCalculado extends TitularUea {
   valor_total_dependentes_ativos: number;
   margem_restante: number;
   status_margem: StatusMargem;
+  /** Quanto os dependentes ativos ultrapassam a margem (0 quando não ultrapassa). */
+  excedente_margem: number;
+  /** Total dos ativos considerando o valor da faixa vigente (valor a aplicar). */
+  valor_total_aplicavel: number;
+  margem_restante_projetada: number;
+  /** Mudança de faixa etária faria o titular ultrapassar a margem — requer análise humana. */
+  requer_analise_faixa: boolean;
+  /** Status exibido: inclui "Sem margem — requer análise" na mudança de faixa. */
+  status_exibicao: string;
   desligado_por_falta_de_margem: boolean;
   proxima_mudanca_faixa: { dependente: string; data: string; dias: number; label: string } | null;
   ultima_atualizacao: string;
