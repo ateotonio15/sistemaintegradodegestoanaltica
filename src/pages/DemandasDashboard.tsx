@@ -293,11 +293,9 @@ export default function DemandasDashboard() {
       const encerramento = resolvida ? dataFimEfetiva(d) : new Date();
       if (abertura > prevPeriod.fim) return false;
       if (encerramento < prevPeriod.ini) return false;
-      if (empresa !== "__all__" && d.empresa !== empresa) return false;
-      if (executiva !== "__all__" && d.executiva !== executiva) return false;
-      return true;
+      return matchDimensoes(d);
     });
-  }, [demandas, prevPeriod, empresa, executiva]);
+  }, [demandas, prevPeriod, empresa, executiva, setorFiltro, statusFiltro, tipoFiltro]);
 
   const prevMetrics = useMemo(
     () => (prevFiltered.length ? computeMetrics(prevFiltered) : null),
