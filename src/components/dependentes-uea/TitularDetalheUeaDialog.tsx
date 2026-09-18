@@ -119,6 +119,7 @@ export function TitularDetalheUeaDialog({
   const [margemTxt, setMargemTxt] = useState("");
   const [editando, setEditando] = useState<DependenteInput | null>(null);
   const [valorTexto, setValorTexto] = useState("");
+  const [valorCustom, setValorCustom] = useState(false);
   const [aba, setAba] = useState("dependentes");
   const [confirmarDesligar, setConfirmarDesligar] = useState<DependenteCalculado | null>(null);
   const [confirmarReativar, setConfirmarReativar] = useState<DependenteCalculado | null>(null);
