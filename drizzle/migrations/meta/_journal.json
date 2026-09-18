@@ -8,6 +8,13 @@
       "when": 1789685162650,
       "tag": "0000_vendas_read_uber_corridas",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1789738783450,
+      "tag": "0001_add_vencimento_competencia_empresas",
+      "breakpoints": true
     }
   ]
 }

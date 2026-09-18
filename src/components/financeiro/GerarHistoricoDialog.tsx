@@ -112,7 +112,7 @@ export function GerarHistoricoDialog({
       if (!row?.empresa_id) return null;
       const { data, error } = await supabase
         .from("empresas")
-        .select("data_vencimento_fatura, pagamento_via_deposito, codigo_contrato, periodo_especifico_cobranca, periodo_cobranca_inicio")
+        .select("data_vencimento_fatura, pagamento_via_deposito, codigo_contrato, periodo_especifico_cobranca, periodo_cobranca_inicio, vencimento_competencia")
         .eq("id", row.empresa_id)
         .maybeSingle();
       if (error) throw error;
@@ -297,7 +297,12 @@ export function GerarHistoricoDialog({
         }
       }
     }
-    return calcularVencimentoPadrao(diaVenc, mesBase, anoBase);
+    return calcularVencimentoPadrao(
+      diaVenc,
+      mesBase,
+      anoBase,
+      (empresaInfo as any)?.vencimento_competencia,
+    );
   };
 
   const irParaPreview = async (prorrogou: boolean) => {

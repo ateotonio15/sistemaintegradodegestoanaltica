@@ -335,17 +335,43 @@ export function gerarHistoricoComplementoTexto(
   return linhas.join("\n");
 }
 
+/** Regra de competência do vencimento configurada por empresa. */
+export type VencimentoCompetencia = "anterior" | "atual" | "posterior";
+
+export function normalizarVencimentoCompetencia(
+  valor: unknown,
+): VencimentoCompetencia {
+  return valor === "anterior" || valor === "posterior" ? valor : "atual";
+}
+
+/**
+ * Desloca o mês-base do vencimento conforme a regra da empresa
+ * (mês anterior / mês atual / mês posterior em relação à competência).
+ */
+export function aplicarOffsetCompetencia(
+  mes0: number,
+  ano: number,
+  regra?: unknown,
+): { mes0: number; ano: number } {
+  const r = normalizarVencimentoCompetencia(regra);
+  const offset = r === "anterior" ? -1 : r === "posterior" ? 1 : 0;
+  const d = new Date(ano, mes0 + offset, 1);
+  return { mes0: d.getMonth(), ano: d.getFullYear() };
+}
+
 /** Constrói data de vencimento DD/MM/AAAA a partir de dia + competência. */
 export function calcularVencimentoPadrao(
   diaVencimento: number | null | undefined,
   mes0: number,
   ano: number,
+  regraCompetencia?: unknown,
 ): string {
+  const base = aplicarOffsetCompetencia(mes0, ano, regraCompetencia);
   const dia = Math.max(1, Math.min(31, diaVencimento ?? 1));
   // Ajusta se o mês não tiver esse dia
-  const ultimoDia = new Date(ano, mes0 + 1, 0).getDate();
+  const ultimoDia = new Date(base.ano, base.mes0 + 1, 0).getDate();
   const d = Math.min(dia, ultimoDia);
-  return `${String(d).padStart(2, "0")}/${String(mes0 + 1).padStart(2, "0")}/${ano}`;
+  return `${String(d).padStart(2, "0")}/${String(base.mes0 + 1).padStart(2, "0")}/${base.ano}`;
 }
 
 /** Formata uma data ISO YYYY-MM-DD em DD/MM/AAAA sem deslocamento de timezone. */
