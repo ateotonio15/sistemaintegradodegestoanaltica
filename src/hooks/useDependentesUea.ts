@@ -298,6 +298,8 @@ export interface HistoricoDependente {
   margem_titular_momento?: number | null;
   margem_restante_momento?: number | null;
   created_by?: string | null;
+  responsavel?: string;
+  dependente_nome?: string;
 }
 
 export function useHistoricoDependentesUea(titularId: string | null) {
@@ -307,7 +309,7 @@ export function useHistoricoDependentesUea(titularId: string | null) {
     queryFn: async (): Promise<HistoricoDependente[]> => {
       const { data: deps, error: e1 } = await supabase
         .from("uea_dependentes")
-        .select("id")
+        .select("id, nome_completo")
         .eq("titular_id", titularId as string);
       if (e1) throw e1;
       const ids = (deps ?? []).map((d: any) => d.id);
