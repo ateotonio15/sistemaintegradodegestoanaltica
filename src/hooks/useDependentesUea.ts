@@ -85,6 +85,8 @@ export interface FaixaInput {
   vigencia_inicio: string;
   vigencia_fim: string | null;
   observacao: string | null;
+  tabela_nome?: string | null;
+  plano?: string | null;
 }
 
 export function useSalvarFaixaUea() {
@@ -99,6 +101,8 @@ export function useSalvarFaixaUea() {
         vigencia_inicio: input.vigencia_inicio,
         vigencia_fim: input.vigencia_fim || null,
         observacao: input.observacao || null,
+        tabela_nome: input.tabela_nome?.trim() || null,
+        plano: input.plano?.trim() || null,
       };
       if (input.id) {
         const { error } = await supabase.from("uea_faixas").update(payload).eq("id", input.id);
@@ -165,6 +169,8 @@ export function useImportarFaixasUea() {
         vigencia_inicio: f.vigencia_inicio,
         vigencia_fim: f.vigencia_fim || null,
         observacao: f.observacao || null,
+        tabela_nome: f.tabela_nome?.trim() || null,
+        plano: f.plano?.trim() || null,
       }));
       const { error } = await supabase.from("uea_faixas").insert(payload);
       if (error) throw error;

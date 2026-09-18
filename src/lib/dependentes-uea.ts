@@ -18,6 +18,37 @@ export interface FaixaUea {
   vigencia_inicio: string;
   vigencia_fim: string | null;
   observacao: string | null;
+  /** Capa da tabela à qual a faixa pertence (ex.: "Tabela UEA - 1 (01/10/2025)"). */
+  tabela_nome: string | null;
+  /** Plano da capa (ex.: "Quality Plus - Apartamento"). */
+  plano: string | null;
+}
+
+/** Capa de tabela de faixas (agrupamento visual das faixas). */
+export interface FaixaTabelaCapa {
+  chave: string;
+  descricao: string;
+  plano: string | null;
+  vigencia_inicio: string;
+  faixas: FaixaUea[];
+}
+
+/** Agrupa as faixas em capas por descrição + plano + início de vigência. */
+export function agruparFaixasEmCapas(faixas: FaixaUea[]): FaixaTabelaCapa[] {
+  const mapa = new Map<string, FaixaTabelaCapa>();
+  for (const f of faixas) {
+    const descricao = f.tabela_nome?.trim() || "Tabela UEA";
+    const plano = f.plano?.trim() || null;
+    const vig = f.vigencia_inicio.slice(0, 10);
+    const chave = `${descricao}::${plano ?? ""}::${vig}`;
+    const capa = mapa.get(chave) ?? { chave, descricao, plano, vigencia_inicio: vig, faixas: [] };
+    capa.faixas.push(f);
+    mapa.set(chave, capa);
+  }
+  const capas = [...mapa.values()];
+  for (const c of capas) c.faixas.sort((a, b) => a.idade_inicial - b.idade_inicial);
+  capas.sort((a, b) => b.vigencia_inicio.localeCompare(a.vigencia_inicio));
+  return capas;
 }
 
 export interface DependenteUea {
