@@ -1,17 +1,26 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Pencil, Plus, Trash2 } from "lucide-react";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Badge } from "@/components/ui/badge";
+import { Download, Pencil, Plus, Trash2, Upload } from "lucide-react";
 import {
   useExcluirFaixaUea,
   useFaixasUea,
+  useImportarFaixasUea,
   useSalvarFaixaUea,
   type FaixaInput,
 } from "@/hooks/useDependentesUea";
 import { faixaLabel, formatBRL, formatDataBR, toISODateLocal } from "@/lib/dependentes-uea";
+import {
+  lerPlanilhaFaixas,
+  modeloPlanilhaFaixas,
+  type FaixaImportLinha,
+} from "@/lib/faixas-uea-import";
+import { useToast } from "@/hooks/use-toast";
 
 interface Props {
   open: boolean;
@@ -33,7 +42,59 @@ export function FaixasUeaDialog({ open, onOpenChange }: Props) {
   const { data: faixas = [], isLoading } = useFaixasUea();
   const salvar = useSalvarFaixaUea();
   const excluir = useExcluirFaixaUea();
+  const importar = useImportarFaixasUea();
+  const { toast } = useToast();
+  const fileRef = useRef<HTMLInputElement>(null);
   const [form, setForm] = useState<ReturnType<typeof vazio> | null>(null);
+  const [preview, setPreview] = useState<{ nome: string; linhas: FaixaImportLinha[] } | null>(null);
+  const [substituir, setSubstituir] = useState(false);
+
+  const validas = preview ? preview.linhas.filter((l) => !l.erro) : [];
+  const invalidas = preview ? preview.linhas.filter((l) => l.erro) : [];
+
+  const escolherArquivo = async (file: File | undefined) => {
+    if (!file) return;
+    try {
+      const linhas = await lerPlanilhaFaixas(file);
+      if (linhas.length === 0) {
+        toast({
+          title: "Nenhuma linha encontrada",
+          description: "Confira se a planilha tem as colunas de faixa e valor mensal.",
+          variant: "destructive",
+        });
+        return;
+      }
+      setPreview({ nome: file.name, linhas });
+    } catch (e: any) {
+      toast({ title: "Não foi possível ler a planilha", description: e.message, variant: "destructive" });
+    }
+  };
+
+  const confirmarImportacao = async () => {
+    if (validas.length === 0) return;
+    await importar.mutateAsync({
+      faixas: validas.map((l) => ({
+        idade_inicial: l.idade_inicial,
+        idade_final: l.idade_final,
+        valor_mensal: l.valor_mensal,
+        vigencia_inicio: l.vigencia_inicio,
+        vigencia_fim: l.vigencia_fim,
+        observacao: l.observacao,
+      })),
+      substituir,
+    });
+    setPreview(null);
+    setSubstituir(false);
+  };
+
+  const baixarModelo = () => {
+    const url = URL.createObjectURL(modeloPlanilhaFaixas());
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "modelo-faixas-uea.xlsx";
+    a.click();
+    URL.revokeObjectURL(url);
+  };
 
   const submit = async () => {
     if (!form) return;
@@ -49,6 +110,7 @@ export function FaixasUeaDialog({ open, onOpenChange }: Props) {
     setForm(null);
   };
 
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-3xl">
@@ -56,16 +118,96 @@ export function FaixasUeaDialog({ open, onOpenChange }: Props) {
           <DialogTitle>Configuração de faixas etárias e valores</DialogTitle>
         </DialogHeader>
 
-        {!form ? (
+        {preview ? (
           <div className="space-y-3">
-            <div className="flex items-center justify-between">
-              <p className="text-sm text-muted-foreground">
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <div>
+                <p className="text-sm font-medium">{preview.nome}</p>
+                <p className="text-xs text-muted-foreground">
+                  {validas.length} faixa(s) prontas para importar
+                  {invalidas.length > 0 && ` · ${invalidas.length} com problema`}
+                </p>
+              </div>
+              <label className="flex items-center gap-2 text-sm">
+                <Checkbox
+                  checked={substituir}
+                  onCheckedChange={(v) => setSubstituir(v === true)}
+                />
+                Substituir as faixas atuais
+              </label>
+            </div>
+            <div className="max-h-[320px] overflow-auto rounded-lg border">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Faixa</TableHead>
+                    <TableHead className="text-right">Valor mensal</TableHead>
+                    <TableHead>Vigência início</TableHead>
+                    <TableHead>Vigência fim</TableHead>
+                    <TableHead>Situação</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {preview.linhas.map((l) => (
+                    <TableRow key={l.linha} className={l.erro ? "opacity-70" : undefined}>
+                      <TableCell className="font-medium">
+                        {l.idade_inicial} a {l.idade_final ?? "+"} anos
+                      </TableCell>
+                      <TableCell className="text-right">{formatBRL(l.valor_mensal)}</TableCell>
+                      <TableCell>{formatDataBR(l.vigencia_inicio)}</TableCell>
+                      <TableCell>{l.vigencia_fim ? formatDataBR(l.vigencia_fim) : "—"}</TableCell>
+                      <TableCell>
+                        {l.erro ? (
+                          <Badge variant="destructive">{l.erro}</Badge>
+                        ) : (
+                          <Badge variant="secondary">Ok</Badge>
+                        )}
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+            <div className="flex justify-end gap-2">
+              <Button variant="outline" onClick={() => setPreview(null)}>
+                Cancelar
+              </Button>
+              <Button
+                onClick={confirmarImportacao}
+                disabled={validas.length === 0 || importar.isPending}
+              >
+                Importar {validas.length} faixa(s)
+              </Button>
+            </div>
+          </div>
+        ) : !form ? (
+          <div className="space-y-3">
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <p className="max-w-sm text-sm text-muted-foreground">
                 O sistema identifica a faixa do dependente pela data de nascimento e usa o valor
                 configurado aqui.
               </p>
-              <Button size="sm" onClick={() => setForm(vazio())}>
-                <Plus className="mr-1.5 h-4 w-4" /> Nova faixa
-              </Button>
+              <div className="flex flex-wrap gap-2">
+                <Button size="sm" variant="ghost" onClick={baixarModelo}>
+                  <Download className="mr-1.5 h-4 w-4" /> Modelo
+                </Button>
+                <Button size="sm" variant="outline" onClick={() => fileRef.current?.click()}>
+                  <Upload className="mr-1.5 h-4 w-4" /> Importar planilha
+                </Button>
+                <Button size="sm" onClick={() => setForm(vazio())}>
+                  <Plus className="mr-1.5 h-4 w-4" /> Nova faixa
+                </Button>
+              </div>
+              <input
+                ref={fileRef}
+                type="file"
+                accept=".xlsx,.xls,.csv"
+                className="hidden"
+                onChange={(e) => {
+                  escolherArquivo(e.target.files?.[0]);
+                  e.target.value = "";
+                }}
+              />
             </div>
             <div className="rounded-lg border">
               <Table>
