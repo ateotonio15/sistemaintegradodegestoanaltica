@@ -501,22 +501,54 @@ export function SolicitarReajusteDialog({ open, onOpenChange, empresa, existingR
 
           {/* Resumo */}
           {(possuiEnf || possuiApt) && (
-            <div className="rounded-xl border bg-gradient-to-br from-primary/10 via-muted/40 to-transparent p-4 animate-fade-in">
-              <div className="text-xs uppercase tracking-wider text-muted-foreground font-semibold mb-3">Resumo do Cálculo</div>
-              <div className="grid grid-cols-3 gap-4">
-                <div>
-                  <div className="text-[11px] text-muted-foreground">Reajustado total</div>
-                  <div className="font-semibold text-base">{formatCentavosBRL(valorReajustadoCent)}</div>
-                </div>
-                <div>
-                  <div className="text-[11px] text-muted-foreground">Retroativo total</div>
-                  <div className="font-semibold text-base">{formatCentavosBRL(retroativoCent)}</div>
-                  <Badge variant="outline" className="text-[10px] mt-1">{mesesRetro} {mesesRetro === 1 ? "mês" : "meses"}</Badge>
-                </div>
-                <div>
-                  <div className="text-[11px] text-muted-foreground">Valor Final total</div>
-                  <div className="font-bold text-lg text-primary">{formatCentavosBRL(valorFinalCent)}</div>
-                </div>
+            <div className="rounded-xl border bg-gradient-to-br from-primary/10 via-muted/40 to-transparent p-4 animate-fade-in space-y-3">
+              <div className="text-xs uppercase tracking-wider text-muted-foreground font-semibold">Resumo do Cálculo</div>
+              <div className={`grid gap-3 ${possuiEnf && possuiApt ? "md:grid-cols-2" : "grid-cols-1"}`}>
+                {possuiEnf && (
+                  <div className="rounded-lg border border-emerald-500/30 bg-emerald-500/5 p-3 space-y-2">
+                    <div className="flex items-center gap-2 text-xs font-semibold text-emerald-700 dark:text-emerald-400">
+                      <BedDouble className="h-3.5 w-3.5" /> Enfermaria
+                    </div>
+                    <div className="grid grid-cols-3 gap-2">
+                      <div>
+                        <div className="text-[11px] text-muted-foreground">Reajustado</div>
+                        <div className="font-semibold text-sm tabular-nums">{formatCentavosBRL(enfTotais.valor_reajustado_centavos)}</div>
+                      </div>
+                      <div>
+                        <div className="text-[11px] text-muted-foreground">Retroativo</div>
+                        <div className="font-semibold text-sm tabular-nums">{formatCentavosBRL(enfTotais.valor_retroativo_centavos)}</div>
+                      </div>
+                      <div>
+                        <div className="text-[11px] text-muted-foreground">Valor Final</div>
+                        <div className="font-bold text-sm text-emerald-700 dark:text-emerald-400 tabular-nums">{formatCentavosBRL(enfTotais.valor_final_centavos)}</div>
+                      </div>
+                    </div>
+                  </div>
+                )}
+                {possuiApt && (
+                  <div className="rounded-lg border border-blue-500/30 bg-blue-500/5 p-3 space-y-2">
+                    <div className="flex items-center gap-2 text-xs font-semibold text-blue-700 dark:text-blue-400">
+                      <Hotel className="h-3.5 w-3.5" /> Apartamento
+                    </div>
+                    <div className="grid grid-cols-3 gap-2">
+                      <div>
+                        <div className="text-[11px] text-muted-foreground">Reajustado</div>
+                        <div className="font-semibold text-sm tabular-nums">{formatCentavosBRL(aptTotais.valor_reajustado_centavos)}</div>
+                      </div>
+                      <div>
+                        <div className="text-[11px] text-muted-foreground">Retroativo</div>
+                        <div className="font-semibold text-sm tabular-nums">{formatCentavosBRL(aptTotais.valor_retroativo_centavos)}</div>
+                      </div>
+                      <div>
+                        <div className="text-[11px] text-muted-foreground">Valor Final</div>
+                        <div className="font-bold text-sm text-blue-700 dark:text-blue-400 tabular-nums">{formatCentavosBRL(aptTotais.valor_final_centavos)}</div>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+              <div className="flex items-center gap-2">
+                <Badge variant="outline" className="text-[10px]">{mesesRetro} {mesesRetro === 1 ? "mês" : "meses"} retroativo{mesesRetro === 1 ? "" : "s"}</Badge>
               </div>
             </div>
           )}
