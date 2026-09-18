@@ -1688,8 +1688,6 @@ export type Database = {
       }
       demandas: {
         Row: {
-          colaborador: string | null
-          corretora: string | null
           cpf: string | null
           created_at: string
           created_by: string | null
@@ -1701,26 +1699,20 @@ export type Database = {
           empresa: string | null
           encaminhado_setor: boolean
           executiva: string | null
-          hora_acionamento: string | null
           id: string
           importacao_id: string | null
           nome_cliente: string
           nome_medico: string | null
           nome_procedimento: string | null
           observacao: string | null
-          origem: string | null
           reclamacao: string | null
           resolvido_executiva: boolean
           resolvido_setor: boolean
-          rh: string | null
           setor_responsavel: string | null
-          status: string | null
           tipo_reclamacao: string | null
           updated_at: string
         }
         Insert: {
-          colaborador?: string | null
-          corretora?: string | null
           cpf?: string | null
           created_at?: string
           created_by?: string | null
@@ -1732,26 +1724,20 @@ export type Database = {
           empresa?: string | null
           encaminhado_setor?: boolean
           executiva?: string | null
-          hora_acionamento?: string | null
           id?: string
           importacao_id?: string | null
           nome_cliente: string
           nome_medico?: string | null
           nome_procedimento?: string | null
           observacao?: string | null
-          origem?: string | null
           reclamacao?: string | null
           resolvido_executiva?: boolean
           resolvido_setor?: boolean
-          rh?: string | null
           setor_responsavel?: string | null
-          status?: string | null
           tipo_reclamacao?: string | null
           updated_at?: string
         }
         Update: {
-          colaborador?: string | null
-          corretora?: string | null
           cpf?: string | null
           created_at?: string
           created_by?: string | null
@@ -1763,20 +1749,16 @@ export type Database = {
           empresa?: string | null
           encaminhado_setor?: boolean
           executiva?: string | null
-          hora_acionamento?: string | null
           id?: string
           importacao_id?: string | null
           nome_cliente?: string
           nome_medico?: string | null
           nome_procedimento?: string | null
           observacao?: string | null
-          origem?: string | null
           reclamacao?: string | null
           resolvido_executiva?: boolean
           resolvido_setor?: boolean
-          rh?: string | null
           setor_responsavel?: string | null
-          status?: string | null
           tipo_reclamacao?: string | null
           updated_at?: string
         }
@@ -3522,48 +3504,6 @@ export type Database = {
           importado_por_nome?: string | null
           nome_arquivo?: string
           total_registros?: number
-        }
-        Relationships: []
-      }
-      indicador_metas: {
-        Row: {
-          atencao: number
-          critico: number
-          descricao: string | null
-          direcao: string
-          id: string
-          indicador: string
-          label: string
-          meta: number
-          unidade: string
-          updated_at: string
-          updated_by: string | null
-        }
-        Insert: {
-          atencao: number
-          critico: number
-          descricao?: string | null
-          direcao?: string
-          id?: string
-          indicador: string
-          label: string
-          meta: number
-          unidade?: string
-          updated_at?: string
-          updated_by?: string | null
-        }
-        Update: {
-          atencao?: number
-          critico?: number
-          descricao?: string | null
-          direcao?: string
-          id?: string
-          indicador?: string
-          label?: string
-          meta?: number
-          unidade?: string
-          updated_at?: string
-          updated_by?: string | null
         }
         Relationships: []
       }
