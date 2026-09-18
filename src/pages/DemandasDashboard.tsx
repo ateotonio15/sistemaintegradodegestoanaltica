@@ -56,6 +56,20 @@ import { useDemandas } from "@/hooks/useDemandas";
 import { parseLocalDate, type Demanda } from "@/lib/demandas-utils";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import {
+  ResumoExecutivo,
+  SectionHeader,
+  KpiExecutivo,
+  ConcentracaoDemandas,
+  MapaPressao,
+  PontosAtencao,
+  RecorrenciaSetor,
+  GargalosTabela,
+  PrioridadesAtuacao,
+  VisaoComparativaSetores,
+  type SetorAgg,
+  type ExecTone,
+} from "@/components/demandas/exec/ExecSections";
 
 /* ============================================================
    Constantes de SLA / Negócio
@@ -370,7 +384,11 @@ export default function DemandasDashboard() {
       const setorQtd = arr.filter((d) => d.resolvido_setor && !d.resolvido_executiva).length;
       const resolvidas = execQtd + setorQtd;
       const execPct = resolvidas ? Math.round((execQtd / resolvidas) * 100) : 0;
-      return { label: m.label, sla, fora, aberto, execQtd, setorQtd, execPct };
+      const temposMes = arr.filter(isResolved).map(diasCorridos);
+      const tempoMedio = temposMes.length
+        ? Math.round((temposMes.reduce((a, b) => a + b, 0) / temposMes.length) * 10) / 10
+        : 0;
+      return { label: m.label, sla, fora, aberto, execQtd, setorQtd, execPct, tempoMedio };
     });
   }, [filtered, ini, fim]);
 
@@ -534,6 +552,227 @@ export default function DemandasDashboard() {
       .slice(0, 5);
   }, [filtered]);
 
+  /* ========= Base executiva por setor ========= */
+  const setorAgg = useMemo<SetorAgg[]>(() => {
+    const map = new Map<string, Demanda[]>();
+    filtered.forEach((d) => {
+      const s = d.setor_responsavel || "—";
+      const arr = map.get(s) ?? [];
+      arr.push(d);
+      map.set(s, arr);
+    });
+    const totalGeral = filtered.length || 1;
+    const base = Array.from(map.entries()).map(([setor, arr]) => {
+      const volume = arr.length;
+      const foraPct = Math.round((arr.filter(isForaPrazo).length / volume) * 100);
+      const slaPct = 100 - foraPct;
+      const backlog = arr.filter((d) => !isResolved(d)).length;
+      const tempos = arr.filter(isResolved).map(diasCorridos);
+      const tempoMedio = tempos.length ? tempos.reduce((a, b) => a + b, 0) / tempos.length : 0;
+      const counts = new Map<string, number>();
+      arr.forEach((d) => {
+        const k = (d.nome_cliente || "").trim().toLowerCase();
+        if (!k) return;
+        counts.set(k, (counts.get(k) ?? 0) + 1);
+      });
+      const clientesTotal = counts.size;
+      const clientesRecorrentes = Array.from(counts.values()).filter((v) => v > 1).length;
+      const recorrenciaPct = clientesTotal ? Math.round((clientesRecorrentes / clientesTotal) * 100) : 0;
+      const prazoDias = (isAgendaCirurgica(setor) ? PRAZO_AGENDA_CIRURGICA_HORAS : PRAZO_PADRAO_HORAS) / 24;
+      const backlogPct = Math.round((backlog / volume) * 100);
+      const tempoPct = Math.min(100, Math.round((tempoMedio / Math.max(1, prazoDias)) * 100));
+      const impacto = Math.round(foraPct * 0.4 + backlogPct * 0.3 + tempoPct * 0.2 + recorrenciaPct * 0.1);
+      const motivos: string[] = [];
+      if (foraPct >= 15) motivos.push(`${foraPct}% fora do prazo`);
+      if (backlogPct >= 25) motivos.push(`${backlog} demandas em aberto`);
+      if (tempoPct >= 100) motivos.push(`tempo médio de ${tempoMedio.toFixed(1)}d acima do prazo de ${prazoDias.toFixed(0)}d`);
+      if (recorrenciaPct >= 30) motivos.push(`${recorrenciaPct}% de clientes recorrentes`);
+      return {
+        setor,
+        volume,
+        pctVolume: Math.round((volume / totalGeral) * 100),
+        slaPct,
+        foraPct,
+        backlog,
+        tempoMedio,
+        recorrenciaPct,
+        clientesRecorrentes,
+        clientesTotal,
+        impacto,
+        motivos,
+      };
+    });
+    const volumes = base.map((b) => b.volume).sort((a, b) => a - b);
+    const mediana = volumes.length ? volumes[Math.floor(volumes.length / 2)] : 0;
+    return base
+      .map<SetorAgg>((b) => {
+        const volumeAlto = b.volume >= mediana;
+        const classificacao: SetorAgg["classificacao"] =
+          b.volume < 3
+            ? null
+            : b.impacto >= 60 && volumeAlto
+            ? "CRÍTICO"
+            : b.impacto >= 60
+            ? "ATENÇÃO"
+            : b.impacto >= 35
+            ? "MONITORAR"
+            : "ESTÁVEL";
+        return { ...b, volumeAlto, classificacao };
+      })
+      .sort((a, b) => b.impacto - a.impacto || b.volume - a.volume);
+  }, [filtered]);
+
+  const noPrazoQtd = useMemo(() => filtered.filter((d) => !isForaPrazo(d)).length, [filtered]);
+
+  const deltaVs = (atual: number, anterior: number | undefined | null): number | null => {
+    if (anterior === undefined || anterior === null) return null;
+    if (anterior === 0) return atual > 0 ? 100 : 0;
+    return Math.round(((atual - anterior) / anterior) * 100);
+  };
+
+  const backlogDeltaPrev = deltaVs(metrics.emAberto, prevMetrics?.emAberto);
+
+  /* ========= Pontos de atenção ========= */
+  const pontosAtencao = useMemo(() => {
+    const out: {
+      titulo: string;
+      valor: string;
+      detalhe: string;
+      tone: ExecTone;
+      href?: string;
+      linkLabel?: string;
+    }[] = [];
+    const piorSla = setorAgg.filter((s) => s.volume >= 3 && s.foraPct >= 15).sort((a, b) => b.foraPct - a.foraPct)[0];
+    if (piorSla) {
+      out.push({
+        titulo: piorSla.setor,
+        valor: `${piorSla.foraPct}% fora do prazo`,
+        detalhe: `${piorSla.volume} demandas no período · tempo médio de ${piorSla.tempoMedio.toFixed(1)} dias.`,
+        tone: piorSla.foraPct >= 40 ? "danger" : "warning",
+        href: "/demandas/fora-do-prazo",
+      });
+    }
+    const conc = volumeSetor[0];
+    if (conc && conc.pct >= 30) {
+      out.push({
+        titulo: conc.setor,
+        valor: `${conc.pct}% do volume total`,
+        detalhe: `Principal concentração do período (${conc.n} de ${filtered.length} demandas).`,
+        tone: "info",
+        href: "/demandas",
+        linkLabel: "Ver registros",
+      });
+    }
+    if (backlogDeltaPrev !== null) {
+      out.push({
+        titulo: "Backlog",
+        valor: `${backlogDeltaPrev > 0 ? "+" : ""}${backlogDeltaPrev}%`,
+        detalhe: `${metrics.emAberto} demandas em aberto contra ${prevMetrics?.emAberto ?? 0} no período anterior.`,
+        tone: backlogDeltaPrev > 20 ? "warning" : backlogDeltaPrev < 0 ? "success" : "neutral",
+      });
+    }
+    const reinc = setorAgg.filter((s) => s.clientesTotal >= 3 && s.recorrenciaPct >= 30)[0];
+    if (reinc) {
+      out.push({
+        titulo: `Recorrência · ${reinc.setor}`,
+        valor: `${reinc.recorrenciaPct}%`,
+        detalhe: `${reinc.clientesRecorrentes} de ${reinc.clientesTotal} clientes abriram mais de uma demanda no setor.`,
+        tone: "warning",
+      });
+    }
+    if (metrics.acimaDaMeta) {
+      out.push({
+        titulo: "Devolutivas fora do prazo",
+        valor: `${metrics.pctForaDoPrazo}%`,
+        detalhe: `Acima da meta interna de ${META_FORA_PRAZO}% para o período selecionado.`,
+        tone: "danger",
+        href: "/demandas/fora-do-prazo",
+      });
+    }
+    return out.slice(0, 6);
+  }, [setorAgg, volumeSetor, filtered.length, backlogDeltaPrev, metrics, prevMetrics]);
+
+  /* ========= Prioridades de atuação ========= */
+  const prioridades = useMemo(
+    () =>
+      setorAgg
+        .filter((s) => s.classificacao && s.classificacao !== "ESTÁVEL" && s.motivos.length > 0)
+        .slice(0, 4)
+        .map((s) => ({
+          setor: s.setor,
+          motivo: s.motivos.join(" · "),
+          indicadores: `Volume ${s.volume} · SLA ${s.slaPct}% · backlog ${s.backlog} · tempo médio ${s.tempoMedio.toFixed(1)}d · recorrência ${s.recorrenciaPct}%`,
+          tone: (s.classificacao === "CRÍTICO"
+            ? "danger"
+            : s.classificacao === "ATENÇÃO"
+            ? "warning"
+            : "info") as ExecTone,
+        })),
+    [setorAgg],
+  );
+
+  /* ========= Resumo executivo ========= */
+  const resumoTexto = useMemo(() => {
+    if (filtered.length === 0) return "Sem dados para o período selecionado.";
+    const partes = [
+      `Neste período foram registradas ${filtered.length} demandas, com SLA de ${metrics.slaNoPrazoPct}% (${noPrazoQtd} de ${filtered.length} dentro do prazo) e backlog de ${metrics.emAberto} demandas em aberto.`,
+      `O tempo médio de resolução foi de ${metrics.tempoMedioDias.toFixed(1)} dias.`,
+    ];
+    if (backlogDeltaPrev !== null) {
+      partes.push(
+        backlogDeltaPrev === 0
+          ? "O backlog permaneceu estável em relação ao período anterior."
+          : `O backlog ${backlogDeltaPrev > 0 ? "aumentou" : "reduziu"} ${Math.abs(backlogDeltaPrev)}% em relação ao período anterior.`,
+      );
+    }
+    return partes.join(" ");
+  }, [filtered.length, metrics, noPrazoQtd, backlogDeltaPrev]);
+
+  const resumoDestaques = useMemo(() => {
+    const conc = volumeSetor[0];
+    const garg = gargalos[0];
+    const atencao = setorAgg.find((s) => s.classificacao === "CRÍTICO" || s.classificacao === "ATENÇÃO");
+    return [
+      {
+        label: "Principal concentração",
+        value: conc ? conc.setor : "—",
+        hint: conc ? `${conc.n} demandas · ${conc.pct}% do total` : "Sem dados no período",
+      },
+      {
+        label: "Principal gargalo",
+        value: garg ? `${garg.setor} · ${garg.tipo}` : "—",
+        hint: garg ? `${garg.qtd} demandas · ${garg.tempoMedio.toFixed(1)}d de tempo médio` : "Sem dados no período",
+      },
+      {
+        label: "Evolução do backlog",
+        value: backlogDeltaPrev === null ? "—" : `${backlogDeltaPrev > 0 ? "+" : ""}${backlogDeltaPrev}%`,
+        hint:
+          backlogDeltaPrev === null
+            ? "Sem base comparativa"
+            : `${metrics.emAberto} em aberto vs. ${prevMetrics?.emAberto ?? 0} no período anterior`,
+      },
+      {
+        label: "Indicador de atenção",
+        value: atencao
+          ? `${atencao.setor} · ${atencao.classificacao}`
+          : metrics.acimaDaMeta
+          ? `Fora do prazo ${metrics.pctForaDoPrazo}%`
+          : "Nenhum indicador fora da faixa",
+        hint: atencao
+          ? atencao.motivos[0] ?? `Impacto operacional ${atencao.impacto}`
+          : `Meta de devolutivas fora do prazo: ≤ ${META_FORA_PRAZO}%`,
+      },
+    ];
+  }, [volumeSetor, gargalos, setorAgg, backlogDeltaPrev, metrics, prevMetrics]);
+
+  const ultimaAtualizacao = useMemo(() => {
+    const ts = demandas
+      .map((d) => new Date(d.updated_at || d.created_at).getTime())
+      .filter((n) => !Number.isNaN(n));
+    if (ts.length === 0) return null;
+    return new Date(Math.max(...ts)).toLocaleString("pt-BR", { dateStyle: "short", timeStyle: "short" });
+  }, [demandas]);
+
   // ===== Insights =====
   const insights = useMemo(() => {
     const out: { icon: any; text: string }[] = [];
@@ -570,273 +809,365 @@ export default function DemandasDashboard() {
     setExecutiva("__all__");
   };
 
+  const exportar = async () => {
+    try {
+      if (activeTab === "apresentacao") {
+        if (!apresentacaoRef.current) {
+          toast({ title: "Aguarde", description: "Apresentação ainda carregando.", variant: "destructive" });
+          return;
+        }
+        toast({ title: "Gerando apresentação", description: "Capturando slides..." });
+        await apresentacaoRef.current.exportPptx();
+      } else {
+        await exportDashboardReclamacoesPptx({
+          periodo: { inicio: dataIni, fim: dataFim },
+          periodoAnterior: prevPeriod
+            ? { inicio: toISO(prevPeriod.ini), fim: toISO(prevPeriod.fim) }
+            : null,
+          filtros: {
+            empresa: empresa === "__all__" ? "Todas" : empresa,
+            executiva: executiva === "__all__" ? "Todas" : executiva,
+          },
+          metrics,
+          metricsAnterior: prevMetrics,
+          temposSegmentados,
+          tendencias,
+          monthlySeries: monthlySeries6m,
+          volumeSetor,
+          volumeTipo,
+          rankingEmpresasVidas,
+          reincidencias,
+          gargalos,
+          insights: insights.map((i) => i.text),
+        });
+      }
+      toast({ title: "Apresentação gerada", description: "O arquivo .pptx foi baixado." });
+    } catch (err: any) {
+      toast({ title: "Erro ao gerar PPT", description: err?.message ?? String(err), variant: "destructive" });
+    }
+  };
+
+  const slaTone: ExecTone =
+    metrics.slaNoPrazoPct >= 95 ? "success" : metrics.slaNoPrazoPct >= 85 ? "warning" : "danger";
+
   return (
     <div className="min-h-screen bg-background">
-      <div className="container mx-auto px-4 lg:px-8 py-6 max-w-[1600px] space-y-6">
-        {/* Header */}
-        <div className="flex flex-col gap-2 animate-in fade-in slide-in-from-top-2 duration-500">
-          <div className="flex items-start justify-between gap-3">
-            <Link
-              to="/demandas"
-              className="text-xs text-muted-foreground hover:text-primary inline-flex items-center gap-1 w-fit"
-            >
-              <ArrowLeft className="h-3 w-3" />
-              Voltar para registros
-            </Link>
-            <Button
-              size="sm"
-              variant="outline"
-              className="h-8 gap-1.5"
-              disabled={activeTab === "dashboard" && filtered.length === 0}
-              onClick={async () => {
-                try {
-                  if (activeTab === "apresentacao") {
-                    if (!apresentacaoRef.current) {
-                      toast({ title: "Aguarde", description: "Apresentação ainda carregando.", variant: "destructive" });
-                      return;
-                    }
-                    toast({ title: "Gerando apresentação", description: "Capturando slides..." });
-                    await apresentacaoRef.current.exportPptx();
-                  } else {
-                    await exportDashboardReclamacoesPptx({
-                      periodo: { inicio: dataIni, fim: dataFim },
-                      periodoAnterior: prevPeriod
-                        ? { inicio: toISO(prevPeriod.ini), fim: toISO(prevPeriod.fim) }
-                        : null,
-                      filtros: {
-                        empresa: empresa === "__all__" ? "Todas" : empresa,
-                        executiva: executiva === "__all__" ? "Todas" : executiva,
-                      },
-                      metrics,
-                      metricsAnterior: prevMetrics,
-                      temposSegmentados,
-                      tendencias,
-                      monthlySeries: monthlySeries6m,
-                      volumeSetor,
-                      volumeTipo,
-                      rankingEmpresasVidas,
-                      reincidencias,
-                      gargalos,
-                      insights: insights.map((i) => i.text),
-                    });
-
-                  }
-                  toast({ title: "Apresentação gerada", description: "O arquivo .pptx foi baixado." });
-                } catch (err: any) {
-                  toast({ title: "Erro ao gerar PPT", description: err?.message ?? String(err), variant: "destructive" });
-                }
-              }}
-            >
-              <FileDown className="h-3.5 w-3.5" />
-              Exportar PPT
-            </Button>
+      <div className="container mx-auto max-w-[1600px] space-y-8 px-4 py-6 lg:px-8">
+        {/* ===== 1. Cabeçalho executivo ===== */}
+        <header className="space-y-4 animate-in fade-in slide-in-from-top-2 duration-500">
+          <Link
+            to="/demandas"
+            className="inline-flex w-fit items-center gap-1 text-xs text-muted-foreground hover:text-primary"
+          >
+            <ArrowLeft className="h-3 w-3" />
+            Voltar para registros
+          </Link>
+          <div className="flex flex-col gap-5 rounded-2xl border border-border/70 bg-card px-5 py-5 shadow-sm xl:flex-row xl:items-end xl:justify-between">
+            <div className="min-w-0">
+              <p className="text-[10px] font-semibold uppercase tracking-[0.3em] text-primary">Samel</p>
+              <h1 className="mt-1 text-2xl font-semibold tracking-tight text-foreground lg:text-[28px]">
+                Gestão preventiva de carteira
+              </h1>
+              <p className="text-sm font-medium text-muted-foreground">Inteligência de relacionamento</p>
+              <p className="mt-1 text-xs text-muted-foreground">
+                Visão executiva de demandas, SLA, backlog e eficiência operacional
+              </p>
+            </div>
+            <div className="space-y-3">
+              <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+                <Field label="Período — início">
+                  <Input type="date" value={dataIni} onChange={(e) => setDataIni(e.target.value)} className="h-9" />
+                </Field>
+                <Field label="Período — fim">
+                  <Input type="date" value={dataFim} onChange={(e) => setDataFim(e.target.value)} className="h-9" />
+                </Field>
+                <Field label="Empresa">
+                  <Select value={empresa} onValueChange={setEmpresa}>
+                    <SelectTrigger className="h-9" aria-label="Filtrar por empresa"><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="__all__">Todas</SelectItem>
+                      {empresas.map((e) => <SelectItem key={e} value={e}>{e}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
+                </Field>
+                <Field label="Executiva">
+                  <Select value={executiva} onValueChange={setExecutiva}>
+                    <SelectTrigger className="h-9" aria-label="Filtrar por executiva"><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="__all__">Todas</SelectItem>
+                      {executivas.map((x) => <SelectItem key={x} value={x}>{x}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
+                </Field>
+              </div>
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <p className="text-[11px] text-muted-foreground">
+                  {ultimaAtualizacao ? `Última atualização: ${ultimaAtualizacao}` : "Última atualização indisponível"}
+                </p>
+                <div className="flex items-center gap-2">
+                  <Button variant="ghost" size="sm" className="h-8" onClick={limpar}>Limpar</Button>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="h-8 gap-1.5"
+                    disabled={activeTab === "dashboard" && filtered.length === 0}
+                    onClick={exportar}
+                  >
+                    <FileDown className="h-3.5 w-3.5" />
+                    Exportar relatório
+                  </Button>
+                </div>
+              </div>
+            </div>
           </div>
-          <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-muted-foreground">
-            Painel Executivo
-          </p>
-          <h1 className="text-3xl font-semibold tracking-tight text-foreground">
-            Visão estratégica
-          </h1>
-          <p className="text-sm text-muted-foreground">
-            SLA, risco operacional e tendências para a diretoria
-          </p>
-        </div>
+        </header>
 
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
           <TabsList>
-            <TabsTrigger value="dashboard">Dashboard Reclamações</TabsTrigger>
-            <TabsTrigger value="apresentacao">Apresentação Executiva</TabsTrigger>
+            <TabsTrigger value="dashboard">Visão executiva</TabsTrigger>
+            <TabsTrigger value="apresentacao">Apresentação executiva</TabsTrigger>
           </TabsList>
 
-          <TabsContent value="dashboard" className="space-y-6 mt-6 animate-in fade-in duration-300">
-        {/* Filtros */}
-        <Card className="p-4 shadow-sm">
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3 items-end">
-            <Field label="Data inicial">
-              <Input type="date" value={dataIni} onChange={(e) => setDataIni(e.target.value)} className="h-9" />
-            </Field>
-            <Field label="Data final">
-              <Input type="date" value={dataFim} onChange={(e) => setDataFim(e.target.value)} className="h-9" />
-            </Field>
-            <Field label="Empresa">
-              <Select value={empresa} onValueChange={setEmpresa}>
-                <SelectTrigger className="h-9"><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="__all__">Todas</SelectItem>
-                  {empresas.map((e) => <SelectItem key={e} value={e}>{e}</SelectItem>)}
-                </SelectContent>
-              </Select>
-            </Field>
-            <Field label="Executiva">
-              <Select value={executiva} onValueChange={setExecutiva}>
-                <SelectTrigger className="h-9"><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="__all__">Todas</SelectItem>
-                  {executivas.map((x) => <SelectItem key={x} value={x}>{x}</SelectItem>)}
-                </SelectContent>
-              </Select>
-            </Field>
-            <Button variant="outline" onClick={limpar} className="h-9">Limpar</Button>
-          </div>
-        </Card>
-
-        {/* Estado vazio */}
-        {!isLoading && filtered.length === 0 && (
-          <Card className="p-12 flex flex-col items-center text-center gap-3">
-            <Inbox className="h-10 w-10 text-muted-foreground" />
-            <h3 className="text-lg font-semibold">Nenhuma demanda registrada no período</h3>
-            <p className="text-sm text-muted-foreground">Ajuste os filtros para visualizar dados.</p>
-            <Button variant="outline" onClick={limpar}>Limpar filtros</Button>
-          </Card>
-        )}
-
-        {filtered.length > 0 && (
-          <>
-            {/* Insights */}
-            {insights.length > 0 && (
-              <Card className="p-4 border-primary/30 bg-primary/[0.04] animate-in fade-in slide-in-from-top-2 duration-500">
-                <div className="flex flex-col md:flex-row md:items-center gap-3">
-                  <span className="inline-flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider text-primary bg-primary/10 px-2.5 py-1 rounded-full w-fit">
-                    <Sparkles className="h-3 w-3" /> Insights — Análise automática
-                  </span>
-                  <div className="flex-1 flex flex-col gap-1.5">
-                    {insights.map((ins, i) => {
-                      const Icon = ins.icon;
-                      return (
-                        <div key={i} className="flex items-start gap-2 text-sm text-foreground/90">
-                          <Icon className="h-4 w-4 text-primary mt-0.5 shrink-0" />
-                          <span>{ins.text}</span>
-                        </div>
-                      );
-                    })}
-                  </div>
+          <TabsContent value="dashboard" className="mt-6 space-y-8 animate-in fade-in duration-300">
+            {isLoading && (
+              <div className="space-y-4">
+                <div className="h-28 animate-pulse rounded-2xl bg-muted/60" />
+                <div className="grid grid-cols-1 gap-4 md:grid-cols-3 xl:grid-cols-6">
+                  {Array.from({ length: 6 }).map((_, i) => (
+                    <div key={i} className="h-28 animate-pulse rounded-xl bg-muted/60" />
+                  ))}
                 </div>
+                <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
+                  {Array.from({ length: 3 }).map((_, i) => (
+                    <div key={i} className="h-64 animate-pulse rounded-xl bg-muted/60" />
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {!isLoading && filtered.length === 0 && (
+              <Card className="flex flex-col items-center gap-3 p-12 text-center">
+                <Inbox className="h-10 w-10 text-muted-foreground" />
+                <h3 className="text-lg font-semibold">Sem dados para o período selecionado.</h3>
+                <p className="text-sm text-muted-foreground">Ajuste os filtros para visualizar os indicadores.</p>
+                <Button variant="outline" onClick={limpar}>Limpar filtros</Button>
               </Card>
             )}
 
-            {/* KPIs */}
-            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
-              <KpiExecCard
-                delay={0}
-                icon={<Activity className="h-5 w-5" />}
-                label="SLA Executivo Geral"
-                value={`${metrics.slaNoPrazoPct}%`}
-                tone={metrics.slaNoPrazoPct >= 95 ? "success" : metrics.slaNoPrazoPct >= 85 ? "warning" : "danger"}
-                badge={metrics.slaNoPrazoPct >= 95 ? "Saudável" : metrics.slaNoPrazoPct >= 85 ? "Atenção" : "Crítico"}
-                trendPct={tendencias?.slaDelta}
-                description={`${metrics.total - metrics.pctEmAberto * metrics.total / 100 | 0} de ${metrics.total} dentro do prazo`}
-              />
-              <KpiExecCard
-                delay={80}
-                icon={<AlertTriangle className="h-5 w-5" />}
-                label="Backlog Crítico"
-                value={String(metrics.emAberto)}
-                tone={metrics.emAberto === 0 ? "success" : metrics.pctEmAberto > 30 ? "danger" : "warning"}
-                badge={
-                  tendencias && tendencias.backlogDelta > 20
-                    ? "Em alta"
-                    : tendencias && tendencias.backlogDelta < -10
-                    ? "Recuando"
-                    : "Estável"
-                }
-                trendPct={tendencias?.backlogDelta}
-                trendInverse
-                description={`${metrics.pctEmAberto}% do total ainda em aberto`}
-              />
-              <KpiExecCard
-                delay={160}
-                icon={<Clock className="h-5 w-5" />}
-                label="Tempo Médio de Resposta"
-                tone="info"
-                customValue={
-                  <div className="grid grid-cols-2 gap-3 w-full mt-1">
-                    <SubMetric
-                      titulo="Agenda Cirúrgica"
-                      sub="SLA 168h"
-                      valor={`${temposSegmentados.cirurgica.horas.toFixed(0)}h`}
-                      foraPct={temposSegmentados.cirurgica.foraPct}
+            {!isLoading && filtered.length > 0 && (
+              <>
+                {/* ===== 2. Resumo executivo ===== */}
+                <ResumoExecutivo texto={resumoTexto} destaques={resumoDestaques} />
+
+                {/* ===== 3. KPIs principais ===== */}
+                <section className="space-y-3">
+                  <SectionHeader
+                    eyebrow="Como está?"
+                    title="Indicadores principais"
+                    subtitle="Período selecionado, comparado ao período imediatamente anterior"
+                  />
+                  <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-6">
+                    <KpiExecutivo
+                      label="Demandas no período"
+                      value={String(metrics.total)}
+                      deltaPct={deltaVs(metrics.total, prevMetrics?.total)}
+                      deltaInverse
+                      descricao={`${metrics.resolvidas} resolvidas · ${metrics.emAberto} em aberto`}
+                      metodologia="Demandas cuja vigência (abertura até encerramento) intersecta o período filtrado."
                     />
-                    <SubMetric
-                      titulo="Demais setores"
-                      sub="SLA 72h"
-                      valor={`${temposSegmentados.demais.horas.toFixed(0)}h`}
-                      foraPct={temposSegmentados.demais.foraPct}
+                    <KpiExecutivo
+                      label="SLA cumprido"
+                      value={`${metrics.slaNoPrazoPct}%`}
+                      deltaPct={deltaVs(metrics.slaNoPrazoPct, prevMetrics?.slaNoPrazoPct)}
+                      descricao={`${noPrazoQtd} de ${metrics.total} dentro do prazo`}
+                      status={metrics.slaNoPrazoPct >= 95 ? "Saudável" : metrics.slaNoPrazoPct >= 85 ? "Atenção" : "Crítico"}
+                      tone={slaTone}
+                      metodologia="Prazo de 72h úteis (168h para Agenda Cirúrgica), medido sobre o total de demandas do período."
+                    />
+                    <KpiExecutivo
+                      label="Backlog atual"
+                      value={String(metrics.emAberto)}
+                      deltaPct={backlogDeltaPrev}
+                      deltaInverse
+                      descricao={`${metrics.pctEmAberto}% do total ainda sem resolução`}
+                      status={metrics.emAberto === 0 ? "Zerado" : metrics.pctEmAberto > 30 ? "Atenção" : "Controlado"}
+                      tone={metrics.emAberto === 0 ? "success" : metrics.pctEmAberto > 30 ? "warning" : "info"}
+                      metodologia="Fotografia do momento: demandas do período que seguem sem resolução do setor ou da executiva."
+                    />
+                    <KpiExecutivo
+                      label="Tempo médio de resolução"
+                      value={`${metrics.tempoMedioDias.toFixed(1)}d`}
+                      deltaPct={
+                        prevMetrics
+                          ? deltaVs(
+                              Math.round(metrics.tempoMedioDias * 10),
+                              Math.round(prevMetrics.tempoMedioDias * 10),
+                            )
+                          : null
+                      }
+                      deltaInverse
+                      descricao={`Agenda Cirúrgica ${temposSegmentados.cirurgica.horas.toFixed(0)}h · demais ${temposSegmentados.demais.horas.toFixed(0)}h`}
+                      metodologia="Média de dias corridos entre abertura e resolução, considerando apenas demandas já resolvidas."
+                    />
+                    <KpiExecutivo
+                      label="Devolutivas fora do prazo"
+                      value={`${metrics.pctForaDoPrazo}%`}
+                      deltaPct={deltaVs(metrics.pctForaDoPrazo, prevMetrics?.pctForaDoPrazo)}
+                      deltaInverse
+                      descricao={`Meta interna: ≤ ${META_FORA_PRAZO}%`}
+                      status={metrics.acimaDaMeta ? "Acima da meta" : "Dentro da meta"}
+                      tone={metrics.acimaDaMeta ? "danger" : "success"}
+                      metodologia="Percentual de demandas que excederam o prazo aplicável ao setor."
+                    />
+                    <KpiExecutivo
+                      label="Eficiência operacional"
+                      value={String(metrics.score)}
+                      deltaPct={deltaVs(metrics.score, prevMetrics?.score)}
+                      descricao="Índice de 0 a 100 ponderando SLA, resolução, prazo e backlog"
+                      status={scoreStatus === "saudavel" ? "Saudável" : scoreStatus === "atencao" ? "Atenção" : "Crítico"}
+                      tone={scoreStatus === "saudavel" ? "success" : scoreStatus === "atencao" ? "warning" : "danger"}
+                      metodologia="SLA (40%) + resolvidas (30%) + aderência ao prazo (20%) + backlog controlado (10%)."
                     />
                   </div>
-                }
-              />
-              <KpiExecCard
-                delay={240}
-                icon={<Gauge className="h-5 w-5" />}
-                label="Pontuação Operacional"
-                value={`${metrics.score}`}
-                tone={scoreStatus === "saudavel" ? "success" : scoreStatus === "atencao" ? "warning" : "danger"}
-                badge={scoreStatus === "saudavel" ? "Saudável" : scoreStatus === "atencao" ? "Atenção" : "Crítico"}
-                description="Eficiência ponderada de SLA, resolução e backlog."
-                bar={metrics.score}
-              />
-            </div>
+                </section>
 
-            {/* Tendências */}
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-              <TrendLineCard
-                delay={0}
-                title="Evolução do SLA"
-                subtitle="% no prazo por mês"
-                icon={<Activity className="h-4 w-4" />}
-                tone="success"
-                data={monthlySeries.map((m) => ({ label: m.label, value: m.sla }))}
-                unit="%"
-              />
-              <TrendLineCard
-                delay={80}
-                title="Evolução do Backlog"
-                subtitle="Demandas em aberto / mês"
-                icon={<Layers className="h-4 w-4" />}
-                tone="info"
-                inverse
-                data={monthlySeries.map((m) => ({ label: m.label, value: m.aberto }))}
-              />
-              <TrendLineCard
-                delay={160}
-                title="Devolutivas fora do prazo"
-                subtitle="% fora do prazo / mês"
-                icon={<AlertTriangle className="h-4 w-4" />}
-                tone="danger"
-                inverse
-                data={monthlySeries.map((m) => ({ label: m.label, value: m.fora }))}
-                actionHref="/demandas/fora-do-prazo"
-                actionLabel="Ver detalhes"
-                unit="%"
-                meta={META_FORA_PRAZO}
-                footer="Meta: ≤ 8%"
-              />
-              <ResolucaoOrigemCard delay={240} {...resolucaoOrigem} />
-            </div>
+                {/* ===== 4. Desempenho operacional ===== */}
+                <section className="space-y-3">
+                  <SectionHeader
+                    eyebrow="O que aconteceu?"
+                    title="Desempenho operacional"
+                    subtitle="Evolução mensal dentro do período filtrado"
+                  />
+                  <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
+                    <TrendLineCard
+                      delay={0}
+                      title="Evolução do SLA"
+                      subtitle="% de demandas no prazo por mês"
+                      icon={<Activity className="h-4 w-4" />}
+                      tone="success"
+                      data={monthlySeries.map((m) => ({ label: m.label, value: m.sla }))}
+                      unit="%"
+                      footer="Evolução mensal — difere do SLA do período, que consolida todas as demandas."
+                    />
+                    <TrendLineCard
+                      delay={80}
+                      title="Evolução do backlog"
+                      subtitle="Demandas em aberto por mês de abertura"
+                      icon={<Layers className="h-4 w-4" />}
+                      tone="info"
+                      inverse
+                      data={monthlySeries.map((m) => ({ label: m.label, value: m.aberto }))}
+                      footer="Distribuição mensal — o backlog atual é a soma em aberto no momento."
+                    />
+                    <TrendLineCard
+                      delay={160}
+                      title="Tempo médio de resolução"
+                      subtitle="Dias corridos por mês"
+                      icon={<Clock className="h-4 w-4" />}
+                      tone="warning"
+                      inverse
+                      data={monthlySeries.map((m) => ({ label: m.label, value: m.tempoMedio }))}
+                      unit="d"
+                      meta={3}
+                      footer="Referência: 3 dias (72h) para setores gerais."
+                    />
+                  </div>
+                  <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
+                    <TrendLineCard
+                      delay={0}
+                      title="Devolutivas fora do prazo"
+                      subtitle="% fora do prazo por mês"
+                      icon={<AlertTriangle className="h-4 w-4" />}
+                      tone="danger"
+                      inverse
+                      data={monthlySeries.map((m) => ({ label: m.label, value: m.fora }))}
+                      actionHref="/demandas/fora-do-prazo"
+                      actionLabel="Ver detalhes"
+                      unit="%"
+                      meta={META_FORA_PRAZO}
+                      footer={`Meta: ≤ ${META_FORA_PRAZO}%`}
+                    />
+                    <div className="lg:col-span-2">
+                      <ResolucaoOrigemCard delay={120} {...resolucaoOrigem} />
+                    </div>
+                  </div>
+                </section>
 
+                {/* ===== 5. Concentração de demandas ===== */}
+                <section className="space-y-3">
+                  <SectionHeader
+                    eyebrow="Onde está concentrado?"
+                    title="Concentração de demandas"
+                    subtitle="Volume por setor responsável — volume alto não indica, por si só, problema"
+                  />
+                  <ConcentracaoDemandas data={volumeSetor} total={filtered.length} />
+                </section>
 
-            {/* Matriz de risco */}
-            <MatrizRiscoSetores data={matrizSetores} />
+                {/* ===== 6. Mapa de pressão operacional ===== */}
+                <section className="space-y-3">
+                  <SectionHeader
+                    eyebrow="Onde existe pressão?"
+                    title="Mapa de pressão operacional"
+                    subtitle="Cruzamento de volume e impacto (prazo, backlog, tempo médio e recorrência)"
+                  />
+                  <MapaPressao rows={setorAgg} />
+                  <MatrizRiscoSetores data={matrizSetores} />
+                </section>
 
-            {/* Gestão preventiva */}
-            <div className="space-y-3">
-              <div>
-                <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-muted-foreground">
-                  Gestão preventiva de carteira
-                </p>
-                <h2 className="text-xl font-semibold tracking-tight">Inteligência de relacionamento</h2>
-              </div>
-              <div className="grid grid-cols-1 2xl:grid-cols-2 gap-4">
-                <VolumeReclamacoesSetor data={volumeSetor} />
-                <ReincidenciasSetores data={reincidencias} />
-              </div>
-            </div>
+                {/* ===== 7. Pontos de atenção ===== */}
+                <section className="space-y-3">
+                  <SectionHeader
+                    eyebrow="Onde estão os problemas?"
+                    title="Pontos de atenção"
+                    subtitle="Situações identificadas a partir dos indicadores do período"
+                  />
+                  <PontosAtencao itens={pontosAtencao} />
+                </section>
 
-            {/* Gargalos */}
-            <GargalosPanel data={gargalos} />
-          </>
-        )}
+                {/* ===== 8. Recorrência por setor ===== */}
+                <section className="space-y-3">
+                  <SectionHeader
+                    eyebrow="Por que está acontecendo?"
+                    title="Recorrência por setor"
+                    subtitle="Clientes com mais de uma demanda no mesmo setor"
+                  />
+                  <RecorrenciaSetor rows={setorAgg.filter((s) => s.clientesTotal > 0).slice(0, 10)} />
+                </section>
+
+                {/* ===== 9. Gargalos operacionais ===== */}
+                <section className="space-y-3">
+                  <SectionHeader
+                    eyebrow="Por que está acontecendo?"
+                    title="Gargalos operacionais"
+                    subtitle="Top 5 combinações de setor e tipo de demanda com maior impacto"
+                  />
+                  <GargalosTabela rows={gargalos} />
+                </section>
+
+                {/* ===== 10. Prioridades de atuação ===== */}
+                <section className="space-y-3">
+                  <SectionHeader
+                    eyebrow="Onde acompanhar?"
+                    title="Prioridades de atuação"
+                    subtitle="Setores que merecem acompanhamento, segundo os indicadores do período"
+                  />
+                  <PrioridadesAtuacao itens={prioridades} />
+                </section>
+
+                {/* ===== 11. Visão comparativa dos setores ===== */}
+                <section className="space-y-3">
+                  <SectionHeader
+                    eyebrow="Como cada setor está?"
+                    title="Visão comparativa dos setores"
+                    subtitle="Leitura conjunta de volume, SLA, backlog, tempo médio e recorrência"
+                  />
+                  <VisaoComparativaSetores rows={setorAgg} />
+                  <p className="text-[11px] text-muted-foreground">Dados referentes ao período selecionado.</p>
+                </section>
+              </>
+            )}
           </TabsContent>
+
 
           <TabsContent value="apresentacao" className="mt-6 animate-in fade-in duration-300 -mx-4 lg:-mx-8">
             <ApresentacaoIndicadores
