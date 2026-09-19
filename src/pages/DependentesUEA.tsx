@@ -543,6 +543,7 @@ export default function DependentesUEA() {
                                   <TableRow className="bg-muted/40">
                                     <TableHead>Dependente</TableHead>
                                     <TableHead>Carteirinha</TableHead>
+                                    <TableHead>Plano</TableHead>
                                     <TableHead>Nascimento / Idade</TableHead>
                                     <TableHead>Faixa atual</TableHead>
                                     <TableHead className="text-right">Mensalidade</TableHead>
@@ -569,6 +570,11 @@ export default function DependentesUEA() {
                                       </TableCell>
                                       <TableCell className="font-mono text-xs">
                                         {d.carteirinha ?? "—"}
+                                      </TableCell>
+                                      <TableCell className="max-w-[220px] text-xs">
+                                        <span className="line-clamp-2" title={d.plano ?? undefined}>
+                                          {d.plano ?? "—"}
+                                        </span>
                                       </TableCell>
                                       <TableCell className="text-xs">
                                         {d.data_nascimento
