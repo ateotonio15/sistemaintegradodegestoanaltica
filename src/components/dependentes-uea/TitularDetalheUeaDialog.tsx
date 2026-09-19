@@ -138,6 +138,8 @@ export function TitularDetalheUeaDialog({
   const [confirmarReativar, setConfirmarReativar] = useState<DependenteCalculado | null>(null);
   const [valorInlineId, setValorInlineId] = useState<string | null>(null);
   const [valorInlineTxt, setValorInlineTxt] = useState("");
+  const [aplicarFaixaDep, setAplicarFaixaDep] = useState<DependenteCalculado | null>(null);
+  const [faixaSelId, setFaixaSelId] = useState<string | null>(null);
   const [editandoTitular, setEditandoTitular] = useState(false);
   const [dadosTitular, setDadosTitular] = useState({
     nome_completo: "",
