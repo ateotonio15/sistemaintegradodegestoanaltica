@@ -456,6 +456,59 @@ export function useAtualizarValorDependenteUea() {
   });
 }
 
+/** Marca/desmarca a confirmação de que os descontos estão sendo cobrados do titular. */
+export function useToggleValidacaoCobrancaTitularUea() {
+  const qc = useQueryClient();
+  const { toast } = useToast();
+  return useMutation({
+    mutationFn: async ({
+      titular,
+      validada,
+    }: {
+      titular: TitularUea;
+      validada: boolean;
+    }) => {
+      const { data: auth } = await supabase.auth.getUser();
+      const { data, error } = await supabase
+        .from("uea_titulares")
+        .update({
+          cobranca_validada: validada,
+          cobranca_validada_em: validada ? new Date().toISOString() : null,
+          cobranca_validada_por: validada ? (auth.user?.id ?? null) : null,
+        })
+        .eq("id", titular.id)
+        .select("id")
+        .single();
+      if (error) throw error;
+      if (!data) throw new Error("A validação não foi salva. Verifique sua permissão de edição.");
+      await registrarEventoTitular({
+        titular_id: titular.id,
+        tipo: "alteracao_manual",
+        descricao: validada
+          ? "Cobrança dos descontos validada"
+          : "Validação de cobrança removida",
+      });
+      return validada;
+    },
+    onSuccess: (validada, vars) => {
+      qc.invalidateQueries({ queryKey: KEY });
+      qc.invalidateQueries({ queryKey: ["uea-historico-titular", vars.titular.id] });
+      toast({
+        title: validada ? "Cobrança validada" : "Validação removida",
+        description: validada
+          ? "Os descontos deste titular foram marcados como cobrança confirmada."
+          : "O símbolo de validado foi removido.",
+      });
+    },
+    onError: (e: any) =>
+      toast({
+        title: "Não foi possível validar a cobrança",
+        description: e.message,
+        variant: "destructive",
+      }),
+  });
+}
+
 /** Marca/desmarca a confirmação de que a cobrança do dependente está ocorrendo. */
 export function useToggleValidacaoCobrancaUea() {
   const qc = useQueryClient();
