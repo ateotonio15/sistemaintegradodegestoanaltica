@@ -114,6 +114,8 @@ export interface DependenteCalculado extends DependenteUea {
   data_proxima_mudanca: string | null;
   dias_proxima_mudanca: number | null;
   proximo_valor: number | null;
+  /** Data (ISO) em que o dependente entrou na faixa atual (aniversário do corte). */
+  data_ultima_mudanca_faixa: string | null;
   desligado_por_falta_de_margem: boolean;
   status_label: string;
 }
@@ -136,6 +138,10 @@ export interface TitularCalculado extends TitularUea {
   /** Status exibido: inclui "Sem margem — requer análise" na mudança de faixa. */
   status_exibicao: string;
   desligado_por_falta_de_margem: boolean;
+  /** Estado da validação de cobrança do titular (desconta do titular, por isso a validação é dele). */
+  cobranca_status: "sem_dependentes" | "pendente" | "validado" | "revalidar";
+  /** Data da mudança de faixa mais recente entre os dependentes ativos. */
+  ultima_mudanca_faixa_ativos: string | null;
   proxima_mudanca_faixa: { dependente: string; data: string; dias: number; label: string } | null;
   ultima_atualizacao: string;
 }
@@ -277,6 +283,16 @@ export function calcularDependente(
   const porFaltaMargem =
     dep.status === "desligado" && /margem/i.test(dep.motivo_desligamento ?? "");
 
+  // Data em que entrou na faixa atual: aniversário correspondente à idade inicial da faixa.
+  let dataUltimaMudanca: string | null = null;
+  if (faixaAtual && dep.data_nascimento) {
+    const nasc = parseISODateLocal(dep.data_nascimento);
+    const entrada = new Date(nasc.getFullYear() + faixaAtual.idade_inicial, nasc.getMonth(), nasc.getDate());
+    const hojeIso = toISODateLocal(ref);
+    const entradaIso = toISODateLocal(entrada);
+    if (entradaIso <= hojeIso) dataUltimaMudanca = entradaIso;
+  }
+
   return {
     ...dep,
     idade_atual: idade,
@@ -290,6 +306,7 @@ export function calcularDependente(
     data_proxima_mudanca: dataProxima,
     dias_proxima_mudanca: diasProxima,
     proximo_valor: proxima ? Number(Number(proxima.valor_mensal).toFixed(2)) : null,
+    data_ultima_mudanca_faixa: dataUltimaMudanca,
     desligado_por_falta_de_margem: porFaltaMargem,
     status_label:
       dep.status === "ativo"
@@ -332,6 +349,26 @@ export function calcularTitular(
     .sort((a, b) => (a.dias_proxima_mudanca ?? 0) - (b.dias_proxima_mudanca ?? 0));
   const prox = proximas[0];
 
+  // Validação de cobrança: "vence" quando algum dependente ativo mudou de faixa após a confirmação.
+  const ultimaMudancaFaixaAtivos =
+    ativos
+      .map((d) => d.data_ultima_mudanca_faixa)
+      .filter((v): v is string => !!v)
+      .sort()
+      .slice(-1)[0] ?? null;
+  let cobrancaStatus: TitularCalculado["cobranca_status"] = "sem_dependentes";
+  if (ativos.length > 0) {
+    if (!titular.cobranca_validada) {
+      cobrancaStatus = "pendente";
+    } else {
+      const validadaDia = titular.cobranca_validada_em?.slice(0, 10) ?? null;
+      cobrancaStatus =
+        ultimaMudancaFaixaAtivos && validadaDia && validadaDia < ultimaMudancaFaixaAtivos
+          ? "revalidar"
+          : "validado";
+    }
+  }
+
   return {
     ...titular,
     dependentes_calculados: deps,
@@ -349,6 +386,8 @@ export function calcularTitular(
       ? "Sem margem — requer análise"
       : statusMargem(ativos.length, restante),
     desligado_por_falta_de_margem: desligados.some((d) => d.desligado_por_falta_de_margem),
+    cobranca_status: cobrancaStatus,
+    ultima_mudanca_faixa_ativos: ultimaMudancaFaixaAtivos,
     proxima_mudanca_faixa: prox
       ? {
           dependente: prox.nome_completo,

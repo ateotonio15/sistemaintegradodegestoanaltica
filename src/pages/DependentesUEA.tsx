@@ -503,7 +503,7 @@ export default function DependentesUEA() {
                       )}
                     </TableCell>
                     <TableCell className="text-center">
-                      {t.cobranca_validada ? (
+                      {t.cobranca_status === "validado" ? (
                         <div className="flex flex-col items-center gap-0.5">
                           <span
                             className="inline-flex items-center gap-1 rounded-full bg-success/10 px-2 py-0.5 text-[11px] font-medium text-success"
@@ -528,18 +528,49 @@ export default function DependentesUEA() {
                             </button>
                           )}
                         </div>
-                      ) : canEditarUea ? (
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          className="h-7 gap-1 text-[11px]"
-                          disabled={toggleValidacao.isPending}
-                          title="Confirmar que os descontos dos dependentes estão sendo cobrados deste titular"
-                          onClick={() => toggleValidacao.mutate({ titular: t, validada: true })}
-                        >
-                          <CheckCircle2 className="h-3.5 w-3.5" />
-                          Validar cobrança
-                        </Button>
+                      ) : t.cobranca_status === "revalidar" ? (
+                        <div className="flex flex-col items-center gap-0.5">
+                          <span
+                            className="inline-flex animate-pulse items-center gap-1 rounded-full bg-warning/15 px-2 py-0.5 text-[11px] font-medium text-warning"
+                            title={
+                              t.ultima_mudanca_faixa_ativos
+                                ? `Dependente mudou de faixa em ${formatDataBR(t.ultima_mudanca_faixa_ativos)} — valide a cobrança novamente`
+                                : "Houve mudança de faixa — valide a cobrança novamente"
+                            }
+                          >
+                            <AlertTriangle className="h-3.5 w-3.5" />
+                            Revalidar
+                          </span>
+                          {canEditarUea && (
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              className="h-6 gap-1 border-warning/40 text-[10px] text-warning hover:bg-warning/10"
+                              disabled={toggleValidacao.isPending}
+                              title="Confirmar que os novos valores estão sendo cobrados deste titular"
+                              onClick={() => toggleValidacao.mutate({ titular: t, validada: true })}
+                            >
+                              <CheckCircle2 className="h-3 w-3" />
+                              Validar novamente
+                            </Button>
+                          )}
+                        </div>
+                      ) : t.cobranca_status === "pendente" ? (
+                        canEditarUea ? (
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="h-7 gap-1 text-[11px]"
+                            disabled={toggleValidacao.isPending}
+                            title="Confirmar que os descontos dos dependentes estão sendo cobrados deste titular"
+                            onClick={() => toggleValidacao.mutate({ titular: t, validada: true })}
+                          >
+                            <CheckCircle2 className="h-3.5 w-3.5" />
+                            Validar cobrança
+                          </Button>
+                        ) : (
+                          <span className="text-xs text-muted-foreground">Pendente</span>
+                        )
                       ) : (
                         <span className="text-xs text-muted-foreground">—</span>
                       )}
