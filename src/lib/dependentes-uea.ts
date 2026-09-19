@@ -302,6 +302,7 @@ export function calcularDependente(
     data_proxima_mudanca: dataProxima,
     dias_proxima_mudanca: diasProxima,
     proximo_valor: proxima ? Number(Number(proxima.valor_mensal).toFixed(2)) : null,
+    data_ultima_mudanca_faixa: dataUltimaMudanca,
     desligado_por_falta_de_margem: porFaltaMargem,
     status_label:
       dep.status === "ativo"
