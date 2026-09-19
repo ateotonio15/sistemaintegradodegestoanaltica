@@ -279,6 +279,16 @@ export function calcularDependente(
   const porFaltaMargem =
     dep.status === "desligado" && /margem/i.test(dep.motivo_desligamento ?? "");
 
+  // Data em que entrou na faixa atual: aniversário correspondente à idade inicial da faixa.
+  let dataUltimaMudanca: string | null = null;
+  if (faixaAtual && dep.data_nascimento) {
+    const nasc = parseISODateLocal(dep.data_nascimento);
+    const entrada = new Date(nasc.getFullYear() + faixaAtual.idade_inicial, nasc.getMonth(), nasc.getDate());
+    const hojeIso = toISODateLocal(ref);
+    const entradaIso = toISODateLocal(entrada);
+    if (entradaIso <= hojeIso) dataUltimaMudanca = entradaIso;
+  }
+
   return {
     ...dep,
     idade_atual: idade,
