@@ -43,6 +43,7 @@ import {
   useAtualizarMargemUea,
   useExcluirDependenteUea,
   useHistoricoTitularUea,
+  useSalvarTitularUea,
   useSalvarDependenteUea,
   type DependenteInput,
 } from "@/hooks/useDependentesUea";
@@ -114,6 +115,7 @@ export function TitularDetalheUeaDialog({
   const desligarMargem = useDesligarPorMargemUea();
   const reativar = useReativarDependenteUea();
   const atualizarMargem = useAtualizarMargemUea();
+  const salvarTitular = useSalvarTitularUea();
   const { data: historico = [] } = useHistoricoTitularUea(open ? titular?.id ?? null : null);
 
   const [margemTxt, setMargemTxt] = useState("");
@@ -125,6 +127,14 @@ export function TitularDetalheUeaDialog({
   const [confirmarReativar, setConfirmarReativar] = useState<DependenteCalculado | null>(null);
   const [valorInlineId, setValorInlineId] = useState<string | null>(null);
   const [valorInlineTxt, setValorInlineTxt] = useState("");
+  const [editandoTitular, setEditandoTitular] = useState(false);
+  const [dadosTitular, setDadosTitular] = useState({
+    nome_completo: "",
+    cpf: "",
+    matricula: "",
+    contrato: "",
+    observacao: "",
+  });
 
   const salvarValorInline = async (d: DependenteCalculado) => {
     const novo = parseValorBr(valorInlineTxt);
@@ -146,9 +156,35 @@ export function TitularDetalheUeaDialog({
   };
 
   useEffect(() => {
-    if (open && titular) setMargemTxt(String(titular.valor_margem));
-    if (!open) setEditando(null);
+    if (open && titular) {
+      setMargemTxt(String(titular.valor_margem));
+      setDadosTitular({
+        nome_completo: titular.nome_completo,
+        cpf: titular.cpf,
+        matricula: titular.matricula ?? "",
+        contrato: titular.contrato ?? "",
+        observacao: titular.observacao ?? "",
+      });
+    }
+    if (!open) {
+      setEditando(null);
+      setEditandoTitular(false);
+    }
   }, [open, titular?.id, titular?.valor_margem]);
+
+  const salvarDadosTitular = async () => {
+    if (!titular || !dadosTitular.nome_completo.trim() || soDigitos(dadosTitular.cpf).length !== 11) return;
+    await salvarTitular.mutateAsync({
+      id: titular.id,
+      nome_completo: dadosTitular.nome_completo,
+      cpf: soDigitos(dadosTitular.cpf),
+      matricula: dadosTitular.matricula,
+      contrato: dadosTitular.contrato,
+      valor_margem: parseValorBr(margemTxt),
+      observacao: dadosTitular.observacao,
+    });
+    setEditandoTitular(false);
+  };
 
   const deps = useMemo(
     () =>
@@ -367,15 +403,81 @@ export function TitularDetalheUeaDialog({
           <div className="space-y-4">
             {/* DADOS DO TITULAR */}
             <Card className="rounded-2xl border-border/60 p-4">
-              <p className="mb-3 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                Dados do titular
-              </p>
-              <div className="grid gap-3 sm:grid-cols-4">
-                <Campo label="Nome" value={titular.nome_completo} />
-                <Campo label="CPF" value={formatCPF(titular.cpf)} />
-                <Campo label="Matrícula" value={titular.matricula || "—"} />
-                <Campo label="Contrato" value={titular.contrato || "—"} />
+              <div className="mb-3 flex items-center justify-between gap-2">
+                <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                  Dados do titular
+                </p>
+                {podeEditar && !editandoTitular && (
+                  <Button
+                    size="icon"
+                    variant="ghost"
+                    className="h-8 w-8"
+                    title="Editar dados do titular"
+                    onClick={() => setEditandoTitular(true)}
+                  >
+                    <Pencil className="h-4 w-4" />
+                  </Button>
+                )}
               </div>
+              {editandoTitular ? (
+                <div className="space-y-3">
+                  <div className="grid gap-3 sm:grid-cols-4">
+                    <div className="grid gap-1.5 sm:col-span-2">
+                      <Label>Nome completo *</Label>
+                      <Input
+                        value={dadosTitular.nome_completo}
+                        onChange={(e) => setDadosTitular((d) => ({ ...d, nome_completo: e.target.value }))}
+                      />
+                    </div>
+                    <div className="grid gap-1.5">
+                      <Label>CPF *</Label>
+                      <Input
+                        value={dadosTitular.cpf}
+                        onChange={(e) => setDadosTitular((d) => ({ ...d, cpf: e.target.value }))}
+                        placeholder="000.000.000-00"
+                      />
+                    </div>
+                    <div className="grid gap-1.5">
+                      <Label>Matrícula</Label>
+                      <Input
+                        value={dadosTitular.matricula}
+                        onChange={(e) => setDadosTitular((d) => ({ ...d, matricula: e.target.value }))}
+                      />
+                    </div>
+                  </div>
+                  <div className="grid gap-3 sm:grid-cols-2">
+                    <div className="grid gap-1.5">
+                      <Label>Contrato</Label>
+                      <Input
+                        value={dadosTitular.contrato}
+                        onChange={(e) => setDadosTitular((d) => ({ ...d, contrato: e.target.value }))}
+                      />
+                    </div>
+                    <div className="grid gap-1.5">
+                      <Label>Observação</Label>
+                      <Input
+                        value={dadosTitular.observacao}
+                        onChange={(e) => setDadosTitular((d) => ({ ...d, observacao: e.target.value }))}
+                      />
+                    </div>
+                  </div>
+                  <div className="flex justify-end gap-2">
+                    <Button variant="outline" size="sm" onClick={() => setEditandoTitular(false)}>
+                      Cancelar
+                    </Button>
+                    <Button size="sm" onClick={salvarDadosTitular} disabled={salvarTitular.isPending}>
+                      Salvar dados
+                    </Button>
+                  </div>
+                </div>
+              ) : (
+                <div className="grid gap-3 sm:grid-cols-4">
+                  <Campo label="Nome" value={titular.nome_completo} />
+                  <Campo label="CPF" value={formatCPF(titular.cpf)} />
+                  <Campo label="Matrícula" value={titular.matricula || "—"} />
+                  <Campo label="Contrato" value={titular.contrato || "—"} />
+                </div>
+              )}
               <Separator className="my-3" />
               <div className="grid items-end gap-3 sm:grid-cols-4">
                 <div className="grid gap-1.5">
