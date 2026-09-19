@@ -173,6 +173,11 @@ export function ImportarVidasUeaDialog({
                               {d.idade !== null ? ` · ${d.idade} anos` : ""}
                             </span>
                           )}
+                          {d.data_adesao && (
+                            <span className="text-xs text-muted-foreground">
+                              Adesão {formatDataBR(d.data_adesao)}
+                            </span>
+                          )}
                           {d.parentesco && (
                             <span className="text-xs text-muted-foreground">{d.parentesco}</span>
                           )}

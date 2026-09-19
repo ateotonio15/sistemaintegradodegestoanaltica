@@ -93,6 +93,7 @@ const vazio = (titularId: string): DependenteInput => ({
   nome_completo: "",
   cpf: "",
   data_nascimento: "",
+  data_adesao: "",
   parentesco: "",
   faixa_etaria: "",
   valor_mensal: 0,
@@ -157,6 +158,7 @@ export function TitularDetalheUeaDialog({
       nome_completo: d.nome_completo,
       cpf: d.cpf ?? null,
       data_nascimento: d.data_nascimento ?? null,
+      data_adesao: d.data_adesao ?? null,
       parentesco: d.parentesco ?? null,
       faixa_etaria: d.faixa_etaria ?? null,
       valor_mensal: Number((novo || 0).toFixed(2)),
@@ -237,6 +239,7 @@ export function TitularDetalheUeaDialog({
       nome_completo: d.nome_completo,
       cpf: d.cpf ?? "",
       data_nascimento: d.data_nascimento ?? "",
+      data_adesao: d.data_adesao ?? "",
       parentesco: d.parentesco ?? "",
       faixa_etaria: d.faixa_etaria ?? "",
       valor_mensal: d.valor_mensal,
@@ -268,7 +271,7 @@ export function TitularDetalheUeaDialog({
                 onChange={(e) => setEditando((d) => d && { ...d, nome_completo: e.target.value })}
               />
             </div>
-            <div className="grid gap-3 sm:grid-cols-3">
+            <div className="grid gap-3 sm:grid-cols-4">
               <div className="grid gap-1.5">
                 <Label>CPF (quando disponível)</Label>
                 <Input
@@ -282,6 +285,14 @@ export function TitularDetalheUeaDialog({
                   type="date"
                   value={editando.data_nascimento ?? ""}
                   onChange={(e) => setEditando((d) => d && { ...d, data_nascimento: e.target.value })}
+                />
+              </div>
+              <div className="grid gap-1.5">
+                <Label>Data de adesão</Label>
+                <Input
+                  type="date"
+                  value={editando.data_adesao ?? ""}
+                  onChange={(e) => setEditando((d) => d && { ...d, data_adesao: e.target.value })}
                 />
               </div>
               <div className="grid gap-1.5">
@@ -644,9 +655,10 @@ export function TitularDetalheUeaDialog({
                         </Button>
                       </div>}
                     </div>
-                    <div className="grid gap-3 sm:grid-cols-4">
+                    <div className="grid gap-3 sm:grid-cols-5">
                       <Campo label="CPF" value={formatCPF(d.cpf)} />
                       <Campo label="Nascimento" value={formatDataBR(d.data_nascimento)} />
+                      <Campo label="Data de adesão" value={formatDataBR(d.data_adesao)} />
                       <Campo
                         label="Idade"
                         value={d.idade_atual === null ? "—" : `${d.idade_atual} anos`}

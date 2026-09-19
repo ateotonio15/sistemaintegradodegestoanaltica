@@ -336,6 +336,7 @@ export interface DependenteInput {
   nome_completo: string;
   cpf: string | null;
   data_nascimento: string | null;
+  data_adesao: string | null;
   parentesco: string | null;
   faixa_etaria: string | null;
   valor_mensal: number;
@@ -355,6 +356,7 @@ export function useSalvarDependenteUea() {
         nome_completo: input.nome_completo.trim(),
         cpf: input.cpf || null,
         data_nascimento: input.data_nascimento || null,
+        data_adesao: input.data_adesao || null,
         parentesco: input.parentesco || null,
         faixa_etaria: input.faixa_etaria || null,
         valor_mensal: input.valor_mensal,
@@ -1034,6 +1036,7 @@ export function useImportarVidasUea() {
                 nome_completo: dep.nome,
                 cpf: dep.cpf,
                 data_nascimento: dep.data_nascimento,
+                data_adesao: dep.data_adesao,
                 parentesco: dep.parentesco,
                 situacao: dep.situacao,
                 plano: dep.plano,
@@ -1065,6 +1068,7 @@ export function useImportarVidasUea() {
             cpf: dep.cpf,
             carteirinha: dep.carteirinha,
             data_nascimento: dep.data_nascimento,
+            data_adesao: dep.data_adesao,
             parentesco: dep.parentesco,
             situacao: dep.situacao,
              plano: dep.plano,

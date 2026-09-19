@@ -640,6 +640,7 @@ export default function DependentesUEA() {
                                     <TableHead>Carteirinha</TableHead>
                                     <TableHead>Plano</TableHead>
                                     <TableHead>Nascimento / Idade</TableHead>
+                                    <TableHead>Data de adesão</TableHead>
                                     <TableHead>Faixa atual</TableHead>
                                     <TableHead className="text-right">Mensalidade</TableHead>
                                     <TableHead>Próxima mudança</TableHead>
@@ -677,6 +678,9 @@ export default function DependentesUEA() {
                                               d.idade_atual != null ? `${d.idade_atual} anos` : "—"
                                             }`
                                           : "—"}
+                                      </TableCell>
+                                      <TableCell className="text-xs">
+                                        {formatDataBR(d.data_adesao)}
                                       </TableCell>
                                       <TableCell className="text-xs">{d.faixa_atual_label}</TableCell>
                                       <TableCell className="text-right">
