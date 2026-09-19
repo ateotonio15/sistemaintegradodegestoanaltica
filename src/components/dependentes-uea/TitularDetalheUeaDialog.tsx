@@ -51,6 +51,7 @@ import {
   analisarReativacao,
   faixaLabel,
   faixaParaIdade,
+  faixasVigentes,
   formatBRL,
   formatCPF,
   formatDataBR,
