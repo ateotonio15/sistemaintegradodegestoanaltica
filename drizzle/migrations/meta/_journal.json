@@ -57,6 +57,13 @@
       "when": 1789782745169,
       "tag": "0007_uea_dependente_validacao_cobranca",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1789782923023,
+      "tag": "0008_uea_titular_validacao_cobranca",
+      "breakpoints": true
     }
   ]
 }

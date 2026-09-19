@@ -92,6 +92,9 @@ export interface TitularUea {
   plano: string | null;
   faixa_sequencia: string | null;
   valor_margem: number;
+  cobranca_validada?: boolean;
+  cobranca_validada_em?: string | null;
+  cobranca_validada_por?: string | null;
   observacao: string | null;
   created_at: string;
   updated_at: string;

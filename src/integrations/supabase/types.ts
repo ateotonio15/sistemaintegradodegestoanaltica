@@ -5349,6 +5349,9 @@ export type Database = {
       uea_titulares: {
         Row: {
           carteirinha: string | null
+          cobranca_validada: boolean
+          cobranca_validada_em: string | null
+          cobranca_validada_por: string | null
           contrato: string | null
           cpf: string
           created_at: string
@@ -5366,6 +5369,9 @@ export type Database = {
         }
         Insert: {
           carteirinha?: string | null
+          cobranca_validada?: boolean
+          cobranca_validada_em?: string | null
+          cobranca_validada_por?: string | null
           contrato?: string | null
           cpf: string
           created_at?: string
@@ -5383,6 +5389,9 @@ export type Database = {
         }
         Update: {
           carteirinha?: string | null
+          cobranca_validada?: boolean
+          cobranca_validada_em?: string | null
+          cobranca_validada_por?: string | null
           contrato?: string | null
           cpf?: string
           created_at?: string
