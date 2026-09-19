@@ -349,6 +349,26 @@ export function calcularTitular(
     .sort((a, b) => (a.dias_proxima_mudanca ?? 0) - (b.dias_proxima_mudanca ?? 0));
   const prox = proximas[0];
 
+  // Validação de cobrança: "vence" quando algum dependente ativo mudou de faixa após a confirmação.
+  const ultimaMudancaFaixaAtivos =
+    ativos
+      .map((d) => d.data_ultima_mudanca_faixa)
+      .filter((v): v is string => !!v)
+      .sort()
+      .slice(-1)[0] ?? null;
+  let cobrancaStatus: TitularCalculado["cobranca_status"] = "sem_dependentes";
+  if (ativos.length > 0) {
+    if (!titular.cobranca_validada) {
+      cobrancaStatus = "pendente";
+    } else {
+      const validadaDia = titular.cobranca_validada_em?.slice(0, 10) ?? null;
+      cobrancaStatus =
+        ultimaMudancaFaixaAtivos && validadaDia && validadaDia < ultimaMudancaFaixaAtivos
+          ? "revalidar"
+          : "validado";
+    }
+  }
+
   return {
     ...titular,
     dependentes_calculados: deps,
