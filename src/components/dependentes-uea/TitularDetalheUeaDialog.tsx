@@ -70,6 +70,14 @@ const STATUS_CLS: Record<StatusMargem, string> = {
   "Sem margem": "bg-destructive/10 text-destructive",
 };
 
+const MOTIVOS_DESLIGAMENTO = [
+  "Titular sem margem",
+  "Titular com margem bloqueada",
+  "Desligamento a pedido do titular",
+  "Cancelamento do plano",
+  "Outro motivo",
+] as const;
+
 interface Props {
   open: boolean;
   onOpenChange: (v: boolean) => void;
@@ -124,6 +132,8 @@ export function TitularDetalheUeaDialog({
   const [valorCustom, setValorCustom] = useState(false);
   const [aba, setAba] = useState("dependentes");
   const [confirmarDesligar, setConfirmarDesligar] = useState<DependenteCalculado | null>(null);
+  const [motivoDesligamento, setMotivoDesligamento] = useState("");
+  const [outroMotivoDesligamento, setOutroMotivoDesligamento] = useState("");
   const [confirmarReativar, setConfirmarReativar] = useState<DependenteCalculado | null>(null);
   const [valorInlineId, setValorInlineId] = useState<string | null>(null);
   const [valorInlineTxt, setValorInlineTxt] = useState("");
@@ -613,10 +623,13 @@ export function TitularDetalheUeaDialog({
                           <Button
                             size="sm"
                             variant="outline"
-                            onClick={() => setConfirmarDesligar(d)}
+                            onClick={() => {
+                              setConfirmarDesligar(d);
+                              setMotivoDesligamento("");
+                              setOutroMotivoDesligamento("");
+                            }}
                           >
-                            <UserMinus className="mr-1.5 h-4 w-4" /> Marcar como desligado por falta de
-                            margem
+                            <UserMinus className="mr-1.5 h-4 w-4" /> Desligar dependente
                           </Button>
                         ) : (
                           <Button size="sm" variant="outline" onClick={() => setConfirmarReativar(d)}>
@@ -843,18 +856,22 @@ export function TitularDetalheUeaDialog({
             </Tabs>
           </div>
         )}
-        {/* CONFIRMAÇÃO DE DESLIGAMENTO POR FALTA DE MARGEM */}
+        {/* CONFIRMAÇÃO DE DESLIGAMENTO */}
         <AlertDialog
           open={!!confirmarDesligar}
-          onOpenChange={(v) => !v && setConfirmarDesligar(null)}
+          onOpenChange={(v) => {
+            if (!v) {
+              setConfirmarDesligar(null);
+              setMotivoDesligamento("");
+              setOutroMotivoDesligamento("");
+            }
+          }}
         >
           <AlertDialogContent>
             <AlertDialogHeader>
-              <AlertDialogTitle>
-                Confirmar desligamento deste dependente por falta de margem?
-              </AlertDialogTitle>
+              <AlertDialogTitle>Desligar dependente</AlertDialogTitle>
             </AlertDialogHeader>
-            <div className="space-y-1 text-sm">
+            <div className="space-y-3 text-sm">
               <p>
                 <span className="text-muted-foreground">Dependente: </span>
                 <span className="font-medium uppercase">{confirmarDesligar?.nome_completo}</span>
@@ -869,16 +886,52 @@ export function TitularDetalheUeaDialog({
                   {formatBRL(titular?.valor_margem)} · restante {formatBRL(titular?.margem_restante)}
                 </span>
               </p>
+              <div className="grid gap-1.5 pt-1">
+                <Label>Motivo do desligamento *</Label>
+                <Select value={motivoDesligamento} onValueChange={setMotivoDesligamento}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Selecione o motivo" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {MOTIVOS_DESLIGAMENTO.map((motivo) => (
+                      <SelectItem key={motivo} value={motivo}>
+                        {motivo}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              {motivoDesligamento === "Outro motivo" && (
+                <div className="grid gap-1.5">
+                  <Label>Informe o motivo *</Label>
+                  <Textarea
+                    rows={2}
+                    value={outroMotivoDesligamento}
+                    onChange={(e) => setOutroMotivoDesligamento(e.target.value)}
+                    placeholder="Descreva o motivo do desligamento"
+                  />
+                </div>
+              )}
             </div>
             <AlertDialogFooter>
               <AlertDialogCancel>Cancelar</AlertDialogCancel>
               <Button
                 variant="destructive"
-                disabled={desligarMargem.isPending}
+                disabled={
+                  desligarMargem.isPending ||
+                  !motivoDesligamento ||
+                  (motivoDesligamento === "Outro motivo" && !outroMotivoDesligamento.trim())
+                }
                 onClick={async () => {
                   if (!confirmarDesligar || !titular) return;
-                  await desligarMargem.mutateAsync({ dependente: confirmarDesligar, titular });
+                  const motivo =
+                    motivoDesligamento === "Outro motivo"
+                      ? outroMotivoDesligamento.trim()
+                      : motivoDesligamento;
+                  await desligarMargem.mutateAsync({ dependente: confirmarDesligar, titular, motivo });
                   setConfirmarDesligar(null);
+                  setMotivoDesligamento("");
+                  setOutroMotivoDesligamento("");
                 }}
               >
                 Confirmar desligamento
