@@ -661,9 +661,16 @@ export function useAplicarFaixaDependenteUea() {
     }) => {
       const novoValor = Number(faixa.valor_mensal);
       const novaFaixa = faixaLabel(faixa);
+      // Fixa também a tabela/plano escolhidos, senão o recálculo volta a apontar
+      // para outra tabela vigente e o alerta de valor desatualizado permanece.
       const { error } = await supabase
         .from("uea_dependentes")
-        .update({ faixa_etaria: novaFaixa, valor_mensal: novoValor })
+        .update({
+          faixa_etaria: novaFaixa,
+          valor_mensal: novoValor,
+          plano: faixa.plano ?? dependente.plano,
+          faixa_sequencia: faixa.sequencia ?? dependente.faixa_sequencia,
+        })
         .eq("id", dependente.id);
       if (error) throw error;
       const { error: e2 } = await supabase.from("uea_dependente_historico").insert({
