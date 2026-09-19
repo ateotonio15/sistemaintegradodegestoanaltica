@@ -312,9 +312,9 @@ export function calcularDependente(
     status_label:
       dep.status === "ativo"
         ? "Ativo"
-        : porFaltaMargem
-        ? "Desligado por falta de margem"
-        : "Desligado",
+        : dep.motivo_desligamento?.trim()
+          ? `Desligado — ${dep.motivo_desligamento.trim()}`
+          : "Desligado — motivo não informado",
   };
 }
 
