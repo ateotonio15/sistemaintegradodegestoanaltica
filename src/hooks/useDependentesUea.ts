@@ -876,6 +876,11 @@ export function useImportarVidasUea() {
 
         let titularId = (existente as any)?.id as string | undefined;
         if (titularId) {
+          const { error: eAtualizarTitular } = await supabase
+            .from("uea_titulares")
+            .update({ plano: fam.titular.plano, situacao: fam.titular.situacao })
+            .eq("id", titularId);
+          if (eAtualizarTitular) throw eAtualizarTitular;
           res.titularesExistentes += 1;
         } else {
           const { data: novo, error } = await supabase
@@ -907,6 +912,32 @@ export function useImportarVidasUea() {
             .maybeSingle();
           if (eDep) throw eDep;
           if (depExistente) {
+            const idadeExistente = dep.data_nascimento ? idadeEm(dep.data_nascimento) : dep.idade;
+            const planoExistente = String(dep.plano ?? "").replace(/\s*-\s*protocolo.*$/i, "").trim().toLowerCase();
+            const faixaExistente = idadeExistente === null
+              ? null
+              : faixas.find((f) =>
+                  idadeExistente >= f.idade_inicial &&
+                  (f.idade_final === null || idadeExistente <= f.idade_final) &&
+                  String(f.plano ?? "").trim().toLowerCase() === planoExistente &&
+                  dep.mensalidade !== null &&
+                  Number(f.valor_mensal).toFixed(2) === dep.mensalidade.toFixed(2),
+                ) ?? null;
+            const { error: eAtualizarDep } = await supabase
+              .from("uea_dependentes")
+              .update({
+                nome_completo: dep.nome,
+                cpf: dep.cpf,
+                data_nascimento: dep.data_nascimento,
+                parentesco: dep.parentesco,
+                situacao: dep.situacao,
+                plano: dep.plano,
+                faixa_sequencia: faixaExistente?.sequencia ?? null,
+                faixa_etaria: faixaExistente ? faixaLabel(faixaExistente) : undefined,
+                valor_mensal: dep.mensalidade ?? undefined,
+              })
+              .eq("id", (depExistente as any).id);
+            if (eAtualizarDep) throw eAtualizarDep;
             res.dependentesExistentes += 1;
             continue;
           }
