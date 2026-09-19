@@ -377,14 +377,14 @@ export default function DependentesUEA() {
             {isLoading &&
               Array.from({ length: 5 }).map((_, i) => (
                 <TableRow key={i}>
-                  <TableCell colSpan={9}>
+                  <TableCell colSpan={11}>
                     <Skeleton className="h-6 w-full" />
                   </TableCell>
                 </TableRow>
               ))}
             {!isLoading && lista.length === 0 && (
               <TableRow>
-                <TableCell colSpan={9} className="py-12 text-center">
+                <TableCell colSpan={11} className="py-12 text-center">
                   <p className="text-sm text-muted-foreground">
                     {titulares.length === 0
                       ? "Nenhum titular cadastrado ainda."
@@ -569,7 +569,7 @@ export default function DependentesUEA() {
                   </TableRow>
                   {expandidoId === t.id && (
                     <TableRow className="bg-muted/20 hover:bg-muted/20">
-                      <TableCell colSpan={10} className="p-0">
+                      <TableCell colSpan={11} className="p-0">
                         <div className="border-l-2 border-primary/50 px-6 py-4">
                           <div className="mb-3 flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
                             <Users className="h-3.5 w-3.5" />
@@ -595,7 +595,6 @@ export default function DependentesUEA() {
                                     <TableHead className="text-right">Mensalidade</TableHead>
                                     <TableHead>Próxima mudança</TableHead>
                                     <TableHead>Status</TableHead>
-                                    <TableHead className="text-center">Cobrança</TableHead>
                                   </TableRow>
                                 </TableHeader>
                                 <TableBody>
