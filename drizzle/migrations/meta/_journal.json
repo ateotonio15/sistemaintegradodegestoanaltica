@@ -50,6 +50,13 @@
       "when": 1789780790684,
       "tag": "0006_add_uea_plan_table_link",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1789782745169,
+      "tag": "0007_uea_dependente_validacao_cobranca",
+      "breakpoints": true
     }
   ]
 }

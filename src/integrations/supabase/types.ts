@@ -5144,6 +5144,9 @@ export type Database = {
       uea_dependentes: {
         Row: {
           carteirinha: string | null
+          cobranca_validada: boolean
+          cobranca_validada_em: string | null
+          cobranca_validada_por: string | null
           cpf: string | null
           created_at: string
           data_desligamento: string | null
@@ -5164,6 +5167,9 @@ export type Database = {
         }
         Insert: {
           carteirinha?: string | null
+          cobranca_validada?: boolean
+          cobranca_validada_em?: string | null
+          cobranca_validada_por?: string | null
           cpf?: string | null
           created_at?: string
           data_desligamento?: string | null
@@ -5184,6 +5190,9 @@ export type Database = {
         }
         Update: {
           carteirinha?: string | null
+          cobranca_validada?: boolean
+          cobranca_validada_em?: string | null
+          cobranca_validada_por?: string | null
           cpf?: string | null
           created_at?: string
           data_desligamento?: string | null
