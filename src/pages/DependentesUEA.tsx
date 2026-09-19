@@ -397,6 +397,13 @@ export default function DependentesUEA() {
               lista.map((t) => {
                 const prox = t.proxima_mudanca_faixa;
                 const proxProxima = !!prox && prox.dias <= DIAS_PROXIMA_FAIXA;
+                const motivosDesligamento = Array.from(
+                  new Set(
+                    t.dependentes_calculados
+                      .filter((d) => d.status === "desligado")
+                      .map((d) => d.motivo_desligamento?.trim() || "Motivo não informado"),
+                  ),
+                );
                 return (
                   <Fragment key={t.id}>
                     <TableRow
@@ -473,8 +480,19 @@ export default function DependentesUEA() {
                             : STATUS_CLS[t.status_margem],
                         )}
                       >
-                        {t.status_exibicao}
+                        {t.quantidade_dependentes_ativos === 0 && motivosDesligamento.length > 0
+                          ? "Dependentes desligados"
+                          : t.status_exibicao}
                       </span>
+                      {motivosDesligamento.map((motivo) => (
+                        <div
+                          key={motivo}
+                          className="mt-1 max-w-[220px] text-[11px] font-medium leading-snug text-destructive"
+                          title={motivo}
+                        >
+                          Motivo: {motivo}
+                        </div>
+                      ))}
                       {t.margem_restante < 0 && (
                         <div className="mt-1 flex items-center gap-1 text-[11px] text-destructive">
                           <AlertTriangle className="h-3 w-3" />
