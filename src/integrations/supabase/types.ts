@@ -5149,6 +5149,7 @@ export type Database = {
           cobranca_validada_por: string | null
           cpf: string | null
           created_at: string
+          data_adesao: string | null
           data_desligamento: string | null
           data_nascimento: string | null
           faixa_etaria: string | null
@@ -5172,6 +5173,7 @@ export type Database = {
           cobranca_validada_por?: string | null
           cpf?: string | null
           created_at?: string
+          data_adesao?: string | null
           data_desligamento?: string | null
           data_nascimento?: string | null
           faixa_etaria?: string | null
@@ -5195,6 +5197,7 @@ export type Database = {
           cobranca_validada_por?: string | null
           cpf?: string | null
           created_at?: string
+          data_adesao?: string | null
           data_desligamento?: string | null
           data_nascimento?: string | null
           faixa_etaria?: string | null
