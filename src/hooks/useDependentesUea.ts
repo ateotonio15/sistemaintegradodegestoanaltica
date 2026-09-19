@@ -409,6 +409,53 @@ export function useSalvarDependenteUea() {
   });
 }
 
+/** Atualiza somente a mensalidade cadastrada do dependente. */
+export function useAtualizarValorDependenteUea() {
+  const qc = useQueryClient();
+  const { toast } = useToast();
+  return useMutation({
+    mutationFn: async ({
+      dependente,
+      valor_mensal,
+    }: {
+      dependente: DependenteUea;
+      valor_mensal: number;
+    }) => {
+      const valorAnterior = Number(dependente.valor_mensal || 0);
+      const novoValor = Number(valor_mensal.toFixed(2));
+      const { data, error } = await supabase
+        .from("uea_dependentes")
+        .update({ valor_mensal: novoValor })
+        .eq("id", dependente.id)
+        .select("id")
+        .single();
+      if (error) throw error;
+      if (!data) throw new Error("O valor não foi atualizado. Verifique sua permissão de edição.");
+      await registrarEventoTitular({
+        titular_id: dependente.titular_id,
+        dependente_id: dependente.id,
+        dependente_nome: dependente.nome_completo,
+        tipo: "mudanca_valor",
+        descricao: "Valor do dependente alterado",
+        valor_anterior: valorAnterior,
+        valor_novo: novoValor,
+      });
+      return novoValor;
+    },
+    onSuccess: (_valor, vars) => {
+      qc.invalidateQueries({ queryKey: KEY });
+      qc.invalidateQueries({ queryKey: ["uea-historico-titular", vars.dependente.titular_id] });
+      toast({ title: "Valor do dependente atualizado" });
+    },
+    onError: (e: any) =>
+      toast({
+        title: "Não foi possível atualizar o valor",
+        description: e.message,
+        variant: "destructive",
+      }),
+  });
+}
+
 export function useExcluirDependenteUea() {
   const qc = useQueryClient();
   const { toast } = useToast();

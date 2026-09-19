@@ -38,7 +38,11 @@ import {
   Users,
   Wallet,
 } from "lucide-react";
-import { useExcluirTitularUea, useTitularesUea } from "@/hooks/useDependentesUea";
+import {
+  useAtualizarValorDependenteUea,
+  useExcluirTitularUea,
+  useTitularesUea,
+} from "@/hooks/useDependentesUea";
 import { TitularUeaDialog } from "@/components/dependentes-uea/TitularUeaDialog";
 import { TitularDetalheUeaDialog } from "@/components/dependentes-uea/TitularDetalheUeaDialog";
 import { FaixasUeaDialog } from "@/components/dependentes-uea/FaixasUeaDialog";
@@ -56,6 +60,7 @@ import {
   formatBRL,
   formatCPF,
   formatDataBR,
+  parseValorBr,
   type FiltroUea,
   type StatusMargem,
   type TitularCalculado,
@@ -112,6 +117,7 @@ export default function DependentesUEA() {
   const [faixasOpen, setFaixasOpen] = useState(false);
   const [importarOpen, setImportarOpen] = useState(false);
   const excluir = useExcluirTitularUea();
+  const atualizarValorDependente = useAtualizarValorDependenteUea();
 
   const [busca, setBusca] = useState("");
   const [filtro, setFiltro] = useState<FiltroUea>("todos");
@@ -121,6 +127,8 @@ export default function DependentesUEA() {
   const [excluirId, setExcluirId] = useState<string | null>(null);
   const [expandidoId, setExpandidoId] = useState<string | null>(null);
   const [filtroMudanca, setFiltroMudanca] = useState<FiltroMudanca>("90");
+  const [valorEditandoId, setValorEditandoId] = useState<string | null>(null);
+  const [valorEditandoTxt, setValorEditandoTxt] = useState("");
 
   const mudancas = useMemo(() => proximasMudancasFaixa(titulares, 90), [titulares]);
   const mudancasFiltradas = useMemo(
@@ -561,7 +569,72 @@ export default function DependentesUEA() {
                                       </TableCell>
                                       <TableCell className="text-xs">{d.faixa_atual_label}</TableCell>
                                       <TableCell className="text-right">
-                                        {formatBRL(d.valor_aplicavel)}
+                                        {valorEditandoId === d.id ? (
+                                          <div className="ml-auto flex w-[260px] items-center gap-1.5">
+                                            <Input
+                                              autoFocus
+                                              inputMode="decimal"
+                                              className="h-8 text-right"
+                                              value={valorEditandoTxt}
+                                              onChange={(e) => setValorEditandoTxt(e.target.value)}
+                                              onKeyDown={(e) => {
+                                                if (e.key === "Escape") setValorEditandoId(null);
+                                                if (e.key === "Enter") {
+                                                  const valor = parseValorBr(valorEditandoTxt);
+                                                  atualizarValorDependente
+                                                    .mutateAsync({ dependente: d, valor_mensal: valor })
+                                                    .then(() => setValorEditandoId(null));
+                                                }
+                                              }}
+                                            />
+                                            <Button
+                                              size="sm"
+                                              className="h-8"
+                                              disabled={atualizarValorDependente.isPending}
+                                              onClick={async () => {
+                                                const valor = parseValorBr(valorEditandoTxt);
+                                                await atualizarValorDependente.mutateAsync({
+                                                  dependente: d,
+                                                  valor_mensal: valor,
+                                                });
+                                                setValorEditandoId(null);
+                                              }}
+                                            >
+                                              Salvar
+                                            </Button>
+                                            <Button
+                                              size="icon"
+                                              variant="ghost"
+                                              className="h-8 w-8"
+                                              title="Cancelar"
+                                              onClick={() => setValorEditandoId(null)}
+                                            >
+                                              ×
+                                            </Button>
+                                          </div>
+                                        ) : (
+                                          <div className="flex items-center justify-end gap-1.5">
+                                            <span>{formatBRL(d.valor_mensal)}</span>
+                                            {canEditarUea && (
+                                              <Button
+                                                size="icon"
+                                                variant="ghost"
+                                                className="h-7 w-7"
+                                                title="Editar valor do dependente"
+                                                onClick={() => {
+                                                  setValorEditandoId(d.id);
+                                                  setValorEditandoTxt(
+                                                    Number(d.valor_mensal || 0)
+                                                      .toFixed(2)
+                                                      .replace(".", ","),
+                                                  );
+                                                }}
+                                              >
+                                                <Pencil className="h-3.5 w-3.5" />
+                                              </Button>
+                                            )}
+                                          </div>
+                                        )}
                                       </TableCell>
                                       <TableCell className="text-xs">
                                         {d.data_proxima_mudanca ? (
