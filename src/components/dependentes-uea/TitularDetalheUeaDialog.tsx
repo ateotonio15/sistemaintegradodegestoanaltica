@@ -651,7 +651,35 @@ export function TitularDetalheUeaDialog({
                         label="Idade"
                         value={d.idade_atual === null ? "—" : `${d.idade_atual} anos`}
                       />
-                      <Campo label="Faixa atual" value={d.faixa_atual_label} />
+                      <div className="rounded-lg border border-border/60 bg-muted/30 p-2.5">
+                        <p className="text-[11px] uppercase tracking-wide text-muted-foreground">
+                          Faixa atual
+                        </p>
+                        <div className="mt-0.5 flex items-center gap-1.5">
+                          <p className="text-sm font-medium">{d.faixa_atual_label}</p>
+                          {podeEditar && d.status === "ativo" && (
+                            <Button
+                              size="icon"
+                              variant="ghost"
+                              className="h-6 w-6"
+                              title="Editar faixa vinculada"
+                              onClick={() => {
+                                setAplicarFaixaDep(d);
+                                setFaixaSelId(d.faixa_atual?.id ?? null);
+                              }}
+                            >
+                              <Pencil className="h-3 w-3" />
+                            </Button>
+                          )}
+                        </div>
+                        {d.faixa_atual && (
+                          <p className="mt-0.5 text-[11px] leading-snug text-muted-foreground">
+                            {[d.faixa_atual.tabela_nome, d.faixa_atual.plano]
+                              .filter(Boolean)
+                              .join(" • ") || "—"}
+                          </p>
+                        )}
+                      </div>
                       <div className="rounded-lg border border-border/60 bg-muted/30 p-2.5">
                         <p className="text-[11px] uppercase tracking-wide text-muted-foreground">
                           Mensalidade
@@ -1009,7 +1037,7 @@ export function TitularDetalheUeaDialog({
         >
           <AlertDialogContent>
             <AlertDialogHeader>
-              <AlertDialogTitle>Aplicar novo valor — escolher faixa</AlertDialogTitle>
+              <AlertDialogTitle>Faixa etária vinculada</AlertDialogTitle>
             </AlertDialogHeader>
             {aplicarFaixaDep && (
               <div className="space-y-3">
