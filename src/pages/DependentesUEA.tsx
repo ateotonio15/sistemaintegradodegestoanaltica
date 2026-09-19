@@ -725,56 +725,6 @@ export default function DependentesUEA() {
                                           {d.status_label}
                                         </span>
                                       </TableCell>
-                                      <TableCell className="text-center">
-                                        {d.cobranca_validada ? (
-                                          <div className="flex flex-col items-center gap-0.5">
-                                            <span
-                                              className="inline-flex items-center gap-1 rounded-full bg-success/10 px-2 py-0.5 text-[11px] font-medium text-success"
-                                              title={
-                                                d.cobranca_validada_em
-                                                  ? `Validado em ${formatDataBR(d.cobranca_validada_em)}`
-                                                  : "Cobrança validada"
-                                              }
-                                            >
-                                              <CheckCircle2 className="h-3.5 w-3.5" />
-                                              Validado
-                                            </span>
-                                            {canEditarUea && (
-                                              <button
-                                                className="text-[10px] text-muted-foreground underline-offset-2 hover:underline"
-                                                disabled={toggleValidacao.isPending}
-                                                onClick={() =>
-                                                  toggleValidacao.mutate({
-                                                    dependente: d,
-                                                    validada: false,
-                                                  })
-                                                }
-                                              >
-                                                Remover
-                                              </button>
-                                            )}
-                                          </div>
-                                        ) : canEditarUea ? (
-                                          <Button
-                                            size="sm"
-                                            variant="outline"
-                                            className="h-7 gap-1 text-[11px]"
-                                            disabled={toggleValidacao.isPending}
-                                            title="Confirmar que esta cobrança está sendo feita"
-                                            onClick={() =>
-                                              toggleValidacao.mutate({
-                                                dependente: d,
-                                                validada: true,
-                                              })
-                                            }
-                                          >
-                                            <CheckCircle2 className="h-3.5 w-3.5" />
-                                            Validar cobrança
-                                          </Button>
-                                        ) : (
-                                          <span className="text-xs text-muted-foreground">—</span>
-                                        )}
-                                      </TableCell>
                                     </TableRow>
                                   ))}
                                 </TableBody>
