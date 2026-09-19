@@ -114,6 +114,8 @@ export interface DependenteCalculado extends DependenteUea {
   data_proxima_mudanca: string | null;
   dias_proxima_mudanca: number | null;
   proximo_valor: number | null;
+  /** Data (ISO) em que o dependente entrou na faixa atual (aniversário do corte). */
+  data_ultima_mudanca_faixa: string | null;
   desligado_por_falta_de_margem: boolean;
   status_label: string;
 }
