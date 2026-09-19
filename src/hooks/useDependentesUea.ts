@@ -704,7 +704,7 @@ interface EventoMargemArgs {
   motivo?: string;
 }
 
-/** Desliga um dependente por falta de margem (somente após confirmação humana). */
+/** Desliga um dependente com motivo informado e confirmação humana. */
 export function useDesligarPorMargemUea() {
   const qc = useQueryClient();
   const { toast } = useToast();
@@ -742,7 +742,7 @@ export function useDesligarPorMargemUea() {
         dependente_id: dependente.id,
         dependente_nome: dependente.nome_completo,
         tipo: "desligamento_margem",
-        descricao: "Dependente desligado por falta de margem",
+        descricao: "Dependente desligado",
         valor_anterior: valorMomento,
         valor_novo: 0,
         margem_momento: titular.valor_margem,
@@ -754,7 +754,7 @@ export function useDesligarPorMargemUea() {
       qc.invalidateQueries({ queryKey: KEY });
       qc.invalidateQueries({ queryKey: ["uea-historico", vars.titular.id] });
       qc.invalidateQueries({ queryKey: ["uea-historico-titular", vars.titular.id] });
-      toast({ title: "Dependente desligado por falta de margem" });
+      toast({ title: "Dependente desligado" });
     },
     onError: (e: any) =>
       toast({ title: "Erro ao desligar dependente", description: e.message, variant: "destructive" }),

@@ -281,7 +281,8 @@ export function calcularDependente(
   }
 
   const porFaltaMargem =
-    dep.status === "desligado" && /margem/i.test(dep.motivo_desligamento ?? "");
+    dep.status === "desligado" &&
+    /(falta de margem|titular sem margem)/i.test(dep.motivo_desligamento ?? "");
 
   // Data em que entrou na faixa atual: aniversário correspondente à idade inicial da faixa.
   let dataUltimaMudanca: string | null = null;
