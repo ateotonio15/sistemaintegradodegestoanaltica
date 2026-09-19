@@ -440,7 +440,17 @@ export default function DependentesUEA() {
                       </button>
                     </TableCell>
                     <TableCell className="text-right">
-                      {formatBRL(t.valor_total_dependentes_ativos)}
+                      <div className="font-medium">{formatBRL(t.valor_total_dependentes_ativos)}</div>
+                      {t.quantidade_dependentes_desligados > 0 && (
+                        <div className="text-[11px] text-muted-foreground">
+                          {formatBRL(
+                            t.dependentes_calculados
+                              .filter((d) => d.status === "desligado")
+                              .reduce((total, d) => total + Number(d.valor_mensal || 0), 0),
+                          )}{" "}
+                          em desligados
+                        </div>
+                      )}
                     </TableCell>
                     <TableCell
                       className={cn(
