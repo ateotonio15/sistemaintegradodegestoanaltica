@@ -26,6 +26,7 @@ import { cn } from "@/lib/utils";
 import {
   AlertTriangle,
   CalendarClock,
+  CheckCircle2,
   ChevronDown,
   Pencil,
   Plus,
@@ -42,6 +43,7 @@ import {
   useAtualizarValorDependenteUea,
   useExcluirTitularUea,
   useTitularesUea,
+  useToggleValidacaoCobrancaUea,
 } from "@/hooks/useDependentesUea";
 import { TitularUeaDialog } from "@/components/dependentes-uea/TitularUeaDialog";
 import { TitularDetalheUeaDialog } from "@/components/dependentes-uea/TitularDetalheUeaDialog";
@@ -118,6 +120,7 @@ export default function DependentesUEA() {
   const [importarOpen, setImportarOpen] = useState(false);
   const excluir = useExcluirTitularUea();
   const atualizarValorDependente = useAtualizarValorDependenteUea();
+  const toggleValidacao = useToggleValidacaoCobrancaUea();
 
   const [busca, setBusca] = useState("");
   const [filtro, setFiltro] = useState<FiltroUea>("todos");
