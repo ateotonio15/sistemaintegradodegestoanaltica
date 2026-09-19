@@ -43,7 +43,7 @@ import {
   useAtualizarValorDependenteUea,
   useExcluirTitularUea,
   useTitularesUea,
-  useToggleValidacaoCobrancaUea,
+  useToggleValidacaoCobrancaTitularUea,
 } from "@/hooks/useDependentesUea";
 import { TitularUeaDialog } from "@/components/dependentes-uea/TitularUeaDialog";
 import { TitularDetalheUeaDialog } from "@/components/dependentes-uea/TitularDetalheUeaDialog";
@@ -120,7 +120,7 @@ export default function DependentesUEA() {
   const [importarOpen, setImportarOpen] = useState(false);
   const excluir = useExcluirTitularUea();
   const atualizarValorDependente = useAtualizarValorDependenteUea();
-  const toggleValidacao = useToggleValidacaoCobrancaUea();
+  const toggleValidacao = useToggleValidacaoCobrancaTitularUea();
 
   const [busca, setBusca] = useState("");
   const [filtro, setFiltro] = useState<FiltroUea>("todos");
@@ -369,6 +369,7 @@ export default function DependentesUEA() {
               <TableHead className="text-right">Margem Restante</TableHead>
               <TableHead>Status</TableHead>
               <TableHead>Próxima Mudança de Faixa</TableHead>
+              <TableHead className="text-center">Cobrança</TableHead>
               <TableHead className="w-28 text-right">Ações</TableHead>
             </TableRow>
           </TableHeader>
