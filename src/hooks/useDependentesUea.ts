@@ -876,6 +876,11 @@ export function useImportarVidasUea() {
 
         let titularId = (existente as any)?.id as string | undefined;
         if (titularId) {
+          const { error: eAtualizarTitular } = await supabase
+            .from("uea_titulares")
+            .update({ plano: fam.titular.plano, situacao: fam.titular.situacao })
+            .eq("id", titularId);
+          if (eAtualizarTitular) throw eAtualizarTitular;
           res.titularesExistentes += 1;
         } else {
           const { data: novo, error } = await supabase
@@ -888,6 +893,7 @@ export function useImportarVidasUea() {
               contrato: fam.titular.contrato,
               data_nascimento: fam.titular.data_nascimento,
               situacao: fam.titular.situacao,
+               plano: fam.titular.plano,
               valor_margem: 0,
               observacao: null,
             })
@@ -906,11 +912,48 @@ export function useImportarVidasUea() {
             .maybeSingle();
           if (eDep) throw eDep;
           if (depExistente) {
+            const idadeExistente = dep.data_nascimento ? idadeEm(dep.data_nascimento) : dep.idade;
+            const planoExistente = String(dep.plano ?? "").replace(/\s*-\s*protocolo.*$/i, "").trim().toLowerCase();
+            const faixaExistente = idadeExistente === null
+              ? null
+              : faixas.find((f) =>
+                  idadeExistente >= f.idade_inicial &&
+                  (f.idade_final === null || idadeExistente <= f.idade_final) &&
+                  String(f.plano ?? "").trim().toLowerCase() === planoExistente &&
+                  dep.mensalidade !== null &&
+                  Number(f.valor_mensal).toFixed(2) === dep.mensalidade.toFixed(2),
+                ) ?? null;
+            const { error: eAtualizarDep } = await supabase
+              .from("uea_dependentes")
+              .update({
+                nome_completo: dep.nome,
+                cpf: dep.cpf,
+                data_nascimento: dep.data_nascimento,
+                parentesco: dep.parentesco,
+                situacao: dep.situacao,
+                plano: dep.plano,
+                faixa_sequencia: faixaExistente?.sequencia ?? null,
+                faixa_etaria: faixaExistente ? faixaLabel(faixaExistente) : undefined,
+                valor_mensal: dep.mensalidade ?? undefined,
+              })
+              .eq("id", (depExistente as any).id);
+            if (eAtualizarDep) throw eAtualizarDep;
             res.dependentesExistentes += 1;
             continue;
           }
           const idade = dep.data_nascimento ? idadeEm(dep.data_nascimento) : dep.idade;
-          const faixa = idade === null ? null : faixaParaIdade(faixas, idade);
+          const planoNormalizado = String(dep.plano ?? "").replace(/\s*-\s*protocolo.*$/i, "").trim().toLowerCase();
+          const candidatas = idade === null
+            ? []
+            : faixas.filter((f) =>
+                idade >= f.idade_inicial &&
+                (f.idade_final === null || idade <= f.idade_final) &&
+                (!planoNormalizado || String(f.plano ?? "").trim().toLowerCase() === planoNormalizado),
+              );
+          const faixa =
+            candidatas.find((f) => dep.mensalidade !== null && Number(f.valor_mensal).toFixed(2) === dep.mensalidade.toFixed(2)) ??
+            [...candidatas].sort((a, b) => b.vigencia_inicio.localeCompare(a.vigencia_inicio))[0] ??
+            (idade === null ? null : faixaParaIdade(faixas, idade));
           const { error } = await supabase.from("uea_dependentes").insert({
             titular_id: titularId,
             nome_completo: dep.nome,
@@ -919,8 +962,10 @@ export function useImportarVidasUea() {
             data_nascimento: dep.data_nascimento,
             parentesco: dep.parentesco,
             situacao: dep.situacao,
+             plano: dep.plano,
+             faixa_sequencia: faixa?.sequencia ?? null,
             faixa_etaria: faixa ? faixaLabel(faixa) : null,
-            valor_mensal: faixa ? Number(faixa.valor_mensal) : 0,
+             valor_mensal: dep.mensalidade ?? (faixa ? Number(faixa.valor_mensal) : 0),
             status: "ativo",
             observacao: null,
           });
@@ -931,7 +976,7 @@ export function useImportarVidasUea() {
             dependente_nome: dep.nome,
             tipo: "inclusao_dependente",
             descricao: "Dependente incluído pela importação do Layout de Vidas",
-            valor_novo: faixa ? Number(faixa.valor_mensal) : 0,
+            valor_novo: dep.mensalidade ?? (faixa ? Number(faixa.valor_mensal) : 0),
           });
         }
       }

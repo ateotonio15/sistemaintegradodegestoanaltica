@@ -5149,11 +5149,13 @@ export type Database = {
           data_desligamento: string | null
           data_nascimento: string | null
           faixa_etaria: string | null
+          faixa_sequencia: string | null
           id: string
           motivo_desligamento: string | null
           nome_completo: string
           observacao: string | null
           parentesco: string | null
+          plano: string | null
           situacao: string | null
           status: string
           titular_id: string
@@ -5167,11 +5169,13 @@ export type Database = {
           data_desligamento?: string | null
           data_nascimento?: string | null
           faixa_etaria?: string | null
+          faixa_sequencia?: string | null
           id?: string
           motivo_desligamento?: string | null
           nome_completo: string
           observacao?: string | null
           parentesco?: string | null
+          plano?: string | null
           situacao?: string | null
           status?: string
           titular_id: string
@@ -5185,11 +5189,13 @@ export type Database = {
           data_desligamento?: string | null
           data_nascimento?: string | null
           faixa_etaria?: string | null
+          faixa_sequencia?: string | null
           id?: string
           motivo_desligamento?: string | null
           nome_completo?: string
           observacao?: string | null
           parentesco?: string | null
+          plano?: string | null
           situacao?: string | null
           status?: string
           titular_id?: string
@@ -5339,10 +5345,12 @@ export type Database = {
           created_at: string
           created_by: string | null
           data_nascimento: string | null
+          faixa_sequencia: string | null
           id: string
           matricula: string | null
           nome_completo: string
           observacao: string | null
+          plano: string | null
           situacao: string | null
           updated_at: string
           valor_margem: number
@@ -5354,10 +5362,12 @@ export type Database = {
           created_at?: string
           created_by?: string | null
           data_nascimento?: string | null
+          faixa_sequencia?: string | null
           id?: string
           matricula?: string | null
           nome_completo: string
           observacao?: string | null
+          plano?: string | null
           situacao?: string | null
           updated_at?: string
           valor_margem?: number
@@ -5369,10 +5379,12 @@ export type Database = {
           created_at?: string
           created_by?: string | null
           data_nascimento?: string | null
+          faixa_sequencia?: string | null
           id?: string
           matricula?: string | null
           nome_completo?: string
           observacao?: string | null
+          plano?: string | null
           situacao?: string | null
           updated_at?: string
           valor_margem?: number

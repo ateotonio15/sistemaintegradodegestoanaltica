@@ -1,5 +1,5 @@
 import * as XLSX from "xlsx";
-import { idadeEm, soDigitos, toISODateLocal } from "@/lib/dependentes-uea";
+import { idadeEm, parseValorBr, soDigitos, toISODateLocal } from "@/lib/dependentes-uea";
 
 /**
  * Leitura do Layout de Vidas para o módulo Dependentes UEA.
@@ -21,6 +21,8 @@ export interface VidaLinha {
   situacao: string | null;
   contrato: string | null;
   matricula: string | null;
+  plano: string | null;
+  mensalidade: number | null;
 }
 
 export interface FamiliaUeaImport {
@@ -124,6 +126,8 @@ export async function lerLayoutVidasUea(file: File): Promise<ResultadoLeituraVid
     const cContrato = acharCol(headers, ["NR CONTRATO", "CONTRATO"]);
     const cMat = acharCol(headers, ["MATRICULA", "NR MATRICULA", "CD MATRICULA"]);
     const cIdade = acharCol(headers, ["IDADE"]);
+    const cPlano = acharCol(headers, ["PLANO"]);
+    const cMensalidade = acharCol(headers, ["MENSALIDADE", "VALOR MENSAL"]);
     if (cCart < 0 || cNome < 0) continue;
 
     const linhas: VidaLinha[] = [];
@@ -145,6 +149,8 @@ export async function lerLayoutVidasUea(file: File): Promise<ResultadoLeituraVid
         situacao: cSit >= 0 ? texto(row[cSit]) || null : null,
         contrato: cContrato >= 0 ? texto(row[cContrato]) || null : null,
         matricula: cMat >= 0 ? texto(row[cMat]) || null : null,
+        plano: cPlano >= 0 ? texto(row[cPlano]) || null : null,
+        mensalidade: cMensalidade >= 0 && texto(row[cMensalidade]) ? parseValorBr(texto(row[cMensalidade])) : null,
       });
     }
     if (!melhor || linhas.length > melhor.total) melhor = { linhas, total: linhas.length };
