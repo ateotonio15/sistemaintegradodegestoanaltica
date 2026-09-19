@@ -65,6 +65,8 @@ export interface DependenteUea {
   data_nascimento: string | null;
   parentesco: string | null;
   situacao: string | null;
+  plano: string | null;
+  faixa_sequencia: string | null;
   faixa_etaria: string | null;
   valor_mensal: number;
   status: DependenteStatus;
@@ -84,6 +86,8 @@ export interface TitularUea {
   contrato: string | null;
   data_nascimento: string | null;
   situacao: string | null;
+  plano: string | null;
+  faixa_sequencia: string | null;
   valor_margem: number;
   observacao: string | null;
   created_at: string;
@@ -194,6 +198,44 @@ export function faixaParaIdade(faixas: FaixaUea[], idade: number, ref = new Date
   );
 }
 
+function normalizarPlano(plano: string | null | undefined): string {
+  return String(plano ?? "")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/\s*-\s*protocolo.*$/i, "")
+    .trim()
+    .toLowerCase();
+}
+
+/** Escolhe uma única tabela para evitar misturar planos ou vigências sobrepostas. */
+export function faixaAplicavelDependente(
+  faixas: FaixaUea[],
+  dep: Pick<DependenteUea, "plano" | "faixa_sequencia" | "valor_mensal">,
+  idade: number,
+  ref = new Date(),
+): FaixaUea | null {
+  const candidatas = faixasVigentes(faixas, ref).filter(
+    (f) => idade >= f.idade_inicial && (f.idade_final === null || idade <= f.idade_final),
+  );
+  if (candidatas.length === 0) return null;
+
+  let filtradas = dep.faixa_sequencia
+    ? candidatas.filter((f) => f.sequencia === dep.faixa_sequencia)
+    : candidatas;
+  const plano = normalizarPlano(dep.plano);
+  if (!dep.faixa_sequencia && plano) {
+    const mesmoPlano = filtradas.filter((f) => normalizarPlano(f.plano) === plano);
+    if (mesmoPlano.length > 0) filtradas = mesmoPlano;
+  }
+  if (!dep.faixa_sequencia) {
+    const mesmoValor = filtradas.filter(
+      (f) => Number(f.valor_mensal).toFixed(2) === Number(dep.valor_mensal || 0).toFixed(2),
+    );
+    if (mesmoValor.length > 0) filtradas = mesmoValor;
+  }
+  return [...filtradas].sort((a, b) => b.vigencia_inicio.localeCompare(a.vigencia_inicio))[0] ?? null;
+}
+
 export const DIAS_PROXIMA_FAIXA = 90;
 
 export function calcularDependente(
@@ -203,14 +245,21 @@ export function calcularDependente(
 ): DependenteCalculado {
   const idade = dep.data_nascimento ? idadeEm(dep.data_nascimento, ref) : null;
   const vigentes = faixasVigentes(faixas, ref);
-  const faixaAtual = idade === null ? null : faixaParaIdade(faixas, idade, ref);
+  const faixaAtual = idade === null ? null : faixaAplicavelDependente(faixas, dep, idade, ref);
+  const faixasDaTabela = faixaAtual
+    ? vigentes.filter((f) =>
+        faixaAtual.sequencia
+          ? f.sequencia === faixaAtual.sequencia
+          : f.tabela_nome === faixaAtual.tabela_nome && f.plano === faixaAtual.plano,
+      )
+    : [];
   const valorAplicavel = faixaAtual ? Number(faixaAtual.valor_mensal) : Number(dep.valor_mensal || 0);
 
   let proxima: FaixaUea | null = null;
   let dataProxima: string | null = null;
   let diasProxima: number | null = null;
   if (idade !== null && dep.data_nascimento) {
-    proxima = vigentes.find((f) => f.idade_inicial > idade) ?? null;
+    proxima = faixasDaTabela.find((f) => f.idade_inicial > idade) ?? null;
     if (proxima) {
       const nasc = parseISODateLocal(dep.data_nascimento);
       const data = new Date(nasc.getFullYear() + proxima.idade_inicial, nasc.getMonth(), nasc.getDate());
