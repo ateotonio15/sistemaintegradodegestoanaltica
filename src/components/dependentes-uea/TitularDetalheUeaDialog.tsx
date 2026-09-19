@@ -744,13 +744,10 @@ export function TitularDetalheUeaDialog({
                           size="sm"
                           variant="outline"
                           disabled={aplicarFaixa.isPending}
-                          onClick={() =>
-                            aplicarFaixa.mutate({
-                              dependente: d,
-                              faixa: d.faixa_atual as FaixaUea,
-                              motivo: "Mudança de faixa etária",
-                            })
-                          }
+                          onClick={() => {
+                            setAplicarFaixaDep(d);
+                            setFaixaSelId(d.faixa_atual?.id ?? null);
+                          }}
                         >
                           Aplicar novo valor
                         </Button>}
