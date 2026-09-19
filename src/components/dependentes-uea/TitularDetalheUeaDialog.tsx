@@ -51,6 +51,7 @@ import {
   analisarReativacao,
   faixaLabel,
   faixaParaIdade,
+  faixasVigentes,
   formatBRL,
   formatCPF,
   formatDataBR,
@@ -137,6 +138,8 @@ export function TitularDetalheUeaDialog({
   const [confirmarReativar, setConfirmarReativar] = useState<DependenteCalculado | null>(null);
   const [valorInlineId, setValorInlineId] = useState<string | null>(null);
   const [valorInlineTxt, setValorInlineTxt] = useState("");
+  const [aplicarFaixaDep, setAplicarFaixaDep] = useState<DependenteCalculado | null>(null);
+  const [faixaSelId, setFaixaSelId] = useState<string | null>(null);
   const [editandoTitular, setEditandoTitular] = useState(false);
   const [dadosTitular, setDadosTitular] = useState({
     nome_completo: "",
@@ -741,13 +744,10 @@ export function TitularDetalheUeaDialog({
                           size="sm"
                           variant="outline"
                           disabled={aplicarFaixa.isPending}
-                          onClick={() =>
-                            aplicarFaixa.mutate({
-                              dependente: d,
-                              faixa: d.faixa_atual as FaixaUea,
-                              motivo: "Mudança de faixa etária",
-                            })
-                          }
+                          onClick={() => {
+                            setAplicarFaixaDep(d);
+                            setFaixaSelId(d.faixa_atual?.id ?? null);
+                          }}
                         >
                           Aplicar novo valor
                         </Button>}
@@ -994,6 +994,99 @@ export function TitularDetalheUeaDialog({
                 </>
               );
             })()}
+          </AlertDialogContent>
+        </AlertDialog>
+
+        {/* Escolha da faixa para aplicar o novo valor */}
+        <AlertDialog
+          open={!!aplicarFaixaDep}
+          onOpenChange={(v) => {
+            if (!v) {
+              setAplicarFaixaDep(null);
+              setFaixaSelId(null);
+            }
+          }}
+        >
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Aplicar novo valor — escolher faixa</AlertDialogTitle>
+            </AlertDialogHeader>
+            {aplicarFaixaDep && (
+              <div className="space-y-3">
+                <p className="text-sm text-muted-foreground">
+                  Selecione a faixa etária de onde o valor será aplicado para{" "}
+                  <span className="font-medium text-foreground">{aplicarFaixaDep.nome_completo}</span>
+                  {aplicarFaixaDep.idade_atual !== null && ` (${aplicarFaixaDep.idade_atual} anos)`}.
+                </p>
+                <div className="max-h-72 space-y-2 overflow-y-auto pr-1">
+                  {faixasVigentes(faixas)
+                    .filter(
+                      (f) =>
+                        aplicarFaixaDep.idade_atual !== null &&
+                        aplicarFaixaDep.idade_atual >= f.idade_inicial &&
+                        (f.idade_final === null || aplicarFaixaDep.idade_atual <= f.idade_final),
+                    )
+                    .map((f) => (
+                      <button
+                        key={f.id}
+                        type="button"
+                        onClick={() => setFaixaSelId(f.id)}
+                        className={cn(
+                          "w-full rounded-lg border p-3 text-left transition-colors",
+                          faixaSelId === f.id
+                            ? "border-primary bg-primary/5"
+                            : "border-border/60 hover:bg-muted/40",
+                        )}
+                      >
+                        <div className="flex items-center justify-between gap-2">
+                          <p className="text-sm font-medium">{faixaLabel(f)} anos</p>
+                          <p className="text-sm font-semibold">{formatBRL(f.valor_mensal)}</p>
+                        </div>
+                        <p className="mt-0.5 text-xs text-muted-foreground">
+                          {[f.tabela_nome, f.plano, f.sequencia ? `Seq. ${f.sequencia}` : null]
+                            .filter(Boolean)
+                            .join(" • ")}
+                        </p>
+                      </button>
+                    ))}
+                  {faixasVigentes(faixas).filter(
+                    (f) =>
+                      aplicarFaixaDep.idade_atual !== null &&
+                      aplicarFaixaDep.idade_atual >= f.idade_inicial &&
+                      (f.idade_final === null || aplicarFaixaDep.idade_atual <= f.idade_final),
+                  ).length === 0 && (
+                    <p className="text-sm text-muted-foreground">
+                      Nenhuma faixa vigente encontrada para a idade deste dependente.
+                    </p>
+                  )}
+                </div>
+              </div>
+            )}
+            <AlertDialogFooter>
+              <AlertDialogCancel>Cancelar</AlertDialogCancel>
+              <Button
+                disabled={!faixaSelId || aplicarFaixa.isPending}
+                onClick={() => {
+                  const faixa = faixas.find((f) => f.id === faixaSelId);
+                  if (!aplicarFaixaDep || !faixa) return;
+                  aplicarFaixa.mutate(
+                    {
+                      dependente: aplicarFaixaDep,
+                      faixa,
+                      motivo: "Mudança de faixa etária",
+                    },
+                    {
+                      onSettled: () => {
+                        setAplicarFaixaDep(null);
+                        setFaixaSelId(null);
+                      },
+                    },
+                  );
+                }}
+              >
+                Aplicar valor da faixa
+              </Button>
+            </AlertDialogFooter>
           </AlertDialogContent>
         </AlertDialog>
       </DialogContent>
