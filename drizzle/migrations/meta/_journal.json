@@ -43,6 +43,13 @@
       "when": 1789756594892,
       "tag": "0005_uea_permissoes_e_historico_titular",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1789780790684,
+      "tag": "0006_add_uea_plan_table_link",
+      "breakpoints": true
     }
   ]
 }
