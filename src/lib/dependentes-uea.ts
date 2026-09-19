@@ -386,6 +386,8 @@ export function calcularTitular(
       ? "Sem margem — requer análise"
       : statusMargem(ativos.length, restante),
     desligado_por_falta_de_margem: desligados.some((d) => d.desligado_por_falta_de_margem),
+    cobranca_status: cobrancaStatus,
+    ultima_mudanca_faixa_ativos: ultimaMudancaFaixaAtivos,
     proxima_mudanca_faixa: prox
       ? {
           dependente: prox.nome_completo,
