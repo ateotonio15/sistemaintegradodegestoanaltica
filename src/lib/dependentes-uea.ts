@@ -138,6 +138,10 @@ export interface TitularCalculado extends TitularUea {
   /** Status exibido: inclui "Sem margem — requer análise" na mudança de faixa. */
   status_exibicao: string;
   desligado_por_falta_de_margem: boolean;
+  /** Estado da validação de cobrança do titular (desconta do titular, por isso a validação é dele). */
+  cobranca_status: "sem_dependentes" | "pendente" | "validado" | "revalidar";
+  /** Data da mudança de faixa mais recente entre os dependentes ativos. */
+  ultima_mudanca_faixa_ativos: string | null;
   proxima_mudanca_faixa: { dependente: string; data: string; dias: number; label: string } | null;
   ultima_atualizacao: string;
 }
