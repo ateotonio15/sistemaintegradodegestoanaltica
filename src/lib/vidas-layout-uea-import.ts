@@ -16,6 +16,7 @@ export interface VidaLinha {
   nome: string;
   cpf: string | null;
   data_nascimento: string | null;
+  data_adesao: string | null;
   idade: number | null;
   parentesco: string | null;
   situacao: string | null;
@@ -121,6 +122,14 @@ export async function lerLayoutVidasUea(file: File): Promise<ResultadoLeituraVid
     const cNome = acharCol(headers, ["NM BENEFICIARIO", "BENEFICIARIO", "NOME BENEFICIARIO", "NOME"]);
     const cCpf = acharCol(headers, ["CPF", "NR CPF"]);
     const cNasc = acharCol(headers, ["DT NASCIMENTO", "DATA NASCIMENTO", "NASCIMENTO"]);
+    const cAdesao = acharCol(headers, [
+      "DT ADESAO",
+      "DATA ADESAO",
+      "DATA DE ADESAO",
+      "ADESAO",
+      "DT INCLUSAO",
+      "DATA INCLUSAO",
+    ]);
     const cParent = acharCol(headers, ["GRAU PARENTESCO", "PARENTESCO"]);
     const cSit = acharCol(headers, ["DS SITUACAO ATUAL", "SITUACAO ATUAL", "SITUACAO", "STATUS"]);
     const cContrato = acharCol(headers, ["NR CONTRATO", "CONTRATO"]);
@@ -144,6 +153,7 @@ export async function lerLayoutVidasUea(file: File): Promise<ResultadoLeituraVid
         nome: nomeBenef,
         cpf: cCpf >= 0 && soDigitos(texto(row[cCpf])).length === 11 ? soDigitos(texto(row[cCpf])) : null,
         data_nascimento: nasc,
+        data_adesao: cAdesao >= 0 ? parseData(row[cAdesao]) : null,
         idade: nasc ? idadeEm(nasc) : Number.isFinite(idadePlanilha) && idadePlanilha > 0 ? idadePlanilha : null,
         parentesco: cParent >= 0 ? texto(row[cParent]) || null : null,
         situacao: cSit >= 0 ? texto(row[cSit]) || null : null,

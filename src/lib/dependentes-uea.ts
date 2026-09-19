@@ -63,6 +63,7 @@ export interface DependenteUea {
   cpf: string | null;
   carteirinha: string | null;
   data_nascimento: string | null;
+  data_adesao: string | null;
   parentesco: string | null;
   situacao: string | null;
   plano: string | null;
