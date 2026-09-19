@@ -1037,7 +1037,7 @@ export function TitularDetalheUeaDialog({
         >
           <AlertDialogContent>
             <AlertDialogHeader>
-              <AlertDialogTitle>Aplicar novo valor — escolher faixa</AlertDialogTitle>
+              <AlertDialogTitle>Faixa etária vinculada</AlertDialogTitle>
             </AlertDialogHeader>
             {aplicarFaixaDep && (
               <div className="space-y-3">
