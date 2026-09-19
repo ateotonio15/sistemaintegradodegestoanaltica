@@ -69,6 +69,9 @@ export interface DependenteUea {
   faixa_sequencia: string | null;
   faixa_etaria: string | null;
   valor_mensal: number;
+  cobranca_validada?: boolean;
+  cobranca_validada_em?: string | null;
+  cobranca_validada_por?: string | null;
   status: DependenteStatus;
   motivo_desligamento: string | null;
   data_desligamento: string | null;
