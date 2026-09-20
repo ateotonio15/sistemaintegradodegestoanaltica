@@ -815,20 +815,51 @@ export default function DependentesUEA() {
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Excluir titular?</AlertDialogTitle>
-            <AlertDialogDescription>
-              Os dependentes vinculados a este titular também serão removidos. Esta ação não pode ser
-              desfeita.
+            <AlertDialogDescription asChild>
+              <div className="space-y-3">
+                <p>
+                  Você está prestes a excluir o titular{" "}
+                  <span className="font-semibold text-foreground">
+                    {titulares.find((t) => t.id === excluirId)?.nome_completo ?? ""}
+                  </span>
+                  . Os dependentes vinculados também serão removidos. Esta ação não pode ser desfeita.
+                </p>
+                {(() => {
+                  const tit = titulares.find((t) => t.id === excluirId);
+                  const deps = tit?.dependentes_calculados ?? [];
+                  if (deps.length === 0)
+                    return <p className="text-muted-foreground">Este titular não possui dependentes.</p>;
+                  return (
+                    <div className="rounded-md border border-destructive/30 bg-destructive/5 p-3">
+                      <p className="mb-1.5 text-xs font-semibold uppercase tracking-wide text-destructive">
+                        Dependentes que serão excluídos ({deps.length})
+                      </p>
+                      <ul className="space-y-1 text-sm">
+                        {deps.map((d) => (
+                          <li key={d.id} className="flex items-center gap-2">
+                            <span className="font-medium text-foreground">{d.nome_completo}</span>
+                            {d.parentesco && (
+                              <span className="text-xs text-muted-foreground">({d.parentesco})</span>
+                            )}
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  );
+                })()}
+              </div>
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancelar</AlertDialogCancel>
             <AlertDialogAction
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
               onClick={() => {
                 if (excluirId) excluir.mutate(excluirId);
                 setExcluirId(null);
               }}
             >
-              Excluir
+              Excluir titular e dependentes
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
