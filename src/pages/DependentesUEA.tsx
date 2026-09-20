@@ -22,6 +22,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
 import {
   AlertTriangle,
@@ -356,21 +357,21 @@ export default function DependentesUEA() {
         </div>
       </Card>
 
-      <Card className="overflow-hidden rounded-2xl border-border/60">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead className="w-10" />
-              <TableHead>Titular</TableHead>
-              <TableHead>CPF</TableHead>
-              <TableHead className="text-right">Margem</TableHead>
-              <TableHead className="text-center">Dependentes Ativos</TableHead>
-              <TableHead className="text-right">Valor dos Dependentes</TableHead>
-              <TableHead className="text-right">Margem Restante</TableHead>
-              <TableHead>Status</TableHead>
-              <TableHead>Próxima Mudança de Faixa</TableHead>
-              <TableHead className="text-center">Cobrança</TableHead>
-              <TableHead className="w-28 text-right">Ações</TableHead>
+      <Card className="overflow-hidden rounded-2xl border-border/60 [&>div]:max-h-[70vh]">
+        <Table className="min-w-[1720px] table-fixed">
+          <TableHeader className="sticky top-0 z-20 bg-card shadow-sm backdrop-blur-md">
+            <TableRow className="hover:bg-card">
+              <TableHead className="w-12 px-3" />
+              <TableHead className="w-[260px]">Titular</TableHead>
+              <TableHead className="w-[150px]">CPF</TableHead>
+              <TableHead className="w-[145px] text-right">Margem do Titular</TableHead>
+              <TableHead className="w-[150px] text-center">Dependentes Ativos</TableHead>
+              <TableHead className="w-[180px] text-right">Valor Total dos Dependentes</TableHead>
+              <TableHead className="w-[155px] text-right">Margem Restante</TableHead>
+              <TableHead className="w-[220px]">Status da Margem</TableHead>
+              <TableHead className="w-[230px]">Próxima Mudança de Faixa</TableHead>
+              <TableHead className="w-[180px] text-center">Situação de Cobrança</TableHead>
+              <TableHead className="w-[150px] text-right">Ações</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -408,52 +409,74 @@ export default function DependentesUEA() {
                   <Fragment key={t.id}>
                     <TableRow
                       className={cn(
-                        "hover:bg-muted/40",
+                         "group h-[104px] hover:bg-muted/40",
                         t.requer_analise_faixa && "bg-warning/10 hover:bg-warning/15",
                         !t.requer_analise_faixa && t.margem_restante < 0 && "bg-destructive/5",
                       )}
                     >
-                      <TableCell className="w-10">
-                        <button
-                          className="flex h-7 w-7 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
-                          onClick={() => setExpandidoId((cur) => (cur === t.id ? null : t.id))}
-                          title={expandidoId === t.id ? "Recolher dependentes" : "Ver dependentes"}
-                        >
-                          <ChevronDown
-                            className={cn(
-                              "h-4 w-4 transition-transform",
-                              expandidoId === t.id && "rotate-180",
-                            )}
-                          />
-                        </button>
+                      <TableCell className="w-12 px-3">
+                        <TooltipProvider delayDuration={250}>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Button
+                                size="icon"
+                                variant="ghost"
+                                className="h-8 w-8 text-muted-foreground"
+                                onClick={() => setExpandidoId((cur) => (cur === t.id ? null : t.id))}
+                                aria-label={expandidoId === t.id ? "Recolher dependentes" : "Visualizar dependentes"}
+                              >
+                                <ChevronDown
+                                  className={cn(
+                                    "h-4 w-4 transition-transform",
+                                    expandidoId === t.id && "rotate-180",
+                                  )}
+                                />
+                              </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              {expandidoId === t.id ? "Recolher dependentes" : "Visualizar dependentes"}
+                            </TooltipContent>
+                          </Tooltip>
+                        </TooltipProvider>
                       </TableCell>
-                      <TableCell>
-                        <div className="font-medium">{t.nome_completo}</div>
-                        <div className="text-[11px] text-muted-foreground">
+                      <TableCell className="py-5 align-top">
+                        <div className="text-sm font-bold leading-snug text-foreground">{t.nome_completo}</div>
+                        <div className="mt-1.5 text-xs leading-snug text-muted-foreground">
                           {[t.matricula && `Matrícula ${t.matricula}`, t.contrato && `Contrato ${t.contrato}`]
                             .filter(Boolean)
-                            .join(" · ") || "—"}
+                            .join(" • ") || "—"}
                         </div>
                       </TableCell>
-                      <TableCell>{formatCPF(t.cpf)}</TableCell>
-                      <TableCell className="text-right">{formatBRL(t.valor_margem)}</TableCell>
-                      <TableCell className="text-center">
-                        <button
-                          className="underline-offset-2 hover:underline"
+                      <TableCell className="py-5 align-top font-mono text-sm font-medium tabular-nums text-foreground">
+                        {formatCPF(t.cpf)}
+                      </TableCell>
+                      <TableCell className="py-5 text-right align-top">
+                        <span className="whitespace-nowrap text-sm font-semibold tabular-nums text-foreground">
+                          {formatBRL(t.valor_margem)}
+                        </span>
+                      </TableCell>
+                      <TableCell className="py-5 text-center align-top">
+                        <Button
+                          variant="ghost"
+                          className="h-auto min-h-8 flex-col gap-0 px-2 py-1 hover:bg-muted"
                           onClick={() => setDepsTitular(t)}
                         >
-                        {t.quantidade_dependentes_ativos}
-                        {t.quantidade_dependentes_desligados > 0 && (
-                          <span className="ml-1 text-[11px] text-muted-foreground">
-                            (+{t.quantidade_dependentes_desligados} desl.)
+                          <span className="text-base font-bold tabular-nums text-foreground">
+                            {t.quantidade_dependentes_ativos}
                           </span>
-                        )}
-                      </button>
+                          {t.quantidade_dependentes_desligados > 0 && (
+                            <span className="text-[11px] font-medium text-warning">
+                              (+{t.quantidade_dependentes_desligados} desligado{t.quantidade_dependentes_desligados > 1 ? "s" : ""})
+                            </span>
+                          )}
+                        </Button>
                     </TableCell>
-                    <TableCell className="text-right">
-                      <div className="font-medium">{formatBRL(t.valor_total_dependentes_ativos)}</div>
+                    <TableCell className="py-5 text-right align-top">
+                      <div className="whitespace-nowrap text-sm font-semibold tabular-nums text-foreground">
+                        {formatBRL(t.valor_total_dependentes_ativos)}
+                      </div>
                       {t.quantidade_dependentes_desligados > 0 && (
-                        <div className="text-[11px] text-muted-foreground">
+                        <div className="mt-1 text-[11px] tabular-nums text-muted-foreground">
                           {formatBRL(
                             t.dependentes_calculados
                               .filter((d) => d.status === "desligado")
@@ -465,29 +488,38 @@ export default function DependentesUEA() {
                     </TableCell>
                     <TableCell
                       className={cn(
-                        "text-right font-medium",
+                        "py-5 text-right align-top text-base font-bold tabular-nums",
+                        t.margem_restante > 0 && "text-success",
+                        t.margem_restante === 0 && "text-warning",
                         t.margem_restante < 0 && "text-destructive",
                       )}
                     >
-                      {formatBRL(t.margem_restante)}
+                      <span className="whitespace-nowrap">{formatBRL(t.margem_restante)}</span>
                     </TableCell>
-                    <TableCell>
-                      <span
-                        className={cn(
-                          "inline-flex rounded-full px-2 py-0.5 text-[11px] font-medium",
-                          t.requer_analise_faixa
-                            ? "bg-warning/15 text-warning"
-                            : STATUS_CLS[t.status_margem],
+                    <TableCell className="py-5 align-top">
+                      <div className="flex flex-wrap items-center gap-1.5">
+                        <span
+                          className={cn(
+                            "inline-flex rounded-full px-2.5 py-1 text-[11px] font-semibold",
+                            t.requer_analise_faixa
+                              ? "bg-warning/15 text-warning"
+                              : STATUS_CLS[t.status_margem],
+                          )}
+                        >
+                          {t.quantidade_dependentes_ativos === 0 && motivosDesligamento.length > 0
+                            ? "Dependentes desligados"
+                            : t.status_exibicao}
+                        </span>
+                        {t.quantidade_dependentes_ativos > 0 && t.quantidade_dependentes_desligados > 0 && (
+                          <span className="inline-flex rounded-full bg-destructive/10 px-2 py-1 text-[10px] font-semibold text-destructive">
+                            Com desligados
+                          </span>
                         )}
-                      >
-                        {t.quantidade_dependentes_ativos === 0 && motivosDesligamento.length > 0
-                          ? "Dependentes desligados"
-                          : t.status_exibicao}
-                      </span>
+                      </div>
                       {motivosDesligamento.map((motivo) => (
                         <div
                           key={motivo}
-                          className="mt-1 max-w-[220px] text-[11px] font-medium leading-snug text-destructive"
+                          className="mt-1.5 max-w-[220px] text-[11px] font-medium leading-snug text-destructive"
                           title={motivo}
                         >
                           Motivo: {motivo}
@@ -505,26 +537,35 @@ export default function DependentesUEA() {
                         </div>
                       )}
                     </TableCell>
-                    <TableCell>
+                    <TableCell className="py-5 align-top">
                       {prox ? (
-                        <span
+                        <div
                           className={cn(
-                            "inline-flex items-center gap-1 text-xs",
+                            "space-y-1 text-xs",
                             proxProxima ? "text-warning" : "text-muted-foreground",
                           )}
                         >
-                          <CalendarClock className="h-3.5 w-3.5" />
-                          {formatDataBR(prox.data)} · {prox.label}
-                        </span>
+                          <div className="flex items-center gap-1.5 font-semibold text-foreground">
+                            <CalendarClock className="h-3.5 w-3.5" />
+                            {formatDataBR(prox.data)}
+                          </div>
+                          <div className="pl-5 leading-snug">{prox.label}</div>
+                          {t.requer_analise_faixa && (
+                            <div className="flex items-start gap-1 pt-1 font-medium text-warning">
+                              <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+                              <span>Mudança próxima com impacto na margem</span>
+                            </div>
+                          )}
+                        </div>
                       ) : (
-                        <span className="text-xs text-muted-foreground">—</span>
+                        <span className="text-xs text-muted-foreground">Sem previsão próxima</span>
                       )}
                     </TableCell>
-                    <TableCell className="text-center">
+                    <TableCell className="py-5 text-center align-top">
                       {t.cobranca_status === "validado" ? (
                         <div className="flex flex-col items-center gap-0.5">
                           <span
-                            className="inline-flex items-center gap-1 rounded-full bg-success/10 px-2 py-0.5 text-[11px] font-medium text-success"
+                            className="inline-flex items-center gap-1 rounded-full bg-success/10 px-2.5 py-1 text-[11px] font-semibold text-success"
                             title={
                               t.cobranca_validada_em
                                 ? `Validado em ${formatDataBR(t.cobranca_validada_em)}`
@@ -549,7 +590,7 @@ export default function DependentesUEA() {
                       ) : t.cobranca_status === "revalidar" ? (
                         <div className="flex flex-col items-center gap-0.5">
                           <span
-                            className="inline-flex animate-pulse items-center gap-1 rounded-full bg-warning/15 px-2 py-0.5 text-[11px] font-medium text-warning"
+                            className="inline-flex animate-pulse items-center gap-1 rounded-full bg-warning/15 px-2.5 py-1 text-[11px] font-semibold text-warning"
                             title={
                               t.ultima_mudanca_faixa_ativos
                                 ? `Dependente mudou de faixa em ${formatDataBR(t.ultima_mudanca_faixa_ativos)} — valide a cobrança novamente`
@@ -587,33 +628,50 @@ export default function DependentesUEA() {
                             Validar cobrança
                           </Button>
                         ) : (
-                          <span className="text-xs text-muted-foreground">Pendente</span>
+                          <span className="inline-flex items-center gap-1 rounded-full bg-warning/15 px-2.5 py-1 text-[11px] font-semibold text-warning">
+                            <AlertTriangle className="h-3.5 w-3.5" />
+                            Validar cobrança
+                          </span>
                         )
                       ) : (
-                        <span className="text-xs text-muted-foreground">—</span>
+                        <span className="inline-flex rounded-full bg-muted px-2.5 py-1 text-[11px] font-medium text-muted-foreground">
+                          — Não aplicável
+                        </span>
                       )}
                     </TableCell>
-                    <TableCell>
-                      <div className="flex justify-end gap-1">
-                        <Button size="icon" variant="ghost" onClick={() => setDepsTitular(t)} title="Dependentes">
-                          <Users className="h-4 w-4" />
-                        </Button>
-                        {canEditarUea && (
-                          <>
-                            <Button size="icon" variant="ghost" onClick={() => setEditando(t)} title="Editar titular">
-                              <Pencil className="h-4 w-4" />
-                            </Button>
-                            <Button
-                              size="icon"
-                              variant="ghost"
-                              onClick={() => setExcluirId(t.id)}
-                              title="Excluir titular"
-                            >
-                              <Trash2 className="h-4 w-4 text-destructive" />
-                            </Button>
-                          </>
-                        )}
-                      </div>
+                    <TableCell className="py-5 align-top">
+                      <TooltipProvider delayDuration={250}>
+                        <div className="ml-auto flex w-fit items-center gap-1 rounded-lg border border-border/60 bg-muted/30 p-1">
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => setDepsTitular(t)} aria-label="Visualizar dependentes">
+                                <Users className="h-4 w-4" />
+                              </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>Visualizar dependentes</TooltipContent>
+                          </Tooltip>
+                          {canEditarUea && (
+                            <>
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => setEditando(t)} aria-label="Editar titular">
+                                    <Pencil className="h-4 w-4" />
+                                  </Button>
+                                </TooltipTrigger>
+                                <TooltipContent>Editar titular</TooltipContent>
+                              </Tooltip>
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => setExcluirId(t.id)} aria-label="Excluir registro">
+                                    <Trash2 className="h-4 w-4 text-destructive" />
+                                  </Button>
+                                </TooltipTrigger>
+                                <TooltipContent>Excluir registro</TooltipContent>
+                              </Tooltip>
+                            </>
+                          )}
+                        </div>
+                      </TooltipProvider>
                     </TableCell>
                   </TableRow>
                   {expandidoId === t.id && (
