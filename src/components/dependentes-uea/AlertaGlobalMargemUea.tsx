@@ -70,7 +70,8 @@ export function AlertaGlobalMargemUea() {
         <aside
           id="painel-casos-criticos-uea"
           aria-label="Titulares que ficarão sem margem"
-          className="fixed inset-x-3 bottom-3 top-20 z-40 flex flex-col overflow-hidden rounded-lg border border-destructive/40 bg-background shadow-2xl sm:inset-x-auto sm:right-4 sm:w-[440px]"
+          className={painelAberto ? "fixed inset-x-3 bottom-3 top-20 z-50 flex flex-col overflow-hidden rounded-lg border border-destructive/40 bg-background shadow-2xl sm:inset-x-auto sm:right-4 sm:w-[440px]" : "hidden"}
+
         >
           <header className="flex items-start justify-between gap-3 border-b border-border bg-destructive/10 px-4 py-4">
             <div className="min-w-0">
