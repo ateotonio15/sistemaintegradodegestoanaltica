@@ -40,30 +40,31 @@ export function AlertaGlobalMargemUea() {
   return (
     <section
       aria-label="Alerta de mudanças de faixa com risco de falta de margem"
-      className="flex flex-col gap-2 rounded-lg border border-destructive/50 bg-destructive/15 px-3 py-2.5 text-destructive shadow-sm sm:flex-row sm:items-center sm:justify-between md:px-4"
+      className="fixed bottom-[88px] right-4 z-40 w-[320px] max-w-[calc(100vw-2rem)] rounded-lg border border-destructive/50 bg-destructive/15 p-3 text-destructive shadow-xl backdrop-blur-sm"
     >
-      <div className="flex min-w-0 items-start gap-2.5 sm:items-center">
-        <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-destructive/20">
+      <div className="flex items-start gap-2.5">
+        <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-destructive/20">
           <AlertTriangle className="h-4 w-4" aria-hidden="true" />
         </span>
         <div className="min-w-0">
-          <p className="text-sm font-bold leading-tight">Mudanças de faixa com risco de falta de margem</p>
-          <p className="mt-0.5 text-xs font-medium leading-snug text-foreground sm:text-sm">
+          <p className="text-xs font-bold leading-tight">Mudanças de faixa com risco de falta de margem</p>
+          <p className="mt-1 text-[11px] font-medium leading-snug text-foreground">
             {totalTitularesCriticos} {singular ? "titular ficará" : "titulares ficarão"} sem margem devido {singular ? "à próxima mudança" : "às próximas mudanças"} de faixa.
           </p>
+          <Button
+            size="sm"
+            variant="destructive"
+            className="mt-2 h-7 gap-1.5 px-2.5 text-xs"
+            onClick={() => setPainelAberto(true)}
+            aria-expanded={painelAberto}
+            aria-controls="painel-casos-criticos-uea"
+          >
+            Ver casos
+            <ArrowRight className="h-3 w-3" aria-hidden="true" />
+          </Button>
         </div>
       </div>
-      <Button
-        size="sm"
-        variant="destructive"
-        className="h-8 shrink-0 gap-1.5 self-end sm:self-auto"
-        onClick={() => setPainelAberto(true)}
-        aria-expanded={painelAberto}
-        aria-controls="painel-casos-criticos-uea"
-      >
-        Ver casos
-        <ArrowRight className="h-3.5 w-3.5" aria-hidden="true" />
-      </Button>
+
 
       {painelAberto && (
         <aside
