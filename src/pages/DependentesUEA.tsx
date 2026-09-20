@@ -373,6 +373,8 @@ export default function DependentesUEA() {
                         "inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-semibold",
                         m.ficara_sem_margem
                           ? "bg-destructive/10 text-destructive"
+                          : m.margem_apos === 0
+                            ? "bg-warning/10 text-warning"
                           : "bg-success/10 text-success",
                       )}
                     >
@@ -380,6 +382,8 @@ export default function DependentesUEA() {
                         <>
                           <AlertTriangle className="h-3.5 w-3.5" /> Ficará sem margem
                         </>
+                      ) : m.margem_apos === 0 ? (
+                        <><AlertTriangle className="h-3.5 w-3.5" /> Margem comprometida</>
                       ) : (
                         <><CheckCircle2 className="h-3.5 w-3.5" /> Possui margem</>
                       )}
@@ -390,6 +394,8 @@ export default function DependentesUEA() {
                     )}>
                       {m.ficara_sem_margem
                         ? "Após o reajuste, a margem ficará insuficiente."
+                        : m.margem_apos === 0
+                          ? "Após a mudança, a margem ficará totalmente comprometida."
                         : "A margem continuará suficiente após a mudança."}
                     </p>
                   </div>
