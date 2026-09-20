@@ -213,7 +213,9 @@ export function AlertaGlobalMargemUea() {
                       variant="outline"
                       className="gap-1.5"
                       onClick={() => {
+                        reconhecerAlerta();
                         setPainelAberto(false);
+                        setExpandido(false);
                         navigate(`/dependentes-uea?titular=${encodeURIComponent(caso.titular_id)}`);
                       }}
                     >
