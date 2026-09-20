@@ -224,17 +224,33 @@ export default function DependentesUEA() {
       </div>
 
       {/* PRÓXIMAS MUDANÇAS DE FAIXA */}
-      <Card className="rounded-2xl border-border/60 p-4">
-        <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
-          <div>
-            <p className="flex items-center gap-1.5 text-sm font-semibold">
-              <CalendarClock className="h-4 w-4 text-primary" /> Próximas mudanças de faixa
-            </p>
-            <p className="text-xs text-muted-foreground">
-              Dependentes ativos que mudarão de valor nos próximos 90 dias.
-            </p>
+      <Card className="rounded-2xl border-border/60 p-5">
+        <div className="mb-5 flex flex-wrap items-start justify-between gap-4 border-b border-border/50 pb-5">
+          <div className="space-y-3">
+            <div>
+              <p className="flex items-center gap-2 text-base font-semibold">
+                <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/10 text-primary">
+                  <CalendarClock className="h-4 w-4" />
+                </span>
+                Próximas mudanças de faixa
+              </p>
+              <p className="mt-1 pl-10 text-xs text-muted-foreground">
+                Dependentes ativos que mudarão de valor nos próximos 90 dias.
+              </p>
+            </div>
+            <div className="flex flex-wrap items-center gap-2 pl-10 text-xs">
+              <span className="rounded-full border border-border/60 bg-muted/40 px-2.5 py-1 font-medium text-foreground">
+                {mudancasFiltradas.length} mudança{mudancasFiltradas.length === 1 ? "" : "s"} encontrada{mudancasFiltradas.length === 1 ? "" : "s"}
+              </span>
+              <span className="rounded-full bg-success/10 px-2.5 py-1 font-medium text-success">
+                {mudancasFiltradas.filter((m) => !m.ficara_sem_margem).length} com margem
+              </span>
+              <span className="rounded-full bg-destructive/10 px-2.5 py-1 font-medium text-destructive">
+                {mudancasFiltradas.filter((m) => m.ficara_sem_margem).length} ficará sem margem
+              </span>
+            </div>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
             <Select value={filtroMudanca} onValueChange={(v) => setFiltroMudanca(v as FiltroMudanca)}>
               <SelectTrigger className="w-[280px]">
                 <SelectValue />
@@ -247,7 +263,6 @@ export default function DependentesUEA() {
                 ))}
               </SelectContent>
             </Select>
-            <Badge variant="outline">{mudancasFiltradas.length} dependente(s)</Badge>
           </div>
         </div>
         {mudancasFiltradas.length === 0 ? (
@@ -255,73 +270,139 @@ export default function DependentesUEA() {
             Nenhuma mudança de faixa prevista para o filtro selecionado.
           </p>
         ) : (
-          <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+          <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
             {mudancasFiltradas.map((m) => (
               <Card
                 key={m.dependente_id}
                 className={cn(
-                  "rounded-xl border-border/60 p-3",
-                  m.ficara_sem_margem && "border-destructive/50 bg-destructive/5",
+                  "flex min-h-[430px] flex-col overflow-hidden rounded-xl border-border/70 bg-card/70 p-0",
+                  m.ficara_sem_margem
+                    ? "border-destructive/50 bg-destructive/5"
+                    : "hover:border-success/40",
                 )}
               >
-                <div className="mb-2">
-                  <p className="font-semibold uppercase leading-tight">{m.dependente_nome}</p>
-                  <p className="text-[11px] text-muted-foreground">Titular: {m.titular_nome}</p>
+                <div className="border-b border-border/50 p-4">
+                  <p className="text-sm font-bold uppercase leading-snug text-foreground">
+                    {m.dependente_nome}
+                  </p>
+                  <p className="mt-1 text-xs text-muted-foreground">
+                    Titular: <span className="font-medium text-foreground/80">{m.titular_nome}</span>
+                  </p>
                 </div>
-                <div className="grid grid-cols-2 gap-x-3 gap-y-1 text-xs">
-                  <span className="text-muted-foreground">Data de nascimento</span>
-                  <span className="text-right">{formatDataBR(m.data_nascimento)}</span>
-                  <span className="text-muted-foreground">Mudança</span>
-                  <span className="text-right font-medium">
-                    {formatDataBR(m.data_mudanca)} · em {m.dias} dia(s)
-                  </span>
-                  <span className="text-muted-foreground">Valor atual</span>
-                  <span className="text-right">{formatBRL(m.valor_atual)}</span>
-                  <span className="text-muted-foreground">Novo valor</span>
-                  <span className="text-right font-medium">{formatBRL(m.novo_valor)}</span>
-                  <span className="text-muted-foreground">Diferença</span>
-                  <span className="text-right font-medium">
-                    {m.diferenca >= 0 ? "+ " : "- "}
-                    {formatBRL(Math.abs(m.diferenca))}
-                  </span>
-                  <span className="text-muted-foreground">Margem atual do titular</span>
-                  <span className="text-right">{formatBRL(m.margem_atual)}</span>
-                  <span className="text-muted-foreground">Margem após reajuste</span>
-                  <span
-                    className={cn(
-                      "text-right font-medium",
-                      m.ficara_sem_margem && "text-destructive",
-                    )}
-                  >
-                    {formatBRL(m.margem_apos)}
-                  </span>
+
+                <div className="grid grid-cols-2 gap-3 border-b border-border/50 p-4">
+                  <div className="rounded-lg bg-primary/5 p-3">
+                    <p className="text-[10px] font-semibold uppercase text-muted-foreground">Mudança</p>
+                    <p className="mt-1 text-base font-bold tabular-nums text-foreground">
+                      {formatDataBR(m.data_mudanca)}
+                    </p>
+                    <p className="mt-0.5 text-xs font-semibold text-primary">
+                      em {m.dias} dia{m.dias === 1 ? "" : "s"}
+                    </p>
+                  </div>
+                  <div className="p-3">
+                    <p className="text-[10px] font-semibold uppercase text-muted-foreground">Data de nascimento</p>
+                    <p className="mt-1 text-sm font-semibold tabular-nums text-foreground">
+                      {formatDataBR(m.data_nascimento)}
+                    </p>
+                  </div>
+                  <div className="col-span-2 flex items-center justify-between gap-3 rounded-lg border border-border/50 px-3 py-2.5">
+                    <span className="text-[10px] font-semibold uppercase text-muted-foreground">Faixa</span>
+                    <span className="text-right text-xs font-semibold text-foreground">{m.faixa_atual_label} → {m.proxima_faixa_label}</span>
+                  </div>
                 </div>
-                <div className="mt-2 flex items-center justify-between gap-2">
-                  <span
-                    className={cn(
-                      "inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-medium",
-                      m.ficara_sem_margem
-                        ? "bg-destructive/10 text-destructive"
-                        : "bg-success/10 text-success",
-                    )}
-                  >
-                    {m.ficara_sem_margem ? (
-                      <>
-                        <AlertTriangle className="h-3 w-3" /> Ficará sem margem
-                      </>
-                    ) : (
-                      "Possui margem"
-                    )}
-                  </span>
+
+                <div className="grid grid-cols-3 gap-2 p-4">
+                  <div>
+                    <p className="text-[10px] font-semibold uppercase leading-tight text-muted-foreground">Valor atual</p>
+                    <p className="mt-1.5 whitespace-nowrap text-sm font-semibold tabular-nums text-foreground">
+                      {formatBRL(m.valor_atual)}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-[10px] font-semibold uppercase leading-tight text-muted-foreground">Novo valor</p>
+                    <p className="mt-1.5 whitespace-nowrap text-sm font-semibold tabular-nums text-foreground">
+                      {formatBRL(m.novo_valor)}
+                    </p>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-[10px] font-semibold uppercase leading-tight text-muted-foreground">Diferença</p>
+                    <p className={cn(
+                      "mt-1.5 whitespace-nowrap text-base font-bold tabular-nums",
+                      m.diferenca > 0 ? "text-warning" : "text-success",
+                    )}>
+                      {m.diferenca >= 0 ? "+ " : "- "}{formatBRL(Math.abs(m.diferenca))}
+                    </p>
+                  </div>
+                </div>
+
+                <div className="mx-4 rounded-lg border border-border/60 bg-muted/30 p-3.5">
+                  <p className="mb-3 text-[10px] font-bold uppercase text-muted-foreground">Impacto no titular</p>
+                  <div className="grid grid-cols-3 gap-3">
+                    <div>
+                      <p className="text-[10px] leading-tight text-muted-foreground">Margem atual</p>
+                      <p className={cn(
+                        "mt-1 whitespace-nowrap text-xs font-semibold tabular-nums",
+                        m.margem_atual < 0 ? "text-destructive" : m.margem_atual === 0 ? "text-warning" : "text-foreground",
+                      )}>
+                        {formatBRL(m.margem_atual)}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-[10px] leading-tight text-muted-foreground">Após reajuste</p>
+                      <p className={cn(
+                        "mt-1 whitespace-nowrap text-sm font-bold tabular-nums",
+                        m.margem_apos < 0 ? "text-destructive" : m.margem_apos === 0 ? "text-warning" : "text-success",
+                      )}>
+                        {formatBRL(m.margem_apos)}
+                      </p>
+                    </div>
+                    <div className="text-right">
+                      <p className="text-[10px] leading-tight text-muted-foreground">Diferença no custo</p>
+                      <p className="mt-1 whitespace-nowrap text-xs font-semibold tabular-nums text-warning">
+                        {m.diferenca >= 0 ? "+ " : "- "}{formatBRL(Math.abs(m.diferenca))}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="mt-auto flex items-end justify-between gap-3 p-4">
+                  <div className="min-w-0">
+                    <span
+                      className={cn(
+                        "inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-semibold",
+                        m.ficara_sem_margem
+                          ? "bg-destructive/10 text-destructive"
+                          : "bg-success/10 text-success",
+                      )}
+                    >
+                      {m.ficara_sem_margem ? (
+                        <>
+                          <AlertTriangle className="h-3.5 w-3.5" /> Ficará sem margem
+                        </>
+                      ) : (
+                        <><CheckCircle2 className="h-3.5 w-3.5" /> Possui margem</>
+                      )}
+                    </span>
+                    <p className={cn(
+                      "mt-1.5 max-w-[240px] text-[10px] leading-snug",
+                      m.ficara_sem_margem ? "text-destructive" : "text-muted-foreground",
+                    )}>
+                      {m.ficara_sem_margem
+                        ? "Após o reajuste, a margem ficará insuficiente."
+                        : "A margem continuará suficiente após a mudança."}
+                    </p>
+                  </div>
                   <Button
                     size="sm"
-                    variant="ghost"
+                    variant="outline"
+                    className="shrink-0"
                     onClick={() => {
                       const t = titulares.find((x) => x.id === m.titular_id);
                       if (t) setDepsTitular(t);
                     }}
                   >
-                    Ver titular
+                    Visualizar titular
                   </Button>
                 </div>
               </Card>
