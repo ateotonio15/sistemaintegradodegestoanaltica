@@ -137,6 +137,7 @@ export function TitularDetalheUeaDialog({
   const [motivoDesligamento, setMotivoDesligamento] = useState("");
   const [outroMotivoDesligamento, setOutroMotivoDesligamento] = useState("");
   const [confirmarReativar, setConfirmarReativar] = useState<DependenteCalculado | null>(null);
+  const [confirmarExcluir, setConfirmarExcluir] = useState<DependenteCalculado | null>(null);
   const [valorInlineId, setValorInlineId] = useState<string | null>(null);
   const [valorInlineTxt, setValorInlineTxt] = useState("");
   const [aplicarFaixaDep, setAplicarFaixaDep] = useState<DependenteCalculado | null>(null);
@@ -650,7 +651,7 @@ export function TitularDetalheUeaDialog({
                             <RotateCcw className="mr-1.5 h-4 w-4" /> Reativar dependente
                           </Button>
                         )}
-                        <Button size="icon" variant="ghost" onClick={() => excluir.mutate(d.id)}>
+                        <Button size="icon" variant="ghost" onClick={() => setConfirmarExcluir(d)} title="Excluir dependente">
                           <Trash2 className="h-4 w-4 text-destructive" />
                         </Button>
                       </div>}
