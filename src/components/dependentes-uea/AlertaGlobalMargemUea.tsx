@@ -108,13 +108,19 @@ export function AlertaGlobalMargemUea() {
       ) : (
         <button
           type="button"
-          onClick={() => setExpandido(true)}
+          onClick={() => {
+            reconhecerAlerta();
+            setExpandido(true);
+          }}
           aria-expanded={expandido}
           aria-label={`Alerta: ${totalTitularesCriticos} ${singular ? "titular ficará" : "titulares ficarão"} sem margem. Clique para ver detalhes.`}
           title="Mudanças de faixa com risco de falta de margem"
-          className="flex h-12 w-12 items-center justify-center rounded-full border border-destructive/60 bg-destructive text-white shadow-xl transition-transform hover:scale-105 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-destructive/70"
+          className={`relative flex h-12 w-12 items-center justify-center rounded-full border border-destructive/60 bg-destructive text-white shadow-xl transition-transform hover:scale-105 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-destructive/70 ${piscando ? "animate-pulse" : ""}`}
         >
-          <AlertTriangle className="h-5 w-5" aria-hidden="true" />
+          {piscando && (
+            <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-destructive opacity-60" aria-hidden="true" />
+          )}
+          <AlertTriangle className="relative h-5 w-5" aria-hidden="true" />
         </button>
       )}
 
