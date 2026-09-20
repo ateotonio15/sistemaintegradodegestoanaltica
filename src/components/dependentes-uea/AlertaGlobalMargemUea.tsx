@@ -12,6 +12,12 @@ export function AlertaGlobalMargemUea() {
   const navigate = useNavigate();
   const [painelAberto, setPainelAberto] = useState(false);
   const [expandido, setExpandido] = useState(false);
+  // Guarda o menor nº de dias já "visto" pelo usuário; pisca de novo quando esse número diminui (ex.: dia da troca).
+  const [ackDias, setAckDias] = useState<number | null>(() => {
+    const salvo = window.localStorage.getItem("uea-alerta-margem-ack-dias");
+    const numero = salvo === null ? NaN : Number(salvo);
+    return Number.isFinite(numero) ? numero : null;
+  });
   const containerRef = useRef<HTMLElement | null>(null);
 
   // Fecha o card expandido ao clicar fora dele (mantém o painel interno funcionando).
