@@ -53,31 +53,56 @@ export function AlertaGlobalMargemUea() {
 
   return (
     <section
+      ref={containerRef}
       aria-label="Alerta de mudanças de faixa com risco de falta de margem"
-      className="fixed bottom-[88px] right-4 z-40 w-[320px] max-w-[calc(100vw-2rem)] rounded-lg border border-destructive/50 bg-destructive/15 p-3 text-destructive shadow-xl backdrop-blur-sm"
+      className="fixed bottom-[88px] right-4 z-40 max-w-[calc(100vw-2rem)]"
     >
-      <div className="flex items-start gap-2.5">
-        <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-destructive/20">
-          <AlertTriangle className="h-4 w-4" aria-hidden="true" />
-        </span>
-        <div className="min-w-0">
-          <p className="text-xs font-bold leading-tight">Mudanças de faixa com risco de falta de margem</p>
-          <p className="mt-1 text-[11px] font-medium leading-snug text-foreground">
-            {totalTitularesCriticos} {singular ? "titular ficará" : "titulares ficarão"} sem margem devido {singular ? "à próxima mudança" : "às próximas mudanças"} de faixa.
-          </p>
-          <Button
-            size="sm"
-            variant="destructive"
-            className="mt-2 h-7 gap-1.5 px-2.5 text-xs"
-            onClick={() => setPainelAberto(true)}
-            aria-expanded={painelAberto}
-            aria-controls="painel-casos-criticos-uea"
-          >
-            Ver casos
-            <ArrowRight className="h-3 w-3" aria-hidden="true" />
-          </Button>
+      {expandido ? (
+        <div className="w-[320px] rounded-lg border border-destructive/50 bg-destructive/15 p-3 text-destructive shadow-xl backdrop-blur-sm">
+          <div className="flex items-start gap-2.5">
+            <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-destructive/20">
+              <AlertTriangle className="h-4 w-4" aria-hidden="true" />
+            </span>
+            <div className="min-w-0 flex-1">
+              <p className="pr-1 text-xs font-bold leading-tight">Mudanças de faixa com risco de falta de margem</p>
+              <p className="mt-1 text-[11px] font-medium leading-snug text-foreground">
+                {totalTitularesCriticos} {singular ? "titular ficará" : "titulares ficarão"} sem margem devido {singular ? "à próxima mudança" : "às próximas mudanças"} de faixa.
+              </p>
+              <Button
+                size="sm"
+                variant="destructive"
+                className="mt-2 h-7 gap-1.5 px-2.5 text-xs"
+                onClick={() => setPainelAberto(true)}
+                aria-expanded={painelAberto}
+                aria-controls="painel-casos-criticos-uea"
+              >
+                Ver casos
+                <ArrowRight className="h-3 w-3" aria-hidden="true" />
+              </Button>
+            </div>
+            <Button
+              size="icon"
+              variant="ghost"
+              className="h-6 w-6 shrink-0 text-destructive hover:text-destructive"
+              onClick={() => setExpandido(false)}
+              aria-label="Fechar alerta"
+            >
+              <X className="h-3.5 w-3.5" aria-hidden="true" />
+            </Button>
+          </div>
         </div>
-      </div>
+      ) : (
+        <button
+          type="button"
+          onClick={() => setExpandido(true)}
+          aria-expanded={expandido}
+          aria-label={`Alerta: ${totalTitularesCriticos} ${singular ? "titular ficará" : "titulares ficarão"} sem margem. Clique para ver detalhes.`}
+          title="Mudanças de faixa com risco de falta de margem"
+          className="flex h-12 w-12 items-center justify-center rounded-full border border-destructive/60 bg-destructive text-white shadow-xl transition-transform hover:scale-105 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-destructive/70"
+        >
+          <AlertTriangle className="h-5 w-5" aria-hidden="true" />
+        </button>
+      )}
 
 
       {painelAberto && (
