@@ -146,6 +146,13 @@ export default function DependentesUEA() {
     });
   }, [location.hash, searchParams]);
 
+  useEffect(() => {
+    const titularId = searchParams.get("titular");
+    if (!titularId || titulares.length === 0) return;
+    const titular = titulares.find((item) => item.id === titularId);
+    if (titular) setDepsTitular(titular);
+  }, [searchParams, titulares]);
+
   const mudancas = useMemo(() => proximasMudancasFaixa(titulares, 90), [titulares]);
   const mudancasFiltradas = useMemo(
     () => mudancas.filter((m) => aplicaFiltroMudanca(m, filtroMudanca)),
