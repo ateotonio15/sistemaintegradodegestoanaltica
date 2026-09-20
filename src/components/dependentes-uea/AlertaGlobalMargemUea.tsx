@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { AlertTriangle, ArrowRight, CalendarClock, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -11,6 +11,20 @@ export function AlertaGlobalMargemUea() {
   const { titulares, isLoading } = useTitularesUea();
   const navigate = useNavigate();
   const [painelAberto, setPainelAberto] = useState(false);
+  const [expandido, setExpandido] = useState(false);
+  const containerRef = useRef<HTMLElement | null>(null);
+
+  // Fecha o card expandido ao clicar fora dele (mantém o painel interno funcionando).
+  useEffect(() => {
+    if (!expandido) return;
+    const aoClicarFora = (event: MouseEvent) => {
+      if (containerRef.current && !containerRef.current.contains(event.target as Node)) {
+        setExpandido(false);
+      }
+    };
+    document.addEventListener("mousedown", aoClicarFora);
+    return () => document.removeEventListener("mousedown", aoClicarFora);
+  }, [expandido]);
 
   const casosCriticos = useMemo(
     () =>
