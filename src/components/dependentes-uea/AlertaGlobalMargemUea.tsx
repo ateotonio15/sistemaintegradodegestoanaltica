@@ -12,6 +12,12 @@ export function AlertaGlobalMargemUea() {
   const navigate = useNavigate();
   const [painelAberto, setPainelAberto] = useState(false);
   const [expandido, setExpandido] = useState(false);
+  // Guarda o menor nº de dias já "visto" pelo usuário; pisca de novo quando esse número diminui (ex.: dia da troca).
+  const [ackDias, setAckDias] = useState<number | null>(() => {
+    const salvo = window.localStorage.getItem("uea-alerta-margem-ack-dias");
+    const numero = salvo === null ? NaN : Number(salvo);
+    return Number.isFinite(numero) ? numero : null;
+  });
   const containerRef = useRef<HTMLElement | null>(null);
 
   // Fecha o card expandido ao clicar fora dele (mantém o painel interno funcionando).
@@ -50,6 +56,14 @@ export function AlertaGlobalMargemUea() {
   if (isLoading || totalTitularesCriticos === 0) return null;
 
   const singular = totalTitularesCriticos === 1;
+  const menorDias = Math.min(...casosCriticos.map((caso) => caso.dias));
+  // Pisca quando faltam 2 dias ou menos, até o usuário clicar; volta a piscar quando o prazo diminui (inclusive no dia da troca).
+  const piscando = menorDias <= 2 && (ackDias === null || ackDias > menorDias);
+
+  const reconhecerAlerta = () => {
+    setAckDias(menorDias);
+    window.localStorage.setItem("uea-alerta-margem-ack-dias", String(menorDias));
+  };
 
   return (
     <section
@@ -94,13 +108,19 @@ export function AlertaGlobalMargemUea() {
       ) : (
         <button
           type="button"
-          onClick={() => setExpandido(true)}
+          onClick={() => {
+            reconhecerAlerta();
+            setExpandido(true);
+          }}
           aria-expanded={expandido}
           aria-label={`Alerta: ${totalTitularesCriticos} ${singular ? "titular ficará" : "titulares ficarão"} sem margem. Clique para ver detalhes.`}
           title="Mudanças de faixa com risco de falta de margem"
-          className="flex h-12 w-12 items-center justify-center rounded-full border border-destructive/60 bg-destructive text-white shadow-xl transition-transform hover:scale-105 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-destructive/70"
+          className={`relative flex h-12 w-12 items-center justify-center rounded-full border border-destructive/60 bg-destructive text-white shadow-xl transition-transform hover:scale-105 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-destructive/70 ${piscando ? "animate-pulse" : ""}`}
         >
-          <AlertTriangle className="h-5 w-5" aria-hidden="true" />
+          {piscando && (
+            <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-destructive opacity-60" aria-hidden="true" />
+          )}
+          <AlertTriangle className="relative h-5 w-5" aria-hidden="true" />
         </button>
       )}
 
@@ -193,7 +213,9 @@ export function AlertaGlobalMargemUea() {
                       variant="outline"
                       className="gap-1.5"
                       onClick={() => {
+                        reconhecerAlerta();
                         setPainelAberto(false);
+                        setExpandido(false);
                         navigate(`/dependentes-uea?titular=${encodeURIComponent(caso.titular_id)}`);
                       }}
                     >
