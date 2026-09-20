@@ -981,6 +981,49 @@ export function TitularDetalheUeaDialog({
           </AlertDialogContent>
         </AlertDialog>
 
+        {/* CONFIRMAÇÃO DE EXCLUSÃO */}
+        <AlertDialog open={!!confirmarExcluir} onOpenChange={(v) => !v && setConfirmarExcluir(null)}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Excluir dependente?</AlertDialogTitle>
+            </AlertDialogHeader>
+            <div className="space-y-2 text-sm">
+              <p>
+                <span className="text-muted-foreground">Titular: </span>
+                <span className="font-medium uppercase">{titular?.nome_completo}</span>
+              </p>
+              <p>
+                <span className="text-muted-foreground">Dependente: </span>
+                <span className="font-medium uppercase">{confirmarExcluir?.nome_completo}</span>
+                {confirmarExcluir?.parentesco && (
+                  <span className="text-muted-foreground"> ({confirmarExcluir.parentesco})</span>
+                )}
+              </p>
+              <p>
+                <span className="text-muted-foreground">Valor: </span>
+                <span className="font-medium">{formatBRL(confirmarExcluir?.valor_mensal)}</span>
+              </p>
+              <p className="rounded-md border border-destructive/30 bg-destructive/5 p-2.5 text-destructive">
+                O registro será removido definitivamente. Esta ação não pode ser desfeita.
+              </p>
+            </div>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Cancelar</AlertDialogCancel>
+              <Button
+                variant="destructive"
+                disabled={excluir.isPending}
+                onClick={() => {
+                  if (!confirmarExcluir) return;
+                  excluir.mutate(confirmarExcluir.id);
+                  setConfirmarExcluir(null);
+                }}
+              >
+                Excluir dependente
+              </Button>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+
         {/* CONFIRMAÇÃO DE REATIVAÇÃO */}
         <AlertDialog open={!!confirmarReativar} onOpenChange={(v) => !v && setConfirmarReativar(null)}>
           <AlertDialogContent>
