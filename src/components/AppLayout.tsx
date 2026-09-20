@@ -38,6 +38,7 @@ import { HeaderTabs } from "@/components/HeaderTabs";
 import { SimularPerfilSwitcher, SimularPerfilBanner } from "@/components/SimularPerfilSwitcher";
 import { CadastroEmpresasPopover } from "@/components/CadastroEmpresasPopover";
 import { FloatingFilaChat } from "@/components/atendimentos/FloatingFilaChat";
+import { AlertaGlobalMargemUea } from "@/components/dependentes-uea/AlertaGlobalMargemUea";
 
 
 const allNavItems = [
@@ -970,6 +971,7 @@ export function AppLayout({ children }: { children?: React.ReactNode }) {
         {/* Main Content */}
         <main className="flex-1 min-w-0 p-4 md:p-6 lg:p-8 space-y-4">
           <SuspensaoBanner />
+          {canVerUea && <AlertaGlobalMargemUea />}
           {children ?? <Outlet />}
         </main>
       </div>

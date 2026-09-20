@@ -1,4 +1,5 @@
-import { Fragment, useMemo, useState } from "react";
+import { Fragment, useEffect, useMemo, useState } from "react";
+import { useLocation, useSearchParams } from "react-router-dom";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -117,6 +118,8 @@ function KpiCard({
 export default function DependentesUEA() {
   const { titulares, faixas, isLoading } = useTitularesUea();
   const { canEditarUea } = useMinhaPermissaoUea();
+  const location = useLocation();
+  const [searchParams] = useSearchParams();
   const [faixasOpen, setFaixasOpen] = useState(false);
   const [importarOpen, setImportarOpen] = useState(false);
   const excluir = useExcluirTitularUea();
@@ -133,6 +136,15 @@ export default function DependentesUEA() {
   const [filtroMudanca, setFiltroMudanca] = useState<FiltroMudanca>("90");
   const [valorEditandoId, setValorEditandoId] = useState<string | null>(null);
   const [valorEditandoTxt, setValorEditandoTxt] = useState("");
+
+  useEffect(() => {
+    if (searchParams.get("mudancas") !== "sem_margem") return;
+    setFiltroMudanca("sem_margem");
+    if (location.hash !== "#proximas-mudancas") return;
+    window.requestAnimationFrame(() => {
+      document.getElementById("proximas-mudancas")?.scrollIntoView({ behavior: "smooth", block: "start" });
+    });
+  }, [location.hash, searchParams]);
 
   const mudancas = useMemo(() => proximasMudancasFaixa(titulares, 90), [titulares]);
   const mudancasFiltradas = useMemo(
@@ -224,7 +236,7 @@ export default function DependentesUEA() {
       </div>
 
       {/* PRÓXIMAS MUDANÇAS DE FAIXA */}
-      <Card className="rounded-2xl border-border/60 p-5">
+      <Card id="proximas-mudancas" className="scroll-mt-24 rounded-2xl border-border/60 p-5">
         <div className="mb-5 flex flex-wrap items-start justify-between gap-4 border-b border-border/50 pb-5">
           <div className="space-y-3">
             <div>
