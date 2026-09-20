@@ -56,6 +56,14 @@ export function AlertaGlobalMargemUea() {
   if (isLoading || totalTitularesCriticos === 0) return null;
 
   const singular = totalTitularesCriticos === 1;
+  const menorDias = Math.min(...casosCriticos.map((caso) => caso.dias));
+  // Pisca quando faltam 2 dias ou menos, até o usuário clicar; volta a piscar quando o prazo diminui (inclusive no dia da troca).
+  const piscando = menorDias <= 2 && (ackDias === null || ackDias > menorDias);
+
+  const reconhecerAlerta = () => {
+    setAckDias(menorDias);
+    window.localStorage.setItem("uea-alerta-margem-ack-dias", String(menorDias));
+  };
 
   return (
     <section
