@@ -436,6 +436,8 @@ export function aplicaFiltro(t: TitularCalculado, filtro: FiltroUea): boolean {
       return t.status_margem === "Sem margem";
     case "margem_comprometida":
       return t.status_margem === "Margem comprometida";
+    case "margem_titular_zerada":
+      return Number(t.valor_margem || 0) === 0;
     case "possui_dependentes":
       return t.quantidade_dependentes_ativos > 0;
     case "sem_dependentes":
