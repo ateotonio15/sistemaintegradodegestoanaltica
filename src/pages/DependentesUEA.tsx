@@ -30,6 +30,7 @@ import {
   CalendarClock,
   CheckCircle2,
   ChevronDown,
+  FileSpreadsheet,
   Pencil,
   Plus,
   Search,
@@ -69,6 +70,10 @@ import {
   type StatusMargem,
   type TitularCalculado,
 } from "@/lib/dependentes-uea";
+import {
+  exportarRelatorioDependentesUea,
+  exportarRelatorioTitularesUea,
+} from "@/lib/dependentes-uea-export";
 
 const STATUS_CLS: Record<StatusMargem, string> = {
   "Sem dependentes": "bg-muted text-muted-foreground",
