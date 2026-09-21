@@ -403,7 +403,7 @@ export function DashboardFinanceiro() {
           };
         }
 
-        const rotulos = ws.addRow(["Empresa", "Contrato", "Responsável", "Período", "Pagador"]);
+        const rotulos = ws.addRow(["Empresa", "Contrato", "Responsável", "Período", "Situação do prazo", "Pagador"]);
         rotulos.height = 16;
         rotulos.eachCell((cell) => {
           cell.font = { size: 9, bold: true, color: { argb: CINZA } };
