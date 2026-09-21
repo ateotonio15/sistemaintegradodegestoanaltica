@@ -204,7 +204,7 @@ export default function Financeiro() {
       if (empresaIds.length === 0) return {};
       const { data, error } = await supabase
         .from("empresas")
-        .select("id, nome, codigo_contrato, cnpj, tipo_movimentacao, periodo_movimentacao, data_corte, status_empresa, data_rescisao, contrato_suspenso, pagamento_via_deposito, vidas, nao_faturado_financeiro, exige_po_pc, periodo_especifico_cobranca, periodo_cobranca_inicio, prioridade_maxima_id")
+        .select("id, nome, codigo_contrato, cnpj, tipo_movimentacao, periodo_movimentacao, data_corte, status_empresa, data_rescisao, contrato_suspenso, pagamento_via_deposito, vidas, nao_faturado_financeiro, exige_po_pc, periodo_especifico_cobranca, periodo_cobranca_inicio, prioridade_maxima_id, responsavel_contrato")
         .in("id", empresaIds);
       if (error) throw error;
       const map: Record<string, {
@@ -222,6 +222,7 @@ export default function Financeiro() {
         periodo_especifico_cobranca: boolean;
         periodo_cobranca_inicio: string | null;
         prioridade_maxima: boolean;
+        responsavel_contrato: string | null;
       }> = {};
       data.forEach((e: any) => {
         const statusOk = (e.status_empresa ?? "Ativa") === "Ativa";
@@ -241,6 +242,7 @@ export default function Financeiro() {
           periodo_especifico_cobranca: !!e.periodo_especifico_cobranca,
           periodo_cobranca_inicio: e.periodo_cobranca_inicio ?? null,
           prioridade_maxima: !!e.prioridade_maxima_id,
+          responsavel_contrato: e.responsavel_contrato ?? null,
         };
       });
 
@@ -811,6 +813,9 @@ export default function Financeiro() {
       return {
         ...f,
         empresa_nome: emp?.nome || "—",
+        // Responsável: usa o valor gravado na linha e, quando ausente,
+        // cai para o responsável atual do contrato cadastrado na empresa.
+        responsavel: (f as any).responsavel || emp?.responsavel_contrato || null,
         empresa_codigo: emp?.codigo ?? null,
         empresa_cnpj: emp?.cnpj ?? null,
         empresa_vidas: emp?.vidas ?? 0,
