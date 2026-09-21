@@ -415,34 +415,39 @@ export function DashboardFinanceiro() {
         });
 
         itens.forEach((p) => {
-          const pagadores = p.pagadores.length
-            ? p.pagadores.map((pg) => pg.nome_pagador).join(" · ")
-            : "—";
           const prazoTexto = p.prazo.limite
             ? `${p.prazo_label} · limite ${p.prazo.limite.toLocaleDateString("pt-BR")}`
             : "Sem dia de emissão";
-          const row = ws.addRow([
-            p.empresa_nome,
-            p.codigo_contrato || "—",
-            p.responsavel || "—",
-            p.periodo ?? "—",
-            prazoTexto,
-            pagadores,
-          ]);
-          row.height = 20;
-          row.eachCell((cell, col) => {
-            cell.font = {
-              size: 10,
-              bold: col === 1,
-              color: { argb: col === 5 && p.prazo.atrasado ? "FFB91C1C" : "FF111827" },
-            };
-            cell.alignment = {
-              vertical: "middle",
-              indent: 1,
-              horizontal: col === 4 ? "center" : "left",
-              wrapText: col === 1 || col === 6,
-            };
-            cell.border = { bottom: { style: "hair", color: { argb: "FFD6EAE0" } } };
+          const linhasPagador = p.pagadores.length
+            ? p.pagadores.map((pg) =>
+                pg.cnpj ? `${pg.nome_pagador} · ${pg.cnpj}` : pg.nome_pagador,
+              )
+            : ["—"];
+
+          linhasPagador.forEach((pagador) => {
+            const row = ws.addRow([
+              p.empresa_nome,
+              p.codigo_contrato || "—",
+              p.responsavel || "—",
+              p.periodo ?? "—",
+              prazoTexto,
+              pagador,
+            ]);
+            row.height = 20;
+            row.eachCell((cell, col) => {
+              cell.font = {
+                size: 10,
+                bold: col === 1,
+                color: { argb: col === 5 && p.prazo.atrasado ? "FFB91C1C" : "FF111827" },
+              };
+              cell.alignment = {
+                vertical: "middle",
+                indent: 1,
+                horizontal: col === 4 ? "center" : "left",
+                wrapText: col === 1 || col === 6,
+              };
+              cell.border = { bottom: { style: "hair", color: { argb: "FFD6EAE0" } } };
+            });
           });
         });
 
