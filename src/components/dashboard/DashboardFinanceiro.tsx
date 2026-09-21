@@ -84,13 +84,14 @@ export function DashboardFinanceiro() {
 
   const { data: movs = [] } = useQuery({
     queryKey: ["fin-dash-movs-basic"],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("financeiro_movimentacoes")
-        .select("id, empresa_id, data_envio_nota");
-      if (error) throw error;
-      return data ?? [];
-    },
+    queryFn: async () =>
+      fetchTodas((from, to) =>
+        supabase
+          .from("financeiro_movimentacoes")
+          .select("id, empresa_id, data_envio_nota")
+          .order("id")
+          .range(from, to),
+      ),
   });
 
   const { data: cobrancas = [] } = useQuery<CobrancaRow[]>({
@@ -126,14 +127,14 @@ export function DashboardFinanceiro() {
 
   const { data: opcoesMov = [] } = useQuery<{ mes_referencia: string | null; periodo: string | null }[]>({
     queryKey: ["fin-dash-mov-opcoes"],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("financeiro_movimentacoes")
-        .select("mes_referencia, periodo")
-        .limit(20000);
-      if (error) throw error;
-      return (data ?? []) as any;
-    },
+    queryFn: async () =>
+      fetchTodas((from, to) =>
+        supabase
+          .from("financeiro_movimentacoes")
+          .select("mes_referencia, periodo")
+          .order("mes_referencia", { ascending: false })
+          .range(from, to),
+      ),
   });
 
   // Todas as movimentações financeiras com status calculado "Pendente"
