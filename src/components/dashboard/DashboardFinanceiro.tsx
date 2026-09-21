@@ -180,13 +180,16 @@ export function DashboardFinanceiro() {
 
 
       // Envio operacional (Cadastro → Financeiro) → status "Aguardando nota"
-      const { data: ops } = await supabase
-        .from("movimentacoes")
-        .select("empresa_id, periodo, mes_referencia, data_envio_financeiro")
-        .not("data_envio_financeiro", "is", null)
-        .limit(20000);
+      const ops = await fetchTodas<any>((from, to) =>
+        supabase
+          .from("movimentacoes")
+          .select("empresa_id, periodo, mes_referencia, data_envio_financeiro")
+          .not("data_envio_financeiro", "is", null)
+          .order("id")
+          .range(from, to),
+      );
       const envioSet = new Set(
-        (ops ?? []).map((m: any) => `${m.empresa_id}|${m.mes_referencia}|${m.periodo}`),
+        ops.map((m: any) => `${m.empresa_id}|${m.mes_referencia}|${m.periodo}`),
       );
 
       return rows.filter(
