@@ -532,7 +532,10 @@ export function DashboardFinanceiro() {
       const pagadores = p.pagadores.length
         ? p.pagadores.map((pg) => pg.nome_pagador).join(" · ")
         : "—";
-      body.push([...base, pagadores]);
+      const prazoTexto = p.prazo.limite
+        ? `${p.prazo_label} · limite ${p.prazo.limite.toLocaleDateString("pt-BR")}`
+        : "Sem dia de emissão";
+      body.push([...base, prazoTexto, pagadores]);
     });
 
     autoTable(doc, {
