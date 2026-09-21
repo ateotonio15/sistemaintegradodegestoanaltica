@@ -30,6 +30,7 @@ import {
   CalendarClock,
   CheckCircle2,
   ChevronDown,
+  FileSpreadsheet,
   Pencil,
   Plus,
   Search,
@@ -69,6 +70,10 @@ import {
   type StatusMargem,
   type TitularCalculado,
 } from "@/lib/dependentes-uea";
+import {
+  exportarRelatorioDependentesUea,
+  exportarRelatorioTitularesUea,
+} from "@/lib/dependentes-uea-export";
 
 const STATUS_CLS: Record<StatusMargem, string> = {
   "Sem dependentes": "bg-muted text-muted-foreground",
@@ -192,7 +197,21 @@ export default function DependentesUEA() {
             margem disponível.
           </p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2">
+          <Button
+            variant="outline"
+            onClick={() => exportarRelatorioTitularesUea(lista)}
+            disabled={lista.length === 0}
+          >
+            <FileSpreadsheet className="mr-1.5 h-4 w-4" /> Relatório de titulares
+          </Button>
+          <Button
+            variant="outline"
+            onClick={() => exportarRelatorioDependentesUea(lista)}
+            disabled={lista.length === 0}
+          >
+            <FileSpreadsheet className="mr-1.5 h-4 w-4" /> Relatório de dependentes
+          </Button>
           <Button variant="outline" onClick={() => setFaixasOpen(true)}>
             <Settings2 className="mr-1.5 h-4 w-4" /> Faixas etárias e valores
           </Button>
