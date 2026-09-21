@@ -708,7 +708,12 @@ export function DashboardFinanceiro() {
                   </div>
                 )}
               </div>
-              <Badge variant="outline" className="shrink-0">Pendente</Badge>
+              <div className="flex flex-col items-end gap-1 shrink-0">
+                <Badge variant="outline">Pendente</Badge>
+                <Badge variant={p.prazo.atrasado ? "destructive" : "secondary"}>
+                  {p.prazo_label}
+                </Badge>
+              </div>
             </div>
           ))
         )}
