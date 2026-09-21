@@ -21,7 +21,7 @@ import { PrevisaoFinanceira } from "./PrevisaoFinanceira";
 import { AnalisesEnviosPanel } from "@/components/financeiro/AnalisesEnviosPanel";
 import { MultiSelectFiltro } from "./MultiSelectFiltro";
 import { RelatorioStatusFinanceiro } from "./RelatorioStatusFinanceiro";
-import { periodoVencido, competenciasJanelaPadrao, expandirAnexosPorGrupo, fetchEmpresaGrupoMap } from "@/lib/financeiro-utils";
+import { competenciasJanelaPadrao, expandirAnexosPorGrupo, fetchEmpresaGrupoMap, situacaoPrazoEmissao } from "@/lib/financeiro-utils";
 
 
 
@@ -75,7 +75,7 @@ export function DashboardFinanceiro() {
       const { data, error } = await supabase
         .from("empresas")
         .select(
-          "id, nome, codigo_contrato, responsavel_contrato, status_empresa, contrato_suspenso, responsavel_user_id, executiva_user_id, data_vencimento_fatura, periodo_movimentacao",
+          "id, nome, codigo_contrato, responsavel_contrato, status_empresa, contrato_suspenso, responsavel_user_id, executiva_user_id, data_vencimento_fatura, data_emissao_fatura, periodo_movimentacao",
         );
       if (error) throw error;
       return data ?? [];
