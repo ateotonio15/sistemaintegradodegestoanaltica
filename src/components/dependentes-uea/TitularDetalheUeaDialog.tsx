@@ -661,7 +661,7 @@ export function TitularDetalheUeaDialog({
               <TabsContent value="dependentes" className="space-y-3 pt-3">
                 {podeEditar && (
                   <div className="flex justify-end">
-                    <Button size="sm" onClick={() => { setEditando(vazio(titular.id)); setValorTexto(""); setValorCustom(false); }}>
+                    <Button size="sm" onClick={() => { setEditando(vazio(titular.id)); setValorTexto(""); setValorCustom(false); setEhReativacao(false); }}>
                       <UserPlus className="mr-1.5 h-4 w-4" /> Novo dependente
                     </Button>
                   </div>
@@ -711,6 +711,9 @@ export function TitularDetalheUeaDialog({
                       <Campo label="CPF" value={formatCPF(d.cpf)} />
                       <Campo label="Nascimento" value={formatDataBR(d.data_nascimento)} />
                       <Campo label="Data de adesão" value={formatDataBR(d.data_adesao)} />
+                      {d.data_reativacao && (
+                        <Campo label="Data de reativação" value={formatDataBR(d.data_reativacao)} />
+                      )}
                       <Campo
                         label="Idade"
                         value={d.idade_atual === null ? "—" : `${d.idade_atual} anos`}
