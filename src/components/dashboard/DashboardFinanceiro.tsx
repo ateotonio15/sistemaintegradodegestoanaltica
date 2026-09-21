@@ -540,7 +540,7 @@ export function DashboardFinanceiro() {
 
     autoTable(doc, {
       startY: 84 + resumoFiltros().length * 13 + 10,
-      head: [["Empresa", "Contrato", "Responsável", "Competência", "Período", "Pagador"]],
+      head: [["Empresa", "Contrato", "Responsável", "Competência", "Período", "Situação do prazo", "Pagador"]],
       body,
       theme: "plain",
       styles: { fontSize: 8.5, cellPadding: 6, valign: "middle", textColor: [17, 24, 39] },
@@ -548,12 +548,13 @@ export function DashboardFinanceiro() {
       alternateRowStyles: { fillColor: [234, 246, 240] },
 
       columnStyles: {
-        0: { cellWidth: 210, fontStyle: "bold" },
-        1: { cellWidth: 80 },
-        2: { cellWidth: 130 },
-        3: { cellWidth: 75, halign: "center" },
-        4: { cellWidth: 60, halign: "center" },
-        5: { cellWidth: "auto" },
+        0: { cellWidth: 190, fontStyle: "bold" },
+        1: { cellWidth: 70 },
+        2: { cellWidth: 110 },
+        3: { cellWidth: 70, halign: "center" },
+        4: { cellWidth: 55, halign: "center" },
+        5: { cellWidth: 130 },
+        6: { cellWidth: "auto" },
       },
       margin: { left: 40, right: 40, top: 40, bottom: 40 },
       didDrawPage: () => {
