@@ -126,16 +126,42 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const loadFlags = useCallback(async (userId: string) => {
     const requestId = ++roleRequestRef.current;
-    const [rolesRes, profileRes, empresaRes, corretoraRes] = await Promise.all([
-      supabase.from("user_roles").select("role").eq("user_id", userId),
+
+    // Busca os papéis com retentativa: uma falha de rede/refresh não pode
+    // rebaixar o perfil do usuário (ex.: financeiro virar "comum").
+    const fetchRoles = async () => {
+      for (let tentativa = 0; tentativa < 3; tentativa++) {
+        const res = await supabase.from("user_roles").select("role").eq("user_id", userId);
+        if (!res.error && res.data) return res.data as any[];
+        await new Promise((r) => setTimeout(r, 400 * (tentativa + 1)));
+      }
+      return null;
+    };
+
+    const [rolesData, profileRes, empresaRes, corretoraRes] = await Promise.all([
+      fetchRoles(),
       supabase.from("profiles").select("must_change_password").eq("user_id", userId).maybeSingle(),
       supabase.from("empresa_usuarios").select("empresa_id, papel").eq("user_id", userId).limit(1).maybeSingle(),
       (supabase as any).rpc("get_minha_corretora"),
     ]);
     if (requestId !== roleRequestRef.current) return;
 
-    const roles = (rolesRes.data ?? []).map((r: any) => r.role as string);
+    const ROLE_CACHE_KEY = `siga:role-cache:${userId}`;
+    if (!rolesData) {
+      // Sem resposta confiável: mantém o papel atual (ou o último conhecido)
+      // em vez de assumir "comum" e esconder Financeiro/Arquivos.
+      let cached: UserRole = roleRef.current;
+      if (!cached) {
+        try { cached = (localStorage.getItem(ROLE_CACHE_KEY) as UserRole) ?? null; } catch { /* ignore */ }
+      }
+      if (cached) setRole(cached);
+      setLoading(false);
+      return;
+    }
+
+    const roles = rolesData.map((r: any) => r.role as string);
     const primaryRole = (roles.find((r) => r !== "admin_interno") ?? roles[0] ?? "comum") as UserRole;
+    try { if (primaryRole) localStorage.setItem(ROLE_CACHE_KEY, primaryRole); } catch { /* ignore */ }
     const papel = ((empresaRes.data as any)?.papel ?? null) as string | null;
     setRole(primaryRole);
     setIsAdminInterno(roles.includes("admin_interno"));
