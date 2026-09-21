@@ -174,6 +174,7 @@ export function TitularDetalheUeaDialog({
       status: d.status,
       motivo_desligamento: d.motivo_desligamento ?? null,
       data_desligamento: d.data_desligamento ?? null,
+      data_reativacao: d.data_reativacao ?? null,
       observacao: d.observacao ?? null,
     });
     setValorInlineId(null);
@@ -237,6 +238,7 @@ export function TitularDetalheUeaDialog({
       cpf: editando.cpf ? soDigitos(editando.cpf) : null,
       faixa_etaria: faixaEditando ? faixaLabel(faixaEditando) : editando.faixa_etaria || null,
       valor_mensal: Number(valorFinal.toFixed(2)),
+      data_reativacao: ehReativacao ? editando.data_reativacao || hojeISOLocal() : null,
     });
     setEditando(null);
   };
@@ -255,8 +257,10 @@ export function TitularDetalheUeaDialog({
       status: d.status,
       motivo_desligamento: d.motivo_desligamento ?? "",
       data_desligamento: d.data_desligamento ?? "",
+      data_reativacao: d.data_reativacao ?? "",
       observacao: d.observacao ?? "",
     });
+    setEhReativacao(!!d.data_reativacao);
     setValorTexto(String(d.valor_mensal));
     setValorCustom(true);
   };
