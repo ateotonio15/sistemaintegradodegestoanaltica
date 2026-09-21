@@ -17,20 +17,28 @@ export function WelcomeHero({ totalAtivas, totalNoPeriodo, pendentes, concluidas
   const { data: profile } = useQuery({
     queryKey: ["user-profile-hero", user?.id],
     queryFn: async () => {
-      const { data } = await supabase
+      const { data, error } = await supabase
         .from("profiles")
         .select("display_name")
         .eq("user_id", user!.id)
         .maybeSingle();
+      if (error) throw error;
+      if (data?.display_name) {
+        try { localStorage.setItem(`siga:display-name:${user!.id}`, data.display_name); } catch { /* ignore */ }
+      }
       return data;
     },
     enabled: !!user?.id,
+    retry: 3,
+    staleTime: 5 * 60 * 1000,
   });
 
   const { greeting, firstName, dateStr } = useMemo(() => {
     const h = new Date().getHours();
     const g = h < 12 ? "Bom dia" : h < 18 ? "Boa tarde" : "Boa noite";
-    const name = (profile?.display_name || user?.email || "").split(" ")[0] || "Usuário";
+    let cached: string | null = null;
+    try { cached = user?.id ? localStorage.getItem(`siga:display-name:${user.id}`) : null; } catch { /* ignore */ }
+    const name = (profile?.display_name || cached || user?.email || "").split(" ")[0] || "Usuário";
     const date = new Date().toLocaleDateString("pt-BR", {
       weekday: "long",
       day: "2-digit",
