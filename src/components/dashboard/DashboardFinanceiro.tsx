@@ -614,6 +614,14 @@ export function DashboardFinanceiro() {
             <AlertCircle className="h-4 w-4 text-destructive" />
             Contratos pendentes
             <Badge variant="outline" className="ml-1">{pendentesFiltrados.length}</Badge>
+            {totalAtrasados > 0 && (
+              <Badge variant="destructive" className="ml-1">{totalAtrasados} em atraso</Badge>
+            )}
+            {pendentesFiltrados.length - totalAtrasados > 0 && (
+              <Badge variant="secondary" className="ml-1">
+                {pendentesFiltrados.length - totalAtrasados} no prazo
+              </Badge>
+            )}
           </CardTitle>
           <div className="flex flex-wrap items-center gap-2">
             <MultiSelectFiltro
