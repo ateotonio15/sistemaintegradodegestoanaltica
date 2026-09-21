@@ -139,7 +139,7 @@ export function DashboardFinanceiro() {
 
   // Todas as movimentações financeiras com status calculado "Pendente"
   const { data: pendentes = [] } = useQuery<
-    { id: string; empresa_id: string; mes_referencia: string | null; periodo: string | null }[]
+    { id: string; empresa_id: string; mes_referencia: string | null; periodo: string | null; dia_emissao: number | null }[]
   >({
     queryKey: ["fin-dash-pendentes"],
     queryFn: async () => {
@@ -147,7 +147,7 @@ export function DashboardFinanceiro() {
         supabase
           .from("financeiro_movimentacoes")
           .select(
-            "id, empresa_id, mes_referencia, periodo, data_envio_nota, dentro_prazo, faturamento_iniciado_em",
+            "id, empresa_id, mes_referencia, periodo, dia_emissao, data_envio_nota, dentro_prazo, faturamento_iniciado_em",
           )
           .is("data_envio_nota", null)
           .is("faturamento_iniciado_em", null)
@@ -196,7 +196,6 @@ export function DashboardFinanceiro() {
         (r: any) =>
           !comAnexo.has(r.id) &&
           r.dentro_prazo !== false &&
-          periodoVencido(r.mes_referencia, r.periodo) &&
           !envioSet.has(`${r.empresa_id}|${r.mes_referencia}|${r.periodo}`),
       );
 
