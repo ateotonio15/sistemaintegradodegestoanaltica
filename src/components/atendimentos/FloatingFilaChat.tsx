@@ -112,7 +112,7 @@ export function FloatingFilaChat() {
     return ["cadastro", "relacionamento", "financeiro"];
   }, [role]);
 
-  const canShow = !!user && setoresVisiveis.length > 0;
+  const canShow = !!user && setoresVisiveis.length > 0 && role !== "financeiro";
 
 
   const { data: atendimentos = [] } = useQuery({
