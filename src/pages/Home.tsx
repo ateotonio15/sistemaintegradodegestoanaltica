@@ -467,17 +467,30 @@ export default function Home() {
   const { data: profile } = useQuery({
     queryKey: ["home-profile", user?.id],
     queryFn: async () => {
-      const { data } = await supabase
+      const { data, error } = await supabase
         .from("profiles")
         .select("display_name")
         .eq("user_id", user!.id)
         .maybeSingle();
+      if (error) throw error;
+      if (data?.display_name) {
+        try { localStorage.setItem(`siga:display-name:${user!.id}`, data.display_name); } catch { /* ignore */ }
+      }
       return data;
     },
     enabled: !!user?.id,
+    retry: 3,
+    staleTime: 5 * 60 * 1000,
   });
 
-  const greetingName = (profile?.display_name || user?.email?.split("@")[0] || "").split(" ")[0];
+  const cachedDisplayName = useMemo(() => {
+    if (!user?.id) return null;
+    try { return localStorage.getItem(`siga:display-name:${user.id}`); } catch { return null; }
+  }, [user?.id]);
+
+  const greetingName = (
+    profile?.display_name || cachedDisplayName || user?.email?.split("@")[0] || ""
+  ).split(" ")[0];
   const greetingDisplay = greetingName
     ? greetingName.charAt(0).toUpperCase() + greetingName.slice(1)
     : "";
