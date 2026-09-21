@@ -677,6 +677,25 @@ export function DashboardFinanceiro() {
                   {p.codigo_contrato ? `Contrato ${p.codigo_contrato} · ` : ""}
                   {formatCompetencia(p.mes_referencia)}
                   {p.periodo ? ` · ${p.periodo}` : ""}
+                  {p.dia_emissao_efetivo
+                    ? ` · Emissão dia ${String(p.dia_emissao_efetivo).padStart(2, "0")}`
+                    : ""}
+                </p>
+                <p className="text-xs mt-0.5">
+                  {p.prazo.limite ? (
+                    p.prazo.atrasado ? (
+                      <span className="text-destructive font-medium">
+                        Em atraso há {p.prazo.diasAtraso} dia{p.prazo.diasAtraso === 1 ? "" : "s"} · limite{" "}
+                        {p.prazo.limite.toLocaleDateString("pt-BR")}
+                      </span>
+                    ) : (
+                      <span className="text-emerald-600 dark:text-emerald-400 font-medium">
+                        Ainda no prazo · limite {p.prazo.limite.toLocaleDateString("pt-BR")}
+                      </span>
+                    )
+                  ) : (
+                    <span className="text-muted-foreground">Sem dia de emissão cadastrado</span>
+                  )}
                 </p>
                 {p.pagadores.length > 0 && (
                   <div className="flex flex-wrap gap-1 mt-1.5">
