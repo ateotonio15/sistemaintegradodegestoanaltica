@@ -100,8 +100,15 @@ const vazio = (titularId: string): DependenteInput => ({
   status: "ativo",
   motivo_desligamento: "",
   data_desligamento: "",
+  data_reativacao: "",
   observacao: "",
 });
+
+/** Data de hoje no formato ISO, construída no fuso local. */
+function hojeISOLocal(): string {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+}
 
 function Campo({ label, value }: { label: string; value: React.ReactNode }) {
   return (
@@ -131,6 +138,7 @@ export function TitularDetalheUeaDialog({
   const [margemTxt, setMargemTxt] = useState("");
   const [editando, setEditando] = useState<DependenteInput | null>(null);
   const [valorTexto, setValorTexto] = useState("");
+  const [ehReativacao, setEhReativacao] = useState(false);
   const [valorCustom, setValorCustom] = useState(false);
   const [aba, setAba] = useState("dependentes");
   const [confirmarDesligar, setConfirmarDesligar] = useState<DependenteCalculado | null>(null);
@@ -166,6 +174,7 @@ export function TitularDetalheUeaDialog({
       status: d.status,
       motivo_desligamento: d.motivo_desligamento ?? null,
       data_desligamento: d.data_desligamento ?? null,
+      data_reativacao: d.data_reativacao ?? null,
       observacao: d.observacao ?? null,
     });
     setValorInlineId(null);
@@ -229,6 +238,7 @@ export function TitularDetalheUeaDialog({
       cpf: editando.cpf ? soDigitos(editando.cpf) : null,
       faixa_etaria: faixaEditando ? faixaLabel(faixaEditando) : editando.faixa_etaria || null,
       valor_mensal: Number(valorFinal.toFixed(2)),
+      data_reativacao: ehReativacao ? editando.data_reativacao || hojeISOLocal() : null,
     });
     setEditando(null);
   };
@@ -247,8 +257,10 @@ export function TitularDetalheUeaDialog({
       status: d.status,
       motivo_desligamento: d.motivo_desligamento ?? "",
       data_desligamento: d.data_desligamento ?? "",
+      data_reativacao: d.data_reativacao ?? "",
       observacao: d.observacao ?? "",
     });
+    setEhReativacao(!!d.data_reativacao);
     setValorTexto(String(d.valor_mensal));
     setValorCustom(true);
   };
@@ -407,6 +419,45 @@ export function TitularDetalheUeaDialog({
                 </div>
               </div>
             )}
+            <div className="grid gap-3 rounded-lg border border-border/60 bg-muted/30 p-3 sm:grid-cols-2">
+              <div className="grid gap-1.5">
+                <Label>Este cadastro é uma reativação de dependente?</Label>
+                <Select
+                  value={ehReativacao ? "sim" : "nao"}
+                  onValueChange={(v) => {
+                    const sim = v === "sim";
+                    setEhReativacao(sim);
+                    setEditando(
+                      (d) =>
+                        d && {
+                          ...d,
+                          data_reativacao: sim ? d.data_reativacao || hojeISOLocal() : "",
+                        },
+                    );
+                  }}
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="nao">Não — inclusão nova</SelectItem>
+                    <SelectItem value="sim">Sim — dependente reativado</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              {ehReativacao && (
+                <div className="grid gap-1.5">
+                  <Label>Data de reativação</Label>
+                  <Input
+                    type="date"
+                    value={editando.data_reativacao ?? ""}
+                    onChange={(e) =>
+                      setEditando((d) => d && { ...d, data_reativacao: e.target.value })
+                    }
+                  />
+                </div>
+              )}
+            </div>
             <div className="grid gap-1.5">
               <Label>Observação</Label>
               <Textarea
@@ -610,7 +661,7 @@ export function TitularDetalheUeaDialog({
               <TabsContent value="dependentes" className="space-y-3 pt-3">
                 {podeEditar && (
                   <div className="flex justify-end">
-                    <Button size="sm" onClick={() => { setEditando(vazio(titular.id)); setValorTexto(""); setValorCustom(false); }}>
+                    <Button size="sm" onClick={() => { setEditando(vazio(titular.id)); setValorTexto(""); setValorCustom(false); setEhReativacao(false); }}>
                       <UserPlus className="mr-1.5 h-4 w-4" /> Novo dependente
                     </Button>
                   </div>
@@ -660,6 +711,9 @@ export function TitularDetalheUeaDialog({
                       <Campo label="CPF" value={formatCPF(d.cpf)} />
                       <Campo label="Nascimento" value={formatDataBR(d.data_nascimento)} />
                       <Campo label="Data de adesão" value={formatDataBR(d.data_adesao)} />
+                      {d.data_reativacao && (
+                        <Campo label="Data de reativação" value={formatDataBR(d.data_reativacao)} />
+                      )}
                       <Campo
                         label="Idade"
                         value={d.idade_atual === null ? "—" : `${d.idade_atual} anos`}

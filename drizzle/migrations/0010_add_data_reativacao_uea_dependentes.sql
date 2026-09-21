@@ -1,0 +1,1 @@
+ALTER TABLE public.uea_dependentes ADD COLUMN IF NOT EXISTS data_reativacao date;

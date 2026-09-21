@@ -5152,6 +5152,7 @@ export type Database = {
           data_adesao: string | null
           data_desligamento: string | null
           data_nascimento: string | null
+          data_reativacao: string | null
           faixa_etaria: string | null
           faixa_sequencia: string | null
           id: string
@@ -5176,6 +5177,7 @@ export type Database = {
           data_adesao?: string | null
           data_desligamento?: string | null
           data_nascimento?: string | null
+          data_reativacao?: string | null
           faixa_etaria?: string | null
           faixa_sequencia?: string | null
           id?: string
@@ -5200,6 +5202,7 @@ export type Database = {
           data_adesao?: string | null
           data_desligamento?: string | null
           data_nascimento?: string | null
+          data_reativacao?: string | null
           faixa_etaria?: string | null
           faixa_sequencia?: string | null
           id?: string
