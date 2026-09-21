@@ -365,6 +365,7 @@ export function useSalvarDependenteUea() {
         status: input.status,
         motivo_desligamento: input.status === "desligado" ? input.motivo_desligamento || null : null,
         data_desligamento: input.status === "desligado" ? input.data_desligamento || null : null,
+        data_reativacao: input.data_reativacao || null,
         observacao: input.observacao || null,
       };
       if (input.id) {
@@ -781,12 +782,17 @@ export function useReativarDependenteUea() {
       const analise = analisarReativacao(titular, dependente);
       if (!analise.ok) throw new Error("Não há margem suficiente para reativar este dependente.");
       const valorMomento = Number(dependente.valor_aplicavel || dependente.valor_mensal || 0);
+      const agora = new Date();
+      const hojeISO = `${agora.getFullYear()}-${String(agora.getMonth() + 1).padStart(2, "0")}-${String(
+        agora.getDate(),
+      ).padStart(2, "0")}`;
       const { error } = await supabase
         .from("uea_dependentes")
         .update({
           status: "ativo",
           motivo_desligamento: null,
           data_desligamento: null,
+          data_reativacao: hojeISO,
           valor_mensal: valorMomento,
         })
         .eq("id", dependente.id);
