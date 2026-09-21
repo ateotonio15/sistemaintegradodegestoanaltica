@@ -47,6 +47,22 @@ function formatCompetencia(c?: string | null) {
   return m ? `${MESES[Number(m[2]) - 1]}/${m[1]}` : c;
 }
 
+/** Busca todas as linhas em páginas (o backend limita cada resposta a 1000 registros). */
+async function fetchTodas<T = any>(
+  build: (from: number, to: number) => any,
+  page = 1000,
+): Promise<T[]> {
+  const out: T[] = [];
+  for (let from = 0; ; from += page) {
+    const { data, error } = await build(from, from + page - 1);
+    if (error) throw error;
+    const rows = (data ?? []) as T[];
+    out.push(...rows);
+    if (rows.length < page) break;
+  }
+  return out;
+}
+
 export function DashboardFinanceiro() {
   const { user } = useAuth();
   const navigate = useNavigate();
