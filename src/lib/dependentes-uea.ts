@@ -410,6 +410,7 @@ export type FiltroUea =
   | "com_margem"
   | "sem_margem"
   | "margem_comprometida"
+  | "margem_titular_zerada"
   | "possui_dependentes"
   | "sem_dependentes"
   | "desligado_falta_margem"
@@ -420,6 +421,7 @@ export const FILTROS_UEA: { value: FiltroUea; label: string }[] = [
   { value: "com_margem", label: "Com margem" },
   { value: "sem_margem", label: "Sem margem" },
   { value: "margem_comprometida", label: "Margem comprometida" },
+  { value: "margem_titular_zerada", label: "Margem do titular zerada" },
   { value: "possui_dependentes", label: "Possui dependentes" },
   { value: "sem_dependentes", label: "Sem dependentes" },
   { value: "desligado_falta_margem", label: "Dependente desligado por falta de margem" },
@@ -434,6 +436,8 @@ export function aplicaFiltro(t: TitularCalculado, filtro: FiltroUea): boolean {
       return t.status_margem === "Sem margem";
     case "margem_comprometida":
       return t.status_margem === "Margem comprometida";
+    case "margem_titular_zerada":
+      return Number(t.valor_margem || 0) === 0;
     case "possui_dependentes":
       return t.quantidade_dependentes_ativos > 0;
     case "sem_dependentes":
