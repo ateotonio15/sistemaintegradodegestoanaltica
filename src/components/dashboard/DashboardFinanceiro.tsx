@@ -354,22 +354,23 @@ export function DashboardFinanceiro() {
       { width: 16 },
       { width: 30 },
       { width: 12 },
+      { width: 28 },
       { width: 46 },
     ];
 
     // Cabeçalho institucional (verde e branco)
-    ws.mergeCells(1, 1, 1, 5);
+    ws.mergeCells(1, 1, 1, 6);
     const t = ws.getCell("A1");
     t.value = "Contratos pendentes";
     t.font = { bold: true, size: 18, color: { argb: "FFFFFFFF" } };
     t.alignment = { vertical: "middle", indent: 1 };
     t.fill = { type: "pattern", pattern: "solid", fgColor: { argb: VERDE } };
     ws.getRow(1).height = 34;
-    for (let c = 2; c <= 5; c++) {
+    for (let c = 2; c <= 6; c++) {
       ws.getCell(1, c).fill = { type: "pattern", pattern: "solid", fgColor: { argb: VERDE } };
     }
 
-    ws.mergeCells(2, 1, 2, 5);
+    ws.mergeCells(2, 1, 2, 6);
     const s = ws.getCell("A2");
     s.value = `${resumoFiltros().join("   ·   ")}   ·   Total: ${pendentesFiltrados.length}   ·   Emitido em ${new Date().toLocaleString("pt-BR")}`;
     s.font = { size: 10, color: { argb: CINZA } };
@@ -389,8 +390,11 @@ export function DashboardFinanceiro() {
     Array.from(grupos.entries())
       .sort((a, b) => a[0].localeCompare(b[0]))
       .forEach(([competencia, itens]) => {
-        const secao = ws.addRow([`${competencia}  ·  ${itens.length} contrato(s)`]);
-        ws.mergeCells(secao.number, 1, secao.number, 5);
+        const atrasadosGrupo = itens.filter((i) => i.prazo.atrasado).length;
+        const secao = ws.addRow([
+          `${competencia}  ·  ${itens.length} contrato(s)  ·  ${atrasadosGrupo} em atraso  ·  ${itens.length - atrasadosGrupo} no prazo`,
+        ]);
+        ws.mergeCells(secao.number, 1, secao.number, 6);
         secao.height = 24;
         const cel = ws.getCell(secao.number, 1);
         cel.font = { bold: true, size: 12, color: { argb: VERDE } };
