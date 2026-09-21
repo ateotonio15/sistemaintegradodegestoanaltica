@@ -343,6 +343,8 @@ export interface DependenteInput {
   status: "ativo" | "desligado";
   motivo_desligamento: string | null;
   data_desligamento: string | null;
+  /** Preenchida somente quando o cadastro/edição é uma reativação de dependente. */
+  data_reativacao?: string | null;
   observacao: string | null;
 }
 

@@ -76,6 +76,7 @@ export interface DependenteUea {
   status: DependenteStatus;
   motivo_desligamento: string | null;
   data_desligamento: string | null;
+  data_reativacao?: string | null;
   observacao: string | null;
   created_at: string;
   updated_at: string;
