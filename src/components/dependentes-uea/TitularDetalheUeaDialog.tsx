@@ -419,6 +419,45 @@ export function TitularDetalheUeaDialog({
                 </div>
               </div>
             )}
+            <div className="grid gap-3 rounded-lg border border-border/60 bg-muted/30 p-3 sm:grid-cols-2">
+              <div className="grid gap-1.5">
+                <Label>Este cadastro é uma reativação de dependente?</Label>
+                <Select
+                  value={ehReativacao ? "sim" : "nao"}
+                  onValueChange={(v) => {
+                    const sim = v === "sim";
+                    setEhReativacao(sim);
+                    setEditando(
+                      (d) =>
+                        d && {
+                          ...d,
+                          data_reativacao: sim ? d.data_reativacao || hojeISOLocal() : "",
+                        },
+                    );
+                  }}
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="nao">Não — inclusão nova</SelectItem>
+                    <SelectItem value="sim">Sim — dependente reativado</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              {ehReativacao && (
+                <div className="grid gap-1.5">
+                  <Label>Data de reativação</Label>
+                  <Input
+                    type="date"
+                    value={editando.data_reativacao ?? ""}
+                    onChange={(e) =>
+                      setEditando((d) => d && { ...d, data_reativacao: e.target.value })
+                    }
+                  />
+                </div>
+              )}
+            </div>
             <div className="grid gap-1.5">
               <Label>Observação</Label>
               <Textarea
