@@ -277,14 +277,13 @@ export function DashboardFinanceiro() {
   // Janela padrão: mês vigente + mês anterior (quando nenhuma competência é escolhida)
   const janelaPadrao = useMemo(() => competenciasJanelaPadrao(), []);
 
+  const empresaEmissaoMap = useMemo(
+    () => new Map(empresas.map((e: any) => [e.id, (e.data_emissao_fatura ?? null) as number | null])),
+    [empresas],
+  );
+
   const pendentesJanela = useMemo(
-    () =>
-      pendentes.filter(
-        (p) =>
-          p.mes_referencia &&
-          janelaPadrao.includes(p.mes_referencia) &&
-          periodoVencido(p.mes_referencia, p.periodo),
-      ),
+    () => pendentes.filter((p) => p.mes_referencia && janelaPadrao.includes(p.mes_referencia)),
     [pendentes, janelaPadrao],
   );
 
@@ -293,21 +292,39 @@ export function DashboardFinanceiro() {
       (competenciasSel.length === 0 ? pendentesJanela : pendentes)
         .filter(
           (p) =>
-            // Reforço: mesmo com filtro manual, só entra período já vencido (> 1 dia após o fim)
-            periodoVencido(p.mes_referencia, p.periodo) &&
             (competenciasSel.length === 0 || (p.mes_referencia && competenciasSel.includes(p.mes_referencia))) &&
             (periodosSel.length === 0 || (p.periodo && periodosSel.includes(p.periodo))),
         )
-        .map((p) => ({
-          ...p,
-          empresa_nome: empresaNomeMap.get(p.empresa_id) ?? "—",
-          codigo_contrato: empresaContratoMap.get(p.empresa_id) ?? "",
-          responsavel: empresaResponsavelMap.get(p.empresa_id) ?? "",
-          pagadores: pagadoresPorEmpresa.get(p.empresa_id) ?? [],
-        }))
-        .sort((a, b) => a.empresa_nome.localeCompare(b.empresa_nome)),
-    [pendentes, pendentesJanela, competenciasSel, periodosSel, empresaNomeMap, empresaContratoMap, empresaResponsavelMap, pagadoresPorEmpresa],
+        .map((p) => {
+          const diaEmissao = p.dia_emissao ?? empresaEmissaoMap.get(p.empresa_id) ?? null;
+          const prazo = situacaoPrazoEmissao(p.mes_referencia, diaEmissao);
+          return {
+            ...p,
+            dia_emissao_efetivo: diaEmissao,
+            prazo,
+            prazo_label: prazo.limite
+              ? prazo.atrasado
+                ? `Em atraso · ${prazo.diasAtraso} dia${prazo.diasAtraso === 1 ? "" : "s"}`
+                : "No prazo"
+              : "Prazo sem base",
+            empresa_nome: empresaNomeMap.get(p.empresa_id) ?? "—",
+            codigo_contrato: empresaContratoMap.get(p.empresa_id) ?? "",
+            responsavel: empresaResponsavelMap.get(p.empresa_id) ?? "",
+            pagadores: pagadoresPorEmpresa.get(p.empresa_id) ?? [],
+          };
+        })
+        .sort((a, b) => {
+          if (a.prazo.atrasado !== b.prazo.atrasado) return a.prazo.atrasado ? -1 : 1;
+          if (a.prazo.atrasado && b.prazo.atrasado) return b.prazo.diasAtraso - a.prazo.diasAtraso;
+          return a.empresa_nome.localeCompare(b.empresa_nome);
+        }),
+    [pendentes, pendentesJanela, competenciasSel, periodosSel, empresaNomeMap, empresaContratoMap, empresaResponsavelMap, empresaEmissaoMap, pagadoresPorEmpresa],
 
+  );
+
+  const totalAtrasados = useMemo(
+    () => pendentesFiltrados.filter((p) => p.prazo.atrasado).length,
+    [pendentesFiltrados],
   );
 
 
