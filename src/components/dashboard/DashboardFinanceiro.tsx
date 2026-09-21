@@ -47,6 +47,22 @@ function formatCompetencia(c?: string | null) {
   return m ? `${MESES[Number(m[2]) - 1]}/${m[1]}` : c;
 }
 
+/** Busca todas as linhas em páginas (o backend limita cada resposta a 1000 registros). */
+async function fetchTodas<T = any>(
+  build: (from: number, to: number) => any,
+  page = 1000,
+): Promise<T[]> {
+  const out: T[] = [];
+  for (let from = 0; ; from += page) {
+    const { data, error } = await build(from, from + page - 1);
+    if (error) throw error;
+    const rows = (data ?? []) as T[];
+    out.push(...rows);
+    if (rows.length < page) break;
+  }
+  return out;
+}
+
 export function DashboardFinanceiro() {
   const { user } = useAuth();
   const navigate = useNavigate();
@@ -68,13 +84,14 @@ export function DashboardFinanceiro() {
 
   const { data: movs = [] } = useQuery({
     queryKey: ["fin-dash-movs-basic"],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("financeiro_movimentacoes")
-        .select("id, empresa_id, data_envio_nota");
-      if (error) throw error;
-      return data ?? [];
-    },
+    queryFn: async () =>
+      fetchTodas((from, to) =>
+        supabase
+          .from("financeiro_movimentacoes")
+          .select("id, empresa_id, data_envio_nota")
+          .order("id")
+          .range(from, to),
+      ),
   });
 
   const { data: cobrancas = [] } = useQuery<CobrancaRow[]>({
@@ -110,14 +127,14 @@ export function DashboardFinanceiro() {
 
   const { data: opcoesMov = [] } = useQuery<{ mes_referencia: string | null; periodo: string | null }[]>({
     queryKey: ["fin-dash-mov-opcoes"],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("financeiro_movimentacoes")
-        .select("mes_referencia, periodo")
-        .limit(20000);
-      if (error) throw error;
-      return (data ?? []) as any;
-    },
+    queryFn: async () =>
+      fetchTodas((from, to) =>
+        supabase
+          .from("financeiro_movimentacoes")
+          .select("mes_referencia, periodo")
+          .order("mes_referencia", { ascending: false })
+          .range(from, to),
+      ),
   });
 
   // Todas as movimentações financeiras com status calculado "Pendente"
@@ -126,16 +143,17 @@ export function DashboardFinanceiro() {
   >({
     queryKey: ["fin-dash-pendentes"],
     queryFn: async () => {
-      const { data: fins, error } = await supabase
-        .from("financeiro_movimentacoes")
-        .select(
-          "id, empresa_id, mes_referencia, periodo, data_envio_nota, dentro_prazo, faturamento_iniciado_em",
-        )
-        .is("data_envio_nota", null)
-        .is("faturamento_iniciado_em", null)
-        .limit(20000);
-      if (error) throw error;
-      const rows = fins ?? [];
+      const rows = await fetchTodas<any>((from, to) =>
+        supabase
+          .from("financeiro_movimentacoes")
+          .select(
+            "id, empresa_id, mes_referencia, periodo, data_envio_nota, dentro_prazo, faturamento_iniciado_em",
+          )
+          .is("data_envio_nota", null)
+          .is("faturamento_iniciado_em", null)
+          .order("id")
+          .range(from, to),
+      );
       if (rows.length === 0) return [];
 
       // Anexos financeiros existentes → deixam de ser "Pendente"
@@ -162,13 +180,16 @@ export function DashboardFinanceiro() {
 
 
       // Envio operacional (Cadastro → Financeiro) → status "Aguardando nota"
-      const { data: ops } = await supabase
-        .from("movimentacoes")
-        .select("empresa_id, periodo, mes_referencia, data_envio_financeiro")
-        .not("data_envio_financeiro", "is", null)
-        .limit(20000);
+      const ops = await fetchTodas<any>((from, to) =>
+        supabase
+          .from("movimentacoes")
+          .select("empresa_id, periodo, mes_referencia, data_envio_financeiro")
+          .not("data_envio_financeiro", "is", null)
+          .order("id")
+          .range(from, to),
+      );
       const envioSet = new Set(
-        (ops ?? []).map((m: any) => `${m.empresa_id}|${m.mes_referencia}|${m.periodo}`),
+        ops.map((m: any) => `${m.empresa_id}|${m.mes_referencia}|${m.periodo}`),
       );
 
       return rows.filter(
