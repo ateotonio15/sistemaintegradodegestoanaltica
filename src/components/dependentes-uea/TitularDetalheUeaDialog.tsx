@@ -100,8 +100,15 @@ const vazio = (titularId: string): DependenteInput => ({
   status: "ativo",
   motivo_desligamento: "",
   data_desligamento: "",
+  data_reativacao: "",
   observacao: "",
 });
+
+/** Data de hoje no formato ISO, construída no fuso local. */
+function hojeISOLocal(): string {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+}
 
 function Campo({ label, value }: { label: string; value: React.ReactNode }) {
   return (
@@ -131,6 +138,7 @@ export function TitularDetalheUeaDialog({
   const [margemTxt, setMargemTxt] = useState("");
   const [editando, setEditando] = useState<DependenteInput | null>(null);
   const [valorTexto, setValorTexto] = useState("");
+  const [ehReativacao, setEhReativacao] = useState(false);
   const [valorCustom, setValorCustom] = useState(false);
   const [aba, setAba] = useState("dependentes");
   const [confirmarDesligar, setConfirmarDesligar] = useState<DependenteCalculado | null>(null);
