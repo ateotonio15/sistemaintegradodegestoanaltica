@@ -399,7 +399,7 @@ export function DashboardFinanceiro() {
         const cel = ws.getCell(secao.number, 1);
         cel.font = { bold: true, size: 12, color: { argb: VERDE } };
         cel.alignment = { vertical: "middle", indent: 1 };
-        for (let c = 1; c <= 5; c++) {
+        for (let c = 1; c <= 6; c++) {
           ws.getCell(secao.number, c).fill = {
             type: "pattern",
             pattern: "solid",
@@ -418,21 +418,29 @@ export function DashboardFinanceiro() {
           const pagadores = p.pagadores.length
             ? p.pagadores.map((pg) => pg.nome_pagador).join(" · ")
             : "—";
+          const prazoTexto = p.prazo.limite
+            ? `${p.prazo_label} · limite ${p.prazo.limite.toLocaleDateString("pt-BR")}`
+            : "Sem dia de emissão";
           const row = ws.addRow([
             p.empresa_nome,
             p.codigo_contrato || "—",
             p.responsavel || "—",
             p.periodo ?? "—",
+            prazoTexto,
             pagadores,
           ]);
           row.height = 20;
           row.eachCell((cell, col) => {
-            cell.font = { size: 10, bold: col === 1, color: { argb: "FF111827" } };
+            cell.font = {
+              size: 10,
+              bold: col === 1,
+              color: { argb: col === 5 && p.prazo.atrasado ? "FFB91C1C" : "FF111827" },
+            };
             cell.alignment = {
               vertical: "middle",
               indent: 1,
               horizontal: col === 4 ? "center" : "left",
-              wrapText: col === 1 || col === 5,
+              wrapText: col === 1 || col === 6,
             };
             cell.border = { bottom: { style: "hair", color: { argb: "FFD6EAE0" } } };
           });
