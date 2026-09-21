@@ -143,16 +143,17 @@ export function DashboardFinanceiro() {
   >({
     queryKey: ["fin-dash-pendentes"],
     queryFn: async () => {
-      const { data: fins, error } = await supabase
-        .from("financeiro_movimentacoes")
-        .select(
-          "id, empresa_id, mes_referencia, periodo, data_envio_nota, dentro_prazo, faturamento_iniciado_em",
-        )
-        .is("data_envio_nota", null)
-        .is("faturamento_iniciado_em", null)
-        .limit(20000);
-      if (error) throw error;
-      const rows = fins ?? [];
+      const rows = await fetchTodas<any>((from, to) =>
+        supabase
+          .from("financeiro_movimentacoes")
+          .select(
+            "id, empresa_id, mes_referencia, periodo, data_envio_nota, dentro_prazo, faturamento_iniciado_em",
+          )
+          .is("data_envio_nota", null)
+          .is("faturamento_iniciado_em", null)
+          .order("id")
+          .range(from, to),
+      );
       if (rows.length === 0) return [];
 
       // Anexos financeiros existentes → deixam de ser "Pendente"
