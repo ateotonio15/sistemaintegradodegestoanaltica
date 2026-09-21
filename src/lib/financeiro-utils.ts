@@ -372,6 +372,57 @@ export function periodoVencido(
   return hoje.getDate() >= fim + 2;
 }
 
+/* ─────────────────────────────────────────────────────────────
+ * Situação do prazo a partir da DATA DE EMISSÃO (contratos pendentes)
+ * ────────────────────────────────────────────────────────── */
+
+export interface SituacaoEmissaoResult {
+  /** true = já passou do limite de emissão */
+  atrasado: boolean;
+  /** Data limite calculada (null quando não há base) */
+  limite: Date | null;
+  /** Dias completos de atraso (0 quando no prazo) */
+  diasAtraso: number;
+  janelaHoras: 24 | 48 | null;
+}
+
+/**
+ * Regra da data de emissão aplicada à competência:
+ * - Emissão = dia_emissao dentro do mês da competência; se dia_emissao = 1,
+ *   a emissão ocorre no dia 1º do mês SEGUINTE à competência (mesma regra do Financeiro).
+ * - Janela: 48h quando a emissão cai até o dia 10; 24h a partir do dia 11.
+ * - Atrasado quando "agora" já passou do limite.
+ */
+export function situacaoPrazoEmissao(
+  mesReferencia: string | null | undefined,
+  diaEmissao: number | null | undefined,
+  hoje: Date = new Date(),
+): SituacaoEmissaoResult {
+  const m = (mesReferencia ?? "").match(/^(\d{4})-(\d{2})$/);
+  if (!m || !diaEmissao) {
+    return { atrasado: false, limite: null, diasAtraso: 0, janelaHoras: null };
+  }
+  const ano = Number(m[1]);
+  const mes0 = Number(m[2]) - 1;
+
+  const base =
+    diaEmissao === 1
+      ? new Date(ano, mes0 + 1, 1, 0, 0, 0, 0)
+      : (() => {
+          const ultimoDia = new Date(ano, mes0 + 1, 0).getDate();
+          return new Date(ano, mes0, Math.min(diaEmissao, ultimoDia), 0, 0, 0, 0);
+        })();
+
+  const janelaHoras: 24 | 48 = base.getDate() <= 10 ? 48 : 24;
+  const limite = new Date(base.getTime() + janelaHoras * 60 * 60 * 1000);
+  const atrasado = hoje.getTime() > limite.getTime();
+  const diasAtraso = atrasado
+    ? Math.floor((hoje.getTime() - limite.getTime()) / (24 * 60 * 60 * 1000))
+    : 0;
+
+  return { atrasado, limite, diasAtraso, janelaHoras };
+}
+
 /** Competências consideradas por padrão: mês vigente + mês anterior. */
 export function competenciasJanelaPadrao(hoje: Date = new Date()): string[] {
   const fmt = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;

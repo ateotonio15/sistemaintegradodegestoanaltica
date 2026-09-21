@@ -21,7 +21,7 @@ import { PrevisaoFinanceira } from "./PrevisaoFinanceira";
 import { AnalisesEnviosPanel } from "@/components/financeiro/AnalisesEnviosPanel";
 import { MultiSelectFiltro } from "./MultiSelectFiltro";
 import { RelatorioStatusFinanceiro } from "./RelatorioStatusFinanceiro";
-import { periodoVencido, competenciasJanelaPadrao, expandirAnexosPorGrupo, fetchEmpresaGrupoMap } from "@/lib/financeiro-utils";
+import { competenciasJanelaPadrao, expandirAnexosPorGrupo, fetchEmpresaGrupoMap, situacaoPrazoEmissao } from "@/lib/financeiro-utils";
 
 
 
@@ -75,7 +75,7 @@ export function DashboardFinanceiro() {
       const { data, error } = await supabase
         .from("empresas")
         .select(
-          "id, nome, codigo_contrato, responsavel_contrato, status_empresa, contrato_suspenso, responsavel_user_id, executiva_user_id, data_vencimento_fatura, periodo_movimentacao",
+          "id, nome, codigo_contrato, responsavel_contrato, status_empresa, contrato_suspenso, responsavel_user_id, executiva_user_id, data_vencimento_fatura, data_emissao_fatura, periodo_movimentacao",
         );
       if (error) throw error;
       return data ?? [];
@@ -139,7 +139,7 @@ export function DashboardFinanceiro() {
 
   // Todas as movimentações financeiras com status calculado "Pendente"
   const { data: pendentes = [] } = useQuery<
-    { id: string; empresa_id: string; mes_referencia: string | null; periodo: string | null }[]
+    { id: string; empresa_id: string; mes_referencia: string | null; periodo: string | null; dia_emissao: number | null }[]
   >({
     queryKey: ["fin-dash-pendentes"],
     queryFn: async () => {
@@ -147,7 +147,7 @@ export function DashboardFinanceiro() {
         supabase
           .from("financeiro_movimentacoes")
           .select(
-            "id, empresa_id, mes_referencia, periodo, data_envio_nota, dentro_prazo, faturamento_iniciado_em",
+            "id, empresa_id, mes_referencia, periodo, dia_emissao, data_envio_nota, dentro_prazo, faturamento_iniciado_em",
           )
           .is("data_envio_nota", null)
           .is("faturamento_iniciado_em", null)
@@ -196,7 +196,6 @@ export function DashboardFinanceiro() {
         (r: any) =>
           !comAnexo.has(r.id) &&
           r.dentro_prazo !== false &&
-          periodoVencido(r.mes_referencia, r.periodo) &&
           !envioSet.has(`${r.empresa_id}|${r.mes_referencia}|${r.periodo}`),
       );
 
@@ -278,14 +277,13 @@ export function DashboardFinanceiro() {
   // Janela padrão: mês vigente + mês anterior (quando nenhuma competência é escolhida)
   const janelaPadrao = useMemo(() => competenciasJanelaPadrao(), []);
 
+  const empresaEmissaoMap = useMemo(
+    () => new Map(empresas.map((e: any) => [e.id, (e.data_emissao_fatura ?? null) as number | null])),
+    [empresas],
+  );
+
   const pendentesJanela = useMemo(
-    () =>
-      pendentes.filter(
-        (p) =>
-          p.mes_referencia &&
-          janelaPadrao.includes(p.mes_referencia) &&
-          periodoVencido(p.mes_referencia, p.periodo),
-      ),
+    () => pendentes.filter((p) => p.mes_referencia && janelaPadrao.includes(p.mes_referencia)),
     [pendentes, janelaPadrao],
   );
 
@@ -294,21 +292,39 @@ export function DashboardFinanceiro() {
       (competenciasSel.length === 0 ? pendentesJanela : pendentes)
         .filter(
           (p) =>
-            // Reforço: mesmo com filtro manual, só entra período já vencido (> 1 dia após o fim)
-            periodoVencido(p.mes_referencia, p.periodo) &&
             (competenciasSel.length === 0 || (p.mes_referencia && competenciasSel.includes(p.mes_referencia))) &&
             (periodosSel.length === 0 || (p.periodo && periodosSel.includes(p.periodo))),
         )
-        .map((p) => ({
-          ...p,
-          empresa_nome: empresaNomeMap.get(p.empresa_id) ?? "—",
-          codigo_contrato: empresaContratoMap.get(p.empresa_id) ?? "",
-          responsavel: empresaResponsavelMap.get(p.empresa_id) ?? "",
-          pagadores: pagadoresPorEmpresa.get(p.empresa_id) ?? [],
-        }))
-        .sort((a, b) => a.empresa_nome.localeCompare(b.empresa_nome)),
-    [pendentes, pendentesJanela, competenciasSel, periodosSel, empresaNomeMap, empresaContratoMap, empresaResponsavelMap, pagadoresPorEmpresa],
+        .map((p) => {
+          const diaEmissao = p.dia_emissao ?? empresaEmissaoMap.get(p.empresa_id) ?? null;
+          const prazo = situacaoPrazoEmissao(p.mes_referencia, diaEmissao);
+          return {
+            ...p,
+            dia_emissao_efetivo: diaEmissao,
+            prazo,
+            prazo_label: prazo.limite
+              ? prazo.atrasado
+                ? `Em atraso · ${prazo.diasAtraso} dia${prazo.diasAtraso === 1 ? "" : "s"}`
+                : "No prazo"
+              : "Prazo sem base",
+            empresa_nome: empresaNomeMap.get(p.empresa_id) ?? "—",
+            codigo_contrato: empresaContratoMap.get(p.empresa_id) ?? "",
+            responsavel: empresaResponsavelMap.get(p.empresa_id) ?? "",
+            pagadores: pagadoresPorEmpresa.get(p.empresa_id) ?? [],
+          };
+        })
+        .sort((a, b) => {
+          if (a.prazo.atrasado !== b.prazo.atrasado) return a.prazo.atrasado ? -1 : 1;
+          if (a.prazo.atrasado && b.prazo.atrasado) return b.prazo.diasAtraso - a.prazo.diasAtraso;
+          return a.empresa_nome.localeCompare(b.empresa_nome);
+        }),
+    [pendentes, pendentesJanela, competenciasSel, periodosSel, empresaNomeMap, empresaContratoMap, empresaResponsavelMap, empresaEmissaoMap, pagadoresPorEmpresa],
 
+  );
+
+  const totalAtrasados = useMemo(
+    () => pendentesFiltrados.filter((p) => p.prazo.atrasado).length,
+    [pendentesFiltrados],
   );
 
 
@@ -338,22 +354,23 @@ export function DashboardFinanceiro() {
       { width: 16 },
       { width: 30 },
       { width: 12 },
+      { width: 28 },
       { width: 46 },
     ];
 
     // Cabeçalho institucional (verde e branco)
-    ws.mergeCells(1, 1, 1, 5);
+    ws.mergeCells(1, 1, 1, 6);
     const t = ws.getCell("A1");
     t.value = "Contratos pendentes";
     t.font = { bold: true, size: 18, color: { argb: "FFFFFFFF" } };
     t.alignment = { vertical: "middle", indent: 1 };
     t.fill = { type: "pattern", pattern: "solid", fgColor: { argb: VERDE } };
     ws.getRow(1).height = 34;
-    for (let c = 2; c <= 5; c++) {
+    for (let c = 2; c <= 6; c++) {
       ws.getCell(1, c).fill = { type: "pattern", pattern: "solid", fgColor: { argb: VERDE } };
     }
 
-    ws.mergeCells(2, 1, 2, 5);
+    ws.mergeCells(2, 1, 2, 6);
     const s = ws.getCell("A2");
     s.value = `${resumoFiltros().join("   ·   ")}   ·   Total: ${pendentesFiltrados.length}   ·   Emitido em ${new Date().toLocaleString("pt-BR")}`;
     s.font = { size: 10, color: { argb: CINZA } };
@@ -373,13 +390,16 @@ export function DashboardFinanceiro() {
     Array.from(grupos.entries())
       .sort((a, b) => a[0].localeCompare(b[0]))
       .forEach(([competencia, itens]) => {
-        const secao = ws.addRow([`${competencia}  ·  ${itens.length} contrato(s)`]);
-        ws.mergeCells(secao.number, 1, secao.number, 5);
+        const atrasadosGrupo = itens.filter((i) => i.prazo.atrasado).length;
+        const secao = ws.addRow([
+          `${competencia}  ·  ${itens.length} contrato(s)  ·  ${atrasadosGrupo} em atraso  ·  ${itens.length - atrasadosGrupo} no prazo`,
+        ]);
+        ws.mergeCells(secao.number, 1, secao.number, 6);
         secao.height = 24;
         const cel = ws.getCell(secao.number, 1);
         cel.font = { bold: true, size: 12, color: { argb: VERDE } };
         cel.alignment = { vertical: "middle", indent: 1 };
-        for (let c = 1; c <= 5; c++) {
+        for (let c = 1; c <= 6; c++) {
           ws.getCell(secao.number, c).fill = {
             type: "pattern",
             pattern: "solid",
@@ -387,7 +407,7 @@ export function DashboardFinanceiro() {
           };
         }
 
-        const rotulos = ws.addRow(["Empresa", "Contrato", "Responsável", "Período", "Pagador"]);
+        const rotulos = ws.addRow(["Empresa", "Contrato", "Responsável", "Período", "Situação do prazo", "Pagador"]);
         rotulos.height = 16;
         rotulos.eachCell((cell) => {
           cell.font = { size: 9, bold: true, color: { argb: CINZA } };
@@ -398,21 +418,29 @@ export function DashboardFinanceiro() {
           const pagadores = p.pagadores.length
             ? p.pagadores.map((pg) => pg.nome_pagador).join(" · ")
             : "—";
+          const prazoTexto = p.prazo.limite
+            ? `${p.prazo_label} · limite ${p.prazo.limite.toLocaleDateString("pt-BR")}`
+            : "Sem dia de emissão";
           const row = ws.addRow([
             p.empresa_nome,
             p.codigo_contrato || "—",
             p.responsavel || "—",
             p.periodo ?? "—",
+            prazoTexto,
             pagadores,
           ]);
           row.height = 20;
           row.eachCell((cell, col) => {
-            cell.font = { size: 10, bold: col === 1, color: { argb: "FF111827" } };
+            cell.font = {
+              size: 10,
+              bold: col === 1,
+              color: { argb: col === 5 && p.prazo.atrasado ? "FFB91C1C" : "FF111827" },
+            };
             cell.alignment = {
               vertical: "middle",
               indent: 1,
               horizontal: col === 4 ? "center" : "left",
-              wrapText: col === 1 || col === 5,
+              wrapText: col === 1 || col === 6,
             };
             cell.border = { bottom: { style: "hair", color: { argb: "FFD6EAE0" } } };
           });
@@ -504,12 +532,15 @@ export function DashboardFinanceiro() {
       const pagadores = p.pagadores.length
         ? p.pagadores.map((pg) => pg.nome_pagador).join(" · ")
         : "—";
-      body.push([...base, pagadores]);
+      const prazoTexto = p.prazo.limite
+        ? `${p.prazo_label} · limite ${p.prazo.limite.toLocaleDateString("pt-BR")}`
+        : "Sem dia de emissão";
+      body.push([...base, prazoTexto, pagadores]);
     });
 
     autoTable(doc, {
       startY: 84 + resumoFiltros().length * 13 + 10,
-      head: [["Empresa", "Contrato", "Responsável", "Competência", "Período", "Pagador"]],
+      head: [["Empresa", "Contrato", "Responsável", "Competência", "Período", "Situação do prazo", "Pagador"]],
       body,
       theme: "plain",
       styles: { fontSize: 8.5, cellPadding: 6, valign: "middle", textColor: [17, 24, 39] },
@@ -517,12 +548,13 @@ export function DashboardFinanceiro() {
       alternateRowStyles: { fillColor: [234, 246, 240] },
 
       columnStyles: {
-        0: { cellWidth: 210, fontStyle: "bold" },
-        1: { cellWidth: 80 },
-        2: { cellWidth: 130 },
-        3: { cellWidth: 75, halign: "center" },
-        4: { cellWidth: 60, halign: "center" },
-        5: { cellWidth: "auto" },
+        0: { cellWidth: 190, fontStyle: "bold" },
+        1: { cellWidth: 70 },
+        2: { cellWidth: 110 },
+        3: { cellWidth: 70, halign: "center" },
+        4: { cellWidth: 55, halign: "center" },
+        5: { cellWidth: 130 },
+        6: { cellWidth: "auto" },
       },
       margin: { left: 40, right: 40, top: 40, bottom: 40 },
       didDrawPage: () => {
@@ -598,6 +630,14 @@ export function DashboardFinanceiro() {
             <AlertCircle className="h-4 w-4 text-destructive" />
             Contratos pendentes
             <Badge variant="outline" className="ml-1">{pendentesFiltrados.length}</Badge>
+            {totalAtrasados > 0 && (
+              <Badge variant="destructive" className="ml-1">{totalAtrasados} em atraso</Badge>
+            )}
+            {pendentesFiltrados.length - totalAtrasados > 0 && (
+              <Badge variant="secondary" className="ml-1">
+                {pendentesFiltrados.length - totalAtrasados} no prazo
+              </Badge>
+            )}
           </CardTitle>
           <div className="flex flex-wrap items-center gap-2">
             <MultiSelectFiltro
@@ -653,6 +693,25 @@ export function DashboardFinanceiro() {
                   {p.codigo_contrato ? `Contrato ${p.codigo_contrato} · ` : ""}
                   {formatCompetencia(p.mes_referencia)}
                   {p.periodo ? ` · ${p.periodo}` : ""}
+                  {p.dia_emissao_efetivo
+                    ? ` · Emissão dia ${String(p.dia_emissao_efetivo).padStart(2, "0")}`
+                    : ""}
+                </p>
+                <p className="text-xs mt-0.5">
+                  {p.prazo.limite ? (
+                    p.prazo.atrasado ? (
+                      <span className="text-destructive font-medium">
+                        Em atraso há {p.prazo.diasAtraso} dia{p.prazo.diasAtraso === 1 ? "" : "s"} · limite{" "}
+                        {p.prazo.limite.toLocaleDateString("pt-BR")}
+                      </span>
+                    ) : (
+                      <span className="text-emerald-600 dark:text-emerald-400 font-medium">
+                        Ainda no prazo · limite {p.prazo.limite.toLocaleDateString("pt-BR")}
+                      </span>
+                    )
+                  ) : (
+                    <span className="text-muted-foreground">Sem dia de emissão cadastrado</span>
+                  )}
                 </p>
                 {p.pagadores.length > 0 && (
                   <div className="flex flex-wrap gap-1 mt-1.5">
@@ -665,7 +724,12 @@ export function DashboardFinanceiro() {
                   </div>
                 )}
               </div>
-              <Badge variant="outline" className="shrink-0">Pendente</Badge>
+              <div className="flex flex-col items-end gap-1 shrink-0">
+                <Badge variant="outline">Pendente</Badge>
+                <Badge variant={p.prazo.atrasado ? "destructive" : "secondary"}>
+                  {p.prazo_label}
+                </Badge>
+              </div>
             </div>
           ))
         )}
