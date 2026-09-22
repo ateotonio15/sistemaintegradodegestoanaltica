@@ -319,14 +319,34 @@ export function ResultadosPesquisa() {
           <p className="text-sm text-muted-foreground">Nenhum comentário no filtro atual.</p>
         ) : (
           <ul className="space-y-2">
-            {textos.map((t, i) => (
-              <li key={i} className="rounded-md border p-3 text-sm">
-                <p>{t.valor_texto}</p>
-                <p className="text-xs text-muted-foreground mt-1">
-                  {[t.empresa, rotuloTema(t.origem, t.tema), t.data?.split("-").reverse().join("/")].filter(Boolean).join(" · ")}
-                </p>
-              </li>
-            ))}
+            {textos.map((t, i) => {
+              const nota = notaPorResposta.get(t.resposta_id);
+              return (
+                <li key={i} className="rounded-md border p-3 text-sm">
+                  <div className="flex items-start justify-between gap-3">
+                    <p className="min-w-0">{t.valor_texto}</p>
+                    {nota != null && (
+                      <span className="flex items-center gap-0.5 shrink-0" title={`Nota ${nota}/5`}>
+                        {Array.from({ length: 5 }, (_, s) => (
+                          <Star
+                            key={s}
+                            className={
+                              s < nota
+                                ? "h-3.5 w-3.5 fill-yellow-400 text-yellow-400"
+                                : "h-3.5 w-3.5 text-muted-foreground/30"
+                            }
+                          />
+                        ))}
+                        <span className="ml-1 text-xs font-semibold">{nota}/5</span>
+                      </span>
+                    )}
+                  </div>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    {[t.empresa, rotuloTema(t.origem, t.tema), t.data?.split("-").reverse().join("/")].filter(Boolean).join(" · ")}
+                  </p>
+                </li>
+              );
+            })}
           </ul>
         )}
       </Card>
