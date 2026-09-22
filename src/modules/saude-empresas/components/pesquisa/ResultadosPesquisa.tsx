@@ -166,6 +166,12 @@ export function ResultadosPesquisa() {
     [filtrado, notaPorResposta],
   );
 
+  const alternarEmpresa = (nome?: string | null) => {
+    const n = (nome ?? "").trim();
+    if (!n) return;
+    setEmpresa((prev) => (prev === n ? "all" : n));
+  };
+
   if (isLoading) {
     return <Card className="p-8 text-center text-sm text-muted-foreground">Carregando resultados…</Card>;
   }
