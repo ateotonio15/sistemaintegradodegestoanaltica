@@ -638,7 +638,7 @@ export function AppLayout({ children }: { children?: React.ReactNode }) {
 
       {/* Main area */}
       <div className={cn(
-        "flex-1 flex flex-col transition-all duration-300 ease-in-out",
+        "min-w-0 flex-1 flex flex-col transition-all duration-300 ease-in-out",
         !isMobile && hasLateralNavigation && (collapsed ? "ml-[72px]" : "ml-[252px]"),
         (isMobile || !hasLateralNavigation) && "ml-0"
       )}>
