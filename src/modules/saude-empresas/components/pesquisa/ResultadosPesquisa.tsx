@@ -29,6 +29,37 @@ const rotuloTema = (origem: string, tema?: string | null) => {
   return null;
 };
 
+type BarraEmpresaProps = {
+  x?: number;
+  y?: number;
+  width?: number;
+  height?: number;
+  payload?: { empresa?: string };
+  onSelecionar: (empresa?: string) => void;
+};
+
+function BarraEmpresa({ x = 0, y = 0, width = 0, height = 0, payload, onSelecionar }: BarraEmpresaProps) {
+  return (
+    <rect
+      x={x}
+      y={y}
+      width={width}
+      height={height}
+      rx={4}
+      ry={4}
+      fill="hsl(var(--primary))"
+      className="cursor-pointer"
+      role="button"
+      tabIndex={0}
+      aria-label={`Filtrar por ${payload?.empresa ?? "empresa"}`}
+      onClick={() => onSelecionar(payload?.empresa)}
+      onKeyDown={(event) => {
+        if (event.key === "Enter" || event.key === " ") onSelecionar(payload?.empresa);
+      }}
+    />
+  );
+}
+
 export function ResultadosPesquisa() {
   const { data: itens = [], isLoading } = useResultadosPesquisas();
   const [empresa, setEmpresa] = useState("all");
@@ -221,7 +252,17 @@ export function ResultadosPesquisa() {
         ) : (
           <div className="space-y-3 max-h-[260px] overflow-auto pr-1">
             {porEmpresa.map((e) => (
-              <div key={e.empresa} className="space-y-1">
+              <div
+                key={e.empresa}
+                className="space-y-1 cursor-pointer rounded-md px-2 py-1.5 transition-colors hover:bg-muted/60"
+                role="button"
+                tabIndex={0}
+                title={`Filtrar resultados por ${e.empresa}`}
+                onClick={() => alternarEmpresa(e.empresa)}
+                onKeyDown={(event) => {
+                  if (event.key === "Enter" || event.key === " ") alternarEmpresa(e.empresa);
+                }}
+              >
                 <div className="flex items-baseline justify-between gap-3">
                   <span className="text-xs font-medium truncate" title={e.empresa}>{e.empresa}</span>
                   <span className="text-[11px] text-muted-foreground whitespace-nowrap">
@@ -262,8 +303,26 @@ export function ResultadosPesquisa() {
                 tick={{ fontSize: 10, fill: "hsl(var(--foreground))" }}
                 axisLine={false}
                 tickLine={false}
-                onClick={(e: any) => alternarEmpresa(e?.value)}
                 className="cursor-pointer"
+                tick={(props: any) => (
+                  <text
+                    x={props.x}
+                    y={props.y}
+                    dy={3}
+                    textAnchor="end"
+                    fill="hsl(var(--foreground))"
+                    fontSize={10}
+                    className="cursor-pointer"
+                    role="button"
+                    tabIndex={0}
+                    onClick={() => alternarEmpresa(props.payload?.value)}
+                    onKeyDown={(event) => {
+                      if (event.key === "Enter" || event.key === " ") alternarEmpresa(props.payload?.value);
+                    }}
+                  >
+                    {props.payload?.value}
+                  </text>
+                )}
               />
               <RTooltip
                 contentStyle={{ background: "hsl(var(--popover))", border: "1px solid hsl(var(--border))", borderRadius: 8, fontSize: 12 }}
@@ -272,20 +331,9 @@ export function ResultadosPesquisa() {
               <Bar
                 dataKey="pessoas"
                 name="Pessoas"
-                radius={[0, 4, 4, 0]}
-                onClick={(d: any) => alternarEmpresa(d?.payload?.empresa ?? d?.empresa)}
+                shape={(props: any) => <BarraEmpresa {...props} onSelecionar={alternarEmpresa} />}
                 label={{ position: "right", formatter: (v: number) => v, fontSize: 10, fill: "hsl(var(--foreground))" }}
-              >
-                {porEmpresa.map((e, i) => (
-                  <Cell
-                    key={i}
-                    fill="hsl(var(--primary))"
-                    opacity={empresa === "all" || empresa === e.empresa ? 1 : 0.3}
-                    style={{ cursor: "pointer" }}
-                    onClick={() => alternarEmpresa(e.empresa)}
-                  />
-                ))}
-              </Bar>
+              />
             </BarChart>
           </ResponsiveContainer>
 
