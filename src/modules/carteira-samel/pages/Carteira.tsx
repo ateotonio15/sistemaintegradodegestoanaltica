@@ -152,6 +152,7 @@ export default function Carteira() {
                   {l} {sortKey === k ? (asc ? "▲" : "▼") : ""}
                 </th>
               ))}
+              <th className="px-3 py-2 text-right font-medium">Avaliação</th>
             </tr>
           </thead>
           <tbody>
