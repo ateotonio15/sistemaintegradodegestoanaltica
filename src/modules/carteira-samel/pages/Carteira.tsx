@@ -1,15 +1,24 @@
-import { useMemo, useState } from "react";
-import { Building2, Users, TrendingUp, Calendar } from "lucide-react";
+import { useMemo, useRef, useState } from "react";
+import { Building2, Users, TrendingUp, Calendar, QrCode, Copy, Download, Loader2 } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { format } from "date-fns";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { QRCodeCanvas } from "qrcode.react";
+import { toast } from "sonner";
+import { supabase } from "@/integrations/supabase/client";
+import { getPublicBaseUrl } from "@/lib/public-url";
 import { useEmpresasCarteira } from "../context/EmpresasContext";
 import { StatCard } from "../components/StatCard";
 import { SemaforoBadge } from "../components/SemaforoBadge";
 import { diasAteReajuste, classificarProximidadeReajuste, proximoAniversario } from "../lib/risco";
 import { GrupoTamanho } from "../data/mockData";
 import { cn } from "@/lib/utils";
+
+const db = supabase as any;
 
 type SortKey = "nome" | "contrato" | "vigencia" | "vidas" | "mes" | "valor" | "dias";
 
