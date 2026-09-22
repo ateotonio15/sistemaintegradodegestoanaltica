@@ -182,6 +182,47 @@ export default function Carteira() {
           </tbody>
         </table>
       </Card>
+
+      <Dialog open={qrModal.open} onOpenChange={(open) => setQrModal({ ...qrModal, open })}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>QR Code de Avaliação</DialogTitle>
+            <DialogDescription>
+              {qrModal.empresa?.nome && (
+                <span className="block font-medium text-foreground">{qrModal.empresa.nome}</span>
+              )}
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="flex flex-col items-center gap-4 py-2">
+            {qrModal.envio?.token_unico && (
+              <>
+                <div ref={qrCanvasRef} className="rounded-xl border border-border/60 bg-white p-3 shadow-sm">
+                  <QRCodeCanvas
+                    value={`${getPublicBaseUrl()}/avaliar/${qrModal.envio.token_unico}`}
+                    size={240}
+                    bgColor="#ffffff"
+                    fgColor="#000000"
+                    level="M"
+                    includeMargin={false}
+                  />
+                </div>
+                <p className="text-xs text-muted-foreground break-all text-center">
+                  {getPublicBaseUrl()}/avaliar/{qrModal.envio.token_unico}
+                </p>
+                <div className="flex items-center justify-center gap-2">
+                  <Button size="sm" variant="outline" onClick={copiarLinkAvaliacao}>
+                    <Copy className="h-3 w-3 mr-1" /> Copiar link
+                  </Button>
+                  <Button size="sm" onClick={baixarQrPng}>
+                    <Download className="h-3 w-3 mr-1" /> Baixar PNG
+                  </Button>
+                </div>
+              </>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
