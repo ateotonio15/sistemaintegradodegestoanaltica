@@ -85,6 +85,13 @@
       "when": 1790085092978,
       "tag": "0011_executivo_select_avaliacoes_envios",
       "breakpoints": true
+    },
+    {
+      "idx": 12,
+      "version": "7",
+      "when": 1790110644160,
+      "tag": "0012_is_saude_reader_inclui_executivo_diretoria",
+      "breakpoints": true
     }
   ]
 }
