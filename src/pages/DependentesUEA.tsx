@@ -103,7 +103,7 @@ function KpiCard({
     muted: "text-muted-foreground bg-muted",
   };
   return (
-    <Card className="flex items-center gap-3 rounded-2xl border-border/60 bg-card/80 p-3.5 shadow-sm">
+    <Card className="flex min-w-0 items-center gap-3 rounded-2xl border-border/60 bg-card/80 p-3.5 shadow-sm">
       <span className={cn("flex h-10 w-10 shrink-0 items-center justify-center rounded-xl", tones[tone])}>
         {icon}
       </span>
@@ -188,7 +188,7 @@ export default function DependentesUEA() {
     : null;
 
   return (
-    <div className="space-y-5">
+    <div className="min-w-0 max-w-full space-y-5 overflow-x-hidden">
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
           <h1 className="text-2xl font-bold tracking-tight">Dependentes UEA</h1>
@@ -228,7 +228,7 @@ export default function DependentesUEA() {
         </div>
       </div>
 
-      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-6">
+      <div className="grid min-w-0 gap-3 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-6">
         <KpiCard label="Total de Titulares" value={kpis.totalTitulares} icon={<Users className="h-5 w-5" />} />
         <KpiCard
           label="Dependentes Ativos"
@@ -262,7 +262,7 @@ export default function DependentesUEA() {
       </div>
 
       {/* PRÓXIMAS MUDANÇAS DE FAIXA */}
-      <Card id="proximas-mudancas" className="scroll-mt-24 rounded-2xl border-border/60 p-5">
+      <Card id="proximas-mudancas" className="min-w-0 max-w-full scroll-mt-24 overflow-hidden rounded-2xl border-border/60 p-5">
         <div className="mb-5 flex flex-wrap items-start justify-between gap-4 border-b border-border/50 pb-5">
           <div className="space-y-3">
             <div>
@@ -290,7 +290,7 @@ export default function DependentesUEA() {
           </div>
           <div className="flex flex-wrap items-center gap-2">
             <Select value={filtroMudanca} onValueChange={(v) => setFiltroMudanca(v as FiltroMudanca)}>
-              <SelectTrigger className="w-[280px]">
+              <SelectTrigger className="w-full sm:w-[280px]">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -308,12 +308,12 @@ export default function DependentesUEA() {
             Nenhuma mudança de faixa prevista para o filtro selecionado.
           </p>
         ) : (
-          <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+          <div className="grid min-w-0 gap-4 lg:grid-cols-2 2xl:grid-cols-3">
             {mudancasFiltradas.map((m) => (
               <Card
                 key={m.dependente_id}
                 className={cn(
-                  "flex min-h-[430px] flex-col overflow-hidden rounded-xl border-border/70 bg-card/70 p-0",
+                  "flex min-w-0 min-h-[430px] flex-col overflow-hidden rounded-xl border-border/70 bg-card/70 p-0",
                   m.ficara_sem_margem
                     ? "border-destructive/50 bg-destructive/5"
                     : "hover:border-success/40",
@@ -350,7 +350,7 @@ export default function DependentesUEA() {
                   </div>
                 </div>
 
-                <div className="grid grid-cols-3 gap-2 p-4">
+                <div className="grid grid-cols-1 gap-3 p-4 sm:grid-cols-3">
                   <div>
                     <p className="text-[10px] font-semibold uppercase leading-tight text-muted-foreground">Valor atual</p>
                     <p className="mt-1.5 whitespace-nowrap text-sm font-semibold tabular-nums text-foreground">
@@ -376,7 +376,7 @@ export default function DependentesUEA() {
 
                 <div className="mx-4 rounded-lg border border-border/60 bg-muted/30 p-3.5">
                   <p className="mb-3 text-[10px] font-bold uppercase text-muted-foreground">Impacto no titular</p>
-                  <div className="grid grid-cols-3 gap-3">
+                  <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
                     <div>
                       <p className="text-[10px] leading-tight text-muted-foreground">Margem atual</p>
                       <p className={cn(
@@ -467,7 +467,7 @@ export default function DependentesUEA() {
             />
           </div>
           <Select value={filtro} onValueChange={(v) => setFiltro(v as FiltroUea)}>
-            <SelectTrigger className="w-[320px]">
+            <SelectTrigger className="w-full sm:w-[320px]">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -482,8 +482,8 @@ export default function DependentesUEA() {
         </div>
       </Card>
 
-      <Card className="overflow-hidden rounded-2xl border-border/60 [&>div]:max-h-[70vh]">
-        <Table className="min-w-[1720px] table-fixed">
+      <Card className="min-w-0 max-w-full overflow-hidden rounded-2xl border-border/60 [&>div]:max-h-[70vh] [&>div]:max-w-full [&>div]:overscroll-x-contain">
+        <Table className="min-w-[1480px] table-fixed">
           <TableHeader className="sticky top-0 z-20 bg-card shadow-sm backdrop-blur-md">
             <TableRow className="hover:bg-card">
               <TableHead className="w-12 px-3" />
