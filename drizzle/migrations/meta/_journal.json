@@ -78,6 +78,13 @@
       "when": 1790020958121,
       "tag": "0010_add_data_reativacao_uea_dependentes",
       "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "7",
+      "when": 1790085092978,
+      "tag": "0011_executivo_select_avaliacoes_envios",
+      "breakpoints": true
     }
   ]
 }

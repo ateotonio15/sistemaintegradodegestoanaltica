@@ -1,15 +1,24 @@
-import { useMemo, useState } from "react";
-import { Building2, Users, TrendingUp, Calendar } from "lucide-react";
+import { useMemo, useRef, useState } from "react";
+import { Building2, Users, TrendingUp, Calendar, QrCode, Copy, Download, Loader2 } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { format } from "date-fns";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { QRCodeCanvas } from "qrcode.react";
+import { toast } from "sonner";
+import { supabase } from "@/integrations/supabase/client";
+import { getPublicBaseUrl } from "@/lib/public-url";
 import { useEmpresasCarteira } from "../context/EmpresasContext";
 import { StatCard } from "../components/StatCard";
 import { SemaforoBadge } from "../components/SemaforoBadge";
 import { diasAteReajuste, classificarProximidadeReajuste, proximoAniversario } from "../lib/risco";
 import { GrupoTamanho } from "../data/mockData";
 import { cn } from "@/lib/utils";
+
+const db = supabase as any;
 
 type SortKey = "nome" | "contrato" | "vigencia" | "vidas" | "mes" | "valor" | "dias";
 
@@ -19,6 +28,70 @@ export default function Carteira() {
   const [busca, setBusca] = useState("");
   const [sortKey, setSortKey] = useState<SortKey>("nome");
   const [asc, setAsc] = useState(true);
+
+  // QR Code da avaliação RH por empresa
+  const qc = useQueryClient();
+  const mesAtual = new Date().toISOString().slice(0, 7);
+  const [qrModal, setQrModal] = useState<{ open: boolean; empresa: any | null; envio: any | null }>({ open: false, empresa: null, envio: null });
+  const [gerandoQr, setGerandoQr] = useState<string | null>(null);
+  const qrCanvasRef = useRef<HTMLDivElement>(null);
+
+  const { data: enviosAvaliacao } = useQuery({
+    queryKey: ["avaliacoes-envios", mesAtual],
+    queryFn: async () => {
+      const { data, error } = await db
+        .from("avaliacoes_envios")
+        .select("id, empresa_id, token_unico")
+        .eq("mes_referencia", mesAtual);
+      if (error) throw error;
+      return data ?? [];
+    },
+  });
+
+  const envioPorEmpresa = useMemo(() => {
+    const m = new Map<string, any>();
+    (enviosAvaliacao ?? []).forEach((e: any) => m.set(e.empresa_id, e));
+    return m;
+  }, [enviosAvaliacao]);
+
+  const abrirQrAvaliacao = async (emp: any) => {
+    const existente = envioPorEmpresa.get(emp.id);
+    if (existente) {
+      setQrModal({ open: true, empresa: emp, envio: existente });
+      return;
+    }
+    setGerandoQr(emp.id);
+    const { data, error } = await db.from("avaliacoes_envios").insert({
+      empresa_id: emp.id,
+      empresa_nome: emp.nome,
+      mes_referencia: mesAtual,
+      status: "enviado",
+    }).select("id, token_unico").single();
+    setGerandoQr(null);
+    if (error) { toast.error("Erro ao gerar link: " + error.message); return; }
+    qc.invalidateQueries({ queryKey: ["avaliacoes-envios"] });
+    setQrModal({ open: true, empresa: emp, envio: data });
+  };
+
+  const copiarLinkAvaliacao = async () => {
+    if (!qrModal.envio?.token_unico) return;
+    await navigator.clipboard.writeText(`${getPublicBaseUrl()}/avaliar/${qrModal.envio.token_unico}`);
+    toast.success("Link copiado");
+  };
+
+  const baixarQrPng = () => {
+    const canvas = qrCanvasRef.current?.querySelector("canvas") as HTMLCanvasElement | null;
+    if (!canvas) { toast.error("QR Code ainda não renderizado"); return; }
+    const slug = (qrModal.empresa?.nome || "empresa")
+      .normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase()
+      .replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "");
+    const a = document.createElement("a");
+    a.href = canvas.toDataURL("image/png");
+    a.download = `qrcode-${slug}.png`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+  };
 
   const dados = useMemo(() => {
     let arr = ativas.map((e) => ({ ...e, dias: diasAteReajuste(e.vigenciaInicio) }));
@@ -79,6 +152,7 @@ export default function Carteira() {
                   {l} {sortKey === k ? (asc ? "▲" : "▼") : ""}
                 </th>
               ))}
+              <th className="px-3 py-2 text-right font-medium">Avaliação</th>
             </tr>
           </thead>
           <tbody>
@@ -93,15 +167,62 @@ export default function Carteira() {
                   <td className="px-3 py-2">{e.reajusteMes}</td>
                   <td className="px-3 py-2">{e.reajusteValor.toFixed(2)}%</td>
                   <td className="px-3 py-2"><SemaforoBadge semaforo={sem} label={`${e.dias}d (${format(proximoAniversario(e.vigenciaInicio), "dd/MM")})`} /></td>
+                  <td className="px-3 py-2 text-right">
+                    <Button size="sm" variant="ghost" onClick={() => abrirQrAvaliacao(e)} disabled={gerandoQr === e.id} title="QR Code da avaliação RH">
+                      {gerandoQr === e.id ? <Loader2 className="h-3 w-3 animate-spin" /> : <QrCode className="h-3 w-3 mr-1" />}
+                      QR Code
+                    </Button>
+                  </td>
                 </tr>
               );
             })}
             {dados.length === 0 && (
-              <tr><td colSpan={7} className="text-center py-6 text-muted-foreground">Nenhuma empresa para os filtros.</td></tr>
+              <tr><td colSpan={8} className="text-center py-6 text-muted-foreground">Nenhuma empresa para os filtros.</td></tr>
             )}
           </tbody>
         </table>
       </Card>
+
+      <Dialog open={qrModal.open} onOpenChange={(open) => setQrModal({ ...qrModal, open })}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>QR Code de Avaliação</DialogTitle>
+            <DialogDescription>
+              {qrModal.empresa?.nome && (
+                <span className="block font-medium text-foreground">{qrModal.empresa.nome}</span>
+              )}
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="flex flex-col items-center gap-4 py-2">
+            {qrModal.envio?.token_unico && (
+              <>
+                <div ref={qrCanvasRef} className="rounded-xl border border-border/60 bg-white p-3 shadow-sm">
+                  <QRCodeCanvas
+                    value={`${getPublicBaseUrl()}/avaliar/${qrModal.envio.token_unico}`}
+                    size={240}
+                    bgColor="#ffffff"
+                    fgColor="#000000"
+                    level="M"
+                    includeMargin={false}
+                  />
+                </div>
+                <p className="text-xs text-muted-foreground break-all text-center">
+                  {getPublicBaseUrl()}/avaliar/{qrModal.envio.token_unico}
+                </p>
+                <div className="flex items-center justify-center gap-2">
+                  <Button size="sm" variant="outline" onClick={copiarLinkAvaliacao}>
+                    <Copy className="h-3 w-3 mr-1" /> Copiar link
+                  </Button>
+                  <Button size="sm" onClick={baixarQrPng}>
+                    <Download className="h-3 w-3 mr-1" /> Baixar PNG
+                  </Button>
+                </div>
+              </>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
