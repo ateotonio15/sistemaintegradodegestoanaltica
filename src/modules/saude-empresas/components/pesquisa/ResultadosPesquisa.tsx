@@ -236,12 +236,21 @@ export function ResultadosPesquisa() {
 
       <ChartCard
         title="Quantidade de pessoas por empresa"
-        subtitle="Avaliadores únicos"
+        subtitle={empresa === "all" ? "Avaliadores únicos · clique numa empresa para filtrar" : `Filtrando: ${empresa} · clique nela para limpar`}
         empty={porEmpresa.length === 0}
         height={260}
       >
           <ResponsiveContainer width="100%" height={260}>
-            <BarChart data={porEmpresa} layout="vertical" margin={{ top: 5, right: 40, bottom: 5, left: 5 }}>
+            <BarChart
+              data={porEmpresa}
+              layout="vertical"
+              margin={{ top: 5, right: 40, bottom: 5, left: 5 }}
+              onClick={(state: any) => {
+                const nome = state?.activePayload?.[0]?.payload?.empresa;
+                if (nome) setEmpresa((prev) => (prev === nome ? "all" : nome));
+              }}
+              className="cursor-pointer"
+            >
               <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="hsl(var(--border))" />
               <XAxis type="number" hide />
               <YAxis
@@ -259,10 +268,17 @@ export function ResultadosPesquisa() {
               <Bar
                 dataKey="pessoas"
                 name="Pessoas"
-                fill="hsl(var(--primary))"
                 radius={[0, 4, 4, 0]}
                 label={{ position: "right", formatter: (v: number) => v, fontSize: 10, fill: "hsl(var(--foreground))" }}
-              />
+              >
+                {porEmpresa.map((e, i) => (
+                  <Cell
+                    key={i}
+                    fill="hsl(var(--primary))"
+                    opacity={empresa === "all" || empresa === e.empresa ? 1 : 0.3}
+                  />
+                ))}
+              </Bar>
             </BarChart>
           </ResponsiveContainer>
         </ChartCard>
