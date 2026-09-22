@@ -300,7 +300,6 @@ export function ResultadosPesquisa() {
                 type="category"
                 dataKey="empresa"
                 width={130}
-                tick={{ fontSize: 10, fill: "hsl(var(--foreground))" }}
                 axisLine={false}
                 tickLine={false}
                 className="cursor-pointer"
