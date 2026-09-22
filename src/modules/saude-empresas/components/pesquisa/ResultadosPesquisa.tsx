@@ -166,6 +166,12 @@ export function ResultadosPesquisa() {
     [filtrado, notaPorResposta],
   );
 
+  const alternarEmpresa = (nome?: string | null) => {
+    const n = (nome ?? "").trim();
+    if (!n) return;
+    setEmpresa((prev) => (prev === n ? "all" : n));
+  };
+
   if (isLoading) {
     return <Card className="p-8 text-center text-sm text-muted-foreground">Carregando resultados…</Card>;
   }
@@ -245,10 +251,6 @@ export function ResultadosPesquisa() {
               data={porEmpresa}
               layout="vertical"
               margin={{ top: 5, right: 40, bottom: 5, left: 5 }}
-              onClick={(state: any) => {
-                const nome = state?.activePayload?.[0]?.payload?.empresa;
-                if (nome) setEmpresa((prev) => (prev === nome ? "all" : nome));
-              }}
               className="cursor-pointer"
             >
               <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="hsl(var(--border))" />
@@ -260,6 +262,8 @@ export function ResultadosPesquisa() {
                 tick={{ fontSize: 10, fill: "hsl(var(--foreground))" }}
                 axisLine={false}
                 tickLine={false}
+                onClick={(e: any) => alternarEmpresa(e?.value)}
+                className="cursor-pointer"
               />
               <RTooltip
                 contentStyle={{ background: "hsl(var(--popover))", border: "1px solid hsl(var(--border))", borderRadius: 8, fontSize: 12 }}
@@ -269,6 +273,7 @@ export function ResultadosPesquisa() {
                 dataKey="pessoas"
                 name="Pessoas"
                 radius={[0, 4, 4, 0]}
+                onClick={(d: any) => alternarEmpresa(d?.payload?.empresa ?? d?.empresa)}
                 label={{ position: "right", formatter: (v: number) => v, fontSize: 10, fill: "hsl(var(--foreground))" }}
               >
                 {porEmpresa.map((e, i) => (
@@ -276,11 +281,14 @@ export function ResultadosPesquisa() {
                     key={i}
                     fill="hsl(var(--primary))"
                     opacity={empresa === "all" || empresa === e.empresa ? 1 : 0.3}
+                    style={{ cursor: "pointer" }}
+                    onClick={() => alternarEmpresa(e.empresa)}
                   />
                 ))}
               </Bar>
             </BarChart>
           </ResponsiveContainer>
+
         </ChartCard>
 
       <Card className="p-4">
