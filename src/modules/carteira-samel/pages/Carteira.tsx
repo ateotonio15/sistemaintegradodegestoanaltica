@@ -167,11 +167,17 @@ export default function Carteira() {
                   <td className="px-3 py-2">{e.reajusteMes}</td>
                   <td className="px-3 py-2">{e.reajusteValor.toFixed(2)}%</td>
                   <td className="px-3 py-2"><SemaforoBadge semaforo={sem} label={`${e.dias}d (${format(proximoAniversario(e.vigenciaInicio), "dd/MM")})`} /></td>
+                  <td className="px-3 py-2 text-right">
+                    <Button size="sm" variant="ghost" onClick={() => abrirQrAvaliacao(e)} disabled={gerandoQr === e.id} title="QR Code da avaliação RH">
+                      {gerandoQr === e.id ? <Loader2 className="h-3 w-3 animate-spin" /> : <QrCode className="h-3 w-3 mr-1" />}
+                      QR Code
+                    </Button>
+                  </td>
                 </tr>
               );
             })}
             {dados.length === 0 && (
-              <tr><td colSpan={7} className="text-center py-6 text-muted-foreground">Nenhuma empresa para os filtros.</td></tr>
+              <tr><td colSpan={8} className="text-center py-6 text-muted-foreground">Nenhuma empresa para os filtros.</td></tr>
             )}
           </tbody>
         </table>
