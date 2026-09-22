@@ -1,4 +1,5 @@
 import { useMemo, useState } from "react";
+import { Star } from "lucide-react";
 import {
   XAxis, YAxis, CartesianGrid,
   Tooltip as RTooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend,
@@ -145,21 +146,24 @@ export function ResultadosPesquisa() {
     }));
   }, [filtrado]);
 
-  // IDs de respostas que possuem nota válida (para comentários só aparecerem junto de uma nota)
-  const respostasComNota = useMemo(
-    () => new Set(filtrado.filter((i) => i.tipo === "nota" && i.valor_nota != null).map((i) => i.resposta_id)),
-    [filtrado],
-  );
+  // Mapa resposta_id → nota (para comentários aparecerem junto da nota da mesma pessoa)
+  const notaPorResposta = useMemo(() => {
+    const m = new Map<string, number>();
+    filtrado
+      .filter((i) => i.tipo === "nota" && i.valor_nota != null)
+      .forEach((i) => m.set(i.resposta_id, i.valor_nota!));
+    return m;
+  }, [filtrado]);
 
   const textos = useMemo(
     () =>
       filtrado.filter(
         (i) =>
           i.tipo === "texto_livre" &&
-          respostasComNota.has(i.resposta_id) &&
+          notaPorResposta.has(i.resposta_id) &&
           (i.valor_texto ?? "").trim(),
       ),
-    [filtrado, respostasComNota],
+    [filtrado, notaPorResposta],
   );
 
   if (isLoading) {
