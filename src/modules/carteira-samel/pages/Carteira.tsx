@@ -29,6 +29,70 @@ export default function Carteira() {
   const [sortKey, setSortKey] = useState<SortKey>("nome");
   const [asc, setAsc] = useState(true);
 
+  // QR Code da avaliação RH por empresa
+  const qc = useQueryClient();
+  const mesAtual = new Date().toISOString().slice(0, 7);
+  const [qrModal, setQrModal] = useState<{ open: boolean; empresa: any | null; envio: any | null }>({ open: false, empresa: null, envio: null });
+  const [gerandoQr, setGerandoQr] = useState<string | null>(null);
+  const qrCanvasRef = useRef<HTMLDivElement>(null);
+
+  const { data: enviosAvaliacao } = useQuery({
+    queryKey: ["avaliacoes-envios", mesAtual],
+    queryFn: async () => {
+      const { data, error } = await db
+        .from("avaliacoes_envios")
+        .select("id, empresa_id, token_unico")
+        .eq("mes_referencia", mesAtual);
+      if (error) throw error;
+      return data ?? [];
+    },
+  });
+
+  const envioPorEmpresa = useMemo(() => {
+    const m = new Map<string, any>();
+    (enviosAvaliacao ?? []).forEach((e: any) => m.set(e.empresa_id, e));
+    return m;
+  }, [enviosAvaliacao]);
+
+  const abrirQrAvaliacao = async (emp: any) => {
+    const existente = envioPorEmpresa.get(emp.id);
+    if (existente) {
+      setQrModal({ open: true, empresa: emp, envio: existente });
+      return;
+    }
+    setGerandoQr(emp.id);
+    const { data, error } = await db.from("avaliacoes_envios").insert({
+      empresa_id: emp.id,
+      empresa_nome: emp.nome,
+      mes_referencia: mesAtual,
+      status: "enviado",
+    }).select("id, token_unico").single();
+    setGerandoQr(null);
+    if (error) { toast.error("Erro ao gerar link: " + error.message); return; }
+    qc.invalidateQueries({ queryKey: ["avaliacoes-envios"] });
+    setQrModal({ open: true, empresa: emp, envio: data });
+  };
+
+  const copiarLinkAvaliacao = async () => {
+    if (!qrModal.envio?.token_unico) return;
+    await navigator.clipboard.writeText(`${getPublicBaseUrl()}/avaliar/${qrModal.envio.token_unico}`);
+    toast.success("Link copiado");
+  };
+
+  const baixarQrPng = () => {
+    const canvas = qrCanvasRef.current?.querySelector("canvas") as HTMLCanvasElement | null;
+    if (!canvas) { toast.error("QR Code ainda não renderizado"); return; }
+    const slug = (qrModal.empresa?.nome || "empresa")
+      .normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase()
+      .replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "");
+    const a = document.createElement("a");
+    a.href = canvas.toDataURL("image/png");
+    a.download = `qrcode-${slug}.png`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+  };
+
   const dados = useMemo(() => {
     let arr = ativas.map((e) => ({ ...e, dias: diasAteReajuste(e.vigenciaInicio) }));
     if (grupo !== "todos") arr = arr.filter((e) => e.grupoTamanho === grupo);
