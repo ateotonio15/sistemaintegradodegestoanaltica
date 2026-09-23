@@ -475,10 +475,16 @@ export function buscaTitular(t: TitularCalculado, termo: string): boolean {
   const q = termo.trim().toLowerCase();
   if (!q) return true;
   const digits = soDigitos(q);
+  const dependenteEncontrado = t.dependentes_calculados.some(
+    (d) =>
+      d.nome_completo.toLowerCase().includes(q) ||
+      (!!digits && (soDigitos(d.cpf).includes(digits) || soDigitos(d.carteirinha).includes(digits))),
+  );
   return (
     t.nome_completo.toLowerCase().includes(q) ||
     (t.matricula ?? "").toLowerCase().includes(q) ||
-    (!!digits && soDigitos(t.cpf).includes(digits))
+    (!!digits && soDigitos(t.cpf).includes(digits)) ||
+    dependenteEncontrado
   );
 }
 
