@@ -491,33 +491,61 @@ export async function formatarFaturamentoExcel(
   let grandVal = 0;
   if (resumoPorCategoria) {
     type CategoriaAgg = { qtd: number; valor: number };
-    const categorias = new Map<string, CategoriaAgg>();
+    type PagadorAgg = { nome: string; cnpj: string; cats: Map<string, CategoriaAgg> };
+    const pagadores = new Map<string, PagadorAgg>();
     for (const r of finalRows) {
+      const cnpj = iCNPJFinal >= 0 ? String(r[iCNPJFinal] ?? "").replace(/\D/g, "") : "";
+      const nome = iPagFinal >= 0 ? norm(r[iPagFinal]) : "";
+      const chave = cnpj || nome || "__unico__";
+      if (!pagadores.has(chave)) pagadores.set(chave, { nome, cnpj, cats: new Map() });
+      const pag = pagadores.get(chave)!;
+      if (!pag.nome && nome) pag.nome = nome;
       const categoria = categoriaResumoNaoProrata(
         iTipoFinal >= 0 ? r[iTipoFinal] : "",
         iPlanoFinal >= 0 ? r[iPlanoFinal] : "",
       );
-      const atual = categorias.get(categoria) ?? { qtd: 0, valor: 0 };
+      const atual = pag.cats.get(categoria) ?? { qtd: 0, valor: 0 };
       atual.qtd += Number(r[iQtdFinal]) || 0;
       atual.valor += typeof r[iValorFinal] === "number"
         ? r[iValorFinal]
         : parseFloat(String(r[iValorFinal] ?? "0")) || 0;
-      categorias.set(categoria, atual);
+      pag.cats.set(categoria, atual);
     }
     const prioridade = ["Enfermaria", "Apartamento", "Cobrança proporcional"];
-    const nomes = Array.from(categorias.keys()).sort((a, b) => {
+    const ordenar = (a: string, b: string) => {
       const pa = prioridade.indexOf(a);
       const pb = prioridade.indexOf(b);
       if (pa >= 0 || pb >= 0) return (pa < 0 ? prioridade.length : pa) - (pb < 0 ? prioridade.length : pb);
       return a.localeCompare(b, "pt-BR");
-    });
-    for (const nome of nomes) {
-      const a = categorias.get(nome);
-      if (!a) continue;
-      const mensalidade = a.qtd > 0 ? a.valor / a.qtd : 0;
-      wsRes.addRow([nome, a.qtd, mensalidade, a.valor]);
-      grandQtd += a.qtd;
-      grandVal += a.valor;
+    };
+    const multi = pagadores.size > 1;
+    const listaPag = Array.from(pagadores.values()).sort((a, b) => a.nome.localeCompare(b.nome, "pt-BR"));
+    for (const pag of listaPag) {
+      if (multi) {
+        const cnpjFmt = pag.cnpj.length === 14
+          ? pag.cnpj.replace(/^(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})$/, "$1.$2.$3/$4-$5")
+          : pag.cnpj;
+        const hr = wsRes.addRow([`${pag.nome || "Pagador"}${cnpjFmt ? ` — CNPJ ${cnpjFmt}` : ""}`, "", "", ""]);
+        hr.font = { bold: true, size: 11 };
+        for (let c = 1; c <= 4; c++) {
+          hr.getCell(c).fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FFEFEFEF" } };
+        }
+      }
+      let subQ = 0;
+      let subV = 0;
+      for (const nome of Array.from(pag.cats.keys()).sort(ordenar)) {
+        const a = pag.cats.get(nome)!;
+        const mensalidade = a.qtd > 0 ? a.valor / a.qtd : 0;
+        wsRes.addRow([nome, a.qtd, mensalidade, a.valor]);
+        subQ += a.qtd;
+        subV += a.valor;
+      }
+      if (multi) {
+        const sr = wsRes.addRow([`Subtotal ${pag.nome || ""}`.trim(), subQ, "", subV]);
+        sr.font = { bold: true, size: 11 };
+      }
+      grandQtd += subQ;
+      grandVal += subV;
     }
   } else {
     // Resumo tradicional do modo Prorata, agrupado por pagador e tipo de cobrança.
