@@ -815,60 +815,73 @@ export default function DependentesUEA() {
                               Nenhum dependente cadastrado para este titular.
                             </p>
                           ) : (
-                            <div className="overflow-hidden rounded-lg border border-border/60">
-                              <Table>
-                                <TableHeader>
-                                  <TableRow className="bg-muted/40">
-                                    <TableHead>Dependente</TableHead>
-                                    <TableHead>Carteirinha</TableHead>
-                                    <TableHead>Plano</TableHead>
-                                    <TableHead>Nascimento / Idade</TableHead>
-                                    <TableHead>Data de adesão</TableHead>
-                                    <TableHead>Faixa atual</TableHead>
-                                    <TableHead className="text-right">Mensalidade</TableHead>
-                                    <TableHead>Próxima mudança</TableHead>
-                                    <TableHead>Status</TableHead>
-                                  </TableRow>
-                                </TableHeader>
-                                <TableBody>
-                                  {t.dependentes_calculados.map((d) => (
-                                    <TableRow
-                                      key={d.id}
+                            <div className="grid min-w-0 gap-3 xl:grid-cols-2">
+                              {t.dependentes_calculados.map((d) => (
+                                <div
+                                  key={d.id}
+                                  className={cn(
+                                    "min-w-0 overflow-hidden rounded-lg border border-border/60 bg-background/40",
+                                    d.status !== "ativo" && "border-destructive/30 bg-destructive/5",
+                                  )}
+                                >
+                                  <div className="flex min-w-0 items-start justify-between gap-4 border-b border-border/50 px-4 py-3">
+                                    <div className="min-w-0">
+                                      <p className="break-words text-sm font-semibold text-foreground">
+                                        {d.nome_completo}
+                                      </p>
+                                      <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-muted-foreground">
+                                        {d.parentesco && <span>{d.parentesco}</span>}
+                                        {d.parentesco && d.carteirinha && <span aria-hidden>•</span>}
+                                        <span className="font-mono">Carteirinha {d.carteirinha ?? "—"}</span>
+                                      </div>
+                                    </div>
+                                    <span
                                       className={cn(
-                                        "hover:bg-muted/30",
-                                        d.status !== "ativo" && "opacity-60",
+                                        "inline-flex shrink-0 rounded-full px-2.5 py-1 text-[11px] font-medium",
+                                        d.status === "ativo"
+                                          ? "bg-success/10 text-success"
+                                          : "bg-destructive/10 text-destructive",
                                       )}
                                     >
-                                      <TableCell>
-                                        <div className="font-medium">{d.nome_completo}</div>
-                                        {d.parentesco && (
-                                          <div className="text-[11px] text-muted-foreground">
-                                            {d.parentesco}
-                                          </div>
-                                        )}
-                                      </TableCell>
-                                      <TableCell className="font-mono text-xs">
-                                        {d.carteirinha ?? "—"}
-                                      </TableCell>
-                                      <TableCell className="max-w-[220px] text-xs">
-                                        <span className="line-clamp-2" title={d.plano ?? undefined}>
-                                          {d.plano ?? "—"}
-                                        </span>
-                                      </TableCell>
-                                      <TableCell className="text-xs">
+                                      {d.status === "ativo" ? "Ativo" : "Desligado"}
+                                    </span>
+                                  </div>
+
+                                  <div className="grid grid-cols-2 gap-x-5 gap-y-4 px-4 py-4 sm:grid-cols-3">
+                                    <div className="min-w-0 sm:col-span-2">
+                                      <p className="text-[10px] font-medium uppercase text-muted-foreground">Plano</p>
+                                      <p className="mt-1 break-words text-xs font-medium text-foreground" title={d.plano ?? undefined}>
+                                        {d.plano ?? "—"}
+                                      </p>
+                                    </div>
+                                    <div>
+                                      <p className="text-[10px] font-medium uppercase text-muted-foreground">Faixa atual</p>
+                                      <p className="mt-1 text-xs font-medium text-foreground">{d.faixa_atual_label}</p>
+                                    </div>
+                                    <div>
+                                      <p className="text-[10px] font-medium uppercase text-muted-foreground">Nascimento / idade</p>
+                                      <p className="mt-1 text-xs font-medium text-foreground">
                                         {d.data_nascimento
                                           ? `${formatDataBR(d.data_nascimento)} · ${
                                               d.idade_atual != null ? `${d.idade_atual} anos` : "—"
                                             }`
                                           : "—"}
-                                      </TableCell>
-                                      <TableCell className="text-xs">
-                                        {formatDataBR(d.data_adesao)}
-                                      </TableCell>
-                                      <TableCell className="text-xs">{d.faixa_atual_label}</TableCell>
-                                      <TableCell className="text-right">
+                                      </p>
+                                    </div>
+                                    <div>
+                                      <p className="text-[10px] font-medium uppercase text-muted-foreground">Data de adesão</p>
+                                      <p className="mt-1 text-xs font-medium text-foreground">{formatDataBR(d.data_adesao)}</p>
+                                    </div>
+                                    {d.data_reativacao && (
+                                      <div>
+                                        <p className="text-[10px] font-medium uppercase text-muted-foreground">Data de reativação</p>
+                                        <p className="mt-1 text-xs font-medium text-foreground">{formatDataBR(d.data_reativacao)}</p>
+                                      </div>
+                                    )}
+                                    <div>
+                                      <p className="text-[10px] font-medium uppercase text-muted-foreground">Mensalidade</p>
                                         {valorEditandoId === d.id ? (
-                                          <div className="ml-auto flex w-[260px] items-center gap-1.5">
+                                          <div className="mt-1 flex min-w-[220px] items-center gap-1.5">
                                             <Input
                                               autoFocus
                                               inputMode="decimal"
@@ -911,8 +924,8 @@ export default function DependentesUEA() {
                                             </Button>
                                           </div>
                                         ) : (
-                                          <div className="flex items-center justify-end gap-1.5">
-                                            <span>{formatBRL(d.valor_mensal)}</span>
+                                          <div className="mt-0.5 flex items-center gap-1">
+                                            <span className="text-base font-semibold text-foreground">{formatBRL(d.valor_mensal)}</span>
                                             {canEditarUea && (
                                               <Button
                                                 size="icon"
@@ -933,8 +946,10 @@ export default function DependentesUEA() {
                                             )}
                                           </div>
                                         )}
-                                      </TableCell>
-                                      <TableCell className="text-xs">
+                                    </div>
+                                    <div className="col-span-2 sm:col-span-2">
+                                      <p className="text-[10px] font-medium uppercase text-muted-foreground">Próxima mudança</p>
+                                      <p className="mt-1 text-xs font-medium text-foreground">
                                         {d.data_proxima_mudanca ? (
                                           <span>
                                             {formatDataBR(d.data_proxima_mudanca)}
@@ -948,23 +963,17 @@ export default function DependentesUEA() {
                                         ) : (
                                           <span className="text-muted-foreground">—</span>
                                         )}
-                                      </TableCell>
-                                      <TableCell>
-                                        <span
-                                          className={cn(
-                                            "inline-flex rounded-full px-2 py-0.5 text-[11px] font-medium",
-                                            d.status === "ativo"
-                                              ? "bg-success/10 text-success"
-                                              : "bg-destructive/10 text-destructive",
-                                          )}
-                                        >
-                                          {d.status_label}
-                                        </span>
-                                      </TableCell>
-                                    </TableRow>
-                                  ))}
-                                </TableBody>
-                              </Table>
+                                      </p>
+                                    </div>
+                                  </div>
+
+                                  {d.status !== "ativo" && (
+                                    <div className="border-t border-destructive/20 bg-destructive/5 px-4 py-2.5 text-xs font-medium text-destructive">
+                                      {d.status_label}
+                                    </div>
+                                  )}
+                                </div>
+                              ))}
                             </div>
                           )}
                         </div>
