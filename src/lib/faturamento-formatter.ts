@@ -569,7 +569,7 @@ export async function formatarFaturamentoExcel(
   }
   const totalRow = wsRes.addRow(
     resumoPorCategoria
-      ? ["Total Geral", grandQtd, grandQtd > 0 ? grandVal / grandQtd : 0, grandVal]
+      ? ["Total Geral", "", "", grandVal]
       : secondIdx >= 0
         ? ["Total Geral", "", grandQtd, grandVal]
         : ["Total Geral", grandQtd, grandVal],
