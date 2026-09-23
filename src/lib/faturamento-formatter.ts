@@ -11,6 +11,45 @@ function lower(v: unknown): string {
   return norm(v).toLowerCase();
 }
 
+function normalizarTexto(v: unknown): string {
+  return lower(v)
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "");
+}
+
+function categoriaPlano(plano: unknown): "Enfermaria" | "Apartamento" | null {
+  const p = normalizarTexto(plano);
+  if (!p) return null;
+  if (
+    p.includes("master executivo") ||
+    p.includes("coletivo executivo master") ||
+    p.includes("apartamento") ||
+    /\bm[\s.\-_]*executivo\b/.test(p) ||
+    /\bexecutivo\b/.test(p)
+  ) return "Apartamento";
+  if (
+    p.includes("coletivo empresarial master") ||
+    p.includes("master empresarial") ||
+    p.includes("enfermaria") ||
+    /\benf(\b|[\s.\-_])/.test(p) ||
+    /\bm[\s.\-_]*empresarial\b/.test(p) ||
+    /\bempresarial\b/.test(p)
+  ) return "Enfermaria";
+  return null;
+}
+
+function categoriaResumoNaoProrata(tipo: unknown, plano: unknown): string {
+  const t = normalizarTexto(tipo);
+  if (t.includes("propor") || t.includes("complemento")) return "Cobrança proporcional";
+  if (t.includes("coparticip")) return "Coparticipação";
+  if (t.includes("retroativ")) return "Cobrança retroativa";
+  if (t.includes("adesao")) return "Taxa de adesão";
+  if (t.includes("devolu")) return "Devolução";
+  if (t.includes("permuta")) return "Permuta";
+  if (t.includes("exclus")) return "Exclusão";
+  return categoriaPlano(plano) ?? norm(plano) ?? norm(tipo) ?? "Outros";
+}
+
 function findCol(ws: ExcelJS.Worksheet, headerRow: number, titulo: string): number {
   const row = ws.getRow(headerRow);
   const target = titulo.trim().toLowerCase();
@@ -442,54 +481,98 @@ export async function formatarFaturamentoExcel(
     }
   }
 
-  const headerRes = [keyMainLabel, ...(secondIdx >= 0 ? [secondLabel] : []), "Soma de QTD", "Soma de Valor"];
+  const resumoPorCategoria = modo === "nao_prorata" && iValorFinal >= 0;
+  const headerRes = resumoPorCategoria
+    ? ["Categoria", "Beneficiários", "Mensalidade", "Total"]
+    : [keyMainLabel, ...(secondIdx >= 0 ? [secondLabel] : []), "Soma de QTD", "Soma de Valor"];
   wsRes.addRow(headerRes);
-
-  // Group
-  type Agg = { qtd: number; valor: number };
-  const grouped = new Map<string, Map<string, Agg>>();
-  finalRows.forEach((r) => {
-    const k1 = norm(r[keyMainIdx]);
-    const k2 = secondIdx >= 0 ? norm(r[secondIdx]) : "__total__";
-    if (!grouped.has(k1)) grouped.set(k1, new Map());
-    const inner = grouped.get(k1)!;
-    if (!inner.has(k2)) inner.set(k2, { qtd: 0, valor: 0 });
-    const agg = inner.get(k2)!;
-    agg.qtd += Number(r[iQtdFinal]) || 0;
-    const vv = typeof r[iValorFinal] === "number" ? r[iValorFinal] : parseFloat(String(r[iValorFinal] ?? "0")) || 0;
-    agg.valor += vv;
-  });
 
   let grandQtd = 0;
   let grandVal = 0;
-  const keys1 = Array.from(grouped.keys()).sort();
-  for (const k1 of keys1) {
-    const inner = grouped.get(k1)!;
-    let subQ = 0;
-    let subV = 0;
-    if (secondIdx >= 0) {
-      const keys2 = Array.from(inner.keys()).sort();
-      const mainRowRef = wsRes.addRow([k1, "", 0, 0]);
-      for (const k2 of keys2) {
-        const a = inner.get(k2)!;
-        wsRes.addRow(["", k2, a.qtd, a.valor]);
-        subQ += a.qtd;
-        subV += a.valor;
-      }
-      mainRowRef.getCell(3).value = subQ;
-      mainRowRef.getCell(4).value = subV;
-      mainRowRef.font = { bold: true, size: 11 };
-    } else {
-      const a = inner.get("__total__")!;
-      wsRes.addRow([k1, a.qtd, a.valor]);
-      subQ = a.qtd;
-      subV = a.valor;
+  if (resumoPorCategoria) {
+    type CategoriaAgg = { qtd: number; valor: number };
+    const categorias = new Map<string, CategoriaAgg>();
+    for (const r of finalRows) {
+      const categoria = categoriaResumoNaoProrata(
+        iTipoFinal >= 0 ? r[iTipoFinal] : "",
+        iPlanoFinal >= 0 ? r[iPlanoFinal] : "",
+      );
+      const atual = categorias.get(categoria) ?? { qtd: 0, valor: 0 };
+      atual.qtd += Number(r[iQtdFinal]) || 0;
+      atual.valor += typeof r[iValorFinal] === "number"
+        ? r[iValorFinal]
+        : parseFloat(String(r[iValorFinal] ?? "0")) || 0;
+      categorias.set(categoria, atual);
     }
-    grandQtd += subQ;
-    grandVal += subV;
+    const prioridade = ["Enfermaria", "Apartamento", "Cobrança proporcional"];
+    const nomes = Array.from(categorias.keys()).sort((a, b) => {
+      const pa = prioridade.indexOf(a);
+      const pb = prioridade.indexOf(b);
+      if (pa >= 0 || pb >= 0) return (pa < 0 ? prioridade.length : pa) - (pb < 0 ? prioridade.length : pb);
+      return a.localeCompare(b, "pt-BR");
+    });
+    for (const nome of nomes) {
+      const a = categorias.get(nome);
+      if (!a) continue;
+      const mensalidade = a.qtd > 0 ? a.valor / a.qtd : 0;
+      wsRes.addRow([nome, a.qtd, mensalidade, a.valor]);
+      grandQtd += a.qtd;
+      grandVal += a.valor;
+    }
+  } else {
+    // Resumo tradicional do modo Prorata, agrupado por pagador e tipo de cobrança.
+    type Agg = { qtd: number; valor: number };
+    const grouped = new Map<string, Map<string, Agg>>();
+    finalRows.forEach((r) => {
+      const k1 = norm(r[keyMainIdx]);
+      const k2 = secondIdx >= 0 ? norm(r[secondIdx]) : "__total__";
+      if (!grouped.has(k1)) grouped.set(k1, new Map());
+      const inner = grouped.get(k1);
+      if (!inner) return;
+      if (!inner.has(k2)) inner.set(k2, { qtd: 0, valor: 0 });
+      const agg = inner.get(k2);
+      if (!agg) return;
+      agg.qtd += Number(r[iQtdFinal]) || 0;
+      const vv = typeof r[iValorFinal] === "number" ? r[iValorFinal] : parseFloat(String(r[iValorFinal] ?? "0")) || 0;
+      agg.valor += vv;
+    });
+
+    const keys1 = Array.from(grouped.keys()).sort();
+    for (const k1 of keys1) {
+      const inner = grouped.get(k1);
+      if (!inner) continue;
+      let subQ = 0;
+      let subV = 0;
+      if (secondIdx >= 0) {
+        const keys2 = Array.from(inner.keys()).sort();
+        const mainRowRef = wsRes.addRow([k1, "", 0, 0]);
+        for (const k2 of keys2) {
+          const a = inner.get(k2);
+          if (!a) continue;
+          wsRes.addRow(["", k2, a.qtd, a.valor]);
+          subQ += a.qtd;
+          subV += a.valor;
+        }
+        mainRowRef.getCell(3).value = subQ;
+        mainRowRef.getCell(4).value = subV;
+        mainRowRef.font = { bold: true, size: 11 };
+      } else {
+        const a = inner.get("__total__");
+        if (!a) continue;
+        wsRes.addRow([k1, a.qtd, a.valor]);
+        subQ = a.qtd;
+        subV = a.valor;
+      }
+      grandQtd += subQ;
+      grandVal += subV;
+    }
   }
   const totalRow = wsRes.addRow(
-    secondIdx >= 0 ? ["Total Geral", "", grandQtd, grandVal] : ["Total Geral", grandQtd, grandVal],
+    resumoPorCategoria
+      ? ["Total Geral", "", "", grandVal]
+      : secondIdx >= 0
+        ? ["Total Geral", "", grandQtd, grandVal]
+        : ["Total Geral", grandQtd, grandVal],
   );
   totalRow.font = { bold: true, size: 11 };
 
@@ -501,9 +584,11 @@ export async function formatarFaturamentoExcel(
     cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: HEADER_FILL } };
   }
 
-  const qtdCol = secondIdx >= 0 ? 3 : 2;
-  const valCol = secondIdx >= 0 ? 4 : 3;
+  const qtdCol = resumoPorCategoria ? 2 : secondIdx >= 0 ? 3 : 2;
+  const mensalidadeCol = resumoPorCategoria ? 3 : -1;
+  const valCol = resumoPorCategoria ? 4 : secondIdx >= 0 ? 4 : 3;
   wsRes.getColumn(qtdCol).numFmt = "0";
+  if (mensalidadeCol > 0) wsRes.getColumn(mensalidadeCol).numFmt = "#,##0.00";
   wsRes.getColumn(valCol).numFmt = "#,##0.00";
 
   const totalRowsRes = wsRes.rowCount;
