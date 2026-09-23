@@ -72,6 +72,7 @@ import {
 } from "@/lib/dependentes-uea";
 import {
   exportarRelatorioDependentesUea,
+  exportarRelatorioGeralUea,
   exportarRelatorioTitularesUea,
 } from "@/lib/dependentes-uea-export";
 
