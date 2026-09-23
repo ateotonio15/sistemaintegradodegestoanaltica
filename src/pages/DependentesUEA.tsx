@@ -486,7 +486,6 @@ export default function DependentesUEA() {
             ))}
           </div>
         ))}
-        )}
       </Card>
 
       <Card className="rounded-2xl border-border/60 p-3">
