@@ -485,6 +485,7 @@ export default function DependentesUEA() {
               </Card>
             ))}
           </div>
+        ))}
         )}
       </Card>
 
