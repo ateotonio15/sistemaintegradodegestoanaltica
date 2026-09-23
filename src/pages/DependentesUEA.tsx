@@ -336,8 +336,7 @@ export default function DependentesUEA() {
             </Button>
           </div>
         </div>
-        {mudancasAberto && (
-        {mudancasFiltradas.length === 0 ? (
+        {mudancasAberto && (mudancasFiltradas.length === 0 ? (
           <p className="py-6 text-center text-sm text-muted-foreground">
             Nenhuma mudança de faixa prevista para o filtro selecionado.
           </p>
