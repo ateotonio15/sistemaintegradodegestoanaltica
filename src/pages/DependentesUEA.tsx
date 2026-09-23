@@ -139,12 +139,22 @@ export default function DependentesUEA() {
   const [excluirId, setExcluirId] = useState<string | null>(null);
   const [expandidoId, setExpandidoId] = useState<string | null>(null);
   const [filtroMudanca, setFiltroMudanca] = useState<FiltroMudanca>("90");
+  // Seção "Próximas mudanças de faixa": recolhida por padrão, mostrando só o resumo.
+  const [mudancasAberto, setMudancasAberto] = useState(
+    () => window.localStorage.getItem("uea-mudancas-aberto") === "1",
+  );
   const [valorEditandoId, setValorEditandoId] = useState<string | null>(null);
   const [valorEditandoTxt, setValorEditandoTxt] = useState("");
+
+  const alternarMudancasAberto = (abrir: boolean) => {
+    setMudancasAberto(abrir);
+    window.localStorage.setItem("uea-mudancas-aberto", abrir ? "1" : "0");
+  };
 
   useEffect(() => {
     if (searchParams.get("mudancas") !== "sem_margem") return;
     setFiltroMudanca("sem_margem");
+    alternarMudancasAberto(true);
     if (location.hash !== "#proximas-mudancas") return;
     window.requestAnimationFrame(() => {
       document.getElementById("proximas-mudancas")?.scrollIntoView({ behavior: "smooth", block: "start" });
