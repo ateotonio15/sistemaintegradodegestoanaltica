@@ -72,6 +72,7 @@ import {
 } from "@/lib/dependentes-uea";
 import {
   exportarRelatorioDependentesUea,
+  exportarRelatorioGeralUea,
   exportarRelatorioTitularesUea,
 } from "@/lib/dependentes-uea-export";
 
@@ -221,6 +222,13 @@ export default function DependentesUEA() {
             disabled={lista.length === 0}
           >
             <FileSpreadsheet className="mr-1.5 h-4 w-4" /> Relatório de dependentes
+          </Button>
+          <Button
+            variant="outline"
+            onClick={() => exportarRelatorioGeralUea(lista)}
+            disabled={lista.length === 0}
+          >
+            <FileSpreadsheet className="mr-1.5 h-4 w-4" /> Relatório geral
           </Button>
           <Button variant="outline" onClick={() => setFaixasOpen(true)}>
             <Settings2 className="mr-1.5 h-4 w-4" /> Faixas etárias e valores
