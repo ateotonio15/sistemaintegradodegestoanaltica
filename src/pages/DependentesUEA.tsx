@@ -461,7 +461,7 @@ export default function DependentesUEA() {
             <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
             <Input
               className="pl-8"
-              placeholder="Pesquisar por nome, CPF ou matrícula"
+              placeholder="Pesquisar titular ou dependente, CPF, matrícula ou carteirinha"
               value={busca}
               onChange={(e) => setBusca(e.target.value)}
             />
