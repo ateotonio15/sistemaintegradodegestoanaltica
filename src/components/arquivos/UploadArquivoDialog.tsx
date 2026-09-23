@@ -57,13 +57,14 @@ function mesAtual(): string {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
 }
 
-// Lista competências de 01/2026 até o mês seguinte ao atual (mais recente
-// primeiro), permitindo registrar cobranças que só serão enviadas no próximo
-// mês. Conforme o tempo avança, novos meses são adicionados automaticamente.
+// Lista competências de 01/2026 até dezembro do ano corrente (no mínimo),
+// ou até o mês seguinte ao atual, o que for maior (mais recente primeiro).
 function getMesesOptions(): string[] {
   const out: string[] = [];
   const now = new Date();
-  const limite = new Date(now.getFullYear(), now.getMonth() + 1, 1); // próximo mês
+  const proximo = new Date(now.getFullYear(), now.getMonth() + 1, 1);
+  const fimAno = new Date(now.getFullYear(), 11, 1); // dezembro do ano corrente
+  const limite = proximo > fimAno ? proximo : fimAno;
   const endY = limite.getFullYear();
   const endM = limite.getMonth() + 1; // 1..12
   let y = 2026;
