@@ -527,20 +527,19 @@ export async function formatarFaturamentoExcel(
         subQ += a.qtd;
         subV += a.valor;
       }
-      if (multi) {
-        const cnpjFmt = pag.cnpj.length === 14
-          ? pag.cnpj.replace(/^(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})$/, "$1.$2.$3/$4-$5")
-          : pag.cnpj;
-        const hr = wsRes.addRow([
-          `${pag.nome || "Pagador"}${cnpjFmt ? ` — CNPJ ${cnpjFmt}` : ""}`,
-          subQ,
-          "",
-          subV,
-        ]);
-        hr.font = { bold: true, size: 11 };
-        for (let c = 1; c <= 4; c++) {
-          hr.getCell(c).fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FFEFEFEF" } };
-        }
+      // Linha de identificação do pagador: com totais quando houver mais de um pagador,
+      // apenas com nome/CNPJ (sem valores) quando o contrato tem um único pagador.
+      const cnpjFmt = pag.cnpj.length === 14
+        ? pag.cnpj.replace(/^(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})$/, "$1.$2.$3/$4-$5")
+        : pag.cnpj;
+      const hr = wsRes.addRow(
+        multi
+          ? [`${pag.nome || "Pagador"}${cnpjFmt ? ` — CNPJ ${cnpjFmt}` : ""}`, subQ, "", subV]
+          : [`${pag.nome || "Pagador"}${cnpjFmt ? ` — CNPJ ${cnpjFmt}` : ""}`, "", "", ""],
+      );
+      hr.font = { bold: true, size: 11 };
+      for (let c = 1; c <= 4; c++) {
+        hr.getCell(c).fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FFEFEFEF" } };
       }
       for (const nome of Array.from(pag.cats.keys()).sort(ordenar)) {
         const a = pag.cats.get(nome)!;
