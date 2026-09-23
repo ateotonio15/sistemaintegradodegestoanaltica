@@ -521,28 +521,31 @@ export async function formatarFaturamentoExcel(
     const multi = pagadores.size > 1;
     const listaPag = Array.from(pagadores.values()).sort((a, b) => a.nome.localeCompare(b.nome, "pt-BR"));
     for (const pag of listaPag) {
+      let subQ = 0;
+      let subV = 0;
+      for (const a of pag.cats.values()) {
+        subQ += a.qtd;
+        subV += a.valor;
+      }
       if (multi) {
         const cnpjFmt = pag.cnpj.length === 14
           ? pag.cnpj.replace(/^(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})$/, "$1.$2.$3/$4-$5")
           : pag.cnpj;
-        const hr = wsRes.addRow([`${pag.nome || "Pagador"}${cnpjFmt ? ` — CNPJ ${cnpjFmt}` : ""}`, "", "", ""]);
+        const hr = wsRes.addRow([
+          `${pag.nome || "Pagador"}${cnpjFmt ? ` — CNPJ ${cnpjFmt}` : ""}`,
+          subQ,
+          "",
+          subV,
+        ]);
         hr.font = { bold: true, size: 11 };
         for (let c = 1; c <= 4; c++) {
           hr.getCell(c).fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FFEFEFEF" } };
         }
       }
-      let subQ = 0;
-      let subV = 0;
       for (const nome of Array.from(pag.cats.keys()).sort(ordenar)) {
         const a = pag.cats.get(nome)!;
         const mensalidade = a.qtd > 0 ? a.valor / a.qtd : 0;
         wsRes.addRow([nome, a.qtd, mensalidade, a.valor]);
-        subQ += a.qtd;
-        subV += a.valor;
-      }
-      if (multi) {
-        const sr = wsRes.addRow([`Subtotal ${pag.nome || ""}`.trim(), subQ, "", subV]);
-        sr.font = { bold: true, size: 11 };
       }
       grandQtd += subQ;
       grandVal += subV;
@@ -636,6 +639,13 @@ export async function formatarFaturamentoExcel(
   }
 
   autoFitColumns(wsRes, totalColsRes, 11);
+  if (resumoPorCategoria) {
+    let maiorCategoria = 0;
+    for (let r = 1; r <= wsRes.rowCount; r++) {
+      maiorCategoria = Math.max(maiorCategoria, String(cellText(wsRes.getRow(r).getCell(1))).length);
+    }
+    wsRes.getColumn(1).width = Math.min(Math.max(Math.ceil(maiorCategoria * 1.1) + 2, 24), 120);
+  }
 
   const contratoRow = wsRes.addRow([]);
   const cRow = wsRes.addRow([`Contrato: ${contratoStr}`]);
