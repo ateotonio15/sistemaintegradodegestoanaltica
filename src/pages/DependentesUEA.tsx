@@ -273,15 +273,24 @@ export default function DependentesUEA() {
 
       {/* PRÓXIMAS MUDANÇAS DE FAIXA */}
       <Card id="proximas-mudancas" className="min-w-0 max-w-full scroll-mt-24 overflow-hidden rounded-2xl border-border/60 p-5">
-        <div className="mb-5 flex flex-wrap items-start justify-between gap-4 border-b border-border/50 pb-5">
+        <div className="mb-0 flex flex-wrap items-start justify-between gap-4 border-b border-border/50 pb-5">
           <div className="space-y-3">
             <div>
-              <p className="flex items-center gap-2 text-base font-semibold">
+              <button
+                type="button"
+                onClick={() => alternarMudancasAberto(!mudancasAberto)}
+                aria-expanded={mudancasAberto}
+                className="flex items-center gap-2 rounded-md text-left text-base font-semibold transition-colors hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              >
                 <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/10 text-primary">
                   <CalendarClock className="h-4 w-4" />
                 </span>
                 Próximas mudanças de faixa
-              </p>
+                <ChevronDown
+                  className={cn("h-4 w-4 text-muted-foreground transition-transform", mudancasAberto && "rotate-180")}
+                  aria-hidden="true"
+                />
+              </button>
               <p className="mt-1 pl-10 text-xs text-muted-foreground">
                 Dependentes ativos que mudarão de valor nos próximos 90 dias.
               </p>
@@ -311,8 +320,23 @@ export default function DependentesUEA() {
                 ))}
               </SelectContent>
             </Select>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              className="h-9 gap-1.5"
+              onClick={() => alternarMudancasAberto(!mudancasAberto)}
+              aria-expanded={mudancasAberto}
+            >
+              {mudancasAberto ? "Ocultar" : "Ver mudanças"}
+              <ChevronDown
+                className={cn("h-4 w-4 transition-transform", mudancasAberto && "rotate-180")}
+                aria-hidden="true"
+              />
+            </Button>
           </div>
         </div>
+        {mudancasAberto && (
         {mudancasFiltradas.length === 0 ? (
           <p className="py-6 text-center text-sm text-muted-foreground">
             Nenhuma mudança de faixa prevista para o filtro selecionado.
