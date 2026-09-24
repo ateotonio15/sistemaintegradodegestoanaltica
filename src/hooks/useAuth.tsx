@@ -148,14 +148,23 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     const ROLE_CACHE_KEY = `siga:role-cache:${userId}`;
     if (!rolesData) {
-      // Sem resposta confiável: mantém o papel atual (ou o último conhecido)
-      // em vez de assumir "comum" e esconder Financeiro/Arquivos.
+      // Sem resposta: verifica se a sessão ainda é válida. Sessão inválida faz
+      // todas as consultas voltarem vazias (ex.: Arquivos sem anexos), então
+      // tentamos renová-la; se não der, encerramos para o usuário entrar de novo.
+      const valida = await ensureValidSession();
+      if (requestId !== roleRequestRef.current) return;
+      if (!valida) {
+        await forceRelogin();
+        return;
+      }
       let cached: UserRole = roleRef.current;
       if (!cached) {
         try { cached = (localStorage.getItem(ROLE_CACHE_KEY) as UserRole) ?? null; } catch { /* ignore */ }
       }
       if (cached) setRole(cached);
       setLoading(false);
+      // Tenta de novo em alguns segundos para recuperar o perfil real.
+      setTimeout(() => { if (requestId === roleRequestRef.current) void loadFlagsRef.current?.(userId); }, 5000);
       return;
     }
 
