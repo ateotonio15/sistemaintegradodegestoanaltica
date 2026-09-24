@@ -92,6 +92,13 @@
       "when": 1790110644160,
       "tag": "0012_is_saude_reader_inclui_executivo_diretoria",
       "breakpoints": true
+    },
+    {
+      "idx": 13,
+      "version": "7",
+      "when": 1790256192357,
+      "tag": "0013_fin_mov_unica_por_competencia",
+      "breakpoints": true
     }
   ]
 }
