@@ -38,14 +38,23 @@ export function ImportarReajustesOperadoraDialog({ open, onOpenChange }: { open:
     (async () => {
       setLoading(true); setErro(null);
       try {
-        const anoAtual = new Date().getFullYear();
-        const [api, empRes, reaRes] = await Promise.all([
+        // O servidor limita cada consulta a 1000 linhas: buscar em páginas até trazer tudo.
+        const fetchAll = async (table: string, cols: string) => {
+          const all: any[] = [];
+          for (let from = 0; ; from += 1000) {
+            const { data, error } = await (supabase.from(table as any) as any).select(cols).range(from, from + 999);
+            if (error) throw error;
+            all.push(...(data ?? []));
+            if (!data || data.length < 1000) break;
+          }
+          return all;
+        };
+        const [api, empData, reaData] = await Promise.all([
           fetchReajustesOperadora(),
-          supabase.from("empresas").select("id,nome,codigo_contrato").range(0, 9999),
-          supabase.from("reajustes_anuais").select("empresa_id,ano").gte("ano", anoAtual).range(0, 9999),
+          fetchAll("empresas", "id,nome,codigo_contrato"),
+          fetchAll("reajustes_anuais", "empresa_id,ano"),
         ]);
-        if (empRes.error) throw empRes.error;
-        if (reaRes.error) throw reaRes.error;
+        const empRes = { data: empData }; const reaRes = { data: reaData };
         const porContrato = new Map<string, { id: string; nome: string }>();
         (empRes.data ?? []).forEach((e: any) => {
           const c = String(e.codigo_contrato ?? "").trim().replace(/^0+/, "");
@@ -55,7 +64,7 @@ export function ImportarReajustesOperadoraDialog({ open, onOpenChange }: { open:
         const out: Linha[] = [];
         for (const a of api) {
           const d = parseDataReajuste(a.DT_REAJUSTE);
-          if (!d || d.ano < anoAtual) continue;
+          if (!d) continue;
           const emp = porContrato.get(String(a.NR_CONTRATO).replace(/^0+/, ""));
           const enf: FaixaCalc[] = []; const apt: FaixaCalc[] = [];
           for (const p of a.PLANOS ?? []) {
