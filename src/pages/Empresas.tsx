@@ -1293,6 +1293,37 @@ export default function Empresas() {
                         <Wallet className="h-4 w-4 text-primary" />
                         <h3 className="text-sm font-semibold">Configurações & Valores</h3>
                         <span className="text-xs text-muted-foreground">· Status, faixa etária e valores</span>
+                        {(form as any).tipo_contrato !== "ADMINISTRADORA" && (
+                          <Button
+                            type="button"
+                            size="sm"
+                            variant="outline"
+                            className="ml-auto h-7 text-xs"
+                            onClick={async () => {
+                              const cod = (form as any).codigo_contrato;
+                              if (!cod) { toast({ title: "Informe o código do contrato", variant: "destructive" }); return; }
+                              try {
+                                const { buscarValoresOperadora } = await import("@/lib/valoresOperadora");
+                                const r = await buscarValoresOperadora(cod);
+                                if (!r) { toast({ title: "Contrato não encontrado na operadora", description: `NR_CONTRATO ${cod}` }); return; }
+                                const dt = String(r.contrato.DT_REAJUSTE).slice(0, 10).split("-").reverse().join("/");
+                                setForm((prev: any) => r.porFaixa
+                                  ? { ...prev, contrato_faixa_etaria: true, faixas_etarias: { enfermaria: r.enfermaria, apartamento: r.apartamento } }
+                                  : {
+                                      ...prev,
+                                      contrato_faixa_etaria: false,
+                                      valor_enfermaria_centavos: r.enfermaria[0]?.centavos ?? prev.valor_enfermaria_centavos,
+                                      valor_apartamento_centavos: r.apartamento[0]?.centavos ?? prev.valor_apartamento_centavos,
+                                    });
+                                toast({ title: "Valores atuais carregados", description: `Reajuste de ${r.contrato.TX_REAJUSTE}% em ${dt}. Confira e clique em Salvar.` });
+                              } catch (e: any) {
+                                toast({ title: "Erro ao consultar a operadora", description: e?.message, variant: "destructive" });
+                              }
+                            }}
+                          >
+                            Buscar valores da operadora
+                          </Button>
+                        )}
                       </div>
                       <div className="space-y-2">
                         <Label className="text-sm font-medium">Status da Empresa</Label>
