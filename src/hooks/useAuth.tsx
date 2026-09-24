@@ -1,4 +1,5 @@
 import { createContext, useCallback, useContext, useEffect, useRef, useState, type ReactNode } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { clearSessionNamespace } from "@/hooks/useSessionState";
 import type { User, Session } from "@supabase/supabase-js";
@@ -119,10 +120,39 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const roleRef = useRef<UserRole>(null);
   const lastUserIdRef = useRef<string | null>(null);
   const roleRequestRef = useRef(0);
+  const loadFlagsRef = useRef<((userId: string) => Promise<void>) | null>(null);
+  const queryClient = useQueryClient();
 
   useEffect(() => {
     roleRef.current = role;
   }, [role]);
+
+  /** Confirma no servidor que a sessão é válida; tenta renovar se não for. */
+  const ensureValidSession = useCallback(async (): Promise<boolean> => {
+    try {
+      const { data, error } = await supabase.auth.getUser();
+      if (!error && data?.user) return true;
+      // Falha de rede não é sessão inválida.
+      const status = (error as any)?.status;
+      if (error && !status) return true;
+      const { data: ref, error: refErr } = await supabase.auth.refreshSession();
+      if (!refErr && ref?.session) {
+        queryClient.invalidateQueries();
+        return true;
+      }
+      return false;
+    } catch {
+      return true;
+    }
+  }, [queryClient]);
+
+  const forceRelogin = useCallback(async () => {
+    clearSessionNamespace("financeiro");
+    queryClient.clear();
+    try { await supabase.auth.signOut({ scope: "local" }); } catch { /* ignore */ }
+    try { sessionStorage.setItem("siga:sessao-expirada", "1"); } catch { /* ignore */ }
+    if (!window.location.pathname.startsWith("/auth")) window.location.assign("/auth");
+  }, [queryClient]);
 
   const loadFlags = useCallback(async (userId: string) => {
     const requestId = ++roleRequestRef.current;
@@ -202,11 +232,31 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setActiveEmpresaId(empId);
     }
     setLoading(false);
-  }, []);
+  }, [ensureValidSession, forceRelogin]);
+
+  useEffect(() => { loadFlagsRef.current = loadFlags; }, [loadFlags]);
 
   const refreshAuthFlags = useCallback(async () => {
     if (user?.id) await loadFlags(user.id);
   }, [user?.id, loadFlags]);
+
+  // Ao voltar para a aba, confere se a sessão ainda vale (evita telas vazias).
+  useEffect(() => {
+    if (!user?.id) return;
+    let last = 0;
+    const check = async () => {
+      if (document.visibilityState !== "visible" || Date.now() - last < 60_000) return;
+      last = Date.now();
+      const ok = await ensureValidSession();
+      if (!ok) await forceRelogin();
+    };
+    document.addEventListener("visibilitychange", check);
+    window.addEventListener("focus", check);
+    return () => {
+      document.removeEventListener("visibilitychange", check);
+      window.removeEventListener("focus", check);
+    };
+  }, [user?.id, ensureValidSession, forceRelogin]);
 
   useEffect(() => {
     const applySession = async (nextSession: Session | null) => {
