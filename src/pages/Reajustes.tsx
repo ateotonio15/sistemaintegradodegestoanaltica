@@ -12,6 +12,8 @@ import { Plus, Pencil, Trash2, History, Search, TrendingUp, AlertTriangle, Check
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { ReajusteDialog } from "@/components/reajustes/ReajusteDialog";
+import { ImportarReajustesOperadoraDialog } from "@/components/reajustes/ImportarReajustesOperadoraDialog";
+import { RefreshCw } from "lucide-react";
 import { ReajusteHistoricoDialog } from "@/components/reajustes/ReajusteHistoricoDialog";
 import { SolicitarReajusteDialog } from "@/components/reajustes/SolicitarReajusteDialog";
 import { AprovarReajusteDialog } from "@/components/reajustes/AprovarReajusteDialog";
@@ -29,6 +31,7 @@ import {
 
 export default function Reajustes() {
   const { user, isAdmin, isComum, isDiretora, isFinanceiro } = useAuth();
+  const [syncOpen, setSyncOpen] = useState(false);
   const { toast } = useToast();
   const qc = useQueryClient();
   const canCriar = isAdmin || isDiretora;
@@ -369,12 +372,18 @@ export default function Reajustes() {
             <Button variant="outline" onClick={handleExportPDF}>
               <Download className="h-4 w-4 mr-2" /> PDF
             </Button>
+            {(isAdmin || isDiretora || isComum) && (
+              <Button variant="outline" onClick={() => setSyncOpen(true)}>
+                <RefreshCw className="h-4 w-4 mr-2" /> Sincronizar reajustes da operadora
+              </Button>
+            )}
             {canCriar && (
               <Button onClick={() => openNew()}>
                 <Plus className="h-4 w-4 mr-2" /> Novo Reajuste
               </Button>
             )}
           </div>
+          <ImportarReajustesOperadoraDialog open={syncOpen} onOpenChange={setSyncOpen} />
 
         </div>
 
