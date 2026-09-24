@@ -297,6 +297,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (event === "SIGNED_OUT") {
         clearSessionNamespace("financeiro");
       }
+      if (event === "TOKEN_REFRESHED") {
+        // Refaz consultas que possam ter voltado vazias com o token antigo.
+        setTimeout(() => queryClient.invalidateQueries(), 0);
+      }
       setTimeout(() => {
         void applySession(session);
       }, 0);
