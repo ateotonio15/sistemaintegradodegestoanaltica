@@ -665,9 +665,15 @@ export function AppLayout({ children }: { children?: React.ReactNode }) {
 
             {!hasLateralNavigation && (
               <HeaderTabs
-                available={navItems
-                  .filter((it) => !("children" in it) || !it.children)
-                  .map((it) => ({ to: it.to, label: it.label, icon: it.icon }))}
+                available={Array.from(
+                  new Map(
+                    navItems
+                      .flatMap((it: any) =>
+                        it.children && it.children.length ? it.children : [it],
+                      )
+                      .map((it: any) => [it.to, { to: it.to, label: it.label, icon: it.icon }]),
+                  ).values(),
+                )}
               />
             )}
 
