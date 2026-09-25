@@ -358,9 +358,9 @@ export function AnaliseExcelRow({ colSpan, isLoading, resultados, comparacoes, o
                     </div>
 
                     {r.avisos.length > 0 && (
-                      <Alert className="mb-3 border-warning/50 bg-warning/10 py-2">
-                        <AlertTriangle className="h-3.5 w-3.5 text-warning" />
-                        <AlertDescription className="text-xs text-foreground/80">
+                      <Alert className="mb-3 border-warning/50 bg-warning/10 py-2 flex items-center">
+                        <AlertTriangle className="h-3.5 w-3.5 text-warning shrink-0 !static !translate-y-0" />
+                        <AlertDescription className="text-xs text-foreground/80 flex-1 leading-tight">
                           {r.avisos.map((a, i) => (
                             <div key={i}>{a}</div>
                           ))}
