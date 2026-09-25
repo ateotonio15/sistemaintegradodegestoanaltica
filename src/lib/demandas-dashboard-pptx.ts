@@ -541,11 +541,11 @@ export async function exportDashboardReclamacoesPptx(snap: DashboardSnapshot) {
       fontSize: 13, bold: true, color: C.INK, fontFace: "Calibri",
     });
 
-    const dcPct = topSetor?.pct ?? 77;
-    const dcN = topSetor?.n ?? Math.round(totalDemandas * 0.77);
-    const outrosPct = Math.max(0, 100 - dcPct);
-    const outrosN = totalDemandas - dcN;
-    const dcNome = topSetor?.setor ?? "Direção Clínica";
+    const dcPct = topSetor?.pct ?? 0;
+    const dcN = topSetor?.n ?? 0;
+    const outrosPct = topSetor ? Math.max(0, 100 - dcPct) : 0;
+    const outrosN = topSetor ? totalDemandas - dcN : 0;
+    const dcNome = topSetor?.setor ?? "Sem dados de setor";
 
     // Donut à esquerda dentro do card
     const donutX = SAFE.x + 0.2;
@@ -640,8 +640,8 @@ export async function exportDashboardReclamacoesPptx(snap: DashboardSnapshot) {
     };
     drawAlert(0, TEAL.RED_FG, TEAL.RED_BG, "🔴", "PRINCIPAL OFENSOR",
       dcNome,
-      `${dcPct}% das demandas · ${dcN} registros`,
-      `Média resposta: ${Math.round(demais.horas)}h · ${m.pctForaDoPrazo}% fora do SLA`);
+      topSetor ? `${dcPct}% das demandas · ${dcN} registros` : "Nenhum setor no período",
+      topSetor ? "Setor com maior volume de reclamações no período" : "—");
     drawAlert(1, TEAL.YEL_FG, TEAL.YEL_BG, "🟡", "ATENÇÃO — SLA CIRÚRGICO",
       "Agenda Cirúrgica",
       `Tempo médio: ${Math.round(cirurgica.horas)}h · SLA: 168h`,

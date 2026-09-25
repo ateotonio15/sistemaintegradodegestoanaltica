@@ -1558,7 +1558,7 @@ export default function Financeiro() {
       // Dedup em memória (mesma empresa+período pode entrar duas vezes pela junção de fontes)
       const linhasMap = new Map<string, typeof linhas[number]>();
       for (const l of linhas) {
-        const k = `${l.empresa_id}|${l.periodo}|${l.tipo_lancamento}`;
+        const k = `${l.empresa_id}|${l.tipo_lancamento}`;
         if (!linhasMap.has(k)) linhasMap.set(k, l);
       }
 
@@ -1573,7 +1573,7 @@ export default function Financeiro() {
         .eq("mes_referencia", mes);
       if (exErr) throw exErr;
 
-      const keyOf = (r: any) => `${r.empresa_id}|${r.periodo}|${r.tipo_lancamento ?? "normal"}`;
+      const keyOf = (r: any) => `${r.empresa_id}|${r.tipo_lancamento ?? "normal"}`; // uma linha por contrato+competência+tipo (índice único)
       const existentesMap = new Map(
         (existentes || []).map((r: any) => [keyOf(r), r]),
       );

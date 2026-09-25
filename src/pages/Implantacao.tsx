@@ -267,8 +267,8 @@ export default function Implantacao() {
         ) : (
           <div className="space-y-3">
             {filtradas.map((l) => (
+              <div key={l.implantacao.id} className="space-y-1">
               <ContratoCardNovo
-                key={l.implantacao.id}
                 linha={l}
                 onOpen={() => setOpenId(l.implantacao.id)}
                 onFluxo={() => setFluxoTarget(l.implantacao)}
@@ -282,6 +282,12 @@ export default function Implantacao() {
                     : undefined
                 }
               />
+              {l.implantacao.status === "implantado" && (
+                <div className="rounded-lg border bg-card px-4 py-3">
+                  <ImplantadoResumo implantacao={l.implantacao} />
+                </div>
+              )}
+              </div>
             ))}
           </div>
 

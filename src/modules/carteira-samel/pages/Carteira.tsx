@@ -64,6 +64,7 @@ export default function Carteira() {
     const { data, error } = await db.from("avaliacoes_envios").insert({
       empresa_id: emp.id,
       empresa_nome: emp.nome,
+      email_destino: (emp as any).email_empresa || "",
       mes_referencia: mesAtual,
       status: "enviado",
     }).select("id, token_unico").single();
