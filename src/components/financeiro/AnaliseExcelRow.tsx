@@ -359,6 +359,9 @@ export function AnaliseExcelRow({ colSpan, isLoading, resultados, comparacoes, o
                           )}
                         </div>
                       )}
+                      {idx === 0 && botoesAcao && (
+                        <div className="ml-auto">{botoesAcao}</div>
+                      )}
                     </div>
 
                     {r.avisos.length > 0 && (
