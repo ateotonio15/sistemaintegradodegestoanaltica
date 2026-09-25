@@ -10,7 +10,8 @@
  */
 
 import { supabase } from "@/integrations/supabase/client";
-import { isPdfAnexo, isXlsAnexo } from "@/lib/financeiro-utils";
+import { isPdfAnexo, isXlsAnexo, expandirAnexosPorGrupo, fetchEmpresaGrupoMap } from "@/lib/financeiro-utils";
+import { identificarContratoDoAnexo } from "@/lib/anexo-contrato-match";
 import { periodoDaDataCorte } from "@/lib/movimentacao-utils";
 import { sha256Hex, extrairDivergencias } from "@/lib/financeiro-analise-cache";
 import type {
@@ -233,9 +234,29 @@ export async function executarAnaliseCompetencia(
       .select("financeiro_movimentacao_id, mime_type, nome_arquivo, storage_path, origem, created_at")
       .in("financeiro_movimentacao_id", movIds)
       .order("created_at", { ascending: false });
-    (anexos || []).forEach((a: any) => {
-      const arr = (anexosPorMov[a.financeiro_movimentacao_id] ||= []);
-      arr.push(a);
+    // Anexos compartilhados pelo Grupo Financeiro (mesma competência/período),
+    // igual à aba Faturamento. Arquivos cujo nome identifica OUTRO contrato do
+    // grupo não são atribuídos a este contrato.
+    const empresaGrupo = await fetchEmpresaGrupoMap(supabase as any);
+    const expandidos = expandirAnexosPorGrupo(movimentacoes, (anexos || []) as any[], empresaGrupo);
+    const movPorId = new Map(movimentacoes.map((m) => [m.id, m]));
+    expandidos.forEach((lista, movId) => {
+      const mov = movPorId.get(movId);
+      if (!mov) return;
+      const grupoId = empresaGrupo.get(mov.empresa_id);
+      const alvos = grupoId
+        ? movimentacoes
+            .filter((m) => empresaGrupo.get(m.empresa_id) === grupoId)
+            .map((m) => {
+              const e = empresasMap.get(m.empresa_id);
+              return { empresaId: m.empresa_id, nome: e?.nome, codigo: e?.codigo_contrato, cnpj: e?.cnpj };
+            })
+        : [];
+      anexosPorMov[movId] = lista.filter((a: any) => {
+        if (a.financeiro_movimentacao_id === movId || alvos.length < 2) return true;
+        const match = identificarContratoDoAnexo(a.nome_arquivo || "", alvos);
+        return !match || match.empresaId === mov.empresa_id;
+      });
     });
   }
 
