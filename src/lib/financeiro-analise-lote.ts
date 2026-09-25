@@ -104,7 +104,8 @@ function sumExcelTotal(r: AnaliseResultado): number {
     (r.enfermaria?.total || 0) +
     (r.apartamento?.total || 0) +
     (r.inclusoes?.total || 0) +
-    (r.exclusoes?.total || 0)
+    (r.exclusoes?.total || 0) +
+    ((r as any).devolucoes?.total || 0)
   );
 }
 
@@ -121,7 +122,9 @@ function sumPdfTotal(c: ComparacaoResultado | ComparacaoSimplificada | null): nu
   const e = cr.enfermaria?.total?.pdf ?? 0;
   const a = cr.apartamento?.total?.pdf ?? 0;
   const i = cr.inclusoes?.total?.pdf ?? 0;
-  return Number((e + a + i).toFixed(2));
+  const x = (cr as any).exclusoes?.total?.pdf ?? 0;
+  const d = (cr as any).devolucoes?.total?.pdf ?? 0;
+  return Number((e + a + i + x + d).toFixed(2));
 }
 
 /** Empresa simplificada usada no batch. */
@@ -476,6 +479,7 @@ export async function executarAnaliseCompetencia(
         apartamento: b.apartamento,
         inclusoes: b.inclusoes,
         exclusoes: b.exclusoes,
+        devolucoes: (b as any).devolucoes,
         avisos: b.avisos,
       } as AnaliseResultado;
       const valorExcel = sumExcelTotal(excelRes);
