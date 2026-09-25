@@ -2173,6 +2173,30 @@ export default function Empresas() {
                     <dl className="grid sm:grid-cols-2 gap-x-6 gap-y-3 border rounded-lg p-4 bg-card">
                       <DetailRow label="Emissão da Fatura" value={formatDay(diaEmissaoMap[detailEmpresa.id] ?? detailEmpresa.data_emissao_fatura)} />
                       <DetailRow label="Data de Vencimento" value={formatDay(detailEmpresa.data_vencimento_fatura)} />
+                      <DetailRow
+                        label="Valor Enfermaria"
+                        value={
+                          (detailEmpresa as any).valor_enfermaria_centavos != null
+                            ? ((detailEmpresa as any).valor_enfermaria_centavos / 100).toLocaleString("pt-BR", { style: "currency", currency: "BRL" })
+                            : null
+                        }
+                      />
+                      <DetailRow
+                        label="Valor Apartamento"
+                        value={
+                          (detailEmpresa as any).valor_apartamento_centavos != null
+                            ? ((detailEmpresa as any).valor_apartamento_centavos / 100).toLocaleString("pt-BR", { style: "currency", currency: "BRL" })
+                            : null
+                        }
+                      />
+                      {(detailEmpresa as any).contrato_faixa_etaria && Array.isArray((detailEmpresa as any).faixas_etarias) && (detailEmpresa as any).faixas_etarias.length > 0 && (
+                        <DetailRow
+                          label="Faixas Etárias"
+                          value={(detailEmpresa as any).faixas_etarias
+                            .map((f: any) => `${f.idade_inicial ?? 0}–${f.idade_final ?? 999} anos: ${((f.valor ?? 0) / 100).toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}`)
+                            .join(" · ")}
+                        />
+                      )}
                     </dl>
                   </section>
 
