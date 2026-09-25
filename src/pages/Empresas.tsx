@@ -670,6 +670,34 @@ export default function Empresas() {
     setDataVencimentoFatura((e as any).data_vencimento_fatura ?? "");
     setDataEmissaoFatura((e as any).data_emissao_fatura ?? "");
     setDialogOpen(true);
+
+    // Busca automática dos valores atuais na API da operadora quando ainda não há valores cadastrados
+    const cod = (e as any).codigo_contrato;
+    const semValores =
+      (e as any).valor_enfermaria_centavos == null &&
+      (e as any).valor_apartamento_centavos == null &&
+      !(e as any).faixas_etarias;
+    if (cod && semValores && (e as any).tipo_contrato !== "ADMINISTRADORA") {
+      import("@/lib/valoresOperadora").then(({ buscarValoresOperadora }) =>
+        buscarValoresOperadora(cod)
+          .then((r) => {
+            if (!r) return;
+            const dt = String(r.contrato.DT_REAJUSTE).slice(0, 10).split("-").reverse().join("/");
+            setForm((prev: any) =>
+              r.porFaixa
+                ? { ...prev, contrato_faixa_etaria: true, faixas_etarias: { enfermaria: r.enfermaria, apartamento: r.apartamento } }
+                : {
+                    ...prev,
+                    contrato_faixa_etaria: false,
+                    valor_enfermaria_centavos: r.enfermaria[0]?.centavos ?? prev.valor_enfermaria_centavos,
+                    valor_apartamento_centavos: r.apartamento[0]?.centavos ?? prev.valor_apartamento_centavos,
+                  },
+            );
+            toast({ title: "Valores atuais carregados da operadora", description: `Reajuste de ${r.contrato.TX_REAJUSTE}% em ${dt}. Confira e clique em Salvar.` });
+          })
+          .catch(() => {}),
+      );
+    }
   };
 
   const getResponsavelName = (empresa: Empresa) => {
