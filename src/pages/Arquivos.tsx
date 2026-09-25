@@ -907,6 +907,16 @@ export default function Arquivos() {
                   )}
                 </div>
 
+                {/* Detalhes do documento */}
+                {!selectedArquivo.lanc && (
+                  <div className="border-t px-4 py-3 grid grid-cols-2 gap-x-4 gap-y-1.5 text-xs">
+                    <div><span className="text-muted-foreground">Enviado por: </span>{selectedArquivo.uploaded_by_nome || "—"}</div>
+                    <div><span className="text-muted-foreground">Data: </span>{selectedArquivo.created_at ? formatDateTime(selectedArquivo.created_at) : "—"}</div>
+                    <div><span className="text-muted-foreground">Competência: </span>{selectedArquivo.competencia ? compLabel(selectedArquivo.competencia) : "—"}</div>
+                    <div><span className="text-muted-foreground">Categoria: </span>{selectedArquivo.categoria || "—"}</div>
+                  </div>
+                )}
+
                 {/* Detalhes do lançamento retroativo */}
                 {selectedArquivo.lanc && (
                   <div className="border-t bg-purple-500/[0.05] px-4 py-3">

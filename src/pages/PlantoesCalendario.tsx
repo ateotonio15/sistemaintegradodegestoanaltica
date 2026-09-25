@@ -45,7 +45,7 @@ const STATUS_CHIP: Record<AgendamentoStatus, string> = {
 export default function PlantoesCalendario() {
   useAgendamentosRealtime();
   const { role } = useAuth();
-  const canEdit = !!role && ["admin", "comum", "executivo", "coordenadora", "administradoras"].includes(role as string);
+  const canEdit = !!role && ["admin", "comum", "executivo", "coordenadora"].includes(role as string);
 
   const [cursor, setCursor] = useState(() => startOfMonth(new Date()));
   const monthStart = startOfMonth(cursor);

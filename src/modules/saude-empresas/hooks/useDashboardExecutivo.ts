@@ -33,12 +33,12 @@ export function useDashboardExecutivo(filtros: DashboardFilters) {
 
       const [acoesRes, palestrasRes, triagensRes] = await Promise.all([
         sb.from("acoes_saude")
-          .select("id,empresa_id,data_acao,tem_pa,tem_glicemia,executiva_responsavel,empresa:empresas(nome)")
+          .select("id,empresa_id,data_acao,tem_pa,tem_glicemia,empresa:empresas(nome,responsavel_contrato)")
           .gte("data_acao", ini).lte("data_acao", fim),
         sb.from("palestras_saude")
           .select("id,empresa_id,data_palestra,tema,empresa:empresas(nome)")
           .gte("data_palestra", ini).lte("data_palestra", fim),
-        sb.from("triagens").select("id,acao_id,pa_sistolica,pa_diastolica,glicemia,imc,tabagista"),
+        sb.from("triagens").select("id,acao_id,pa_sistolica:pas_mmhg,pa_diastolica:pad_mmhg,glicemia:glicemia_mg_dl,imc"),
       ]);
 
       const acoes = acoesRes.data ?? [];

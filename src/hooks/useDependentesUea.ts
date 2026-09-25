@@ -1042,13 +1042,13 @@ export function useImportarVidasUea() {
               .from("uea_dependentes")
               .update({
                 nome_completo: dep.nome,
-                cpf: dep.cpf,
-                data_nascimento: dep.data_nascimento,
-                data_adesao: dep.data_adesao,
-                parentesco: dep.parentesco,
-                situacao: dep.situacao,
-                plano: dep.plano,
-                faixa_sequencia: faixaExistente?.sequencia ?? null,
+                cpf: dep.cpf ?? undefined,
+                data_nascimento: dep.data_nascimento ?? undefined,
+                data_adesao: dep.data_adesao ?? undefined,
+                parentesco: dep.parentesco ?? undefined,
+                situacao: dep.situacao ?? undefined,
+                plano: dep.plano ?? undefined,
+                faixa_sequencia: faixaExistente?.sequencia ?? undefined,
                 faixa_etaria: faixaExistente ? faixaLabel(faixaExistente) : undefined,
                 valor_mensal: dep.mensalidade ?? undefined,
               })
