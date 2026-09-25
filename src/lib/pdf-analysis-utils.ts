@@ -576,6 +576,46 @@ export async function analisarPdfFinanceiro(
   // Se "Não Retido", o ISSQN Retido não se aplica
   if (retencaoIssqn === "nao_retido") issqnRetidoVT = null;
 
+  // ---- DANFSe v2.0 (layout nacional novo) ----
+  // Rótulos e valores em linhas adjacentes, lidos por rótulo (não por posição
+  // no bloco). "Líquido + IBS/CBS" (muitas vezes zerado) NUNCA é o líquido.
+  const isV2 =
+    /valor\s+da\s+operacao/.test(tLines) &&
+    /total\s+das\s+retencoes\s*\(issqn/.test(tLines);
+  if (isV2) {
+    const m1 = (re: RegExp) => moneysOf(proximaLinhaApos(re) ?? "");
+    const vServ = m1(/valor\s+da\s+operacao[^\n]*/);
+    if (vServ.length) valorServico = vServ[0];
+    // Linha: Total Retenções | Valor Líquido | Total IBS/CBS | Líquido + IBS/CBS
+    const vRet = m1(/total\s+das\s+retencoes\s*\(issqn[^\n]*/);
+    const totalRet = vRet.length >= 1 ? vRet[0] : null;
+    if (vRet.length >= 2) valorLiquido = vRet[1];
+    // Linha: Benefício | Cálculo BM | Total Deduções | Desconto Incond.
+    const vDed = m1(/total\s+deducoes[^\n]*/);
+    if (vDed.length) totalDeducoes = vDed[0];
+    // Linha: BC ISSQN | Alíquota | Retenção | ISSQN Apurado
+    const linhaBc = proximaLinhaApos(/bc\s+issqn[^\n]*/) ?? "";
+    const vBc = moneysOf(linhaBc);
+    if (vBc.length >= 1) baseCalculo = vBc[0];
+    if (vBc.length >= 2) issqnDevido = vBc[vBc.length - 1];
+    const pct = linhaBc.match(/(\d+[,.]\d+)\s*%/);
+    if (pct) aliquota = parseValor(pct[1]);
+    if (/retido\s+pelo\s+tomador/.test(linhaBc)) retencaoIssqn = "retido";
+    else if (/nao\s+retido/.test(linhaBc)) retencaoIssqn = "nao_retido";
+    if (retencaoIssqn === "retido") {
+      issqnRetidoVT = issqnDevido ?? totalRet;
+    } else if (retencaoIssqn === "nao_retido") {
+      issqnRetidoVT = null;
+    } else if (valorServico != null && valorLiquido != null) {
+      const dif = Number((valorServico - valorLiquido).toFixed(2));
+      issqnRetidoVT = dif > 0.01 ? dif : null;
+    }
+    if (valorServico != null && valorLiquido != null && totalRet != null &&
+        Math.abs(valorServico - totalRet - valorLiquido) > 0.05) {
+      console.warn("[DANFSe v2] Serviço − Retenções ≠ Líquido", { valorServico, totalRet, valorLiquido });
+    }
+  }
+
   // ---- IBS / CBS (linha "INFORMAÇÕES COMPLEMENTARES") ----
   const ibsM = tLines.match(/\bibs\b[^|\n]*?\|\s*r\$\s*([\d.]+,\d{2})/i);
   const cbsM = tLines.match(/\bcbs\b[^|\n]*?\|\s*r\$\s*([\d.]+,\d{2})/i);
