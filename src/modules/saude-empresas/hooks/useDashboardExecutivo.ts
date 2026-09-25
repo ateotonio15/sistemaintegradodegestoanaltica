@@ -47,7 +47,7 @@ export function useDashboardExecutivo(filtros: DashboardFilters) {
       // filtros
       const acoesF = acoes.filter((a: any) =>
         (!filtros.empresaId || a.empresa_id === filtros.empresaId) &&
-        (!filtros.executiva || a.executiva_responsavel === filtros.executiva)
+        (!filtros.executiva || a.empresa?.responsavel_contrato === filtros.executiva)
       );
 
       const isJulho2026 = filtros.mes === 7 && filtros.ano === 2026;
