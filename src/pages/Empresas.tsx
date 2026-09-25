@@ -2368,6 +2368,12 @@ export default function Empresas() {
           onOpenChange={setRecalcVidasOpen}
         />
 
+        <AtualizarValoresOperadoraDialog
+          open={atualizarValoresOpen}
+          onOpenChange={setAtualizarValoresOpen}
+          empresas={empresas as any}
+        />
+
         <PrioridadeDialog
           open={prioridadeDialog.open}
           onOpenChange={(o) => setPrioridadeDialog((s) => ({ ...s, open: o }))}
