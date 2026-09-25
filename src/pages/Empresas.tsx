@@ -2189,14 +2189,23 @@ export default function Empresas() {
                             : null
                         }
                       />
-                      {(detailEmpresa as any).contrato_faixa_etaria && Array.isArray((detailEmpresa as any).faixas_etarias) && (detailEmpresa as any).faixas_etarias.length > 0 && (
-                        <DetailRow
-                          label="Faixas Etárias"
-                          value={(detailEmpresa as any).faixas_etarias
-                            .map((f: any) => `${f.idade_inicial ?? 0}–${f.idade_final ?? 999} anos: ${((f.valor ?? 0) / 100).toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}`)
-                            .join(" · ")}
-                        />
-                      )}
+                      {(detailEmpresa as any).contrato_faixa_etaria &&
+                        (() => {
+                          const fe = (detailEmpresa as any).faixas_etarias as { enfermaria?: { ini: number; fim: number; centavos: number }[]; apartamento?: { ini: number; fim: number; centavos: number }[] } | null;
+                          const fmtFaixas = (arr?: { ini: number; fim: number; centavos: number }[]) =>
+                            (Array.isArray(arr) ? arr : [])
+                              .filter((f) => f && (f.centavos ?? 0) > 0)
+                              .map((f) => `${f.ini}–${f.fim ?? 999} anos: ${((f.centavos ?? 0) / 100).toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}`)
+                              .join(" · ");
+                          const enf = fmtFaixas(fe?.enfermaria);
+                          const apt = fmtFaixas(fe?.apartamento);
+                          return (
+                            <>
+                              {enf && <DetailRow label="Faixas Etárias — Enfermaria" value={enf} />}
+                              {apt && <DetailRow label="Faixas Etárias — Apartamento" value={apt} />}
+                            </>
+                          );
+                        })()}
                     </dl>
                   </section>
 
