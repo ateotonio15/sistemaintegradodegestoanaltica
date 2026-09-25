@@ -440,18 +440,20 @@ export default function Movimentacoes() {
         );
         if (outras.length) {
           // Atualiza as movimentações irmãs já existentes...
-          const { error: errUpd } = await supabase
-            .from("movimentacoes")
-            .update({
-              data_envio_empresa: payload.data_envio_empresa,
-              data_retorno_empresa: payload.data_retorno_empresa,
-              data_envio_financeiro: payload.data_envio_financeiro,
-              observacoes: payload.observacoes,
-            })
-            .in("empresa_id", outras)
-            .eq("mes_referencia", values.mes_referencia)
-            .eq("periodo", values.periodo);
-          if (errUpd) throw errUpd;
+          // Só preenche campos vazios nos irmãos — nunca apaga nem sobrescreve dados já registrados.
+          const campos = ["data_envio_empresa", "data_retorno_empresa", "data_envio_financeiro", "observacoes"] as const;
+          for (const campo of campos) {
+            const valor = (payload as any)[campo];
+            if (valor === null || valor === undefined || valor === "") continue;
+            const { error: errUpd } = await supabase
+              .from("movimentacoes")
+              .update({ [campo]: valor } as any)
+              .in("empresa_id", outras)
+              .eq("mes_referencia", values.mes_referencia)
+              .eq("periodo", values.periodo)
+              .is(campo, null);
+            if (errUpd) throw errUpd;
+          }
 
 
           // ...e cria as que ainda não existem na competência/período,
