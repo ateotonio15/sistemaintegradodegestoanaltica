@@ -74,20 +74,20 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Vendas: só pode acessar anexos de implantações criadas pelo próprio usuário
-    if (roleSet.has("vendas") && !roleSet.has("admin")
-        && !roleSet.has("comum") && !roleSet.has("diretora") && !roleSet.has("financeiro")) {
-      const { data: owned, error: ownErr } = await userClient
-        .from("implantacao_anexos")
-        .select("implantacao_id, implantacoes_contratos!inner(created_by)")
-        .eq("storage_path", storage_path)
-        .limit(1)
-        .maybeSingle();
-      if (ownErr || !owned || (owned as any).implantacoes_contratos?.created_by !== userId) {
-        return new Response(JSON.stringify({ error: "Permissão negada" }), {
-          status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
-      }
+    // Todo usuário só pode acessar anexos que ele próprio consegue ler (RLS)
+    const { data: owned, error: ownErr } = await userClient
+      .from("implantacao_anexos")
+      .select("id, implantacao_id, implantacoes_contratos!inner(created_by)")
+      .eq("storage_path", storage_path)
+      .limit(1)
+      .maybeSingle();
+    const somenteVendas = roleSet.has("vendas") && !roleSet.has("admin")
+      && !roleSet.has("comum") && !roleSet.has("diretora") && !roleSet.has("financeiro");
+    if (ownErr || !owned
+        || (somenteVendas && (owned as any).implantacoes_contratos?.created_by !== userId)) {
+      return new Response(JSON.stringify({ error: "Permissão negada" }), {
+        status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
     }
 
 

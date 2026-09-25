@@ -53,12 +53,11 @@ serve(async (req) => {
     if (!RESEND_API_KEY) throw new Error("RESEND_API_KEY não configurada");
 
     const { triagem_id } = await req.json();
-    if (!triagem_id) throw new Error("triagem_id obrigatório");
+    if (!triagem_id || typeof triagem_id !== "string") throw new Error("triagem_id obrigatório");
 
-    const supabase = createClient(
-      Deno.env.get("SUPABASE_URL")!,
-      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
-    );
+    // Busca com o cliente do usuário: RLS garante que ele só leia triagens permitidas
+    const supabase = userClient;
+
 
     const { data: t, error } = await supabase
       .from("triagens")
