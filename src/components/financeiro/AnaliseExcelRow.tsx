@@ -139,50 +139,50 @@ export function AnaliseExcelRow({ colSpan, isLoading, resultados, comparacoes, o
     setAnaliseCompletaOpen(true);
   };
 
+  // Botões de ação na mesma linha do cabeçalho do bloco (alinhados à direita),
+  // em vez de ficarem flutuando sobre o conteúdo.
+  const botoesAcao = !isLoading && (onReanalisar || (onGerarHistorico && temResultados) || contexto) ? (
+    <div className="flex items-center gap-2 shrink-0">
+      {contexto && (
+        <Button
+          variant="default"
+          size="sm"
+          onClick={handleAnaliseCompleta}
+          className="h-7 gap-1.5 text-xs"
+          title="Abrir análise completa em tela cheia"
+        >
+          <Maximize2 className="h-3 w-3" />
+          Análise Completa
+        </Button>
+      )}
+      {onGerarHistorico && temResultados && (
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={onGerarHistorico}
+          className="h-7 gap-1.5 text-xs"
+          title="Gerar histórico financeiro a partir da análise"
+        >
+          <FileText className="h-3 w-3" />
+          Gerar Histórico
+        </Button>
+      )}
+      {onReanalisar && (
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={onReanalisar}
+          className="h-7 gap-1.5 text-xs"
+          title="Forçar nova análise dos anexos (ignora cache)"
+        >
+          <RefreshCw className="h-3 w-3" />
+          Reanalisar
+        </Button>
+      )}
+    </div>
+  ) : null;
+
   return (
-    <TableRow className="bg-muted/30 border-l-2 border-l-primary hover:bg-muted/30">
-      <TableCell colSpan={colSpan} className="p-0">
-        <div className="px-6 py-4 relative">
-          {!isLoading && (onReanalisar || (onGerarHistorico && temResultados) || contexto) && (
-            <div className="absolute top-3 right-4 flex gap-2">
-              {contexto && (
-                <Button
-                  variant="default"
-                  size="sm"
-                  onClick={handleAnaliseCompleta}
-                  className="h-7 gap-1.5 text-xs"
-                  title="Abrir análise completa em tela cheia"
-                >
-                  <Maximize2 className="h-3 w-3" />
-                  Análise Completa
-                </Button>
-              )}
-              {onGerarHistorico && temResultados && (
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={onGerarHistorico}
-                  className="h-7 gap-1.5 text-xs"
-                  title="Gerar histórico financeiro a partir da análise"
-                >
-                  <FileText className="h-3 w-3" />
-                  Gerar Histórico
-                </Button>
-              )}
-              {onReanalisar && (
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={onReanalisar}
-                  className="h-7 gap-1.5 text-xs"
-                  title="Forçar nova análise dos anexos (ignora cache)"
-                >
-                  <RefreshCw className="h-3 w-3" />
-                  Reanalisar
-                </Button>
-              )}
-            </div>
-          )}
           {isLoading ? (
             <div className="flex items-center justify-center gap-2 py-6 text-sm text-muted-foreground">
               <Loader2 className="h-4 w-4 animate-spin" />
