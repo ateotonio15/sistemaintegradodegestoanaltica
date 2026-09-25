@@ -1573,7 +1573,7 @@ export default function Financeiro() {
         .eq("mes_referencia", mes);
       if (exErr) throw exErr;
 
-      const keyOf = (r: any) => `${r.empresa_id}|${r.periodo}|${r.tipo_lancamento ?? "normal"}`;
+      const keyOf = (r: any) => `${r.empresa_id}|${r.tipo_lancamento ?? "normal"}`; // uma linha por contrato+competência+tipo (índice único)
       const existentesMap = new Map(
         (existentes || []).map((r: any) => [keyOf(r), r]),
       );

@@ -78,7 +78,7 @@ export async function gerarPrimeiraMensalidade(mes: string = mesAtual()): Promis
 
   const movKeys = new Set((movsExist ?? []).map((m: any) => `${m.empresa_id}|${m.periodo}`));
   const finKeys = new Set(
-    (finExist ?? []).map((f: any) => `${f.empresa_id}|${f.periodo}|${f.tipo_lancamento ?? "normal"}`),
+    (finExist ?? []).map((f: any) => `${f.empresa_id}|${f.tipo_lancamento ?? "normal"}`),
   );
 
   const novasMovs: any[] = [];
@@ -105,7 +105,7 @@ export async function gerarPrimeiraMensalidade(mes: string = mesAtual()): Promis
 
     if (e.nao_faturado_financeiro === true) continue;
 
-    if (!finKeys.has(`${e.id}|${periodo}|primeira_mensalidade`)) {
+    if (!finKeys.has(`${e.id}|primeira_mensalidade`)) {
       novasFin.push({
         empresa_id: e.id,
         mes_referencia: mes,
