@@ -188,13 +188,9 @@ export default function Reajustes() {
     return map;
   }, [reajustes]);
 
-  const empresasVisiveis = useMemo(() => {
-    if (!isComum) return empresas;
-    if (!user?.id) return [];
-    return empresas.filter(
-      (e) => e.responsavel_user_id === user.id || minhasEmpresasSet.has(e.id)
-    );
-  }, [empresas, isComum, user?.id, minhasEmpresasSet]);
+  // Cadastro (comum) passa a visualizar todos os contratos; a permissão de
+  // edição continua restrita aos contratos sob sua responsabilidade (linha 343).
+  const empresasVisiveis = useMemo(() => empresas, [empresas]);
 
   const rows = useMemo(() => {
     const ano = parseInt(filterAno, 10);
