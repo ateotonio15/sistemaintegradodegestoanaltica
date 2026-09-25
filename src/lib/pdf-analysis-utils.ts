@@ -587,9 +587,19 @@ export async function analisarPdfFinanceiro(
     const vServ = m1(/valor\s+da\s+operacao[^\n]*/);
     if (vServ.length) valorServico = vServ[0];
     // Linha: Total Retenções | Valor Líquido | Total IBS/CBS | Líquido + IBS/CBS
-    const vRet = m1(/total\s+das\s+retencoes\s*\(issqn[^\n]*/);
-    const totalRet = vRet.length >= 1 ? vRet[0] : null;
-    if (vRet.length >= 2) valorLiquido = vRet[1];
+    // Células vazias aparecem como "-": precisam ocupar a posição da coluna.
+    const linhaRet = proximaLinhaApos(/total\s+das\s+retencoes\s*\(issqn[^\n]*/) ?? "";
+    const celulas: Array<number | null> = [];
+    {
+      const reCel = /r\$\s*([\d.]+,\d{2})|(?:^|\s)(\d{1,3}(?:\.\d{3})*,\d{2})(?=\s|$)|(?:^|\s)-(?=\s|$)/gi;
+      let mc: RegExpExecArray | null;
+      while ((mc = reCel.exec(linhaRet)) !== null) {
+        const raw = mc[1] ?? mc[2];
+        celulas.push(raw ? parseValor(raw) : null);
+      }
+    }
+    const totalRet = celulas.length >= 1 ? celulas[0] ?? 0 : null;
+    if (celulas.length >= 2 && celulas[1] != null) valorLiquido = celulas[1];
     // Linha: Benefício | Cálculo BM | Total Deduções | Desconto Incond.
     const vDed = m1(/total\s+deducoes[^\n]*/);
     if (vDed.length) totalDeducoes = vDed[0];
