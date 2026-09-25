@@ -193,6 +193,7 @@ export function AnaliseExcelRow({ colSpan, isLoading, resultados, comparacoes, o
             </div>
           ) : !resultados || resultados.length === 0 ? (
             <div className="flex flex-col items-center justify-center gap-2 py-6 text-sm text-muted-foreground">
+              {botoesAcao && <div className="w-full flex justify-end">{botoesAcao}</div>}
               <FileX className="h-5 w-5" />
               Nenhum Excel anexado para análise.
             </div>
