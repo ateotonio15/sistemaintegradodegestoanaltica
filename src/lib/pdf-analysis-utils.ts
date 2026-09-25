@@ -73,12 +73,14 @@ export function extrairTomador(textoOriginal: string): {
 } {
   const texto = textoOriginal.replace(/\u00a0/g, " ");
   // Localiza início do bloco TOMADOR (case-insensitive, com/sem acento)
-  const reIni = /tomador\s*d[oa]?\s*servi[çc]o/i;
+  // Aceita o layout antigo ("TOMADOR DO SERVIÇO") e o layout nacional da
+  // NFS-e ("TOMADOR / ADQUIRENTE").
+  const reIni = /tomador\s*(?:d[oa]?\s*servi[çc]o|\/\s*adquirente)/i;
   const mIni = texto.match(reIni);
   if (!mIni) return { cnpj: null, nome: null };
   const idx = (mIni.index ?? 0) + mIni[0].length;
   // Limita o escaneamento até o próximo grande bloco
-  const reFim = /(intermedi[aá]rio|servi[çc]o\s*prestado|tributa[çc][aã]o)/i;
+  const reFim = /(destinat[aá]rio\s*da\s*opera|intermedi[aá]rio|servi[çc]o\s*prestado|tributa[çc][aã]o)/i;
   const restante = texto.slice(idx);
   const mFim = restante.match(reFim);
   const trecho = mFim ? restante.slice(0, mFim.index) : restante.slice(0, 1500);
