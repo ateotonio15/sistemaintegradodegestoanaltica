@@ -291,6 +291,9 @@ export function AnaliseExcelRow({ colSpan, isLoading, resultados, comparacoes, o
                     mensalidade: null,
                     total: r.exclusoes.total,
                     destaqueNegativo: true,
+                    validacao: cmp?.exclusoes
+                      ? { beneficiarios: null, mensalidade: null, total: cmp.exclusoes.total }
+                      : null,
                   });
                 }
                 if (r.devolucoes && (r.devolucoes.quantidade > 0 || r.devolucoes.total !== 0)) {
@@ -300,6 +303,9 @@ export function AnaliseExcelRow({ colSpan, isLoading, resultados, comparacoes, o
                     mensalidade: null,
                     total: r.devolucoes.total,
                     destaqueNegativo: true,
+                    validacao: cmp?.devolucoes
+                      ? { beneficiarios: null, mensalidade: null, total: cmp.devolucoes.total }
+                      : null,
                   });
                 }
                 if (r.permuta && (r.permuta.quantidade > 0 || r.permuta.total !== 0)) {
