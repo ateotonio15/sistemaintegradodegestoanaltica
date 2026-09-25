@@ -60,7 +60,7 @@ import {
   origemDoLancamento,
 } from "@/lib/retroativos-espelho";
 
-const CATEGORIAS = ["Mensalidade", "Reajuste", "Implantação", "Retroativo", "Fluxo"] as const;
+const CATEGORIAS = ["Mensalidade", "Reajuste", "Implantação", "Retroativo", "Retorno Reaj.", "Fluxo"] as const;
 type Categoria = (typeof CATEGORIAS)[number];
 
 function categoriaChipClass(cat: string): string {
@@ -73,6 +73,8 @@ function categoriaChipClass(cat: string): string {
       return "bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border-emerald-500/30";
     case "Retroativo":
       return "bg-purple-500/15 text-purple-700 dark:text-purple-300 border-purple-500/30";
+    case "Retorno Reaj.":
+      return "bg-rose-500/15 text-rose-700 dark:text-rose-300 border-rose-500/30";
     case "Fluxo":
       return "bg-cyan-500/15 text-cyan-700 dark:text-cyan-300 border-cyan-500/30";
     default:
