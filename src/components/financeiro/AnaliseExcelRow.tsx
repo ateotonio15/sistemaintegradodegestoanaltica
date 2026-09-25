@@ -183,6 +183,9 @@ export function AnaliseExcelRow({ colSpan, isLoading, resultados, comparacoes, o
   ) : null;
 
   return (
+    <TableRow className="bg-muted/30 border-l-2 border-l-primary hover:bg-muted/30">
+      <TableCell colSpan={colSpan} className="p-0">
+        <div className="px-6 py-4">
           {isLoading ? (
             <div className="flex items-center justify-center gap-2 py-6 text-sm text-muted-foreground">
               <Loader2 className="h-4 w-4 animate-spin" />
