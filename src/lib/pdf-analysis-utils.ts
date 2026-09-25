@@ -101,6 +101,8 @@ export function extrairTomador(textoOriginal: string): {
       .replace(/\s+\d{2}\.\d{3}\.\d{3}\/\d{4}-\d{2}.*$/, "")
       // corta no início do endereço (Rua/Av./Travessa/Alameda/Estrada/Rodovia/Praça/Quadra)
       .replace(/\s+(rua|avenida|av\.?|travessa|trav\.?|alameda|estrada|rodovia|pra[çc]a|quadra|conjunto|bloco)\b.*$/i, "")
+      // corta em "Município / UF" colado na mesma linha (layout nacional)
+      .replace(/\s+[A-Za-zÀ-ú. ]+\s\/\s[A-Z]{2}\b.*$/, "")
       // corta em CEP encontrado no meio
       .replace(/\s+\d{5}-?\d{3}\b.*$/, "")
       // corta em rótulos colados na mesma linha
