@@ -26,6 +26,7 @@ import { Switch } from "@/components/ui/switch";
 import { SuspensaoDialog } from "@/components/empresas/SuspensaoDialog";
 import { ValoresFaixaEtariaDialog } from "@/components/empresas/ValoresFaixaEtariaDialog";
 import { ImportarValoresIniciaisDialog } from "@/components/empresas/ImportarValoresIniciaisDialog";
+import { AtualizarValoresOperadoraDialog } from "@/components/empresas/AtualizarValoresOperadoraDialog";
 import { RecalcularVidasDialog } from "@/components/empresas/RecalcularVidasDialog";
 import ExcelJS from "exceljs";
 import { parseAnexo1 } from "@/lib/anexo1-parser";
@@ -121,6 +122,7 @@ export default function Empresas() {
   const [valoresEmpresa, setValoresEmpresa] = useState<Empresa | null>(null);
   const [importValoresOpen, setImportValoresOpen] = useState(false);
   const [recalcVidasOpen, setRecalcVidasOpen] = useState(false);
+  const [atualizarValoresOpen, setAtualizarValoresOpen] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const anexoInputRef = useRef<HTMLInputElement>(null);
   const [importingAnexo, setImportingAnexo] = useState(false);
@@ -969,6 +971,11 @@ export default function Empresas() {
                   {canFullEdit && isAdmin && (
                     <DropdownMenuItem onClick={() => setImportValoresOpen(true)}>
                       <FileSpreadsheet className="mr-2 h-4 w-4" />Importar Valores
+                    </DropdownMenuItem>
+                  )}
+                  {canFullEdit && (
+                    <DropdownMenuItem onClick={() => setAtualizarValoresOpen(true)}>
+                      <RefreshCw className="mr-2 h-4 w-4" />Atualizar valores da operadora
                     </DropdownMenuItem>
                   )}
                   {canFullEdit && isAdmin && (
@@ -2359,6 +2366,12 @@ export default function Empresas() {
         <RecalcularVidasDialog
           open={recalcVidasOpen}
           onOpenChange={setRecalcVidasOpen}
+        />
+
+        <AtualizarValoresOperadoraDialog
+          open={atualizarValoresOpen}
+          onOpenChange={setAtualizarValoresOpen}
+          empresas={empresas as any}
         />
 
         <PrioridadeDialog
