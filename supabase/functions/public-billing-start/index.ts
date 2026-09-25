@@ -11,12 +11,10 @@ Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
   if (req.method !== "POST") return json({ ok: false, error: "Method not allowed" }, 405);
 
-  // Rota pública: não exige token de autenticação.
-  // Se a chave ORBIT_BILLING_API_KEY estiver configurada, ela continua sendo
-  // aceita (mas não é obrigatória).
+  // Integração servidor-a-servidor: a chave ORBIT_BILLING_API_KEY é obrigatória.
   const apiKey = Deno.env.get("ORBIT_BILLING_API_KEY");
   const sent = req.headers.get("x-api-key") || "";
-  if (apiKey && sent && sent !== apiKey) {
+  if (!apiKey || !sent || sent !== apiKey) {
     return json({ ok: false, error: "Unauthorized" }, 401);
   }
 
@@ -86,14 +84,25 @@ Deno.serve(async (req) => {
     // ---------- usuário ----------
     let perfil: any = null;
     if (user) {
-      const u = String(user).trim();
-      const { data } = await admin
-        .from("profiles")
-        .select("user_id,username,display_name")
-        .or(`username.ilike.${u},display_name.ilike.${u}`)
-        .limit(1)
-        .maybeSingle();
-      perfil = data;
+      const u = String(user).trim().slice(0, 120);
+      if (u) {
+        const { data: porUsername } = await admin
+          .from("profiles")
+          .select("user_id,username,display_name")
+          .eq("username", u)
+          .limit(1)
+          .maybeSingle();
+        perfil = porUsername;
+        if (!perfil) {
+          const { data: porNome } = await admin
+            .from("profiles")
+            .select("user_id,username,display_name")
+            .eq("display_name", u)
+            .limit(1)
+            .maybeSingle();
+          perfil = porNome;
+        }
+      }
     }
     const nomeUsuario = perfil?.display_name || perfil?.username || String(user || "Orbit");
 
