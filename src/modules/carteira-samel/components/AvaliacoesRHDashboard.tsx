@@ -77,9 +77,9 @@ export function AvaliacoesRHDashboard({ form, tipo = "rh" }: Props) {
       const { data } = await db
         .from("cs_avaliacao_respostas")
         .select("id, nota_media, comentario, nome_empresa, nome_executiva, respostas, created_at")
-        .eq("formulario_id", form.id)
         .eq("tipo", tipo)
-        .order("created_at", { ascending: false });
+        .order("created_at", { ascending: false })
+        .limit(5000);
       setTodasRespostas(data || []);
       setLoading(false);
     })();
