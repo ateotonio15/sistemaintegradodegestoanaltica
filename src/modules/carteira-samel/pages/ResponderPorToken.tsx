@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { CheckCircle2, Loader2, AlertTriangle } from "lucide-react";
 import { RatingScale } from "../components/RatingScale";
 import { toast } from "sonner";
+import { empresaSemExecutivaUnica } from "@/lib/empresa-executiva";
 
 const db = supabase as any;
 
@@ -49,6 +50,7 @@ export default function ResponderPorToken() {
 
   const enviar = async () => {
     if (!form || !envio) return;
+    const permiteInformarExecutiva = empresaSemExecutivaUnica(envio.empresa_nome);
     for (const p of form.perguntas) {
       if (p.obrigatoria && (respostas[p.id] == null || respostas[p.id] === "")) {
         toast.error(`Responda: ${p.titulo}`);
@@ -67,7 +69,7 @@ export default function ResponderPorToken() {
       p_respostas: respostas,
       p_comentario: comentario.trim() || null,
       p_nota_media: notaMedia,
-      p_executiva_informada: envio.executiva_nome ? null : (execInformada.trim() || null),
+      p_executiva_informada: permiteInformarExecutiva ? (execInformada.trim().toUpperCase() || null) : null,
     });
 
     if (errResp) {
@@ -122,6 +124,8 @@ export default function ResponderPorToken() {
 
   if (!form || !envio) return null;
 
+  const permiteInformarExecutiva = empresaSemExecutivaUnica(envio.empresa_nome);
+
   return (
     <div className="min-h-screen bg-background py-8 px-4">
       <div className="max-w-2xl mx-auto space-y-4">
@@ -137,14 +141,14 @@ export default function ResponderPorToken() {
               <Input value={envio.empresa_nome || ""} readOnly className="mt-1 bg-muted/40" />
             </div>
             <div>
-              {envio.executiva_nome ? (
+              {!permiteInformarExecutiva && envio.executiva_nome ? (
                 <>
                   <label className="text-sm font-medium">Executiva avaliada</label>
                   <Input value={envio.executiva_nome} readOnly className="mt-1 bg-muted/40" />
                 </>
               ) : (
                 <>
-                  <label className="text-sm font-medium">Executiva que atendeu (opcional)</label>
+                  <label className="text-sm font-medium">Executiva avaliada</label>
                   <Input value={execInformada} onChange={(e) => setExecInformada(e.target.value.toUpperCase())} maxLength={120} placeholder="NOME DA EXECUTIVA..." className="mt-1 uppercase" />
                 </>
               )}
