@@ -8,7 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { CheckCircle2, CalendarDays, Clock, MapPin, AlertCircle, Loader2 } from "lucide-react";
-import { cpfValido, fmtDataBR, fmtHora, maskCpf, maskTel } from "../hooks/useColeta";
+import { cpfValido, fmtDataBR, fmtHora, maskCpf } from "../hooks/useColeta";
 
 const sb = supabase as any;
 
@@ -28,7 +28,7 @@ export default function InscricaoColeta() {
       return data as any;
     },
   });
-  const [f, setF] = useState({ nome: "", cpf: "", nasc: "", tel: "", setor: "", ok: false });
+  const [f, setF] = useState({ nome: "", cpf: "", setor: "", ok: false });
   const [erro, setErro] = useState<string | null>(null);
   const [enviando, setEnviando] = useState(false);
   const [sucesso, setSucesso] = useState(false);
@@ -38,13 +38,11 @@ export default function InscricaoColeta() {
     setErro(null);
     if (f.nome.trim().length < 3) return setErro("Informe o nome completo.");
     if (!cpfValido(f.cpf)) return setErro("CPF inválido.");
-    if (!f.nasc) return setErro("Informe a data de nascimento.");
-    if (f.tel.replace(/\D/g, "").length < 10) return setErro("Telefone inválido.");
     if (!f.ok) return setErro("É necessário aceitar o termo de consentimento.");
     setEnviando(true);
     const { data, error } = await sb.rpc("inscrever_coleta", {
-      p_token: token, p_nome: f.nome.slice(0, 150), p_cpf: f.cpf, p_nascimento: f.nasc,
-      p_telefone: f.tel, p_setor: f.setor.slice(0, 100), p_consentimento: f.ok,
+      p_token: token, p_nome: f.nome.slice(0, 150), p_cpf: f.cpf, p_nascimento: null,
+      p_telefone: null, p_setor: f.setor.slice(0, 100), p_consentimento: f.ok,
     });
     setEnviando(false);
     if (error) return setErro("Não foi possível enviar. Tente novamente.");
@@ -90,8 +88,6 @@ export default function InscricaoColeta() {
               <form onSubmit={enviar} className="space-y-3">
                 <div><Label>Nome completo *</Label><Input value={f.nome} maxLength={150} onChange={(e) => setF({ ...f, nome: e.target.value })} /></div>
                 <div><Label>CPF *</Label><Input inputMode="numeric" value={f.cpf} onChange={(e) => setF({ ...f, cpf: maskCpf(e.target.value) })} placeholder="000.000.000-00" /></div>
-                <div><Label>Data de nascimento *</Label><Input type="date" value={f.nasc} onChange={(e) => setF({ ...f, nasc: e.target.value })} /></div>
-                <div><Label>Telefone / WhatsApp *</Label><Input inputMode="tel" value={f.tel} onChange={(e) => setF({ ...f, tel: maskTel(e.target.value) })} placeholder="(92) 90000-0000" /></div>
                 <div><Label>Setor / Matrícula</Label><Input value={f.setor} maxLength={100} onChange={(e) => setF({ ...f, setor: e.target.value })} /></div>
                 <label className="flex gap-2 items-start text-xs text-muted-foreground">
                   <Checkbox checked={f.ok} onCheckedChange={(v) => setF({ ...f, ok: !!v })} className="mt-0.5" />
