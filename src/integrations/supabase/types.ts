@@ -2026,6 +2026,7 @@ export type Database = {
           regra_prorrogacao: string | null
           responsavel_contrato: string | null
           responsavel_user_id: string | null
+          sem_executiva_vinculada: boolean
           status_empresa: string | null
           status_implantacao: string
           telefone_empresa: string | null
@@ -2088,6 +2089,7 @@ export type Database = {
           regra_prorrogacao?: string | null
           responsavel_contrato?: string | null
           responsavel_user_id?: string | null
+          sem_executiva_vinculada?: boolean
           status_empresa?: string | null
           status_implantacao?: string
           telefone_empresa?: string | null
@@ -2150,6 +2152,7 @@ export type Database = {
           regra_prorrogacao?: string | null
           responsavel_contrato?: string | null
           responsavel_user_id?: string | null
+          sem_executiva_vinculada?: boolean
           status_empresa?: string | null
           status_implantacao?: string
           telefone_empresa?: string | null
@@ -5749,6 +5752,10 @@ export type Database = {
         Args: { _empresa_id: string; _user_id: string }
         Returns: boolean
       }
+      empresa_sem_executiva_unica: {
+        Args: { _empresa_id: string }
+        Returns: boolean
+      }
       encaminhar_contrato_processo: {
         Args: {
           p_observacao?: string
@@ -5941,6 +5948,7 @@ export type Database = {
       responder_avaliacao_por_token: {
         Args: {
           p_comentario: string
+          p_executiva_informada?: string
           p_nota_media: number
           p_respostas: Json
           p_token: string

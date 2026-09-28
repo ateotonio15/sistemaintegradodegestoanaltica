@@ -16,6 +16,7 @@ export default function ResponderPorToken() {
   const [envio, setEnvio] = useState<any>(null);
   const [form, setForm] = useState<any>(null);
   const [comentario, setComentario] = useState("");
+  const [execInformada, setExecInformada] = useState("");
   const [respostas, setRespostas] = useState<Record<string, any>>({});
   const [enviando, setEnviando] = useState(false);
   const [enviado, setEnviado] = useState(false);
@@ -66,6 +67,7 @@ export default function ResponderPorToken() {
       p_respostas: respostas,
       p_comentario: comentario.trim() || null,
       p_nota_media: notaMedia,
+      p_executiva_informada: envio.executiva_nome ? null : (execInformada.trim() || null),
     });
 
     if (errResp) {
@@ -135,8 +137,17 @@ export default function ResponderPorToken() {
               <Input value={envio.empresa_nome || ""} readOnly className="mt-1 bg-muted/40" />
             </div>
             <div>
-              <label className="text-sm font-medium">Executiva avaliada</label>
-              <Input value={envio.executiva_nome || "—"} readOnly className="mt-1 bg-muted/40" />
+              {envio.executiva_nome ? (
+                <>
+                  <label className="text-sm font-medium">Executiva avaliada</label>
+                  <Input value={envio.executiva_nome} readOnly className="mt-1 bg-muted/40" />
+                </>
+              ) : (
+                <>
+                  <label className="text-sm font-medium">Executiva que atendeu (opcional)</label>
+                  <Input value={execInformada} onChange={(e) => setExecInformada(e.target.value)} maxLength={120} placeholder="Nome da executiva..." className="mt-1" />
+                </>
+              )}
             </div>
           </div>
 

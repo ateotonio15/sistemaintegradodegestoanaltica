@@ -17,6 +17,7 @@ import { toast } from "sonner";
 import { formatDateBR } from "@/lib/date-utils";
 import { QRCodeCanvas } from "qrcode.react";
 import { getPublicBaseUrl } from "@/lib/public-url";
+import { empresaSemExecutivaUnica, ROTULO_VARIAS_EXECUTIVAS } from "@/lib/empresa-executiva";
 
 const db = supabase as any;
 
@@ -43,7 +44,7 @@ export function EnviosAvaliacaoTab({ form }: Props) {
       const hoje = new Date().toISOString().slice(0, 10);
       const { data, error } = await supabase
         .from("empresas")
-        .select("id, nome, email_empresa, responsavel_user_id, responsavel_contrato, executiva_user_id")
+        .select("id, nome, email_empresa, responsavel_user_id, responsavel_contrato, executiva_user_id, sem_executiva_vinculada")
         .eq("status_empresa", "Ativa")
         .eq("tipo_contrato", "EMPRESARIAL")
         .lte("data_implantacao", hoje)
@@ -57,10 +58,15 @@ export function EnviosAvaliacaoTab({ form }: Props) {
         (profs ?? []).forEach((p: any) => nameMap.set(p.user_id, p.display_name || ""));
       }
 
-      return (data ?? []).map((e: any) => ({
-        ...e,
-        executiva_nome: e.executiva_user_id ? (nameMap.get(e.executiva_user_id) || "—") : "—",
-      }));
+      return (data ?? []).map((e: any) => {
+        const semExec = empresaSemExecutivaUnica(e.nome, e.sem_executiva_vinculada);
+        return {
+          ...e,
+          sem_executiva: semExec,
+          executiva_user_id: semExec ? null : e.executiva_user_id,
+          executiva_nome: semExec ? null : (e.executiva_user_id ? (nameMap.get(e.executiva_user_id) || "—") : "—"),
+        };
+      });
     },
   });
 
@@ -215,7 +221,7 @@ export function EnviosAvaliacaoTab({ form }: Props) {
                   return (
                     <tr key={emp.id} className="border-t hover:bg-muted/20">
                       <td className="px-3 py-2 font-medium">{emp.nome}</td>
-                      <td className="px-3 py-2 text-muted-foreground">{emp.executiva_nome || "—"}</td>
+                      <td className="px-3 py-2 text-muted-foreground">{emp.sem_executiva ? <span className="italic opacity-70">{ROTULO_VARIAS_EXECUTIVAS}</span> : (emp.executiva_nome || "—")}</td>
                       <td className="px-3 py-2">
                         {!env ? (
                           <Badge variant="outline">Não enviado</Badge>
@@ -265,6 +271,9 @@ export function EnviosAvaliacaoTab({ form }: Props) {
             <DialogDescription>
               {qrModal.empresa?.nome && (
                 <span className="block font-medium text-foreground">{qrModal.empresa.nome}</span>
+              )}
+              {qrModal.empresa?.sem_executiva && (
+                <span className="block text-xs">{ROTULO_VARIAS_EXECUTIVAS}</span>
               )}
               {qrModal.empresa?.executiva_nome && (
                 <span className="block text-xs">Executiva: {qrModal.empresa.executiva_nome}</span>
