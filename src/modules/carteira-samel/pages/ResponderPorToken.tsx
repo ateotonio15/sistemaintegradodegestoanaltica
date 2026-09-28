@@ -145,7 +145,7 @@ export default function ResponderPorToken() {
               ) : (
                 <>
                   <label className="text-sm font-medium">Executiva que atendeu (opcional)</label>
-                  <Input value={execInformada} onChange={(e) => setExecInformada(e.target.value)} maxLength={120} placeholder="Nome da executiva..." className="mt-1" />
+                  <Input value={execInformada} onChange={(e) => setExecInformada(e.target.value.toUpperCase())} maxLength={120} placeholder="NOME DA EXECUTIVA..." className="mt-1 uppercase" />
                 </>
               )}
             </div>
