@@ -65,6 +65,7 @@ const allNavItems = [
   { to: "/saude-empresas/visao-geral", label: "Visão Geral · Saúde", icon: Activity },
   { to: "/saude-empresas/preventivas", label: "Calendário de Ações", icon: CalendarClock },
   { to: "/saude-empresas/palestras", label: "Calendário Palestras", icon: Mic },
+  { to: "/saude-empresas/coleta", label: "Ações de Coleta", icon: CalendarClock },
   { to: "/saude-empresas/pesquisas", label: "Pesquisa de Satisfação", icon: Star },
 ];
 
@@ -186,7 +187,7 @@ export function AppLayout({ children }: { children?: React.ReactNode }) {
         return allowed.includes(item.to);
       }
       if (isEnfermeira) {
-        const saude = ["/saude-empresas", "/saude-empresas/visao-geral", "/saude-empresas/preventivas", "/saude-empresas/palestras", "/saude-empresas/pesquisas"];
+        const saude = ["/saude-empresas", "/saude-empresas/visao-geral", "/saude-empresas/preventivas", "/saude-empresas/palestras", "/saude-empresas/coleta", "/saude-empresas/pesquisas"];
         const allowed = role === "tec_enfermagem" ? saude : ["/uber", "/uber/dashboard", ...saude];
         return allowed.includes(item.to);
       }
