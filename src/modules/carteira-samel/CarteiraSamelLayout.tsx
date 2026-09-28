@@ -8,7 +8,8 @@ const tabs = [
   { to: "/carteira-samel/carteira", label: "Carteira", icon: Users },
   { to: "/carteira-samel/sinistralidade", label: "Sinistralidade", icon: BarChart3 },
   { to: "/carteira-samel/score", label: "Score de Risco", icon: ShieldAlert },
-  { to: "/carteira-samel/avaliacoes/rh", label: "Avaliações RH", icon: ClipboardList, Stethoscope },
+  { to: "/carteira-samel/avaliacoes/rh", label: "Avaliações RH", icon: ClipboardList },
+  { to: "/carteira-samel/avaliacoes/plantao", label: "Avaliações Plantão", icon: Stethoscope },
 ];
 
 export default function CarteiraSamelLayout() {
