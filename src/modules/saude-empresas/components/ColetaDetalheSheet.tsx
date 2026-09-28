@@ -8,7 +8,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
-import { Copy, Download, Mail, MessageCircle, CheckCircle2, UserPlus, FileSpreadsheet, Pencil, Trash2, Flag } from "lucide-react";
+import { Copy, Download, CheckCircle2, UserPlus, FileSpreadsheet, Pencil, Trash2, Flag } from "lucide-react";
 import { toast } from "sonner";
 import { getPublicBaseUrl } from "@/lib/public-url";
 import {
