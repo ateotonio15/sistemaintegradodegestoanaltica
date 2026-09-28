@@ -155,6 +155,13 @@
       "when": 1790612331838,
       "tag": "0021_coleta_inscricao_campos_ocultos_compativeis",
       "breakpoints": true
+    },
+    {
+      "idx": 22,
+      "version": "7",
+      "when": 1790614789133,
+      "tag": "0022_vw_avaliacoes_unificadas",
+      "breakpoints": true
     }
   ]
 }
