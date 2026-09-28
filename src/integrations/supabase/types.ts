@@ -955,6 +955,7 @@ export type Database = {
       }
       coleta_agendamentos: {
         Row: {
+          acao_preventiva_id: string | null
           created_at: string
           created_by: string | null
           data: string
@@ -973,6 +974,7 @@ export type Database = {
           vagas: number | null
         }
         Insert: {
+          acao_preventiva_id?: string | null
           created_at?: string
           created_by?: string | null
           data: string
@@ -991,6 +993,7 @@ export type Database = {
           vagas?: number | null
         }
         Update: {
+          acao_preventiva_id?: string | null
           created_at?: string
           created_by?: string | null
           data?: string
@@ -1009,6 +1012,13 @@ export type Database = {
           vagas?: number | null
         }
         Relationships: [
+          {
+            foreignKeyName: "coleta_agendamentos_acao_preventiva_id_fkey"
+            columns: ["acao_preventiva_id"]
+            isOneToOne: false
+            referencedRelation: "acoes_preventivas"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "coleta_agendamentos_empresa_id_fkey"
             columns: ["empresa_id"]

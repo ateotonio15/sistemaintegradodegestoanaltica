@@ -1,0 +1,2 @@
+ALTER TABLE public.coleta_agendamentos ADD COLUMN IF NOT EXISTS acao_preventiva_id uuid REFERENCES public.acoes_preventivas(id) ON DELETE CASCADE;
+CREATE UNIQUE INDEX IF NOT EXISTS coleta_ag_acao_prev_uidx ON public.coleta_agendamentos(acao_preventiva_id) WHERE acao_preventiva_id IS NOT NULL;
