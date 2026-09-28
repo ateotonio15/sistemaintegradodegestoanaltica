@@ -16,7 +16,6 @@ import { useEmpresasAtivas } from "../hooks/useAcoesPreventivas";
 import { feriadoEm } from "../lib/feriados";
 import { ColetaAgendamento, ColetaStatus, fmtHora, useColetaAgendamentos, useColetaMutations } from "../hooks/useColeta";
 import { ColetaDetalheSheet } from "../components/ColetaDetalheSheet";
-import { EmpresaAutocomplete } from "@/components/plantoes/EmpresaAutocomplete";
 
 const COR: Record<ColetaStatus, string> = {
   agendada: "bg-sky-500/10 border-l-4 border-sky-500 hover:bg-sky-500/20",
