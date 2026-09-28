@@ -14,6 +14,7 @@ const db = supabase as any;
 
 interface Props {
   form: any;
+  tipo?: "rh" | "plantao";
 }
 
 interface Resposta {
@@ -41,7 +42,7 @@ function StatCard({ icon: Icon, label, value, hint }: any) {
   );
 }
 
-export function AvaliacoesRHDashboard({ form }: Props) {
+export function AvaliacoesRHDashboard({ form, tipo = "rh" }: Props) {
   const [loading, setLoading] = useState(true);
   const [todasRespostas, setTodasRespostas] = useState<Resposta[]>([]);
   const [mesFiltro, setMesFiltro] = useState<string>("todos");
@@ -77,11 +78,12 @@ export function AvaliacoesRHDashboard({ form }: Props) {
         .from("cs_avaliacao_respostas")
         .select("id, nota_media, comentario, nome_empresa, nome_executiva, respostas, created_at")
         .eq("formulario_id", form.id)
+        .eq("tipo", tipo)
         .order("created_at", { ascending: false });
       setTodasRespostas(data || []);
       setLoading(false);
     })();
-  }, [form?.id]);
+  }, [form?.id, tipo]);
 
   // Lista de meses disponíveis (YYYY-MM)
   const mesesDisponiveis = useMemo(() => {

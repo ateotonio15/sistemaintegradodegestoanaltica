@@ -78,6 +78,7 @@ export function EnviosAvaliacaoTab({ form }: Props) {
         .from("avaliacoes_envios")
         .select("id, empresa_id, empresa_nome, executiva_nome, status, data_envio, data_resposta, token_unico, mes_referencia, lembrete_enviado_em")
         .eq("mes_referencia", mesAtual)
+        .eq("tipo", "rh")
         .order("created_at", { ascending: false });
       if (error) throw error;
       return data ?? [];
@@ -106,6 +107,7 @@ export function EnviosAvaliacaoTab({ form }: Props) {
       formulario_id: form?.id,
       mes_referencia: mesAtual,
       status: "enviado",
+      tipo: "rh",
     }).select("id, token_unico").single();
     setCriando(null);
     if (error) { toast.error("Erro ao gerar link: " + error.message); return; }
@@ -158,7 +160,7 @@ export function EnviosAvaliacaoTab({ form }: Props) {
     const rows = pendentes.map((emp: any) => ({
       empresa_id: emp.id, empresa_nome: emp.nome, email_destino: emp.email_empresa || "",
       executiva_user_id: emp.executiva_user_id, executiva_nome: emp.executiva_nome,
-      formulario_id: form?.id, mes_referencia: mesAtual, status: "enviado",
+      formulario_id: form?.id, mes_referencia: mesAtual, status: "enviado", tipo: "rh",
     }));
     const { error } = await db.from("avaliacoes_envios").insert(rows);
     if (error) { toast.error("Erro: " + error.message); return; }

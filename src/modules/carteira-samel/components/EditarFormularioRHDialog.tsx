@@ -26,9 +26,10 @@ interface Props {
   onOpenChange: (v: boolean) => void;
   form: any;
   onSaved: (form: any) => void;
+  tituloDialog?: string;
 }
 
-export function EditarFormularioRHDialog({ open, onOpenChange, form, onSaved }: Props) {
+export function EditarFormularioRHDialog({ open, onOpenChange, form, onSaved, tituloDialog = "Editar formulário de Avaliação RH" }: Props) {
   const [titulo, setTitulo] = useState("");
   const [instrucoes, setInstrucoes] = useState("");
   const [perguntas, setPerguntas] = useState<Pergunta[]>([]);
@@ -117,7 +118,7 @@ export function EditarFormularioRHDialog({ open, onOpenChange, form, onSaved }: 
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>Editar formulário de Avaliação RH</DialogTitle>
+          <DialogTitle>{tituloDialog}</DialogTitle>
         </DialogHeader>
 
         <div className="space-y-4">
