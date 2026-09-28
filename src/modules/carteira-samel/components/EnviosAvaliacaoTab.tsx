@@ -21,7 +21,7 @@ import { empresaSemExecutivaUnica, ROTULO_VARIAS_EXECUTIVAS } from "@/lib/empres
 
 const db = supabase as any;
 
-interface Props { form: any }
+interface Props { form: any; tipo?: "rh" | "plantao" }
 
 interface QRModalState {
   open: boolean;
@@ -29,7 +29,8 @@ interface QRModalState {
   envio: any | null;
 }
 
-export function EnviosAvaliacaoTab({ form }: Props) {
+export function EnviosAvaliacaoTab({ form, tipo = "rh" }: Props) {
+  const rota = (t: string) => tipo === "plantao" ? `${getPublicBaseUrl()}/avaliacoes/plantao/responder/${t}` : `${getPublicBaseUrl()}/avaliar/${t}`;
   const qc = useQueryClient();
   const [busca, setBusca] = useState("");
   const [criando, setCriando] = useState<string | null>(null);
@@ -72,13 +73,13 @@ export function EnviosAvaliacaoTab({ form }: Props) {
 
 
   const { data: envios, isLoading: loadEnv } = useQuery({
-    queryKey: ["avaliacoes-envios", mesAtual],
+    queryKey: ["avaliacoes-envios", mesAtual, tipo],
     queryFn: async () => {
       const { data, error } = await db
         .from("avaliacoes_envios")
         .select("id, empresa_id, empresa_nome, executiva_nome, status, data_envio, data_resposta, token_unico, mes_referencia, lembrete_enviado_em")
         .eq("mes_referencia", mesAtual)
-        .eq("tipo", "rh")
+        .eq("tipo", tipo)
         .order("created_at", { ascending: false });
       if (error) throw error;
       return data ?? [];
@@ -107,18 +108,19 @@ export function EnviosAvaliacaoTab({ form }: Props) {
       formulario_id: form?.id,
       mes_referencia: mesAtual,
       status: "enviado",
-      tipo: "rh",
+      tipo,
+      ...(tipo === "plantao" ? { ativo: true, unidade: emp.nome } : {}),
     }).select("id, token_unico").single();
     setCriando(null);
     if (error) { toast.error("Erro ao gerar link: " + error.message); return; }
-    const link = `${getPublicBaseUrl()}/avaliar/${data.token_unico}`;
+    const link = rota(data.token_unico);
     await navigator.clipboard.writeText(link).catch(() => {});
     toast.success("Link gerado e copiado!");
     qc.invalidateQueries({ queryKey: ["avaliacoes-envios"] });
   };
 
   const copiarLink = async (token: string) => {
-    const link = `${getPublicBaseUrl()}/avaliar/${token}`;
+    const link = rota(token);
     await navigator.clipboard.writeText(link);
     toast.success("Link copiado");
   };
@@ -160,7 +162,8 @@ export function EnviosAvaliacaoTab({ form }: Props) {
     const rows = pendentes.map((emp: any) => ({
       empresa_id: emp.id, empresa_nome: emp.nome, email_destino: emp.email_empresa || "",
       executiva_user_id: emp.executiva_user_id, executiva_nome: emp.executiva_nome,
-      formulario_id: form?.id, mes_referencia: mesAtual, status: "enviado", tipo: "rh",
+      formulario_id: form?.id, mes_referencia: mesAtual, status: "enviado", tipo,
+      ...(tipo === "plantao" ? { ativo: true, unidade: emp.nome } : {}),
     }));
     const { error } = await db.from("avaliacoes_envios").insert(rows);
     if (error) { toast.error("Erro: " + error.message); return; }
@@ -291,7 +294,7 @@ export function EnviosAvaliacaoTab({ form }: Props) {
                   className="rounded-xl border border-border/60 bg-white p-3 shadow-sm"
                 >
                   <QRCodeCanvas
-                    value={`${getPublicBaseUrl()}/avaliar/${qrModal.envio.token_unico}`}
+                    value={rota(qrModal.envio.token_unico)}
                     size={240}
                     bgColor="#ffffff"
                     fgColor="#000000"
@@ -302,14 +305,14 @@ export function EnviosAvaliacaoTab({ form }: Props) {
 
                 <div className="w-full space-y-2">
                   <p className="text-xs text-muted-foreground break-all text-center">
-                    {getPublicBaseUrl()}/avaliar/{qrModal.envio.token_unico}
+                    {rota(qrModal.envio.token_unico)}
                   </p>
                   <div className="flex items-center justify-center gap-2">
                     <Button
                       size="sm"
                       variant="outline"
                       onClick={() =>
-                        copiarLinkTexto(`${getPublicBaseUrl()}/avaliar/${qrModal.envio.token_unico}`)
+                        copiarLinkTexto(rota(qrModal.envio.token_unico))
                       }
                     >
                       <Copy className="h-3 w-3 mr-1" /> Copiar link
