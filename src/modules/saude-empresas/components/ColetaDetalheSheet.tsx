@@ -126,12 +126,6 @@ export function ColetaDetalheSheet({ ag, onClose, onEdit }: { ag: ColetaAgendame
             <div className="flex flex-wrap gap-2">
               <Button size="sm" variant="outline" onClick={() => { navigator.clipboard.writeText(url); toast.success("Link copiado"); }}><Copy className="h-4 w-4 mr-1" />Copiar</Button>
               <Button size="sm" variant="outline" onClick={baixarQr}><Download className="h-4 w-4 mr-1" />QR Code</Button>
-              <Button size="sm" variant="outline" asChild>
-                <a href={`mailto:${ag.empresa?.email_empresa ?? ""}?subject=${encodeURIComponent("Inscrição – Ação de Coleta (Preventivo)")}&body=${encodeURIComponent(`Olá,\n\nSegue o link para as colaboradoras se inscreverem.\n\n${texto}`)}`}><Mail className="h-4 w-4 mr-1" />E-mail RH</a>
-              </Button>
-              <Button size="sm" variant="outline" asChild>
-                <a href={`https://wa.me/?text=${encodeURIComponent(texto)}`} target="_blank" rel="noreferrer"><MessageCircle className="h-4 w-4 mr-1" />WhatsApp</a>
-              </Button>
             </div>
             <div className="flex flex-wrap items-center gap-4 text-sm">
               <label className="flex items-center gap-2"><Switch checked={ag.link_ativo} disabled={concluida}
