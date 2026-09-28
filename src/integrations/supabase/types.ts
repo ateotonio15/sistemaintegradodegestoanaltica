@@ -953,6 +953,140 @@ export type Database = {
           },
         ]
       }
+      coleta_agendamentos: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          data: string
+          data_limite: string | null
+          empresa_id: string
+          horario_fim: string | null
+          horario_inicio: string | null
+          id: string
+          link_ativo: boolean
+          local: string | null
+          observacoes: string | null
+          responsavel: string | null
+          status: string
+          token: string
+          updated_at: string
+          vagas: number | null
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          data: string
+          data_limite?: string | null
+          empresa_id: string
+          horario_fim?: string | null
+          horario_inicio?: string | null
+          id?: string
+          link_ativo?: boolean
+          local?: string | null
+          observacoes?: string | null
+          responsavel?: string | null
+          status?: string
+          token?: string
+          updated_at?: string
+          vagas?: number | null
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          data?: string
+          data_limite?: string | null
+          empresa_id?: string
+          horario_fim?: string | null
+          horario_inicio?: string | null
+          id?: string
+          link_ativo?: boolean
+          local?: string | null
+          observacoes?: string | null
+          responsavel?: string | null
+          status?: string
+          token?: string
+          updated_at?: string
+          vagas?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "coleta_agendamentos_empresa_id_fkey"
+            columns: ["empresa_id"]
+            isOneToOne: false
+            referencedRelation: "empresas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      coleta_inscricoes: {
+        Row: {
+          agendamento_id: string
+          confirmado_em: string | null
+          confirmado_por: string | null
+          confirmado_por_nome: string | null
+          consentimento: boolean
+          cpf: string
+          created_at: string
+          data_nascimento: string
+          empresa_id: string
+          id: string
+          nome: string
+          origem: string
+          setor: string | null
+          status: string
+          telefone: string
+        }
+        Insert: {
+          agendamento_id: string
+          confirmado_em?: string | null
+          confirmado_por?: string | null
+          confirmado_por_nome?: string | null
+          consentimento?: boolean
+          cpf: string
+          created_at?: string
+          data_nascimento: string
+          empresa_id: string
+          id?: string
+          nome: string
+          origem?: string
+          setor?: string | null
+          status?: string
+          telefone: string
+        }
+        Update: {
+          agendamento_id?: string
+          confirmado_em?: string | null
+          confirmado_por?: string | null
+          confirmado_por_nome?: string | null
+          consentimento?: boolean
+          cpf?: string
+          created_at?: string
+          data_nascimento?: string
+          empresa_id?: string
+          id?: string
+          nome?: string
+          origem?: string
+          setor?: string | null
+          status?: string
+          telefone?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "coleta_inscricoes_agendamento_id_fkey"
+            columns: ["agendamento_id"]
+            isOneToOne: false
+            referencedRelation: "coleta_agendamentos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "coleta_inscricoes_empresa_id_fkey"
+            columns: ["empresa_id"]
+            isOneToOne: false
+            referencedRelation: "empresas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       contrato_processo_movimentacoes: {
         Row: {
           acao: string
@@ -5688,6 +5822,7 @@ export type Database = {
         }
         Returns: boolean
       }
+      can_manage_coleta: { Args: { _uid: string }; Returns: boolean }
       can_read_triagem: {
         Args: { _empresa_id: string; _uid: string }
         Returns: boolean
@@ -5862,6 +5997,7 @@ export type Database = {
           user_id: string
         }[]
       }
+      get_coleta_por_token: { Args: { p_token: string }; Returns: Json }
       get_comum_users_empresa_count: {
         Args: never
         Returns: {
@@ -5901,6 +6037,18 @@ export type Database = {
       has_uea_access: {
         Args: { _nivel: string; _user_id: string }
         Returns: boolean
+      }
+      inscrever_coleta: {
+        Args: {
+          p_consentimento: boolean
+          p_cpf: string
+          p_nascimento: string
+          p_nome: string
+          p_setor: string
+          p_telefone: string
+          p_token: string
+        }
+        Returns: Json
       }
       is_admin_interno: { Args: never; Returns: boolean }
       is_saude_editor: { Args: { _uid: string }; Returns: boolean }

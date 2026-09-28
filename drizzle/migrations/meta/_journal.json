@@ -127,6 +127,13 @@
       "when": 1790601542065,
       "tag": "0017_avaliacoes_tipo_plantao",
       "breakpoints": true
+    },
+    {
+      "idx": 18,
+      "version": "7",
+      "when": 1790606943171,
+      "tag": "0018_acoes_coleta",
+      "breakpoints": true
     }
   ]
 }
