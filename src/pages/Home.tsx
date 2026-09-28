@@ -32,6 +32,7 @@ import {
   KeyRound,
   Phone,
   CalendarDays,
+  CalendarClock,
   Car,
   Stethoscope,
   Mic,
@@ -157,6 +158,13 @@ const INTELIGENCIA_SECTIONS: InteligenciaSection[] = [
         description: "Sinais vitais, coleta de preventivo e PSA nas empresas",
         icon: ShieldPlus,
         to: "/saude-empresas/preventivas",
+      },
+      {
+        slug: "saude-empresas-coleta",
+        label: "Ações de Coleta",
+        description: "Agendamentos, inscrições e confirmação das coletas",
+        icon: CalendarClock,
+        to: "/saude-empresas/coleta",
       },
       {
         slug: "saude-empresas-pesquisas",
