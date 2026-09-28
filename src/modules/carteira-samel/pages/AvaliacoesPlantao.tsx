@@ -7,7 +7,7 @@ import { Loader2, Pencil, BarChart3, QrCode } from "lucide-react";
 import { RatingScale } from "../components/RatingScale";
 import { AvaliacoesRHDashboard } from "../components/AvaliacoesRHDashboard";
 import { EditarFormularioRHDialog } from "../components/EditarFormularioRHDialog";
-import { EnviosPlantaoTab } from "../components/EnviosPlantaoTab";
+import { EnviosAvaliacaoTab } from "../components/EnviosAvaliacaoTab";
 import { Input } from "@/components/ui/input";
 import { useAuth } from "@/hooks/useAuth";
 
@@ -63,7 +63,7 @@ export default function AvaliacoesPlantao() {
           )}
         </div>
         <p className="text-sm text-muted-foreground">{form.instrucoes}</p>
-        <p className="text-xs text-muted-foreground">Cada unidade/plantão tem um QR Code fixo, que pode receber várias respostas.</p>
+        <p className="text-xs text-muted-foreground">Gere o link e o QR Code por empresa, igual à Avaliação RH.</p>
       </Card>
 
       <Tabs defaultValue="envios" className="w-full">
@@ -72,7 +72,7 @@ export default function AvaliacoesPlantao() {
           <TabsTrigger value="dashboard"><BarChart3 className="h-4 w-4 mr-1" /> Dashboard</TabsTrigger>
           <TabsTrigger value="preview">Preview do formulário</TabsTrigger>
         </TabsList>
-        <TabsContent value="envios" className="mt-4"><EnviosPlantaoTab form={form} /></TabsContent>
+        <TabsContent value="envios" className="mt-4"><EnviosAvaliacaoTab form={form} tipo="plantao" /></TabsContent>
         <TabsContent value="dashboard" className="mt-4"><AvaliacoesRHDashboard form={form} tipo="plantao" /></TabsContent>
         <TabsContent value="preview" className="mt-4">
           <Card className="p-4 space-y-4">
