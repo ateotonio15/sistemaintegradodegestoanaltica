@@ -22,6 +22,7 @@ import {
   useAcaoPreventivaMutations, useEmpresasAtivas, useExecutivas,
 } from "../hooks/useAcoesPreventivas";
 import { feriadoEm } from "../lib/feriados";
+import { PreventivaColetaVinculo } from "./PreventivaColetaVinculo";
 
 const STATUS_OPTIONS: { v: AcaoPreventivaStatus; label: string }[] = [
   { v: "a_confirmar", label: "A confirmar" },
@@ -430,6 +431,10 @@ export function EventoPreventivoDialog({
             </div>
           )}
         </div>
+        )}
+
+        {isEdit && editing && (tipo === "preventivo" || tipo === "psa") && (
+          <PreventivaColetaVinculo acao={editing} />
         )}
 
         <DialogFooter className="flex sm:justify-between gap-2">
