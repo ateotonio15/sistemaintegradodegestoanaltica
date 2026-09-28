@@ -1,14 +1,14 @@
 import { Outlet, NavLink, useLocation } from "react-router-dom";
 import { EmpresasProvider } from "./context/EmpresasContext";
 import { cn } from "@/lib/utils";
-import { LayoutDashboard, Users, BarChart3, ShieldAlert, ClipboardList } from "lucide-react";
+import { LayoutDashboard, Users, BarChart3, ShieldAlert, ClipboardList, Stethoscope } from "lucide-react";
 
 const tabs = [
   { to: "/carteira-samel", label: "Visão Geral", icon: LayoutDashboard, end: true },
   { to: "/carteira-samel/carteira", label: "Carteira", icon: Users },
   { to: "/carteira-samel/sinistralidade", label: "Sinistralidade", icon: BarChart3 },
   { to: "/carteira-samel/score", label: "Score de Risco", icon: ShieldAlert },
-  { to: "/carteira-samel/avaliacoes/rh", label: "Avaliações RH", icon: ClipboardList },
+  { to: "/carteira-samel/avaliacoes/rh", label: "Avaliações RH", icon: ClipboardList, Stethoscope },
 ];
 
 export default function CarteiraSamelLayout() {

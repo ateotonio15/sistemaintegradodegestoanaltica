@@ -34,6 +34,8 @@ import CSScore from "./modules/carteira-samel/pages/ScoreRisco";
 import CSAvaliacoesRH from "./modules/carteira-samel/pages/AvaliacoesRH";
 import CSResponderRH from "./modules/carteira-samel/pages/ResponderRH";
 import CSResponderToken from "./modules/carteira-samel/pages/ResponderPorToken";
+import CSResponderPlantao from "./modules/carteira-samel/pages/ResponderPlantao";
+import CSAvaliacoesPlantao from "./modules/carteira-samel/pages/AvaliacoesPlantao";
 import EmpresasGroupLayout from "./components/EmpresasGroupLayout";
 import InteligenciaModulo from "./pages/InteligenciaModulo";
 import Demandas from "./pages/Demandas";
@@ -182,6 +184,8 @@ const AppRoutes = () => (
     
     <Route path="/carteira-samel/avaliacoes/rh/responder/:formId" element={<CSResponderRH />} />
     <Route path="/avaliar/:token" element={<CSResponderToken />} />
+    <Route path="/avaliacoes/rh/responder/:token" element={<CSResponderToken />} />
+    <Route path="/avaliacoes/plantao/responder/:token" element={<CSResponderPlantao />} />
     <Route path="/pesquisa/tablet/:token" element={<PesquisaTablet />} />
     <Route path="/pesquisa/:token" element={<ResponderPesquisa />} />
     <Route element={<AppShell />}>
@@ -300,6 +304,7 @@ const AppRoutes = () => (
           <Route path="sinistralidade" element={<CSSinistralidade />} />
           <Route path="score" element={<CSScore />} />
           <Route path="avaliacoes/rh" element={<CSAvaliacoesRH />} />
+          <Route path="avaliacoes/plantao" element={<CSAvaliacoesPlantao />} />
         </Route>
       </Route>
 
