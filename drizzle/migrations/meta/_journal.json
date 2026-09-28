@@ -120,6 +120,13 @@
       "when": 1790599833903,
       "tag": "0016_empresas_sem_executiva_vinculada",
       "breakpoints": true
+    },
+    {
+      "idx": 17,
+      "version": "7",
+      "when": 1790601542065,
+      "tag": "0017_avaliacoes_tipo_plantao",
+      "breakpoints": true
     }
   ]
 }
