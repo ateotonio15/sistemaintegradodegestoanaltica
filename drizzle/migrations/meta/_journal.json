@@ -148,6 +148,13 @@
       "when": 1790612291287,
       "tag": "0020_coleta_inscricao_sem_nascimento_telefone",
       "breakpoints": true
+    },
+    {
+      "idx": 21,
+      "version": "7",
+      "when": 1790612331838,
+      "tag": "0021_coleta_inscricao_campos_ocultos_compativeis",
+      "breakpoints": true
     }
   ]
 }
