@@ -2,7 +2,7 @@ import { useMemo, useState } from "react";
 import * as XLSX from "xlsx";
 import {
   LineChart, Line, BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid,
-  PieChart, Pie, Cell, Legend,
+  Legend,
 } from "recharts";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -17,11 +17,6 @@ import { useAvaliacoesUnificadas, useFormulariosPerguntas, resumir, variacao, Av
 
 const COR_RH = "hsl(var(--primary))";
 const COR_PL = "hsl(var(--warning, 38 92% 50%))";
-const COR_STATUS: Record<string, string> = {
-  respondido: "hsl(var(--primary))",
-  enviado: "hsl(var(--muted-foreground))",
-  lembrete: "hsl(var(--destructive))",
-};
 const MESES = ["Jan", "Fev", "Mar", "Abr", "Mai", "Jun", "Jul", "Ago", "Set", "Out", "Nov", "Dez"];
 
 type Periodo = "mes" | "3m" | "ano" | "todos" | "custom";
@@ -160,19 +155,21 @@ export default function DashboardDiretoria() {
     { nome: "Nota média (x20)", RH: rh.media ? +(rh.media * 20).toFixed(1) : 0, Plantão: pl.media ? +(pl.media * 20).toFixed(1) : 0 },
   ];
 
-  const porStatus = useMemo(() => {
-    const m: Record<string, number> = {};
-    filtradas.forEach((r) => (m[r.status] = (m[r.status] || 0) + 1));
-    return Object.entries(m).map(([name, value]) => ({ name, value }));
-  }, [filtradas]);
-
   const agrupar = (key: "empresa_nome" | "executiva_nome") => {
     const m = new Map<string, AvaliacaoRow[]>();
     filtradas.forEach((r) => m.set(r[key], [...(m.get(r[key]) || []), r]));
     return Array.from(m.entries()).map(([nome, lst]) => ({ nome, ...resumir(lst) }));
   };
   const porEmpresa = useMemo(() => agrupar("empresa_nome"), [filtradas]); // eslint-disable-line
-  const porExecutiva = useMemo(() => agrupar("executiva_nome").sort((a, b) => b.enviadas - a.enviadas).slice(0, 15), [filtradas]); // eslint-disable-line
+  const porExecutiva = useMemo(() => {
+    const respostasAvaliadas = filtradas.filter((r) => r.resposta_id && r.status === "respondido" && r.executiva_nome !== "Sem executiva" && r.executiva_nome !== "Várias executivas");
+    const m = new Map<string, AvaliacaoRow[]>();
+    respostasAvaliadas.forEach((r) => m.set(r.executiva_nome, [...(m.get(r.executiva_nome) || []), r]));
+    return Array.from(m.entries())
+      .map(([nome, lst]) => ({ nome, ...resumir(lst) }))
+      .sort((a, b) => b.respondidas - a.respondidas)
+      .slice(0, 15);
+  }, [filtradas]);
 
   const rankTaxa = [...porEmpresa].filter((e) => e.enviadas > 0).sort((a, b) => b.taxa - a.taxa);
   const rankNota = [...porEmpresa].filter((e) => e.media != null).sort((a, b) => (b.media ?? 0) - (a.media ?? 0));
@@ -338,14 +335,6 @@ export default function DashboardDiretoria() {
               </BarChart>
             </ResponsiveContainer>) : <Vazio />}
           <p className="text-[11px] text-muted-foreground">Nota média convertida para escala 0–100 (nota × 20) para comparar no mesmo eixo.</p>
-        </Card>
-        <Card className="p-4"><h3 className="mb-2 text-sm font-semibold">Distribuição por status</h3>
-          {porStatus.length ? (
-            <ResponsiveContainer width="100%" height={260}>
-              <PieChart><Pie data={porStatus} dataKey="value" nameKey="name" innerRadius={60} outerRadius={95} paddingAngle={2}>
-                {porStatus.map((s) => <Cell key={s.name} fill={COR_STATUS[s.name] || "hsl(var(--accent))"} />)}
-              </Pie><Tooltip /><Legend /></PieChart>
-            </ResponsiveContainer>) : <Vazio />}
         </Card>
         <Card className="p-4"><h3 className="mb-2 text-sm font-semibold">Desempenho por executiva</h3>
           {porExecutiva.length ? (
