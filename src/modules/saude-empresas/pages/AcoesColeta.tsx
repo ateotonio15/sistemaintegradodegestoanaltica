@@ -2,7 +2,7 @@ import { useMemo, useState } from "react";
 import { addMonths, eachDayOfInterval, endOfMonth, format, isToday, startOfMonth, startOfWeek, endOfWeek, isSameMonth } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import * as XLSX from "xlsx";
-import { ChevronLeft, ChevronRight, Plus, FileSpreadsheet } from "lucide-react";
+import { ChevronLeft, ChevronRight, Plus, FileSpreadsheet, Users } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -114,13 +114,21 @@ export default function AcoesColeta() {
                   <div key={iso(d)} className={`min-h-[110px] rounded-md border border-border p-1.5 space-y-1 ${!isSameMonth(d, mes) ? "opacity-40" : ""} ${fer ? "bg-destructive/5" : ""}`}>
                     <div className={`text-xs font-medium ${isToday(d) ? "text-primary" : ""}`}>{format(d, "d")}</div>
                     {fer && <div className="text-[10px] text-destructive leading-tight">Feriado · {fer.nome}</div>}
-                    {doDia.map((a) => (
-                      <button key={a.id} onClick={() => setDetalheId(a.id)} className={`w-full text-left rounded px-1.5 py-1 text-[11px] leading-tight ${COR[a.status]}`}>
-                        <div className="font-medium">{fmtHora(a.horario_inicio)}{a.horario_fim ? ` – ${fmtHora(a.horario_fim)}` : ""}</div>
-                        <div className="truncate">{a.empresa?.nome}</div>
-                        {a.responsavel && <div className="truncate text-muted-foreground">{a.responsavel}</div>}
-                      </button>
-                    ))}
+                    {doDia.map((a) => {
+                      const insc = (a.inscricoes ?? []).filter((x) => x.status !== "cancelada").length;
+                      const real = (a.inscricoes ?? []).filter((x) => x.status === "realizada").length;
+                      return (
+                        <button key={a.id} onClick={() => setDetalheId(a.id)} className={`w-full text-left rounded px-1.5 py-1 text-[11px] leading-tight ${COR[a.status]}`}>
+                          <div className="font-medium">{fmtHora(a.horario_inicio)}{a.horario_fim ? ` – ${fmtHora(a.horario_fim)}` : ""}</div>
+                          <div className="truncate">{a.empresa?.nome}</div>
+                          {a.responsavel && <div className="truncate text-muted-foreground">{a.responsavel}</div>}
+                          <div className="mt-0.5 flex items-center gap-1 text-[10px] font-medium">
+                            <Users className="h-3 w-3" />
+                            <span>{insc} inscrita{insc === 1 ? "" : "s"} · {real} realizada{real === 1 ? "" : "s"}</span>
+                          </div>
+                        </button>
+                      );
+                    })}
                   </div>
                 );
               })}
