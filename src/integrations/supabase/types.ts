@@ -568,6 +568,7 @@ export type Database = {
       }
       avaliacoes_envios: {
         Row: {
+          ativo: boolean
           created_at: string
           data_envio: string
           data_resposta: string | null
@@ -576,16 +577,20 @@ export type Database = {
           empresa_nome: string | null
           executiva_nome: string | null
           executiva_user_id: string | null
+          fixo: boolean
           formulario_id: string | null
           id: string
           lembrete_enviado_em: string | null
           mes_referencia: string | null
           resposta_id: string | null
           status: string
+          tipo: string
           token_unico: string
+          unidade: string | null
           updated_at: string
         }
         Insert: {
+          ativo?: boolean
           created_at?: string
           data_envio?: string
           data_resposta?: string | null
@@ -594,16 +599,20 @@ export type Database = {
           empresa_nome?: string | null
           executiva_nome?: string | null
           executiva_user_id?: string | null
+          fixo?: boolean
           formulario_id?: string | null
           id?: string
           lembrete_enviado_em?: string | null
           mes_referencia?: string | null
           resposta_id?: string | null
           status?: string
+          tipo?: string
           token_unico?: string
+          unidade?: string | null
           updated_at?: string
         }
         Update: {
+          ativo?: boolean
           created_at?: string
           data_envio?: string
           data_resposta?: string | null
@@ -612,13 +621,16 @@ export type Database = {
           empresa_nome?: string | null
           executiva_nome?: string | null
           executiva_user_id?: string | null
+          fixo?: boolean
           formulario_id?: string | null
           id?: string
           lembrete_enviado_em?: string | null
           mes_referencia?: string | null
           resposta_id?: string | null
           status?: string
+          tipo?: string
           token_unico?: string
+          unidade?: string | null
           updated_at?: string
         }
         Relationships: [
@@ -1405,7 +1417,7 @@ export type Database = {
           id?: string
           instrucoes?: string | null
           perguntas?: Json
-          tipo: string
+          tipo?: string
           titulo: string
           updated_at?: string
         }
@@ -1425,6 +1437,7 @@ export type Database = {
           comentario: string | null
           compartilhamento_id: string | null
           created_at: string
+          data_atendimento: string | null
           envio_id: string | null
           formulario_id: string
           id: string
@@ -1433,11 +1446,14 @@ export type Database = {
           nota_media: number | null
           respondente: string | null
           respostas: Json
+          tipo: string
+          unidade: string | null
         }
         Insert: {
           comentario?: string | null
           compartilhamento_id?: string | null
           created_at?: string
+          data_atendimento?: string | null
           envio_id?: string | null
           formulario_id: string
           id?: string
@@ -1446,11 +1462,14 @@ export type Database = {
           nota_media?: number | null
           respondente?: string | null
           respostas?: Json
+          tipo?: string
+          unidade?: string | null
         }
         Update: {
           comentario?: string | null
           compartilhamento_id?: string | null
           created_at?: string
+          data_atendimento?: string | null
           envio_id?: string | null
           formulario_id?: string
           id?: string
@@ -1459,6 +1478,8 @@ export type Database = {
           nota_media?: number | null
           respondente?: string | null
           respostas?: Json
+          tipo?: string
+          unidade?: string | null
         }
         Relationships: [
           {
@@ -5820,6 +5841,18 @@ export type Database = {
           titulo: string
         }[]
       }
+      get_avaliacao_plantao_por_token: {
+        Args: { p_token: string }
+        Returns: {
+          empresa_nome: string
+          formulario_id: string
+          id: string
+          instrucoes: string
+          perguntas: Json
+          titulo: string
+          unidade: string
+        }[]
+      }
       get_cadastro_workload: {
         Args: never
         Returns: {
@@ -5944,6 +5977,17 @@ export type Database = {
       remover_prioridade_maxima: {
         Args: { p_empresa_id: string; p_motivo_remocao?: string }
         Returns: undefined
+      }
+      responder_avaliacao_plantao_por_token: {
+        Args: {
+          p_comentario: string
+          p_data_atendimento: string
+          p_nota_media: number
+          p_respostas: Json
+          p_token: string
+          p_unidade: string
+        }
+        Returns: string
       }
       responder_avaliacao_por_token: {
         Args: {
