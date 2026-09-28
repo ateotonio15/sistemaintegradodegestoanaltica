@@ -5703,7 +5703,27 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      vw_avaliacoes_unificadas: {
+        Row: {
+          comentario: string | null
+          data_envio: string | null
+          data_resposta: string | null
+          empresa_id: string | null
+          empresa_nome: string | null
+          envio_id: string | null
+          executiva_nome: string | null
+          id: string | null
+          lembrete_enviado_em: string | null
+          nota_media: number | null
+          resposta_id: string | null
+          respostas: Json | null
+          sem_executiva_vinculada: boolean | null
+          status: string | null
+          tipo: string | null
+          unidade: string | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
       _criar_alerta_reajuste_role: {

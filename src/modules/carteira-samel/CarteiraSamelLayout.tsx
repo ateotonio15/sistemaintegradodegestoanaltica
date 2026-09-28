@@ -1,9 +1,10 @@
 import { Outlet, NavLink, useLocation } from "react-router-dom";
 import { EmpresasProvider } from "./context/EmpresasContext";
 import { cn } from "@/lib/utils";
-import { LayoutDashboard, Users, BarChart3, ShieldAlert, ClipboardList, Stethoscope } from "lucide-react";
+import { useAuth } from "@/hooks/useAuth";
+import { LayoutDashboard, Users, BarChart3, ShieldAlert, ClipboardList, Stethoscope, PieChart } from "lucide-react";
 
-const tabs = [
+const baseTabs = [
   { to: "/carteira-samel", label: "Visão Geral", icon: LayoutDashboard, end: true },
   { to: "/carteira-samel/carteira", label: "Carteira", icon: Users },
   { to: "/carteira-samel/sinistralidade", label: "Sinistralidade", icon: BarChart3 },
@@ -14,6 +15,10 @@ const tabs = [
 
 export default function CarteiraSamelLayout() {
   const loc = useLocation();
+  const { isAdmin, isDiretora } = useAuth();
+  const tabs = isAdmin || isDiretora
+    ? [...baseTabs, { to: "/carteira-samel/dashboard-diretoria", label: "Dashboard Diretoria", icon: PieChart }]
+    : baseTabs;
   return (
     <EmpresasProvider>
       <div className="p-4 md:p-6 space-y-4 animate-in fade-in duration-300">
@@ -25,12 +30,12 @@ export default function CarteiraSamelLayout() {
         </div>
         <nav className="flex flex-wrap gap-1 border-b">
           {tabs.map((t) => {
-            const active = t.end ? loc.pathname === t.to : loc.pathname.startsWith(t.to);
+            const active = (t as any).end ? loc.pathname === t.to : loc.pathname.startsWith(t.to);
             return (
               <NavLink
                 key={t.to}
                 to={t.to}
-                end={t.end}
+                end={(t as any).end}
                 className={cn(
                   "inline-flex items-center gap-2 px-3 py-2 text-sm font-medium border-b-2 -mb-px transition-colors",
                   active ? "border-primary text-primary" : "border-transparent text-muted-foreground hover:text-foreground"
