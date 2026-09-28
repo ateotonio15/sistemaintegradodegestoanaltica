@@ -47,7 +47,6 @@ export function ColetaDetalheSheet({ ag, onClose, onEdit }: { ag: ColetaAgendame
     realizadas: inscricoes.filter((i) => i.status === "realizada").length,
     faltas: inscricoes.filter((i) => i.status === "faltou").length,
   };
-  const texto = `Inscrição para a Ação de Coleta (Preventivo) em ${fmtDataBR(ag.data)}${ag.horario_inicio ? ` às ${fmtHora(ag.horario_inicio)}` : ""}${ag.local ? ` – ${ag.local}` : ""}: ${url}`;
 
   const baixarQr = () => {
     const c = document.getElementById("qr-coleta") as HTMLCanvasElement | null;
