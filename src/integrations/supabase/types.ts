@@ -6006,6 +6006,10 @@ export type Database = {
           titulo: string
         }[]
       }
+      get_avaliacao_plantao_detalhes_por_token: {
+        Args: { p_token: string }
+        Returns: Json
+      }
       get_avaliacao_plantao_por_token: {
         Args: { p_token: string }
         Returns: {
@@ -6155,6 +6159,18 @@ export type Database = {
       remover_prioridade_maxima: {
         Args: { p_empresa_id: string; p_motivo_remocao?: string }
         Returns: undefined
+      }
+      responder_avaliacao_plantao_com_executiva_por_token: {
+        Args: {
+          p_comentario: string
+          p_data_atendimento: string
+          p_executiva_informada?: string
+          p_nota_media: number
+          p_respostas: Json
+          p_token: string
+          p_unidade: string
+        }
+        Returns: string
       }
       responder_avaliacao_plantao_por_token: {
         Args: {

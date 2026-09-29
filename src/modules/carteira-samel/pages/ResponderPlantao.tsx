@@ -22,6 +22,7 @@ export default function ResponderPlantao() {
   const [erro, setErro] = useState<string | null>(null);
   const [dataAtend, setDataAtend] = useState(hojeLocal());
   const [unidade, setUnidade] = useState("");
+  const [execInformada, setExecInformada] = useState("");
   const [respostas, setRespostas] = useState<Record<string, any>>({});
   const [comentario, setComentario] = useState("");
   const [enviando, setEnviando] = useState(false);
@@ -30,7 +31,7 @@ export default function ResponderPlantao() {
   useEffect(() => {
     (async () => {
       if (!token) return;
-      const { data, error } = await db.rpc("get_avaliacao_plantao_por_token", { p_token: token });
+      const { data, error } = await db.rpc("get_avaliacao_plantao_detalhes_por_token", { p_token: token });
       const r = Array.isArray(data) ? data[0] : data;
       if (error || !r) setErro("Link inválido ou desativado.");
       else { setDados(r); setUnidade(r.unidade || ""); }
@@ -39,19 +40,22 @@ export default function ResponderPlantao() {
   }, [token]);
 
   const perguntas: any[] = dados?.perguntas || [];
+  const permiteInformarExecutiva = !!dados?.permite_informar_executiva;
 
   const enviar = async () => {
     if (!dataAtend) { toast.error("Informe a data do atendimento"); return; }
     if (dataAtend > hojeLocal()) { toast.error("A data do atendimento não pode ser futura"); return; }
+    if (permiteInformarExecutiva && !execInformada.trim()) { toast.error("Informe o nome da executiva avaliada"); return; }
     for (const p of perguntas) {
       if (p.obrigatoria && (respostas[p.id] == null || respostas[p.id] === "")) { toast.error(`Responda: ${p.titulo}`); return; }
     }
     const notas = perguntas.filter((p) => p.tipo === "rating").map((p) => Number(respostas[p.id])).filter((n) => !isNaN(n));
     const media = notas.length ? Number((notas.reduce((a, b) => a + b, 0) / notas.length).toFixed(2)) : null;
     setEnviando(true);
-    const { error } = await db.rpc("responder_avaliacao_plantao_por_token", {
+    const { error } = await db.rpc("responder_avaliacao_plantao_com_executiva_por_token", {
       p_token: token, p_respostas: respostas, p_comentario: comentario.trim() || null,
       p_nota_media: media, p_data_atendimento: dataAtend, p_unidade: unidade.trim() || null,
+      p_executiva_informada: permiteInformarExecutiva ? execInformada.trim().toUpperCase() : null,
     });
     setEnviando(false);
     if (error) { toast.error("Não foi possível enviar sua avaliação. Tente novamente."); return; }
@@ -75,7 +79,7 @@ export default function ResponderPlantao() {
         <CheckCircle2 className="h-10 w-10 mx-auto text-primary" />
         <h1 className="text-xl font-bold">Avaliação enviada!</h1>
         <p className="text-sm text-muted-foreground">Obrigado por avaliar o atendimento.</p>
-        <Button variant="outline" className="w-full" onClick={() => { setRespostas({}); setComentario(""); setDataAtend(hojeLocal()); setEnviado(false); }}>
+        <Button variant="outline" className="w-full" onClick={() => { setRespostas({}); setComentario(""); setExecInformada(""); setDataAtend(hojeLocal()); setEnviado(false); }}>
           Responder outra avaliação
         </Button>
       </Card>
@@ -91,6 +95,24 @@ export default function ResponderPlantao() {
         </Card>
         <Card className="p-6 space-y-5">
           <div className="grid sm:grid-cols-2 gap-4">
+            <div>
+              <label className="text-sm font-medium">Empresa</label>
+              <Input value={dados.empresa_nome || ""} readOnly className="mt-1 bg-muted/40" />
+            </div>
+            <div>
+              <label className="text-sm font-medium">Executiva avaliada {permiteInformarExecutiva ? "*" : ""}</label>
+              {permiteInformarExecutiva ? (
+                <Input
+                  value={execInformada}
+                  onChange={(e) => setExecInformada(e.target.value.toUpperCase())}
+                  maxLength={120}
+                  placeholder="NOME DA EXECUTIVA..."
+                  className="mt-1 uppercase"
+                />
+              ) : (
+                <Input value={dados.executiva_nome || "—"} readOnly className="mt-1 bg-muted/40" />
+              )}
+            </div>
             <div>
               <label className="text-sm font-medium">Data do atendimento *</label>
               <Input type="date" value={dataAtend} max={hojeLocal()} onChange={(e) => setDataAtend(e.target.value)} className="mt-1" />

@@ -162,6 +162,13 @@
       "when": 1790614789133,
       "tag": "0022_vw_avaliacoes_unificadas",
       "breakpoints": true
+    },
+    {
+      "idx": 23,
+      "version": "7",
+      "when": 1790687114558,
+      "tag": "0023_plantao_exibe_empresa_executiva",
+      "breakpoints": true
     }
   ]
 }
