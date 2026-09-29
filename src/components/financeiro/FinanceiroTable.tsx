@@ -143,6 +143,7 @@ function StickyHorizontalScrollbar({ getTarget }: { getTarget: () => HTMLElement
       const onMove = (ev: PointerEvent) => setFromX(ev.clientX);
       const onUp = () => {
         draggingRef.current = false;
+        update();
         window.removeEventListener("pointermove", onMove);
         window.removeEventListener("pointerup", onUp);
         window.removeEventListener("pointercancel", onUp);
