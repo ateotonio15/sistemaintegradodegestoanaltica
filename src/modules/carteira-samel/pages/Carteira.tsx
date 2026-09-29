@@ -187,7 +187,7 @@ export default function Carteira() {
       <Dialog open={qrModal.open} onOpenChange={(open) => setQrModal({ ...qrModal, open })}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
-            <DialogTitle>QR Code de Avaliação</DialogTitle>
+            <DialogTitle>QR Code — Avaliação RH</DialogTitle>
             <DialogDescription>
               {qrModal.empresa?.nome && (
                 <span className="block font-medium text-foreground">{qrModal.empresa.nome}</span>
