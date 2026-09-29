@@ -181,8 +181,11 @@ export default function ProducaoGuias() {
       {error && <Card className="p-4 text-sm text-destructive">Não foi possível consultar a API: {(error as Error).message}</Card>}
 
       {isLoading && periodoOk ? (
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-          {Array.from({ length: 4 }).map((_, i) => <Skeleton key={i} className="h-24" />)}
+        <div className="space-y-3">
+          <p className="text-sm text-muted-foreground">Consultando a API da operadora… períodos longos podem levar até 30 segundos.</p>
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+            {Array.from({ length: 4 }).map((_, i) => <Skeleton key={i} className="h-24" />)}
+          </div>
         </div>
       ) : data ? (
         <>
