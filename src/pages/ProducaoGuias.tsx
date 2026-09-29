@@ -12,7 +12,10 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { fetchProducaoGuias } from "@/lib/producaoGuiasApi";
+import { fetchEmpresasProducaoGuias, fetchProducaoGuias } from "@/lib/producaoGuiasApi";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
+import { Check, ChevronsUpDown } from "lucide-react";
 
 const CORES = ["hsl(var(--chart-1))", "hsl(var(--chart-3))", "hsl(var(--chart-4))", "hsl(var(--chart-5))", "hsl(var(--chart-2))"];
 const fmt = (n: number) => (n ?? 0).toLocaleString("pt-BR");
@@ -39,10 +42,18 @@ export default function ProducaoGuias() {
   const [page, setPage] = useState(0);
   const PAGE = 20;
 
+  const [empresa, setEmpresa] = useState("");
+  const [empOpen, setEmpOpen] = useState(false);
+  const { data: empresas = [], isLoading: loadingEmpresas } = useQuery({
+    queryKey: ["producao-guias-empresas"],
+    queryFn: fetchEmpresasProducaoGuias,
+    staleTime: 60 * 60 * 1000,
+  });
+
   const periodoOk = !!ini && !!fim && ini <= fim;
   const { data, isLoading, isFetching, error, refetch } = useQuery({
-    queryKey: ["producao-guias", ini, fim],
-    queryFn: () => fetchProducaoGuias(ini, fim),
+    queryKey: ["producao-guias", ini, fim, empresa],
+    queryFn: () => fetchProducaoGuias(ini, fim, empresa),
     enabled: periodoOk,
   });
 
@@ -112,7 +123,7 @@ export default function ProducaoGuias() {
     const ws = XLSX.utils.json_to_sheet(rows);
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, "Produção de guias");
-    XLSX.writeFile(wb, `producao-guias_${ini}_${fim}.xlsx`);
+    XLSX.writeFile(wb, `producao-guias_${empresa ? empresa.slice(0, 40).replace(/[^\w]+/g, "_") + "_" : ""}${ini}_${fim}.xlsx`);
   };
 
   const setMes = (offset: number) => {
@@ -156,6 +167,35 @@ export default function ProducaoGuias() {
         <div className="flex gap-2">
           <Button variant="outline" size="sm" onClick={() => setMes(0)}>Mês atual</Button>
           <Button variant="outline" size="sm" onClick={() => setMes(-1)}>Mês anterior</Button>
+        </div>
+        <div className="space-y-1">
+          <label className="text-xs text-muted-foreground">Empresa</label>
+          <Popover open={empOpen} onOpenChange={setEmpOpen}>
+            <PopoverTrigger asChild>
+              <Button variant="outline" className="w-72 justify-between font-normal">
+                <span className="truncate">{empresa || "Todas as empresas"}</span>
+                <ChevronsUpDown className="h-4 w-4 opacity-50 shrink-0" />
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-96 p-0" align="start">
+              <Command>
+                <CommandInput placeholder="Buscar empresa..." />
+                <CommandList>
+                  <CommandEmpty>{loadingEmpresas ? "Carregando..." : "Nenhuma empresa."}</CommandEmpty>
+                  <CommandGroup>
+                    <CommandItem value="__todas__" onSelect={() => { setEmpresa(""); setEmpOpen(false); setPage(0); }}>
+                      <Check className={`h-4 w-4 mr-2 ${!empresa ? "opacity-100" : "opacity-0"}`} /> Todas as empresas
+                    </CommandItem>
+                    {empresas.map((e) => (
+                      <CommandItem key={e} value={e} onSelect={() => { setEmpresa(e); setEmpOpen(false); setPage(0); }}>
+                        <Check className={`h-4 w-4 mr-2 ${empresa === e ? "opacity-100" : "opacity-0"}`} /> {e}
+                      </CommandItem>
+                    ))}
+                  </CommandGroup>
+                </CommandList>
+              </Command>
+            </PopoverContent>
+          </Popover>
         </div>
         <div className="space-y-1">
           <label className="text-xs text-muted-foreground">Tarefa</label>
