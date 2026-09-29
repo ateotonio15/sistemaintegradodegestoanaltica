@@ -242,6 +242,8 @@ export function EditarMovimentacaoDialog({ open, onOpenChange, movimentacao, emp
       return [...ownList, ...extras];
     },
     enabled: !!movimentacao && open,
+    staleTime: 0,
+    refetchOnMount: "always",
   });
 
   // Pagadores do mesmo contrato (para sincronização)
@@ -684,7 +686,7 @@ export function EditarMovimentacaoDialog({ open, onOpenChange, movimentacao, emp
         }
       }
 
-      queryClient.invalidateQueries({ queryKey: ["financeiro-anexos", movimentacao.id] });
+      await queryClient.refetchQueries({ queryKey: ["financeiro-anexos", movimentacao.id] });
       queryClient.invalidateQueries({ queryKey: ["financeiro-anexos-list"] });
 
       if (sucessos > 0) {
