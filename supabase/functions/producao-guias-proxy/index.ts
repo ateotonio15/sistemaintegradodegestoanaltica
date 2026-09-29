@@ -6,7 +6,7 @@ const corsHeaders = {
   "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
 };
 
-const UPSTREAM = "https://api-iasam.samel.com.br/producao-guias-ambulatorio/agrupado";
+const BASE = "https://api-iasam.samel.com.br/producao-guias-ambulatorio";
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
 
 Deno.serve(async (req) => {
@@ -23,13 +23,21 @@ Deno.serve(async (req) => {
     if (error || !data?.user) return json({ status: false, message: "Unauthorized" }, 401);
 
     const body = await req.json().catch(() => ({}));
-    const dt_inicio = String(body?.dt_inicio ?? "");
-    const dt_fim = String(body?.dt_fim ?? "");
-    if (!DATE_RE.test(dt_inicio) || !DATE_RE.test(dt_fim)) {
-      return json({ status: false, message: "Período inválido (use AAAA-MM-DD)" }, 400);
+    let url: string;
+    if (body?.acao === "empresas") {
+      url = `${BASE}/empresas`;
+    } else {
+      const dt_inicio = String(body?.dt_inicio ?? "");
+      const dt_fim = String(body?.dt_fim ?? "");
+      if (!DATE_RE.test(dt_inicio) || !DATE_RE.test(dt_fim)) {
+        return json({ status: false, message: "Período inválido (use AAAA-MM-DD)" }, 400);
+      }
+      const empresa = typeof body?.nm_empresa === "string" ? body.nm_empresa.trim().slice(0, 300) : "";
+      url = `${BASE}/agrupado?dt_inicio=${dt_inicio}&dt_fim=${dt_fim}`;
+      if (empresa) url += `&nm_empresa=${encodeURIComponent(empresa)}`;
     }
 
-    const r = await fetch(`${UPSTREAM}?dt_inicio=${dt_inicio}&dt_fim=${dt_fim}`);
+    const r = await fetch(url);
     const text = await r.text();
     return new Response(text, { status: r.status, headers: { ...corsHeaders, "Content-Type": "application/json" } });
   } catch (e) {

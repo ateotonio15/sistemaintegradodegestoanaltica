@@ -17,12 +17,22 @@ export interface ProducaoGuiasApi {
   USUARIOS: UsuarioGuiasApi[];
 }
 
-export async function fetchProducaoGuias(dt_inicio: string, dt_fim: string): Promise<ProducaoGuiasApi> {
+export async function fetchProducaoGuias(dt_inicio: string, dt_fim: string, nm_empresa?: string): Promise<ProducaoGuiasApi> {
   const { data, error } = await supabase.functions.invoke("producao-guias-proxy", {
     method: "POST",
-    body: { dt_inicio, dt_fim },
+    body: { dt_inicio, dt_fim, nm_empresa: nm_empresa || undefined },
   });
   if (error) throw error;
   if (!data?.status) throw new Error(data?.message || "Falha ao consultar a API");
   return data.data as ProducaoGuiasApi;
+}
+
+export async function fetchEmpresasProducaoGuias(): Promise<string[]> {
+  const { data, error } = await supabase.functions.invoke("producao-guias-proxy", {
+    method: "POST",
+    body: { acao: "empresas" },
+  });
+  if (error) throw error;
+  if (!data?.status) throw new Error(data?.message || "Falha ao consultar empresas");
+  return ((data.data ?? []) as { NM_EMPRESA: string }[]).map((e) => e.NM_EMPRESA).filter(Boolean);
 }
