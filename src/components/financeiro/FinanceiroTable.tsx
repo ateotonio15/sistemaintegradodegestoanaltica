@@ -115,6 +115,7 @@ function StickyHorizontalScrollbar({ getTarget }: { getTarget: () => HTMLElement
 
     let raf = 0;
     const onTargetScroll = () => {
+      if (draggingRef.current) return;
       cancelAnimationFrame(raf);
       raf = requestAnimationFrame(update);
     };
@@ -129,13 +130,20 @@ function StickyHorizontalScrollbar({ getTarget }: { getTarget: () => HTMLElement
       const grab = onThumb ? e.clientX - thumbRect.left : thumbW / 2;
       const setFromX = (clientX: number) => {
         const x = Math.max(0, Math.min(trackW - thumbW, clientX - rect.left - PAD - grab));
-        target.scrollLeft = (x / Math.max(1, trackW - thumbW)) * overflow;
         thumb.style.transform = `translateX(${x}px)`;
+        pendingScroll = (x / Math.max(1, trackW - thumbW)) * overflow;
+        if (!moveRaf) moveRaf = requestAnimationFrame(() => {
+          moveRaf = 0;
+          target.scrollLeft = pendingScroll;
+        });
       };
+      let pendingScroll = target.scrollLeft;
+      let moveRaf = 0;
       setFromX(e.clientX);
       const onMove = (ev: PointerEvent) => setFromX(ev.clientX);
       const onUp = () => {
         draggingRef.current = false;
+        update();
         window.removeEventListener("pointermove", onMove);
         window.removeEventListener("pointerup", onUp);
         window.removeEventListener("pointercancel", onUp);
@@ -168,12 +176,12 @@ function StickyHorizontalScrollbar({ getTarget }: { getTarget: () => HTMLElement
     <div
       ref={barRef}
       aria-hidden="true"
-      className="sticky bottom-0 z-20 h-5 px-2 bg-card/95 backdrop-blur-sm border-t border-border/60 cursor-pointer touch-none select-none"
+      className="sticky bottom-0 z-20 h-5 px-2 bg-card border-t border-border/60 cursor-pointer touch-none select-none"
     >
       <div className="relative top-0.5 h-2 rounded-full bg-muted/80">
         <div
           ref={thumbRef}
-          className="absolute inset-y-0 left-0 rounded-full bg-primary/70 hover:bg-primary"
+          className="absolute inset-y-0 left-0 rounded-full bg-primary/70 hover:bg-primary will-change-transform"
           style={{ width: 36 }}
         />
       </div>
