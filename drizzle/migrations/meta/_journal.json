@@ -169,6 +169,13 @@
       "when": 1790687114558,
       "tag": "0023_plantao_exibe_empresa_executiva",
       "breakpoints": true
+    },
+    {
+      "idx": 24,
+      "version": "7",
+      "when": 1790689644082,
+      "tag": "0024_avaliacao_tipo_por_token",
+      "breakpoints": true
     }
   ]
 }
