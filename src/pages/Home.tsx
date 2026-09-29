@@ -44,6 +44,7 @@ import {
   Star,
   FileSearch,
   Settings,
+  ClipboardList,
 } from "lucide-react";
 
 type InteligenciaItem = {
@@ -56,6 +57,8 @@ type InteligenciaItem = {
 };
 
 type InteligenciaSection = {
+  /** Perfis que enxergam a seção (admin sempre vê). Ausente = todos. */
+  allow?: string[];
   title: string;
   description: string;
   icon: LucideIcon;
@@ -174,6 +177,21 @@ const INTELIGENCIA_SECTIONS: InteligenciaSection[] = [
         to: "/saude-empresas/pesquisas",
       },
 
+    ],
+  },
+  {
+    title: "Produção de Guias",
+    description: "Guias e pacientes do ambulatório por usuário",
+    icon: ClipboardList,
+    allow: ["diretora", "diretora_saude", "coordenadora", "executivo", "enfermeira", "tec_enfermagem"],
+    items: [
+      {
+        slug: "producao-guias",
+        label: "Produção de Guias",
+        description: "Guias e pacientes do ambulatório por usuário e tarefa",
+        icon: ClipboardList,
+        to: "/producao-guias",
+      },
     ],
   },
   {
@@ -685,6 +703,7 @@ export default function Home() {
               return (
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
                   {INTELIGENCIA_SECTIONS.filter((section) => {
+                    if (section.allow && !isAdmin && !section.allow.includes(role as string)) return false;
                     if (soSaude) return section.title === "Saúde nas Empresas";
                     if (!isExecutivoExterno) return true;
                     return ["Demandas", "Plantões", "Mailing de Brindes"].includes(section.title);
