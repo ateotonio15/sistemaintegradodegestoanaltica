@@ -34,7 +34,8 @@ export default function ResponderPorToken() {
         setLoading(false);
         return;
       }
-      if (env.tipo === "plantao") { window.location.replace(`/avaliacoes/plantao/responder/${token}`); return; }
+      const { data: tp } = await db.rpc("avaliacao_tipo_por_token", { p_token: token });
+      if (tp === "plantao") { window.location.replace(`/avaliacoes/plantao/responder/${token}`); return; }
       setEnvio(env);
 
       const { data: frows, error: formError } = await db.rpc("get_avaliacao_formulario_por_token", { p_token: token });
