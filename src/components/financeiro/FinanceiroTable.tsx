@@ -113,8 +113,10 @@ function StickyHorizontalScrollbar({ getTarget }: { getTarget: () => HTMLElement
       thumb.style.transform = `translateX(${Math.max(0, x)}px)`;
     };
 
+    let raf = 0;
     const onTargetScroll = () => {
-      if (!draggingRef.current) update();
+      cancelAnimationFrame(raf);
+      raf = requestAnimationFrame(update);
     };
 
     const onPointerDown = (e: PointerEvent) => {
@@ -122,9 +124,13 @@ function StickyHorizontalScrollbar({ getTarget }: { getTarget: () => HTMLElement
       draggingRef.current = true;
       const rect = bar.getBoundingClientRect();
       const { trackW, overflow, thumbW } = metrics();
+      const thumbRect = thumb.getBoundingClientRect();
+      const onThumb = e.clientX >= thumbRect.left && e.clientX <= thumbRect.right;
+      const grab = onThumb ? e.clientX - thumbRect.left : thumbW / 2;
       const setFromX = (clientX: number) => {
-        const x = Math.max(0, Math.min(trackW - thumbW, clientX - rect.left - PAD - thumbW / 2));
+        const x = Math.max(0, Math.min(trackW - thumbW, clientX - rect.left - PAD - grab));
         target.scrollLeft = (x / Math.max(1, trackW - thumbW)) * overflow;
+        thumb.style.transform = `translateX(${x}px)`;
       };
       setFromX(e.clientX);
       const onMove = (ev: PointerEvent) => setFromX(ev.clientX);
@@ -150,6 +156,7 @@ function StickyHorizontalScrollbar({ getTarget }: { getTarget: () => HTMLElement
     window.addEventListener("resize", update);
 
     return () => {
+      cancelAnimationFrame(raf);
       target.removeEventListener("scroll", onTargetScroll);
       bar.removeEventListener("pointerdown", onPointerDown);
       ro.disconnect();
