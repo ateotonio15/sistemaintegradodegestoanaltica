@@ -78,40 +78,70 @@ const COL_COUNT = 14;
 
 /**
  * Barra de rolagem horizontal espelhada, fixa no pé da tela (sticky).
- * Espelha o scrollLeft do container da tabela em ambos os sentidos,
- * permitindo arrastar para o lado sem descer até o fim da tabela.
+ * Clique ou arraste o pino para mover a tabela para o lado sem precisar
+ * descer até o fim dela. Espelha o scrollLeft do container em ambos os sentidos.
  */
 function StickyHorizontalScrollbar({ getTarget }: { getTarget: () => HTMLElement | null }) {
   const barRef = useRef<HTMLDivElement>(null);
-  const spacerRef = useRef<HTMLDivElement>(null);
-  const syncingRef = useRef(false);
+  const thumbRef = useRef<HTMLDivElement>(null);
+  const draggingRef = useRef(false);
 
   useEffect(() => {
     const bar = barRef.current;
-    const spacer = spacerRef.current;
-    if (!bar || !spacer) return;
+    const thumb = thumbRef.current;
+    if (!bar || !thumb) return;
     const target = getTarget();
     if (!target) return;
 
-    const sync = (from: HTMLElement, to: HTMLElement) => {
-      if (syncingRef.current) return;
-      syncingRef.current = true;
-      to.scrollLeft = from.scrollLeft;
-      syncingRef.current = false;
+    const PAD = 8;
+    const metrics = () => {
+      const trackW = Math.max(0, bar.clientWidth - PAD * 2);
+      const overflow = Math.max(1, target.scrollWidth - target.clientWidth);
+      const ratio = Math.min(1, target.clientWidth / Math.max(1, target.scrollWidth));
+      const thumbW = Math.max(36, trackW * ratio);
+      return { trackW, overflow, thumbW };
     };
 
     const update = () => {
-      const precisa = target.scrollWidth > target.clientWidth + 2;
-      bar.style.display = precisa ? "block" : "none";
-      spacer.style.width = `${target.scrollWidth}px`;
+      const semOverflow = target.scrollWidth <= target.clientWidth + 2;
+      bar.style.display = semOverflow ? "none" : "block";
+      if (semOverflow) return;
+      const { trackW, overflow, thumbW } = metrics();
+      const maxScroll = overflow;
+      const x = (target.scrollLeft / maxScroll) * (trackW - thumbW);
+      thumb.style.width = `${thumbW}px`;
+      thumb.style.transform = `translateX(${Math.max(0, x)}px)`;
     };
 
-    const onTargetScroll = () => sync(target, bar);
-    const onBarScroll = () => sync(bar, target);
+    const onTargetScroll = () => {
+      if (!draggingRef.current) update();
+    };
+
+    const onPointerDown = (e: PointerEvent) => {
+      e.preventDefault();
+      draggingRef.current = true;
+      const rect = bar.getBoundingClientRect();
+      const { trackW, overflow, thumbW } = metrics();
+      const setFromX = (clientX: number) => {
+        const x = Math.max(0, Math.min(trackW - thumbW, clientX - rect.left - PAD - thumbW / 2));
+        target.scrollLeft = (x / Math.max(1, trackW - thumbW)) * overflow;
+      };
+      setFromX(e.clientX);
+      const onMove = (ev: PointerEvent) => setFromX(ev.clientX);
+      const onUp = () => {
+        draggingRef.current = false;
+        window.removeEventListener("pointermove", onMove);
+        window.removeEventListener("pointerup", onUp);
+        window.removeEventListener("pointercancel", onUp);
+      };
+      window.addEventListener("pointermove", onMove);
+      window.addEventListener("pointerup", onUp);
+      window.addEventListener("pointercancel", onUp);
+    };
 
     update();
     target.addEventListener("scroll", onTargetScroll, { passive: true });
-    bar.addEventListener("scroll", onBarScroll, { passive: true });
+    bar.addEventListener("pointerdown", onPointerDown);
 
     const ro = new ResizeObserver(update);
     ro.observe(target);
@@ -121,7 +151,7 @@ function StickyHorizontalScrollbar({ getTarget }: { getTarget: () => HTMLElement
 
     return () => {
       target.removeEventListener("scroll", onTargetScroll);
-      bar.removeEventListener("scroll", onBarScroll);
+      bar.removeEventListener("pointerdown", onPointerDown);
       ro.disconnect();
       window.removeEventListener("resize", update);
     };
@@ -131,10 +161,15 @@ function StickyHorizontalScrollbar({ getTarget }: { getTarget: () => HTMLElement
     <div
       ref={barRef}
       aria-hidden="true"
-      className="sticky bottom-0 z-20 overflow-x-auto overflow-y-hidden bg-card/95 backdrop-blur-sm border-t border-border/60"
-      style={{ height: 18, scrollbarWidth: "auto", scrollbarColor: "hsl(var(--primary) / 0.7) hsl(var(--muted) / 0.55)" }}
+      className="sticky bottom-0 z-20 h-5 px-2 bg-card/95 backdrop-blur-sm border-t border-border/60 cursor-pointer touch-none select-none"
     >
-      <div ref={spacerRef} className="h-px" style={{ width: 0 }} />
+      <div className="relative top-0.5 h-2 rounded-full bg-muted/80">
+        <div
+          ref={thumbRef}
+          className="absolute inset-y-0 left-0 rounded-full bg-primary/70 hover:bg-primary"
+          style={{ width: 36 }}
+        />
+      </div>
     </div>
   );
 }
