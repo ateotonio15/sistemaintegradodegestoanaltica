@@ -469,6 +469,8 @@ export function FinanceiroTable({
 
       />
 
-    </div>
+      </div>
+      <StickyHorizontalScrollbar getTarget={getScrollTarget} />
+    </>
   );
 }
