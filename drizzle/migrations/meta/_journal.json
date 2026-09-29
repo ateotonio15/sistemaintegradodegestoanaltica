@@ -176,6 +176,13 @@
       "when": 1790689644082,
       "tag": "0024_avaliacao_tipo_por_token",
       "breakpoints": true
+    },
+    {
+      "idx": 25,
+      "version": "7",
+      "when": 1790693984630,
+      "tag": "0025_mailing_executivo_ve_todos",
+      "breakpoints": true
     }
   ]
 }
