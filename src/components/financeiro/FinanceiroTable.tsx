@@ -1,4 +1,4 @@
-import { Fragment, useState } from "react";
+import { Fragment, useCallback, useEffect, useRef, useState } from "react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { AnexosViewerDialog } from "@/components/dashboard/AnexosViewerDialog";
 import { Badge } from "@/components/ui/badge";
@@ -75,6 +75,69 @@ interface Props {
 }
 
 const COL_COUNT = 14;
+
+/**
+ * Barra de rolagem horizontal espelhada, fixa no pé da tela (sticky).
+ * Espelha o scrollLeft do container da tabela em ambos os sentidos,
+ * permitindo arrastar para o lado sem descer até o fim da tabela.
+ */
+function StickyHorizontalScrollbar({ getTarget }: { getTarget: () => HTMLElement | null }) {
+  const barRef = useRef<HTMLDivElement>(null);
+  const spacerRef = useRef<HTMLDivElement>(null);
+  const syncingRef = useRef(false);
+
+  useEffect(() => {
+    const bar = barRef.current;
+    const spacer = spacerRef.current;
+    if (!bar || !spacer) return;
+    const target = getTarget();
+    if (!target) return;
+
+    const sync = (from: HTMLElement, to: HTMLElement) => {
+      if (syncingRef.current) return;
+      syncingRef.current = true;
+      to.scrollLeft = from.scrollLeft;
+      syncingRef.current = false;
+    };
+
+    const update = () => {
+      const precisa = target.scrollWidth > target.clientWidth + 2;
+      bar.style.display = precisa ? "block" : "none";
+      spacer.style.width = `${target.scrollWidth}px`;
+    };
+
+    const onTargetScroll = () => sync(target, bar);
+    const onBarScroll = () => sync(bar, target);
+
+    update();
+    target.addEventListener("scroll", onTargetScroll, { passive: true });
+    bar.addEventListener("scroll", onBarScroll, { passive: true });
+
+    const ro = new ResizeObserver(update);
+    ro.observe(target);
+    const table = target.querySelector("table");
+    if (table) ro.observe(table);
+    window.addEventListener("resize", update);
+
+    return () => {
+      target.removeEventListener("scroll", onTargetScroll);
+      bar.removeEventListener("scroll", onBarScroll);
+      ro.disconnect();
+      window.removeEventListener("resize", update);
+    };
+  }, [getTarget]);
+
+  return (
+    <div
+      ref={barRef}
+      aria-hidden="true"
+      className="sticky bottom-0 z-20 overflow-x-auto overflow-y-hidden bg-card/95 backdrop-blur-sm border-t border-border/60"
+      style={{ height: 18, scrollbarWidth: "auto", scrollbarColor: "hsl(var(--primary) / 0.7) hsl(var(--muted) / 0.55)" }}
+    >
+      <div ref={spacerRef} className="h-px" style={{ width: 0 }} />
+    </div>
+  );
+}
 
 export function FinanceiroTable({
   rows,
