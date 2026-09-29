@@ -5828,6 +5828,7 @@ export type Database = {
         Returns: undefined
       }
       ativar_contratos_pendentes: { Args: never; Returns: number }
+      avaliacao_tipo_por_token: { Args: { p_token: string }; Returns: string }
       calc_pascoa: { Args: { _ano: number }; Returns: string }
       calcular_idade: { Args: { p_nasc: string }; Returns: number }
       calcular_imc: {

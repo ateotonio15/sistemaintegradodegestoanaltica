@@ -272,7 +272,7 @@ export function EnviosAvaliacaoTab({ form, tipo = "rh" }: Props) {
       <Dialog open={qrModal.open} onOpenChange={(open) => setQrModal({ ...qrModal, open })}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
-            <DialogTitle>QR Code de Avaliação</DialogTitle>
+            <DialogTitle>{tipo === "plantao" ? "QR Code — Avaliação do Plantão" : "QR Code — Avaliação RH"}</DialogTitle>
             <DialogDescription>
               {qrModal.empresa?.nome && (
                 <span className="block font-medium text-foreground">{qrModal.empresa.nome}</span>

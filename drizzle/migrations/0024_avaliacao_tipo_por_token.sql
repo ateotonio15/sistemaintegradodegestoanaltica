@@ -1,0 +1,2 @@
+CREATE OR REPLACE FUNCTION public.avaliacao_tipo_por_token(p_token text) RETURNS text LANGUAGE sql STABLE SECURITY DEFINER SET search_path=public AS $$ SELECT tipo FROM avaliacoes_envios WHERE token_unico = p_token LIMIT 1 $$;
+GRANT EXECUTE ON FUNCTION public.avaliacao_tipo_por_token(text) TO anon, authenticated;
