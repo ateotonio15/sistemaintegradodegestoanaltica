@@ -184,9 +184,16 @@ export function FinanceiroTable({
 
 
 
+  const tableCardRef = useRef<HTMLDivElement>(null);
+  const getScrollTarget = useCallback(
+    () => (tableCardRef.current?.firstElementChild as HTMLElement | null) ?? null,
+    [],
+  );
+
   return (
-    <div className="rounded-xl border border-border bg-card shadow-sm overflow-hidden">
-      <Table>
+    <>
+      <div ref={tableCardRef} className="rounded-xl border border-border bg-card shadow-sm overflow-hidden">
+        <Table>
         <TableHeader>
           <TableRow className="bg-muted/50 hover:bg-muted/50">
             <TableHead className="font-semibold text-center">Empresa</TableHead>
