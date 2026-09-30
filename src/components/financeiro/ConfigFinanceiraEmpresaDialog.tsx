@@ -33,6 +33,7 @@ import {
 } from "@/lib/empresa-financeiro-config";
 import { calcularPeriodoCobranca, formatPeriodoCobranca, todayLocalISO } from "@/lib/date-utils";
 import { useAuth } from "@/hooks/useAuth";
+import { useGrupoFinanceiro } from "@/hooks/useGrupoFinanceiro";
 
 
 interface Props {
@@ -63,6 +64,8 @@ export function ConfigFinanceiraEmpresaDialog({
   const qc = useQueryClient();
   const [saving, setSaving] = useState(false);
   const [errors, setErrors] = useState<Errors>({});
+  const [naoReajGrupo, setNaoReajGrupo] = useState(false);
+  const { data: grupoEdit } = useGrupoFinanceiro(empresaId);
 
   const { data: empresa, isLoading } = useQuery({
     queryKey: ["empresa-config-financeira", empresaId],
@@ -186,6 +189,17 @@ export function ConfigFinanceiraEmpresaDialog({
         } as any)
         .eq("id", empresaId);
       if (error) throw error;
+
+      if (naoReajGrupo && grupoEdit?.grupo) {
+        const outros = grupoEdit.contratos.map((c) => c.empresa_id).filter((id) => id !== empresaId);
+        if (outros.length) {
+          const { error: gErr } = await supabase
+            .from("empresas")
+            .update({ nao_reajustado: v.nao_reajustado ?? false } as any)
+            .in("id", outros);
+          if (gErr) throw gErr;
+        }
+      }
 
       // Sincroniza TODAS as movimentações financeiras desta empresa com os
       // valores cadastrados (dia_emissao + dia de vencimento da fatura).
@@ -427,6 +441,19 @@ export function ConfigFinanceiraEmpresaDialog({
                     </SelectContent>
                   </Select>
                 </div>
+
+                {grupoEdit?.grupo && (
+                  <div className="space-y-1.5">
+                    <Label>Aplicar para todos do grupo</Label>
+                    <Select value={naoReajGrupo ? "sim" : "nao"} onValueChange={(v) => setNaoReajGrupo(v === "sim")}>
+                      <SelectTrigger><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="sim">Sim ({grupoEdit.contratos.length} contratos)</SelectItem>
+                        <SelectItem value="nao">Não</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                )}
 
                 <div className="space-y-1.5 sm:col-span-2">
                   <Label>Envio do boleto junto com a nota</Label>
