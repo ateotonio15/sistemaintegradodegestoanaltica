@@ -26,6 +26,7 @@ export const TIPOS = [
   "Portal",
   "Reclamação",
   "Solicitação de Prontuário",
+  "Veracidade Atestado",
   "T.I",
 ];
 
@@ -54,6 +55,7 @@ export const RECLAMACOES = [
   "Aplicativo",
   "Veracidade de Atestado",
   "Atraso na entrega de Prontuário",
+  "Atraso no envio da veracidade de atestado",
 ];
 
 // Fallback por tipo (chave = tipo)
@@ -85,6 +87,7 @@ export const RECLAMACOES_POR_TIPO: Record<string, string[]> = {
   "T.I": ["Indisponibilidade de dados", "Telemedicina"],
   "Reclamação": [...RECLAMACOES],
   "Solicitação de Prontuário": ["Atraso na entrega de Prontuário"],
+  "Veracidade Atestado": ["Atraso no envio da veracidade de atestado"],
 };
 
 // Lista mais específica (chave = setor → tipo)
