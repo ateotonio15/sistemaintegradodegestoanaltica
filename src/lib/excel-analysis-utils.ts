@@ -152,7 +152,7 @@ export interface ComparacaoSimplificada {
 function cellToText(v: unknown): string {
   if (v === null || v === undefined) return "";
   if (typeof v === "string" || typeof v === "number" || typeof v === "boolean") return String(v);
-  if (v instanceof Date) return v.toISOString();
+  if (v instanceof Date) return isNaN(v.getTime()) ? "" : v.toISOString();
   if (Array.isArray(v)) return v.map(cellToText).join(" ");
   if (typeof v === "object") {
     const any = v as any;
