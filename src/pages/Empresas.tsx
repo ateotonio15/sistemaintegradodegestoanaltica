@@ -1747,7 +1747,7 @@ export default function Empresas() {
                             <div className="space-y-2">
                               <Label className="text-sm font-medium">Aplicar "Não reajustado" para todos do grupo</Label>
                               <div className="flex items-center gap-3 h-10 px-3 rounded-lg border bg-background">
-                                <Switch checked={naoReajGrupo} onCheckedChange={setNaoReajGrupo} />
+                                <Switch checked={naoReajGrupo} onCheckedChange={(v) => { setNaoReajGrupo(v); if (v) setForm({ ...form, nao_reajustado: true } as any); }} />
                                 <span className="text-sm text-muted-foreground">
                                   {naoReajGrupo ? `Sim — ${grupoEdit.contratos.length} contratos do grupo ${grupoEdit.grupo.nome_grupo}` : "Não"}
                                 </span>
