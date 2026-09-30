@@ -11,17 +11,17 @@ interface PeriodSummaryProps {
 
 export function PeriodSummary({ countByPeriodo, selected, onSelect }: PeriodSummaryProps) {
   return (
-    <Card className="rounded-2xl border-border/60 shadow-sm">
-      <CardContent className="p-4">
+    <Card className="rounded-xl border-border/60 shadow-sm">
+      <CardContent className="p-4 md:p-5">
         <div className="flex items-center justify-between mb-3">
-          <h3 className="text-sm font-semibold text-foreground">Resumo por período</h3>
+          <h3 className="text-base font-semibold text-foreground">Resumo Geral por Período</h3>
           {selected && (
             <Button variant="ghost" size="sm" className="h-7 text-xs" onClick={() => onSelect(null)}>
               Limpar
             </Button>
           )}
         </div>
-        <div className="grid grid-cols-3 md:grid-cols-6 gap-2">
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
           {PERIODOS_FIN.map((p) => {
             const isActive = selected === p;
             const count = countByPeriodo[p] || 0;
@@ -30,14 +30,14 @@ export function PeriodSummary({ countByPeriodo, selected, onSelect }: PeriodSumm
                 key={p}
                 onClick={() => onSelect(isActive ? null : p)}
                 className={cn(
-                  "group relative rounded-xl border px-3 py-2.5 text-left transition-all duration-200 hover:-translate-y-0.5",
+                  "rounded-xl border p-4 text-center transition-colors",
                   isActive
-                    ? "bg-gradient-primary text-primary-foreground border-transparent shadow-glow"
-                    : "bg-card text-card-foreground border-border/60 hover:bg-accent/60 hover:border-primary/40 hover:shadow-sm",
+                    ? "border-primary bg-primary/10 ring-1 ring-primary/20"
+                    : "border-border/60 bg-card text-card-foreground hover:bg-accent",
                 )}
               >
-                <p className={cn("text-[11px] font-medium", isActive ? "opacity-90" : "opacity-70")}>{p}</p>
-                <p className="text-lg font-bold leading-tight tabular-nums">{count}</p>
+                <p className="text-sm font-semibold">{p}</p>
+                <p className="mt-1 text-xs text-muted-foreground tabular-nums">{count} total</p>
               </button>
             );
           })}

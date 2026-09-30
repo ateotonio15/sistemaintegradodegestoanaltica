@@ -242,25 +242,25 @@ export function FinanceiroTable({
 
   return (
     <>
-      <div ref={tableCardRef} className="rounded-xl border border-border bg-card shadow-sm overflow-hidden">
+      <div ref={tableCardRef} className="overflow-hidden rounded-xl border border-border bg-card shadow-sm">
         <Table>
         <TableHeader>
-          <TableRow className="bg-muted/50 hover:bg-muted/50">
-            <TableHead className="font-semibold text-center">Empresa</TableHead>
+          <TableRow className="bg-accent/20 hover:bg-accent/20">
+            <TableHead className="font-semibold">Empresa</TableHead>
             
-            <TableHead className="font-semibold text-center">Contrato</TableHead>
-            <TableHead className="font-semibold text-center">CNPJ</TableHead>
-            <TableHead className="font-semibold text-center">Número de vidas</TableHead>
-            <TableHead className="font-semibold text-center">PERÍODO DE MOVIMENTAÇÃO</TableHead>
-            <TableHead className="font-semibold text-center">Responsável</TableHead>
-            <TableHead className="font-semibold text-center">TIPO DE MOVIMENTAÇÃO</TableHead>
-            <TableHead className="font-semibold text-center">Emissão</TableHead>
-            <TableHead className="font-semibold text-center">Status</TableHead>
-            <TableHead className="font-semibold text-center">Usuário</TableHead>
-            <TableHead className="font-semibold text-center">Envio nota</TableHead>
-            <TableHead className="font-semibold text-center">Vencimento</TableHead>
-            <TableHead className="font-semibold text-center">Anexos</TableHead>
-            <TableHead className="font-semibold text-center">Ações</TableHead>
+            <TableHead className="font-semibold">Contrato</TableHead>
+            <TableHead className="font-semibold">CNPJ</TableHead>
+            <TableHead className="font-semibold">Número de vidas</TableHead>
+            <TableHead className="font-semibold">PERÍODO DE MOVIMENTAÇÃO</TableHead>
+            <TableHead className="font-semibold">Responsável</TableHead>
+            <TableHead className="font-semibold">TIPO DE MOVIMENTAÇÃO</TableHead>
+            <TableHead className="font-semibold">Emissão</TableHead>
+            <TableHead className="font-semibold">Status</TableHead>
+            <TableHead className="font-semibold">Usuário</TableHead>
+            <TableHead className="font-semibold">Envio nota</TableHead>
+            <TableHead className="font-semibold">Vencimento</TableHead>
+            <TableHead className="font-semibold">Anexos</TableHead>
+            <TableHead className="font-semibold">Ações</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
@@ -298,7 +298,7 @@ export function FinanceiroTable({
                     <TableCell className="font-medium">
                       <div className="flex flex-col gap-0.5">
                         <div className="flex items-center gap-2">
-                          {row.prioridade_maxima && <PrioridadeBadge variant="fire" label="🔥 PRIORIDADE" />}
+                          {row.prioridade_maxima && <PrioridadeBadge variant="compact" />}
                           <span className="truncate max-w-[200px]">{row.empresa_nome}</span>
                           {row.cobranca_registrada && (
                             <Badge variant="outline" className="text-warning border-warning/50 text-[10px] px-1.5 py-0 h-5">

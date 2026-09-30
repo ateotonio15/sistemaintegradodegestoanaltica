@@ -22,19 +22,18 @@ const items = [
 
 export function KpiCards(props: KpiCardsProps) {
   return (
-    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3 animate-fade-in">
+    <div className="grid grid-cols-2 gap-3 md:grid-cols-3 lg:grid-cols-6">
       {items.map((item) => {
         const Icon = item.icon;
         const value = props[item.key];
         return (
           <Card
             key={item.key}
-            className="group rounded-2xl border-border/60 shadow-sm card-hover overflow-hidden relative"
+            className="rounded-xl border-border/60 shadow-sm"
           >
-            <div className="absolute inset-x-0 -top-px h-px bg-gradient-to-r from-transparent via-primary/30 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
             <CardContent className="p-4 flex items-center gap-3">
               <div className={cn(
-                "h-11 w-11 rounded-xl flex items-center justify-center shrink-0 ring-1 ring-border/60 transition-transform duration-200 group-hover:scale-105",
+                "flex h-10 w-10 shrink-0 items-center justify-center rounded-lg ring-1 ring-border/60",
                 item.bg
               )}>
                 <Icon className={cn("h-5 w-5", item.accent)} />
