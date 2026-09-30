@@ -3,7 +3,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { AnexosViewerDialog } from "@/components/dashboard/AnexosViewerDialog";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Pencil, Bell, Paperclip, ChevronDown, ChevronUp, History, Receipt, Loader2 } from "lucide-react";
+import { Pencil, Bell, Paperclip, ChevronDown, ChevronUp, History, Receipt, Loader2, Flame } from "lucide-react";
 import { GrupoTag } from "./GrupoTag";
 import { cn } from "@/lib/utils";
 import {
