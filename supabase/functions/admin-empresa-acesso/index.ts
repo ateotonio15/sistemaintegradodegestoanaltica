@@ -135,8 +135,7 @@ Deno.serve(async (req) => {
         .single();
       if (eErr) throw eErr;
       if (!emp?.nome) return json(400, { error: "Empresa sem nome" });
-      const senhaInicial = String(emp.codigo_contrato ?? "").trim();
-      if (!senhaInicial) return json(400, { error: "Empresa sem código (senha inicial)" });
+      const senhaInicial = genPassword(12);
       const base = gerarUsernameBase(emp.nome);
       const username = await resolverUsernameUnico(admin, base);
       const emailInterno = `${username.toLowerCase()}@login.interno`;
@@ -145,11 +144,12 @@ Deno.serve(async (req) => {
 
       if (userId) {
         // Já existe vínculo — apenas preenche username/senha no usuário atual
-        await admin.auth.admin.updateUserById(userId, {
+        const { error: updErr } = await admin.auth.admin.updateUserById(userId, {
           password: senhaInicial,
           email: emailInterno,
           user_metadata: { display_name: emp.nome, username },
         });
+        if (updErr) throw updErr;
       } else {
         const { data: novo, error: userErr } = await admin.auth.admin.createUser({
           email: emailInterno,

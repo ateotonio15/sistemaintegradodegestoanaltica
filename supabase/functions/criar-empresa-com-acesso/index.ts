@@ -6,6 +6,15 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type",
 };
 
+function genPassword(len = 12): string {
+  const chars = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnpqrstuvwxyz23456789";
+  const buf = new Uint8Array(len);
+  crypto.getRandomValues(buf);
+  let out = "";
+  for (let i = 0; i < len; i++) out += chars[buf[i] % chars.length];
+  return out;
+}
+
 // Gera "ADATA_ELECTRONICS" a partir de "Adata Electronics Ltda"
 function gerarUsernameBase(nome: string): string {
   const limpo = nome
@@ -105,7 +114,8 @@ Deno.serve(async (req) => {
     const base = gerarUsernameBase(nome);
     const username = await resolverUsernameUnico(admin, base);
     const emailInterno = `${username.toLowerCase()}@login.interno`;
-    const senhaInicial = String(codigo_contrato).trim();
+    const codigoContrato = String(codigo_contrato).trim();
+    const senhaInicial = genPassword(12);
 
     // 2. Criar empresa
     const { data: empresa, error: empErr } = await admin
@@ -113,7 +123,7 @@ Deno.serve(async (req) => {
       .insert({
         nome,
         cnpj: cnpj ?? null,
-        codigo_contrato: senhaInicial,
+        codigo_contrato: codigoContrato,
         email_empresa: emailInterno,
         status_empresa: "ativo",
         data_implantacao: data_inicio,
