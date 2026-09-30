@@ -842,6 +842,12 @@ export default function Financeiro() {
         retroativo: temRetroativo,
         pagamento_via_deposito: !!emp?.pagamento_via_deposito,
         prioridade_maxima: !!emp?.prioridade_maxima,
+        prioridade_intensa: !!emp?.prioridade_maxima && isPrioridadeAlertaIntenso({
+          tipo_movimentacao: emp?.tipo_movimentacao,
+          periodo_movimentacao: emp?.periodo_movimentacao,
+          data_corte: emp?.data_corte,
+          status_empresa: emp?.ativa ? "Ativa" : "Inativa",
+        }),
       };
     });
 

@@ -38,6 +38,7 @@ export type FinanceiroRow = FinanceiroMovimentacao & {
   /** Indica que existe ao menos um anexo originado de Reajuste/Cobrança Retroativa */
   retroativo?: boolean;
   prioridade_maxima?: boolean;
+  prioridade_intensa?: boolean;
   /** Chave única por linha (id da movimentação + id do pagador, quando aplicável) */
   rowKey?: string;
   /** ID do pagador cadastrado (financeiro_pagadores.id) — quando a linha veio de expansão */
@@ -308,7 +309,7 @@ export function FinanceiroTable({
                     >
                       <div className="flex flex-col gap-0.5">
                         <div className="flex items-center gap-2">
-                          {row.prioridade_maxima && <PrioridadeBadge variant="compact" />}
+                          {row.prioridade_maxima && <PrioridadeBadge variant="compact" intense={!!row.prioridade_intensa} />}
                           <span className="truncate max-w-[200px]">{row.empresa_nome}</span>
                           {row.cobranca_registrada && (
                             <Badge variant="outline" className="text-warning border-warning/50 text-[10px] px-1.5 py-0 h-5">
