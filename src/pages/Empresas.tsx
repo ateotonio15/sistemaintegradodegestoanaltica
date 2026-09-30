@@ -298,6 +298,7 @@ export default function Empresas() {
       });
       queryClient.invalidateQueries({ queryKey: ["empresas-dashboard"] });
       queryClient.invalidateQueries({ queryKey: ["empresas"] });
+      queryClient.invalidateQueries({ queryKey: ["financeiro-empresas"] });
       queryClient.invalidateQueries({ queryKey: ["movimentacoes-dashboard"] });
       queryClient.invalidateQueries({ queryKey: ["movimentacoes"] });
     } catch (err: any) {
@@ -383,6 +384,7 @@ export default function Empresas() {
       .channel("empresas-vidas-realtime")
       .on("postgres_changes", { event: "*", schema: "public", table: "empresas" }, () => {
         queryClient.invalidateQueries({ queryKey: ["empresas"] });
+        queryClient.invalidateQueries({ queryKey: ["financeiro-empresas"] });
       })
       .subscribe();
     return () => { supabase.removeChannel(channel); };
@@ -512,6 +514,7 @@ export default function Empresas() {
     },
     onSuccess: (result: any) => {
       queryClient.invalidateQueries({ queryKey: ["empresas"] });
+      queryClient.invalidateQueries({ queryKey: ["financeiro-empresas"] });
       queryClient.invalidateQueries({ queryKey: ["empresas-dashboard"] });
       queryClient.invalidateQueries({ queryKey: ["movimentacoes-dashboard"] });
       setDialogOpen(false);
@@ -538,6 +541,7 @@ export default function Empresas() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["empresas"] });
+      queryClient.invalidateQueries({ queryKey: ["financeiro-empresas"] });
       queryClient.invalidateQueries({ queryKey: ["empresas-dashboard"] });
       queryClient.invalidateQueries({ queryKey: ["movimentacoes-dashboard"] });
       toast({ title: "Status da empresa atualizado!" });
@@ -553,6 +557,7 @@ export default function Empresas() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["empresas"] });
+      queryClient.invalidateQueries({ queryKey: ["financeiro-empresas"] });
       queryClient.invalidateQueries({ queryKey: ["empresas-dashboard"] });
       queryClient.invalidateQueries({ queryKey: ["movimentacoes-dashboard"] });
       queryClient.invalidateQueries({ queryKey: ["contratos-recem-implantados"] });
@@ -570,6 +575,7 @@ export default function Empresas() {
     },
     onSuccess: (_, vars) => {
       queryClient.invalidateQueries({ queryKey: ["empresas"] });
+      queryClient.invalidateQueries({ queryKey: ["financeiro-empresas"] });
       queryClient.invalidateQueries({ queryKey: ["empresas-dashboard"] });
       queryClient.invalidateQueries({ queryKey: ["movimentacoes-dashboard"] });
       toast({ title: `${vars.length} empresa(s) importada(s) com sucesso!` });
