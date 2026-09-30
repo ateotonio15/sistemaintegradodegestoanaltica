@@ -319,7 +319,7 @@ export function FinanceiroTable({
                                 title="Empresa com 'Não reajustado' ativo"
                                 className="inline-flex shrink-0 items-center rounded-md px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide border border-stone-400/60 bg-stone-200 text-stone-700 dark:bg-stone-100/15 dark:text-stone-300 dark:border-stone-400/40"
                               >
-                                NÃO REAJUSTA.
+                                N. REAJUSTADO
                               </span>
                             )}
                           </div>
