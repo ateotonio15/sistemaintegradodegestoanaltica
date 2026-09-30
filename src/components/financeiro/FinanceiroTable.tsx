@@ -301,7 +301,7 @@ export function FinanceiroTable({
                       row.status === "Em faturamento" &&
                         "bg-blue-50/70 dark:bg-blue-500/10 border-l-4 border-l-blue-500",
                       row.nao_reajustado &&
-                        "!bg-orange-100 hover:!bg-orange-200 dark:!bg-orange-500/20 dark:hover:!bg-orange-500/30",
+                        "!bg-stone-200/60 hover:!bg-stone-200/80 dark:!bg-stone-100/10 dark:hover:!bg-stone-100/15 border-l-[3px] !border-l-stone-500 dark:!border-l-stone-300",
                     )}
                   >
 
