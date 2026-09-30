@@ -1,4 +1,5 @@
 import { useState, useRef, useMemo, useEffect } from "react";
+import { useSearchParams } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { gerarPrimeiraMensalidade } from "@/lib/primeira-mensalidade";
@@ -701,6 +702,23 @@ export default function Empresas() {
       );
     }
   };
+
+  // Abre "Editar Empresa" direto quando vindo de outra aba (ex.: duplo clique no Faturamento) via ?editar=<empresa_id>
+  const [searchParams, setSearchParams] = useSearchParams();
+  const editarParam = searchParams.get("editar");
+  useEffect(() => {
+    if (!editarParam || isLoading) return;
+    const alvo = empresas.find((x) => x.id === editarParam);
+    if (alvo) {
+      openEdit(alvo);
+    } else {
+      toast({ title: "Empresa não encontrada", description: "Não foi possível abrir o cadastro desta empresa.", variant: "destructive" });
+    }
+    const next = new URLSearchParams(searchParams);
+    next.delete("editar");
+    setSearchParams(next, { replace: true });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [editarParam, isLoading, empresas]);
 
   const getResponsavelName = (empresa: Empresa) => {
     const userId = (empresa as any).responsavel_user_id;

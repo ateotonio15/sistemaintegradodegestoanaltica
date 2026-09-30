@@ -18,6 +18,7 @@ import type { AnaliseResultado, ComparacaoResultado, NotaOrfa } from "@/lib/exce
 import { PrioridadeBadge } from "@/components/prioridade/PrioridadeBadge";
 import { useOrbitEnvios, useOrbitEnviosRefresh, orbitEnvioKey } from "@/hooks/useOrbitEnvios";
 import { Send } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 
 export type FinanceiroRow = FinanceiroMovimentacao & {
   empresa_nome: string;
@@ -207,6 +208,11 @@ export function FinanceiroTable({
   readOnly = false,
   onVisualizarGrupo,
 }: Props) {
+  const navigate = useNavigate();
+  const abrirEditarEmpresa = (empresaId?: string | null) => {
+    if (!empresaId || readOnly) return;
+    navigate(`/empresas?editar=${empresaId}`);
+  };
   const [anexosDialog, setAnexosDialog] = useState<{
     empresaId: string;
     empresaNome: string;
@@ -295,7 +301,11 @@ export function FinanceiroTable({
                     )}
                   >
 
-                    <TableCell className="font-medium">
+                    <TableCell
+                      className={cn("font-medium", !readOnly && "cursor-pointer select-none")}
+                      onDoubleClick={() => abrirEditarEmpresa(row.empresa_id)}
+                      title={!readOnly ? "Clique duas vezes para editar a empresa" : undefined}
+                    >
                       <div className="flex flex-col gap-0.5">
                         <div className="flex items-center gap-2">
                           {row.prioridade_maxima && <PrioridadeBadge variant="compact" />}
