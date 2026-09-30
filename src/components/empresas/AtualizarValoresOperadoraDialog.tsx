@@ -109,14 +109,17 @@ export function AtualizarValoresOperadoraDialog({
     let falhas = 0;
     try {
       for (const item of ok) {
-        const payload: Record<string, unknown> = {
-          contrato_faixa_etaria: item.porFaixa,
-          faixas_etarias: item.porFaixa
-            ? { enfermaria: item.enfermaria, apartamento: item.apartamento }
-            : null,
-          valor_enfermaria_centavos: item.enfermaria?.[0]?.centavos ?? null,
-          valor_apartamento_centavos: item.apartamento?.[0]?.centavos ?? null,
-        };
+        // Só sobrescreve o que a operadora realmente retornou; preserva valores já salvos.
+        const payload: Record<string, unknown> = {};
+        const enf = item.enfermaria?.[0]?.centavos;
+        const apt = item.apartamento?.[0]?.centavos;
+        if (enf && enf > 0) payload.valor_enfermaria_centavos = enf;
+        if (apt && apt > 0) payload.valor_apartamento_centavos = apt;
+        if (item.porFaixa) {
+          payload.contrato_faixa_etaria = true;
+          payload.faixas_etarias = { enfermaria: item.enfermaria, apartamento: item.apartamento };
+        }
+        if (Object.keys(payload).length === 0) continue;
         const { error } = await supabase.from("empresas").update(payload as any).eq("id", item.empresa.id);
         if (error) falhas++;
         else sucesso++;

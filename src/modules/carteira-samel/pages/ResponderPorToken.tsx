@@ -71,7 +71,7 @@ export default function ResponderPorToken() {
       p_respostas: respostas,
       p_comentario: comentario.trim() || null,
       p_nota_media: notaMedia,
-      p_executiva_informada: permiteInformarExecutiva ? (execInformada.trim().toUpperCase() || null) : null,
+      p_executiva_informada: (permiteInformarExecutiva || !envio.executiva_nome) ? (execInformada.trim().toUpperCase() || null) : null,
     });
 
     if (errResp) {

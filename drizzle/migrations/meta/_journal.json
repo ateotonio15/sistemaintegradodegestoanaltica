@@ -197,6 +197,13 @@
       "when": 1790774342444,
       "tag": "0027_empresas_nao_reajustado",
       "breakpoints": true
+    },
+    {
+      "idx": 28,
+      "version": "7",
+      "when": 1790775786477,
+      "tag": "0028_fix_reajuste_hist_insert_and_exec_informada",
+      "breakpoints": true
     }
   ]
 }

@@ -89,7 +89,7 @@ export default function CadastrarEmpresa() {
           <CardTitle>Cadastrar Empresa</CardTitle>
           <p className="text-sm text-muted-foreground">
             O usuário de login é gerado a partir das duas primeiras palavras do nome
-            da empresa. A senha inicial é o código da empresa. No primeiro login o
+            da empresa. A senha inicial é gerada automaticamente e exibida ao final. No primeiro login o
             usuário será obrigado a trocar a senha.
           </p>
         </CardHeader>
@@ -121,7 +121,7 @@ export default function CadastrarEmpresa() {
                   placeholder="Ex.: 1234"
                   required
                 />
-                <p className="text-xs text-muted-foreground">Será a senha inicial.</p>
+                <p className="text-xs text-muted-foreground">Código do contrato da empresa.</p>
               </div>
               <div className="grid gap-2">
                 <Label htmlFor="inicio">Data de início *</Label>
