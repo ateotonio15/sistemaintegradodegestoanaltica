@@ -21,6 +21,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { DayGridPicker } from "@/components/ui/day-grid-picker";
 import { IsoDatePicker } from "@/components/ui/iso-date-picker";
 import { AlertTriangle, CalendarRange, Info, Loader2, Receipt, Settings2 } from "lucide-react";
@@ -65,6 +66,7 @@ export function ConfigFinanceiraEmpresaDialog({
   const [saving, setSaving] = useState(false);
   const [errors, setErrors] = useState<Errors>({});
   const [naoReajGrupo, setNaoReajGrupo] = useState(false);
+  const [confirmGrupoNaoReaj, setConfirmGrupoNaoReaj] = useState<boolean | null>(null);
   const { data: grupoEdit } = useGrupoFinanceiro(empresaId);
 
   const { data: empresa, isLoading } = useQuery({
@@ -252,6 +254,7 @@ export function ConfigFinanceiraEmpresaDialog({
   };
 
   return (
+    <>
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
@@ -428,9 +431,11 @@ export function ConfigFinanceiraEmpresaDialog({
                   <Label>Não reajustado</Label>
                   <Select
                     value={form.nao_reajustado ? "sim" : "nao"}
-                    onValueChange={(v) =>
-                      setForm((f) => ({ ...f, nao_reajustado: v === "sim" }))
-                    }
+                    onValueChange={(v) => {
+                      const val = v === "sim";
+                      setForm((f) => ({ ...f, nao_reajustado: val }));
+                      if (grupoEdit?.grupo) setConfirmGrupoNaoReaj(val);
+                    }}
                   >
                     <SelectTrigger>
                       <SelectValue />
@@ -440,20 +445,6 @@ export function ConfigFinanceiraEmpresaDialog({
                       <SelectItem value="nao">Não</SelectItem>
                     </SelectContent>
                   </Select>
-                </div>
-
-                {grupoEdit?.grupo && (
-                  <div className="space-y-1.5">
-                    <Label>Aplicar para todos do grupo</Label>
-                    <Select value={naoReajGrupo ? "sim" : "nao"} onValueChange={(v) => { setNaoReajGrupo(v === "sim"); if (v === "sim") setForm((f) => ({ ...f, nao_reajustado: true })); }}>
-                      <SelectTrigger><SelectValue /></SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="sim">Sim ({grupoEdit.contratos.length} contratos)</SelectItem>
-                        <SelectItem value="nao">Não</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                )}
 
                 <div className="space-y-1.5 sm:col-span-2">
                   <Label>Envio do boleto junto com a nota</Label>
