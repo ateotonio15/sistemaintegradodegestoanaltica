@@ -34,7 +34,7 @@ import {
 import { HistoricoAnalisesDialog } from "@/components/financeiro/HistoricoAnalisesDialog";
 import { RegrasEmpresariaisDialog } from "@/components/financeiro/RegrasEmpresariaisDialog";
 import { getForceGroupByNamePatterns } from "@/lib/regras-empresariais";
-import { periodoDaDataCorte } from "@/lib/movimentacao-utils";
+import { periodoDaDataCorte, isPrioridadeAlertaIntenso } from "@/lib/movimentacao-utils";
 import { aplicarOffsetCompetencia } from "@/lib/historico-utils";
 import { identificarContratoDoAnexo, type ContratoAlvo } from "@/lib/anexo-contrato-match";
 import { formatDateBR, calcularPeriodoCobranca, formatPeriodoCobranca } from "@/lib/date-utils";
@@ -842,6 +842,12 @@ export default function Financeiro() {
         retroativo: temRetroativo,
         pagamento_via_deposito: !!emp?.pagamento_via_deposito,
         prioridade_maxima: !!emp?.prioridade_maxima,
+        prioridade_intensa: !!emp?.prioridade_maxima && isPrioridadeAlertaIntenso({
+          tipo_movimentacao: emp?.tipo_movimentacao,
+          periodo_movimentacao: emp?.periodo_movimentacao,
+          data_corte: emp?.data_corte,
+          status_empresa: emp?.ativa ? "Ativa" : "Inativa",
+        }),
       };
     });
 
