@@ -710,7 +710,6 @@ export default function Empresas() {
     if (!editarParam || isLoading) return;
     const alvo = empresas.find((x) => x.id === editarParam);
     if (alvo) {
-      if (!alvo.status_empresa || alvo.status_empresa !== "Ativa") setShowInativas(true);
       openEdit(alvo);
     } else {
       toast({ title: "Empresa não encontrada", description: "Não foi possível abrir o cadastro desta empresa.", variant: "destructive" });
