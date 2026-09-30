@@ -239,7 +239,7 @@ export default function PlantoesCalendario() {
                 </div>
                 {fer && <div className="text-[10px] text-muted-foreground truncate">{fer.nome}</div>}
                 <div className="mt-1 space-y-0.5">
-                  {items.slice(0, 3).map((a) => (
+                  {items.map((a) => (
                     <div
                       key={a.id}
                       role="button"
@@ -250,7 +250,6 @@ export default function PlantoesCalendario() {
                       <div className="truncate opacity-90">{a.executiva ?? "sem executiva"}</div>
                     </div>
                   ))}
-                  {items.length > 3 && <div className="text-[10px] text-muted-foreground">+{items.length - 3}</div>}
                 </div>
               </button>
             );
