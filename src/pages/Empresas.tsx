@@ -116,6 +116,7 @@ export default function Empresas() {
   const [showRescisaoInput, setShowRescisaoInput] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [naoReajGrupo, setNaoReajGrupo] = useState(false);
+  const [confirmGrupoNaoReaj, setConfirmGrupoNaoReaj] = useState<boolean | null>(null);
   const { data: grupoEdit } = useGrupoFinanceiro(editingId);
   
   const [draftEmpresaId, setDraftEmpresaId] = useState<string | null>(null);
@@ -1734,26 +1735,16 @@ export default function Empresas() {
                             <div className="flex items-center gap-3 h-10 px-3 rounded-lg border bg-background">
                               <Switch
                                 checked={!!(form as any).nao_reajustado}
-                                onCheckedChange={(v) =>
-                                  setForm({ ...form, nao_reajustado: v } as any)
-                                }
+                                onCheckedChange={(v) => {
+                                  setForm({ ...form, nao_reajustado: v } as any);
+                                  if (grupoEdit?.grupo) setConfirmGrupoNaoReaj(v);
+                                }}
                               />
                               <span className="text-sm text-muted-foreground">
                                 {(form as any).nao_reajustado ? "Sim — destacada em laranja no Financeiro" : "Não"}
                               </span>
                             </div>
                           </div>
-                          {grupoEdit?.grupo && (
-                            <div className="space-y-2">
-                              <Label className="text-sm font-medium">Aplicar "Não reajustado" para todos do grupo</Label>
-                              <div className="flex items-center gap-3 h-10 px-3 rounded-lg border bg-background">
-                                <Switch checked={naoReajGrupo} onCheckedChange={(v) => { setNaoReajGrupo(v); if (v) setForm({ ...form, nao_reajustado: true } as any); }} />
-                                <span className="text-sm text-muted-foreground">
-                                  {naoReajGrupo ? `Sim — ${grupoEdit.contratos.length} contratos do grupo ${grupoEdit.grupo.nome_grupo}` : "Não"}
-                                </span>
-                              </div>
-                            </div>
-                          )}
                           <div className="space-y-2 sm:col-span-2">
                             <Label className="text-sm font-medium">Observação padrão (financeiro)</Label>
                             <Textarea
@@ -2139,6 +2130,42 @@ export default function Empresas() {
             </AlertDialogFooter>
           </AlertDialogContent>
         </AlertDialog>
+        <AlertDialog
+          open={confirmGrupoNaoReaj !== null}
+          onOpenChange={(open) => { if (!open) setConfirmGrupoNaoReaj(null); }}
+        >
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>
+                {confirmGrupoNaoReaj ? "Aplicar \"Não reajustado\" para todos do grupo?" : "Desmarcar \"Não reajustado\" para todos do grupo?"}
+              </AlertDialogTitle>
+              <AlertDialogDescription>
+                {grupoEdit?.grupo
+                  ? `O grupo ${grupoEdit.grupo.nome_grupo} tem ${grupoEdit.contratos.length} contratos. Aplicar para todos do grupo ou apenas para esta empresa?`
+                  : ""}
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel
+                onClick={() => {
+                  setNaoReajGrupo(false);
+                  setConfirmGrupoNaoReaj(null);
+                }}
+              >
+                Somente esta empresa
+              </AlertDialogCancel>
+              <AlertDialogAction
+                onClick={() => {
+                  setNaoReajGrupo(!!confirmGrupoNaoReaj);
+                  setConfirmGrupoNaoReaj(null);
+                }}
+              >
+                Sim, para todos do grupo
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+
 
         {/* Detail Modal */}
         <Dialog open={!!detailEmpresa} onOpenChange={(open) => { if (!open) { setDetailEmpresa(null); setShowRescisaoInput(false); setRescisaoDate(""); } }}>
