@@ -39,6 +39,7 @@ export type FinanceiroRow = FinanceiroMovimentacao & {
   retroativo?: boolean;
   prioridade_maxima?: boolean;
   prioridade_intensa?: boolean;
+  nao_reajustado?: boolean;
   /** Chave única por linha (id da movimentação + id do pagador, quando aplicável) */
   rowKey?: string;
   /** ID do pagador cadastrado (financeiro_pagadores.id) — quando a linha veio de expansão */
@@ -296,6 +297,7 @@ export function FinanceiroTable({
                 <Fragment key={rowKey}>
                   <TableRow
                     className={cn(
+                      row.nao_reajustado && "bg-orange-100/80 hover:bg-orange-100 dark:bg-orange-500/15 dark:hover:bg-orange-500/20",
                       isOverdue && "bg-destructive/5 border-l-2 border-l-destructive",
                       row.status === "Em faturamento" &&
                         "bg-blue-50/70 dark:bg-blue-500/10 border-l-4 border-l-blue-500",
