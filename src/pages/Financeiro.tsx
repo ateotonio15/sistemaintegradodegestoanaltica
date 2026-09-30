@@ -22,7 +22,7 @@ import {
 import { MultiSelectFilter } from "@/components/ui/multi-select-filter";
 import { ContextMenu, ContextMenuContent, ContextMenuItem, ContextMenuTrigger } from "@/components/ui/context-menu";
 import { EnviarOrbitDialog } from "@/components/financeiro/EnviarOrbitDialog";
-import { Search, Bell, Wallet, RefreshCw, Download, Upload, History, Users, X, Loader2, Building2, Send, FileText } from "lucide-react";
+import { Search, Bell, RefreshCw, Download, Upload, History, Users, X, Loader2, Building2, Send, FileText } from "lucide-react";
 import { RelatorioAnaliseDialog } from "@/components/financeiro/RelatorioAnaliseDialog";
 import { toast } from "sonner";
 import ExcelJS from "exceljs";
@@ -2598,28 +2598,23 @@ export default function Financeiro() {
 
   return (
     <>
-      <div className="p-4 md:p-6 space-y-5">
+      <div className="space-y-6 p-4 md:p-6">
         {/* Header */}
-        <div className="flex items-center justify-between flex-wrap gap-3">
-          <div className="flex items-center gap-3">
-            <div className="h-11 w-11 rounded-xl bg-primary/10 flex items-center justify-center">
-              <Wallet className="h-5 w-5 text-primary" />
-            </div>
-            <div>
-              <h1 className="text-2xl font-bold tracking-tight text-foreground">Faturamento</h1>
-              <p className="text-sm text-muted-foreground">
-                Controle de notas, anexos e cobranças — {formatMesReferencia(mes)}
-              </p>
-            </div>
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <h1 className="text-2xl font-bold tracking-tight text-foreground">Faturamento</h1>
+            <p className="mt-1 text-sm text-muted-foreground">
+              {filteredRows.length} registro(s) encontrado(s) · {formatMesReferencia(mes)}
+            </p>
           </div>
 
           <div className="flex items-center gap-2 flex-wrap">
             <Button
-              variant="default"
+              variant="outline"
               size="sm"
               onClick={handleExport}
               disabled={isExporting || isLoading}
-              className="gap-1.5"
+              className="gap-1.5 rounded-lg"
             >
               <Download className={`h-3.5 w-3.5 ${isExporting ? "animate-pulse" : ""}`} />
               {isExporting ? "Exportando..." : "Exportar Excel"}
@@ -2628,7 +2623,7 @@ export default function Financeiro() {
               variant="outline"
               size="sm"
               onClick={() => setRelatorioAnaliseOpen(true)}
-              className="gap-1.5"
+              className="gap-1.5 rounded-lg"
               title="Análise completa em PDF com filtros de competência, dia de emissão, tipo e status"
             >
               <FileText className="h-3.5 w-3.5" />
@@ -2640,7 +2635,7 @@ export default function Financeiro() {
               variant="outline"
               size="sm"
               onClick={() => setRegrasEmpresariaisOpen(true)}
-              className="gap-1.5"
+              className="gap-1.5 rounded-lg"
               title="Regras especiais aplicadas durante a análise (ex.: Pioneiro)"
             >
               <Building2 className="h-3.5 w-3.5" />
@@ -2650,7 +2645,7 @@ export default function Financeiro() {
               variant="outline"
               size="sm"
               onClick={() => setOrbitOpen(true)}
-              className="gap-1.5"
+              className="gap-1.5 rounded-lg"
               title="Enviar empresas do período para o Orbit"
             >
               <Send className="h-3.5 w-3.5" />
@@ -2660,7 +2655,7 @@ export default function Financeiro() {
               variant="outline"
               size="sm"
               onClick={() => setHistoricoOpen(true)}
-              className="gap-1.5"
+              className="gap-1.5 rounded-lg"
               title="Ver histórico de análises Excel × PDF salvas"
             >
               <History className="h-3.5 w-3.5" />
@@ -2671,7 +2666,7 @@ export default function Financeiro() {
                 variant="outline"
                 size="sm"
                 onClick={() => setImportPagadoresOpen(true)}
-                className="gap-1.5"
+                className="gap-1.5 rounded-lg"
                 title="Importar pagadores via Excel"
               >
                 <Upload className="h-3.5 w-3.5" />
@@ -2684,7 +2679,7 @@ export default function Financeiro() {
                 size="sm"
                 onClick={() => provisionarMutation.mutate()}
                 disabled={provisionarMutation.isPending}
-                className="gap-1.5"
+                className="gap-1.5 rounded-lg"
               >
                 <RefreshCw
                   className={`h-3.5 w-3.5 ${provisionarMutation.isPending ? "animate-spin" : ""}`}
@@ -2692,21 +2687,6 @@ export default function Financeiro() {
                 {provisionarMutation.isPending ? "Gerando..." : "Gerar movimentações"}
               </Button>
             )}
-            <Label htmlFor="mes-ref" className="text-xs text-muted-foreground">
-              Mês
-            </Label>
-            <Select value={mes} onValueChange={setMes}>
-              <SelectTrigger id="mes-ref" className="w-[160px]">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {getMesesOptions().map((m) => (
-                  <SelectItem key={m} value={m}>
-                    {formatMesReferencia(m)}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
           </div>
         </div>
 
@@ -3023,22 +3003,37 @@ export default function Financeiro() {
               })()}
             </div>
           )}
-          <CardContent className="p-4 grid grid-cols-1 md:grid-cols-3 xl:grid-cols-6 gap-3 items-end">
-            <div className="space-y-1.5">
-              <Label className="text-xs">Buscar</Label>
+          <CardContent className="p-5">
+            <div className="flex flex-wrap items-end gap-4">
+            <div className="min-w-[240px] flex-1 space-y-1.5">
+              <Label className="text-xs font-medium text-muted-foreground">Buscar</Label>
               <div className="relative">
-                <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                 <Input
                   value={busca}
                   onChange={(e) => setBusca(e.target.value)}
                   placeholder="Empresa, CNPJ, contrato..."
-                  className="pl-8"
+                  className="h-9 rounded-lg pl-9"
                 />
               </div>
             </div>
 
             <div className="space-y-1.5">
-              <Label className="text-xs">Status</Label>
+              <Label htmlFor="mes-ref" className="text-xs font-medium text-muted-foreground">Mês</Label>
+              <Select value={mes} onValueChange={setMes}>
+                <SelectTrigger id="mes-ref" className="h-9 w-[150px] rounded-lg">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {getMesesOptions().map((m) => (
+                    <SelectItem key={m} value={m}>{formatMesReferencia(m)}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-1.5">
+              <Label className="text-xs font-medium text-muted-foreground">Status</Label>
               <MultiSelectFilter
                 options={STATUS_OPTIONS.map((s) => ({ value: s, label: labelStatusFinanceiro(s) }))}
                 selected={filtroStatus}
@@ -3049,7 +3044,7 @@ export default function Financeiro() {
             </div>
 
             <div className="space-y-1.5">
-              <Label className="text-xs">Tipo de cobrança</Label>
+              <Label className="text-xs font-medium text-muted-foreground">Tipo de cobrança</Label>
               <MultiSelectFilter
                 options={tiposUnicos.map((t) => ({ value: t, label: t }))}
                 selected={filtroTipo}
@@ -3060,7 +3055,7 @@ export default function Financeiro() {
             </div>
 
             <div className="space-y-1.5">
-              <Label className="text-xs">Anexado por</Label>
+              <Label className="text-xs font-medium text-muted-foreground">Anexado por</Label>
               <MultiSelectFilter
                 options={anexadoPorOptions.map((u) => ({ value: u.id, label: u.nome }))}
                 selected={filtroAnexadoPor ? [filtroAnexadoPor] : []}
@@ -3071,7 +3066,7 @@ export default function Financeiro() {
             </div>
 
             <div className="space-y-1.5">
-              <Label className="text-xs">Tipo de anexo</Label>
+              <Label className="text-xs font-medium text-muted-foreground">Tipo de anexo</Label>
               <MultiSelectFilter
                 options={TIPOS_ANEXO.map((t) => ({ value: t, label: t }))}
                 selected={filtroTipoAnexo ? [filtroTipoAnexo] : []}
@@ -3083,7 +3078,7 @@ export default function Financeiro() {
 
 
             <div className="space-y-1.5">
-              <Label className="text-xs">Ordenar por</Label>
+              <Label className="text-xs font-medium text-muted-foreground">Ordenar por</Label>
               <Select value={ordenacao} onValueChange={setOrdenacao}>
                 <SelectTrigger className="h-9 text-sm">
                   <SelectValue />
@@ -3101,8 +3096,7 @@ export default function Financeiro() {
                 </SelectContent>
               </Select>
             </div>
-
-
+            </div>
           </CardContent>
         </Card>
 
