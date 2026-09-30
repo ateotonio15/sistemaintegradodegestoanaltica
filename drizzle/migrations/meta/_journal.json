@@ -183,6 +183,13 @@
       "when": 1790693984630,
       "tag": "0025_mailing_executivo_ve_todos",
       "breakpoints": true
+    },
+    {
+      "idx": 26,
+      "version": "7",
+      "when": 1790769615459,
+      "tag": "0026_palestras_saude_historico",
+      "breakpoints": true
     }
   ]
 }

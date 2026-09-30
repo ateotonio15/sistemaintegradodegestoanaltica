@@ -28,6 +28,7 @@ import { feriadoEm } from "../lib/feriados";
 import { GESTANTES_2026, CAMPANHAS, MESES_PT } from "../lib/palestras-calendario";
 import { PalestraDialog } from "../components/PalestraDialog";
 import { BloqueioDialog } from "../components/BloqueioDialog";
+import { HistoricoDiaPalestrasDialog } from "../components/HistoricoDiaPalestrasDialog";
 import { RelatorioMensalDialog } from "../components/RelatorioMensalDialog";
 
 // Card style: fundo tintado + borda lateral colorida (status)
@@ -85,6 +86,7 @@ export default function CalendarioPalestras() {
   const [editingB, setEditingB] = useState<Bloqueio | null>(null);
   const [preselectBloq, setPreselectBloq] = useState<Date | null>(null);
   const [relatorioOpen, setRelatorioOpen] = useState(false);
+  const [diaHist, setDiaHist] = useState<Date | null>(null);
 
   const monthStart = startOfMonth(cursor);
   const monthEnd = endOfMonth(cursor);
@@ -311,12 +313,12 @@ export default function CalendarioPalestras() {
                 return (
                   <div
                     key={key}
-                    onClick={() => !fullBlock && openNewForDay(d)}
+                    onClick={() => setDiaHist(d)}
                     className={[
                       "min-h-[160px] p-2 relative border-r border-b border-border/60 transition-colors",
                       isOut ? "opacity-40" : "",
                       fer ? "bg-amber-500/5" : today ? "bg-primary/5" : "bg-transparent",
-                      fullBlock ? "cursor-not-allowed" : podeEditar ? "cursor-pointer hover:bg-accent/30" : "cursor-default",
+                      "cursor-pointer hover:bg-accent/30",
                     ].join(" ")}
                   >
                     <div className="flex items-center justify-between mb-1">
@@ -458,6 +460,16 @@ export default function CalendarioPalestras() {
         preselectDate={preselectBloq}
         canEdit={canEdit && !isReadOnly}
         userNome={profile?.display_name ?? null}
+      />
+
+      <HistoricoDiaPalestrasDialog
+        open={!!diaHist}
+        onOpenChange={(v) => { if (!v) setDiaHist(null); }}
+        dia={diaHist}
+        palestras={palestras}
+        podeCriar={!!diaHist && canEdit && !isReadOnly && !feriadoEm(diaHist) && bloqByDate.get(isoDate(diaHist))?.periodo !== "dia_todo"}
+        onNova={() => { const d = diaHist; setDiaHist(null); if (d) openNewForDay(d); }}
+        onAbrir={(p) => { setDiaHist(null); openEdit(p); }}
       />
 
       <RelatorioMensalDialog
