@@ -313,6 +313,15 @@ export function FinanceiroTable({
                       <div className="flex flex-col gap-0.5">
                         <div className="flex items-center gap-2">
                           {row.prioridade_maxima && <PrioridadeBadge variant="compact" intense={!!row.prioridade_intensa} />}
+                          {row.nao_reajustado && (
+                            <span
+                              title="Empresa com 'Não reajustado' ativo"
+                              className="inline-flex shrink-0 items-center gap-1 rounded-md px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide border border-red-500 bg-red-600 text-white shadow-xs"
+                            >
+                              <Flame className="h-3 w-3 fill-current" />
+                              Não Reajus.
+                            </span>
+                          )}
                           <span className="truncate max-w-[200px]">{row.empresa_nome}</span>
                           {row.cobranca_registrada && (
                             <Badge variant="outline" className="text-warning border-warning/50 text-[10px] px-1.5 py-0 h-5">
