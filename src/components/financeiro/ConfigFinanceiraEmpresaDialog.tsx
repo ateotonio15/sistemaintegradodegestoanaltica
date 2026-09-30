@@ -445,7 +445,7 @@ export function ConfigFinanceiraEmpresaDialog({
                 {grupoEdit?.grupo && (
                   <div className="space-y-1.5">
                     <Label>Aplicar para todos do grupo</Label>
-                    <Select value={naoReajGrupo ? "sim" : "nao"} onValueChange={(v) => setNaoReajGrupo(v === "sim")}>
+                    <Select value={naoReajGrupo ? "sim" : "nao"} onValueChange={(v) => { setNaoReajGrupo(v === "sim"); if (v === "sim") setForm((f) => ({ ...f, nao_reajustado: true })); }}>
                       <SelectTrigger><SelectValue /></SelectTrigger>
                       <SelectContent>
                         <SelectItem value="sim">Sim ({grupoEdit.contratos.length} contratos)</SelectItem>
