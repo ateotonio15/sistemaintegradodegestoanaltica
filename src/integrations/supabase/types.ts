@@ -2173,6 +2173,7 @@ export type Database = {
           id: string
           motivo_suspensao: string | null
           nao_faturado_financeiro: boolean
+          nao_reajustado: boolean
           nome: string
           observacao_padrao_financeiro: string | null
           observacoes: string | null
@@ -2236,6 +2237,7 @@ export type Database = {
           id?: string
           motivo_suspensao?: string | null
           nao_faturado_financeiro?: boolean
+          nao_reajustado?: boolean
           nome: string
           observacao_padrao_financeiro?: string | null
           observacoes?: string | null
@@ -2299,6 +2301,7 @@ export type Database = {
           id?: string
           motivo_suspensao?: string | null
           nao_faturado_financeiro?: boolean
+          nao_reajustado?: boolean
           nome?: string
           observacao_padrao_financeiro?: string | null
           observacoes?: string | null

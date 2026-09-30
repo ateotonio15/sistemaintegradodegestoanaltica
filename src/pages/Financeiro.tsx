@@ -204,7 +204,7 @@ export default function Financeiro() {
       if (empresaIds.length === 0) return {};
       const { data, error } = await supabase
         .from("empresas")
-        .select("id, nome, codigo_contrato, cnpj, tipo_movimentacao, periodo_movimentacao, data_corte, status_empresa, data_rescisao, contrato_suspenso, pagamento_via_deposito, vidas, nao_faturado_financeiro, exige_po_pc, periodo_especifico_cobranca, periodo_cobranca_inicio, prioridade_maxima_id, responsavel_contrato")
+        .select("id, nome, codigo_contrato, cnpj, tipo_movimentacao, periodo_movimentacao, data_corte, status_empresa, data_rescisao, contrato_suspenso, pagamento_via_deposito, vidas, nao_faturado_financeiro, exige_po_pc, periodo_especifico_cobranca, periodo_cobranca_inicio, prioridade_maxima_id, responsavel_contrato, nao_reajustado")
         .in("id", empresaIds);
       if (error) throw error;
       const map: Record<string, {
@@ -222,6 +222,7 @@ export default function Financeiro() {
         periodo_especifico_cobranca: boolean;
         periodo_cobranca_inicio: string | null;
         prioridade_maxima: boolean;
+        nao_reajustado: boolean;
         responsavel_contrato: string | null;
       }> = {};
       data.forEach((e: any) => {
@@ -242,6 +243,7 @@ export default function Financeiro() {
           periodo_especifico_cobranca: !!e.periodo_especifico_cobranca,
           periodo_cobranca_inicio: e.periodo_cobranca_inicio ?? null,
           prioridade_maxima: !!e.prioridade_maxima_id,
+          nao_reajustado: !!e.nao_reajustado,
           responsavel_contrato: e.responsavel_contrato ?? null,
         };
       });
@@ -842,6 +844,7 @@ export default function Financeiro() {
         retroativo: temRetroativo,
         pagamento_via_deposito: !!emp?.pagamento_via_deposito,
         prioridade_maxima: !!emp?.prioridade_maxima,
+        nao_reajustado: !!emp?.nao_reajustado,
         prioridade_intensa: !!emp?.prioridade_maxima && isPrioridadeAlertaIntenso({
           tipo_movimentacao: emp?.tipo_movimentacao,
           periodo_movimentacao: emp?.periodo_movimentacao,

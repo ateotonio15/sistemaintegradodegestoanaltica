@@ -190,6 +190,13 @@
       "when": 1790769615459,
       "tag": "0026_palestras_saude_historico",
       "breakpoints": true
+    },
+    {
+      "idx": 27,
+      "version": "7",
+      "when": 1790774342444,
+      "tag": "0027_empresas_nao_reajustado",
+      "breakpoints": true
     }
   ]
 }

@@ -71,7 +71,7 @@ export function ConfigFinanceiraEmpresaDialog({
       const { data, error } = await supabase
         .from("empresas")
         .select(
-          "id, nome, data_emissao_fatura, data_vencimento_fatura, pagamento_via_deposito, tipo_financeiro, exige_po_pc, email_financeiro_cliente, observacao_padrao_financeiro, envio_boleto_com_nota, tem_coparticipacao, config_financeira_confirmada, periodo_especifico_cobranca, periodo_cobranca_inicio",
+          "id, nome, data_emissao_fatura, data_vencimento_fatura, pagamento_via_deposito, tipo_financeiro, exige_po_pc, email_financeiro_cliente, observacao_padrao_financeiro, envio_boleto_com_nota, tem_coparticipacao, nao_reajustado, config_financeira_confirmada, periodo_especifico_cobranca, periodo_cobranca_inicio",
         )
         .eq("id", empresaId!)
         .maybeSingle();
@@ -105,6 +105,7 @@ export function ConfigFinanceiraEmpresaDialog({
     observacao_padrao_financeiro: "",
     envio_boleto_com_nota: false,
     tem_coparticipacao: false,
+    nao_reajustado: false,
     periodo_especifico_cobranca: false,
     periodo_cobranca_inicio: null,
   });
@@ -137,6 +138,7 @@ export function ConfigFinanceiraEmpresaDialog({
       observacao_padrao_financeiro: e.observacao_padrao_financeiro ?? "",
       envio_boleto_com_nota: !!e.envio_boleto_com_nota,
       tem_coparticipacao: !!e.tem_coparticipacao,
+      nao_reajustado: !!e.nao_reajustado,
       periodo_especifico_cobranca: !!e.periodo_especifico_cobranca,
       periodo_cobranca_inicio: e.periodo_cobranca_inicio ?? null,
     });
@@ -175,6 +177,7 @@ export function ConfigFinanceiraEmpresaDialog({
           observacao_padrao_financeiro: v.observacao_padrao_financeiro || null,
           envio_boleto_com_nota: v.envio_boleto_com_nota,
           tem_coparticipacao: v.tem_coparticipacao,
+          nao_reajustado: v.nao_reajustado ?? false,
           periodo_especifico_cobranca: v.periodo_especifico_cobranca,
           periodo_cobranca_inicio: v.periodo_especifico_cobranca
             ? (v.periodo_cobranca_inicio || null)
@@ -405,6 +408,24 @@ export function ConfigFinanceiraEmpresaDialog({
                     }
                     rows={2}
                   />
+                </div>
+
+                <div className="space-y-1.5">
+                  <Label>Não reajustado</Label>
+                  <Select
+                    value={form.nao_reajustado ? "sim" : "nao"}
+                    onValueChange={(v) =>
+                      setForm((f) => ({ ...f, nao_reajustado: v === "sim" }))
+                    }
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="sim">Sim</SelectItem>
+                      <SelectItem value="nao">Não</SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
 
                 <div className="space-y-1.5 sm:col-span-2">

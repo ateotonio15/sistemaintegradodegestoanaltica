@@ -88,6 +88,7 @@ const emptyForm: TablesInsert<"empresas"> & { responsavel_user_id?: string | nul
   exige_po_pc: false,
   envio_boleto_com_nota: false,
   tem_coparticipacao: false,
+  nao_reajustado: false,
   email_financeiro_cliente: "",
   observacao_padrao_financeiro: "",
   tipo_financeiro: "",
@@ -656,6 +657,7 @@ export default function Empresas() {
       exige_po_pc: (e as any).exige_po_pc ?? false,
       envio_boleto_com_nota: (e as any).envio_boleto_com_nota ?? false,
       tem_coparticipacao: (e as any).tem_coparticipacao ?? false,
+      nao_reajustado: (e as any).nao_reajustado ?? false,
       email_financeiro_cliente: (e as any).email_financeiro_cliente ?? "",
       observacao_padrao_financeiro: (e as any).observacao_padrao_financeiro ?? "",
       tipo_financeiro: (e as any).tipo_financeiro ?? "",
@@ -1701,6 +1703,20 @@ export default function Empresas() {
                               />
                               <span className="text-sm text-muted-foreground">
                                 {(form as any).tem_coparticipacao ? "Sim" : "Não"}
+                              </span>
+                            </div>
+                          </div>
+                          <div className="space-y-2">
+                            <Label className="text-sm font-medium">Não reajustado</Label>
+                            <div className="flex items-center gap-3 h-10 px-3 rounded-lg border bg-background">
+                              <Switch
+                                checked={!!(form as any).nao_reajustado}
+                                onCheckedChange={(v) =>
+                                  setForm({ ...form, nao_reajustado: v } as any)
+                                }
+                              />
+                              <span className="text-sm text-muted-foreground">
+                                {(form as any).nao_reajustado ? "Sim — destacada em laranja no Financeiro" : "Não"}
                               </span>
                             </div>
                           </div>

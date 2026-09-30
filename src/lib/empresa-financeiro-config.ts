@@ -12,6 +12,7 @@ export interface EmpresaFinanceiroConfig {
   observacao_padrao_financeiro: string | null;
   envio_boleto_com_nota: boolean;
   tem_coparticipacao: boolean;
+  nao_reajustado?: boolean;
   config_financeira_confirmada: boolean;
   periodo_especifico_cobranca: boolean;
   periodo_cobranca_inicio: string | null;
@@ -73,6 +74,7 @@ export const configFinanceiraSchema = z.object({
   observacao_padrao_financeiro: z.string().trim().max(2000).nullable().optional(),
   envio_boleto_com_nota: z.boolean(),
   tem_coparticipacao: z.boolean(),
+  nao_reajustado: z.boolean().optional().default(false),
   periodo_especifico_cobranca: z.boolean(),
   periodo_cobranca_inicio: z
     .string()

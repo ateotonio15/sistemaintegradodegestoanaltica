@@ -1,0 +1,2 @@
+ALTER TABLE public.empresas ADD COLUMN IF NOT EXISTS nao_reajustado boolean NOT NULL DEFAULT false;
+COMMENT ON COLUMN public.empresas.nao_reajustado IS 'Marca empresa ainda não reajustada; destaca a linha em laranja claro no Financeiro.';
