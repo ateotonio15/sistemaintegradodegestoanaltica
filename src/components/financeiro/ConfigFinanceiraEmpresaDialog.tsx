@@ -601,6 +601,42 @@ export function ConfigFinanceiraEmpresaDialog({
       </DialogContent>
     </Dialog>
 
+    <AlertDialog
+      open={confirmGrupoNaoReaj !== null}
+      onOpenChange={(o) => { if (!o) setConfirmGrupoNaoReaj(null); }}
+    >
+      <AlertDialogContent>
+        <AlertDialogHeader>
+          <AlertDialogTitle>
+            {confirmGrupoNaoReaj ? "Aplicar \"Não reajustado\" para todos do grupo?" : "Desmarcar \"Não reajustado\" para todos do grupo?"}
+          </AlertDialogTitle>
+          <AlertDialogDescription>
+            {grupoEdit?.grupo
+              ? `O grupo ${grupoEdit.grupo.nome_grupo} tem ${grupoEdit.contratos.length} contratos. Aplicar para todos do grupo ou apenas para esta empresa?`
+              : ""}
+          </AlertDialogDescription>
+        </AlertDialogHeader>
+        <AlertDialogFooter>
+          <AlertDialogCancel
+            onClick={() => {
+              setNaoReajGrupo(false);
+              setConfirmGrupoNaoReaj(null);
+            }}
+          >
+            Somente esta empresa
+          </AlertDialogCancel>
+          <AlertDialogAction
+            onClick={() => {
+              setNaoReajGrupo(!!confirmGrupoNaoReaj);
+              setConfirmGrupoNaoReaj(null);
+            }}
+          >
+            Sim, para todos do grupo
+          </AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
+    </>
   );
 }
 
