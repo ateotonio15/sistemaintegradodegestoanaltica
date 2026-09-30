@@ -156,6 +156,8 @@ export default function Empresas() {
           : "Nenhum contrato novo elegível no momento.",
       });
       queryClient.invalidateQueries({ queryKey: ["empresas"] });
+      queryClient.invalidateQueries({ queryKey: ["financeiro-empresas"] });
+      queryClient.invalidateQueries({ queryKey: ["financeiro"] });
       queryClient.invalidateQueries({ queryKey: ["movimentacoes"] });
       queryClient.invalidateQueries({ queryKey: ["contratos-recem-implantados"] });
     } catch (e: any) {
@@ -182,6 +184,8 @@ export default function Empresas() {
             : `${res.empresas} contrato(s) novo(s): ${res.primeirasMensalidades} primeira(s) mensalidade(s) e ${res.movimentacoes} movimentação(ões) criadas.`,
       });
       queryClient.invalidateQueries({ queryKey: ["empresas"] });
+      queryClient.invalidateQueries({ queryKey: ["financeiro-empresas"] });
+      queryClient.invalidateQueries({ queryKey: ["financeiro"] });
       queryClient.invalidateQueries({ queryKey: ["movimentacoes"] });
       queryClient.invalidateQueries({ queryKey: ["financeiro"] });
       queryClient.invalidateQueries({ queryKey: ["contratos-recem-implantados"] });
