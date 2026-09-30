@@ -445,6 +445,7 @@ export function ConfigFinanceiraEmpresaDialog({
                       <SelectItem value="nao">Não</SelectItem>
                     </SelectContent>
                   </Select>
+                </div>
 
                 <div className="space-y-1.5 sm:col-span-2">
                   <Label>Envio do boleto junto com a nota</Label>
