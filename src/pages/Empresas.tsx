@@ -43,6 +43,7 @@ import { PrioridadeInfoCard } from "@/components/prioridade/PrioridadeInfoCard";
 import { PrioridadeHistoricoDialog } from "@/components/prioridade/PrioridadeHistoricoDialog";
 import { usePrioridadeMaxima } from "@/hooks/usePrioridadeMaxima";
 import { Star, History as HistoryIcon, Lock, Unlock } from "lucide-react";
+import { useGrupoFinanceiro } from "@/hooks/useGrupoFinanceiro";
 import { ResponsavelLockDialog } from "@/components/empresas/ResponsavelLockDialog";
 
 type Empresa = Tables<"empresas">;
@@ -114,6 +115,8 @@ export default function Empresas() {
   const [rescisaoDate, setRescisaoDate] = useState("");
   const [showRescisaoInput, setShowRescisaoInput] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [naoReajGrupo, setNaoReajGrupo] = useState(false);
+  const { data: grupoEdit } = useGrupoFinanceiro(editingId);
   
   const [draftEmpresaId, setDraftEmpresaId] = useState<string | null>(null);
   const [form, setForm] = useState(emptyForm);
@@ -486,6 +489,16 @@ export default function Empresas() {
       if (editingId) {
         const { error } = await supabase.from("empresas").update(payload).eq("id", editingId);
         if (error) throw error;
+        if (naoReajGrupo && grupoEdit?.grupo) {
+          const outros = grupoEdit.contratos.map((c) => c.empresa_id).filter((id) => id !== editingId);
+          if (outros.length) {
+            const { error: gErr } = await supabase
+              .from("empresas")
+              .update({ nao_reajustado: !!(values as any).nao_reajustado } as any)
+              .in("id", outros);
+            if (gErr) throw gErr;
+          }
+        }
         return { id: editingId, isNew: false };
       } else {
         const insertPayload: any = { ...payload, status_implantacao: "aguardando_primeiro_fechamento" };
@@ -1730,6 +1743,17 @@ export default function Empresas() {
                               </span>
                             </div>
                           </div>
+                          {grupoEdit?.grupo && (
+                            <div className="space-y-2">
+                              <Label className="text-sm font-medium">Aplicar "Não reajustado" para todos do grupo</Label>
+                              <div className="flex items-center gap-3 h-10 px-3 rounded-lg border bg-background">
+                                <Switch checked={naoReajGrupo} onCheckedChange={setNaoReajGrupo} />
+                                <span className="text-sm text-muted-foreground">
+                                  {naoReajGrupo ? `Sim — ${grupoEdit.contratos.length} contratos do grupo ${grupoEdit.grupo.nome_grupo}` : "Não"}
+                                </span>
+                              </div>
+                            </div>
+                          )}
                           <div className="space-y-2 sm:col-span-2">
                             <Label className="text-sm font-medium">Observação padrão (financeiro)</Label>
                             <Textarea
