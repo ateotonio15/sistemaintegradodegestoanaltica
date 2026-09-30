@@ -4374,6 +4374,39 @@ export type Database = {
         }
         Relationships: []
       }
+      palestras_saude_historico: {
+        Row: {
+          acao: string
+          created_at: string
+          dados: Json
+          data: string
+          id: string
+          palestra_id: string
+          usuario_id: string | null
+          usuario_nome: string | null
+        }
+        Insert: {
+          acao: string
+          created_at?: string
+          dados: Json
+          data: string
+          id?: string
+          palestra_id: string
+          usuario_id?: string | null
+          usuario_nome?: string | null
+        }
+        Update: {
+          acao?: string
+          created_at?: string
+          dados?: Json
+          data?: string
+          id?: string
+          palestra_id?: string
+          usuario_id?: string | null
+          usuario_nome?: string | null
+        }
+        Relationships: []
+      }
       plantoes: {
         Row: {
           created_at: string
