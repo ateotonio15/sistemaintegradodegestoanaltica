@@ -135,7 +135,7 @@ export async function carregarDadosRelatorioAnalise(
     const { data, error } = await supabase
       .from("empresas")
       .select(
-        "id, nome, codigo_contrato, tipo_movimentacao, status_empresa, data_rescisao, contrato_suspenso, vidas, nao_faturado_financeiro, exige_po_pc",
+        "id, nome, codigo_contrato, tipo_movimentacao, status_empresa, data_rescisao, contrato_suspenso, vidas, nao_faturado_financeiro, exige_po_pc, aguarda_faturamento_excel",
       )
       .in("id", ids);
     if (error) throw error;
@@ -229,6 +229,7 @@ export async function carregarDadosRelatorioAnalise(
       envioMap.has(`${m.empresa_id}|${m.mes_referencia}|${m.periodo}`),
       anexosMov,
       !!emp.exige_po_pc,
+      !!emp.aguarda_faturamento_excel,
     );
 
     const grupoId = empresaGrupo.get(m.empresa_id) ?? null;

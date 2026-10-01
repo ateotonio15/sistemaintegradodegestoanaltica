@@ -70,6 +70,7 @@ const STATUS_OPTIONS: StatusFinanceiro[] = [
   "Nota emitida",
   "Faturado",
   "Aguardando validação",
+  "Aguardando faturamento",
   "Em faturamento",
   "Aguardando nota",
   "Pendente",
@@ -224,7 +225,7 @@ export default function Financeiro() {
       if (empresaIds.length === 0) return {};
       const { data, error } = await supabase
         .from("empresas")
-        .select("id, nome, codigo_contrato, cnpj, tipo_movimentacao, periodo_movimentacao, data_corte, status_empresa, data_rescisao, contrato_suspenso, pagamento_via_deposito, vidas, nao_faturado_financeiro, exige_po_pc, periodo_especifico_cobranca, periodo_cobranca_inicio, prioridade_maxima_id, responsavel_contrato, nao_reajustado")
+        .select("id, nome, codigo_contrato, cnpj, tipo_movimentacao, periodo_movimentacao, data_corte, status_empresa, data_rescisao, contrato_suspenso, pagamento_via_deposito, vidas, nao_faturado_financeiro, exige_po_pc, periodo_especifico_cobranca, periodo_cobranca_inicio, prioridade_maxima_id, responsavel_contrato, nao_reajustado, aguarda_faturamento_excel")
         .in("id", empresaIds);
       if (error) throw error;
       const map: Record<string, {
@@ -239,6 +240,7 @@ export default function Financeiro() {
         pagamento_via_deposito: boolean;
         nao_faturado_financeiro: boolean;
         exige_po_pc: boolean;
+        aguarda_faturamento_excel: boolean;
         periodo_especifico_cobranca: boolean;
         periodo_cobranca_inicio: string | null;
         prioridade_maxima: boolean;
@@ -260,6 +262,7 @@ export default function Financeiro() {
           pagamento_via_deposito: !!e.pagamento_via_deposito,
           nao_faturado_financeiro: !!e.nao_faturado_financeiro,
           exige_po_pc: !!e.exige_po_pc,
+          aguarda_faturamento_excel: !!e.aguarda_faturamento_excel,
           periodo_especifico_cobranca: !!e.periodo_especifico_cobranca,
           periodo_cobranca_inicio: e.periodo_cobranca_inicio ?? null,
           prioridade_maxima: !!e.prioridade_maxima_id,
@@ -847,6 +850,7 @@ export default function Financeiro() {
           envioOperacional || temAnexoImplantacao,
           anexosParaStatus,
           !!emp?.exige_po_pc,
+          !!emp?.aguarda_faturamento_excel,
         ),
         anexos_count:
           anexosAll.length +
@@ -1024,7 +1028,8 @@ export default function Financeiro() {
 
       const finalizado =
         r.status === "Nota emitida" ||
-        r.status === "Aguardando validação";
+        r.status === "Aguardando validação" ||
+        r.status === "Aguardando faturamento";
       return !(finalizado && dispensados.has(chaveAcomp(r.empresa_id, mes)));
     });
   }, [allRows, acompanhandoIds, dispensadosIds, mes, ocultosSet, user?.id]);
@@ -2907,7 +2912,7 @@ export default function Financeiro() {
                           <X className="h-3 w-3" />
                         </button>
                       )}
-                      {!opts?.dentroDeGrupo && (r.status === "Nota emitida" || r.status === "Aguardando validação") && (
+                      {!opts?.dentroDeGrupo && (r.status === "Nota emitida" || r.status === "Aguardando validação" || r.status === "Aguardando faturamento") && (
                         <button
                           type="button"
                           onClick={(e) => {

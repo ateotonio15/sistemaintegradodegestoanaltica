@@ -113,6 +113,7 @@ const STATUS_COLORS: Record<string, string> = {
   Enviada: "#10b981",
   Faturado: "#06b6d4",
   "Aguardando validação": "#d946ef",
+  "Aguardando faturamento": "#eab308",
   "Fora do prazo": "#ef4444",
 };
 
@@ -295,7 +296,7 @@ export default function PainelTvFinanceiro() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("empresas")
-        .select("id, nome, codigo_contrato, exige_po_pc")
+        .select("id, nome, codigo_contrato, exige_po_pc, aguarda_faturamento_excel")
         .in("id", empresaIds);
       if (error) throw error;
       const m: Record<string, any> = {};
@@ -446,6 +447,7 @@ export default function PainelTvFinanceiro() {
         envioOp,
         anexos,
         !!emp?.exige_po_pc,
+        !!emp?.aguarda_faturamento_excel,
       );
       // Faturado antecipado: emissão dia 01 sendo faturada ANTES do mês de emissão.
       // Para mes_referencia=YYYY-MM com dia_emissao=01, a emissão ocorre em (MM+1)/01.
@@ -548,7 +550,7 @@ export default function PainelTvFinanceiro() {
     sortDirs.notas,
   );
   const emFaturamento = sortByTime(
-    rows.filter((r) => r.status === "Em faturamento" || r.status === "Faturado"),
+    rows.filter((r) => r.status === "Em faturamento" || r.status === "Faturado" || r.status === "Aguardando faturamento"),
     (r) => r.faturamento_iniciado_em || r.updated_at,
     sortDirs.faturamento,
   );

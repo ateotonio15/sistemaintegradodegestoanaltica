@@ -39,6 +39,7 @@ const TODOS_STATUS: StatusFinanceiro[] = [
   "Enviada",
   "Nota emitida",
   "Aguardando validação",
+  "Aguardando faturamento",
   "Faturado",
   "Em faturamento",
   "Aguardando nota",
@@ -173,7 +174,7 @@ export function RelatorioStatusFinanceiro() {
       for (let off = 0; ; off += PAGE) {
         const { data: emps } = await supabase
           .from("empresas")
-          .select("id, nome, codigo_contrato, exige_po_pc")
+          .select("id, nome, codigo_contrato, exige_po_pc, aguarda_faturamento_excel", )
           .order("id", { ascending: true })
           .range(off, off + PAGE - 1);
         (emps ?? []).forEach((e: any) => empsAll.push(e));
@@ -217,6 +218,7 @@ export function RelatorioStatusFinanceiro() {
           envioSet.has(`${r.empresa_id}|${r.mes_referencia}|${r.periodo}`),
           anexos,
           !!emp?.exige_po_pc,
+          !!emp?.aguarda_faturamento_excel,
         );
         const ultimo = anexos
           .slice()
@@ -1289,7 +1291,8 @@ export function RelatorioStatusFinanceiro() {
                     (l) =>
                       l.status === "Faturado" ||
                       l.status === "Em faturamento" ||
-                      l.status === "Aguardando validação",
+                      l.status === "Aguardando validação" ||
+                      l.status === "Aguardando faturamento",
                   ).length;
                   const cards = [
                     { label: "Total de empresas", valor: total, cls: "text-foreground" },
