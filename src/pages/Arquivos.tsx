@@ -471,7 +471,16 @@ export default function Arquivos() {
     }
   }
 
-  async function handleChangeCategoria(a: ArquivoRow, novaCategoria: string) {
+  /** Linhas de parcela do aporte apontam para o arquivo original. */
+  function resolverAporte(a: ArquivoRow): ArquivoRow {
+    if (!a.id.startsWith("aporte-")) return a;
+    const pid = a.id.slice(7);
+    const ap = aportes.find((x) => x.parcelas.some((p) => p.id === pid));
+    return ap ? { ...a, id: ap.arquivo_id } : a;
+  }
+
+  async function handleChangeCategoria(a0: ArquivoRow, novaCategoria: string) {
+    const a = resolverAporte(a0);
     if (a.categoria === novaCategoria) return;
     try {
       const { error } = await supabase
@@ -486,8 +495,13 @@ export default function Arquivos() {
     }
   }
 
-  async function handleDelete(a: ArquivoRow) {
+  async function handleDelete(a0: ArquivoRow) {
+    const a = resolverAporte(a0);
     try {
+      if (a.categoria === "Aporte") {
+        await supabase.from("financeiro_aportes").delete().eq("arquivo_id", a.id);
+        queryClient.invalidateQueries({ queryKey: ["financeiro-aportes"] });
+      }
       if (a.lanc) {
         const { error } = await supabase
           .from("cobrancas_retroativas")
