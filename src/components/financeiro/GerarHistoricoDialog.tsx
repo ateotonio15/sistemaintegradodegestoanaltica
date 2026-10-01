@@ -81,7 +81,7 @@ interface Props {
   row: FinanceiroRow | null;
   resultados: AnaliseResultado[] | null;
   anexosNomes: string[];
-  modo?: "mensalidade" | "coparticipacao" | "complemento";
+  modo?: "mensalidade" | "coparticipacao" | "complemento" | "aporte";
 }
 
 export function GerarHistoricoDialog({
@@ -228,13 +228,13 @@ export function GerarHistoricoDialog({
 
     let texto = deveIncluirObsDda ? garantirObsDda(textoGerado) : textoGerado;
     const ap = (row as any)?.aporte as { numero: number; total: number } | null | undefined;
-    if (ap && modo === "mensalidade") {
+    if (modo === "aporte") {
+      if (!ap) return "";
+      // Histórico dedicado do aporte: linha do aporte + final padrão (PO / DDA ou depósito).
       const linhaAporte = `Aporte Financeiro ${String(ap.numero).padStart(2, "0")}/${String(ap.total).padStart(2, "0")}. Data de vencimento: ${vencimentoBR}.`;
       const linhas = texto.split("\n");
       const idx = linhas.findIndex((l) => /^data de vencimento:/i.test(l.trim()));
-      if (idx >= 0) linhas.splice(idx, 1, linhaAporte);
-      else linhas.unshift(linhaAporte, "");
-      texto = linhas.join("\n");
+      texto = idx >= 0 ? [linhaAporte, ...linhas.slice(idx + 1)].join("\n") : linhaAporte;
     }
     return texto;
   };
@@ -450,7 +450,9 @@ export function GerarHistoricoDialog({
       ? "Gerar Histórico — Coparticipação"
       : modo === "complemento"
         ? "Gerar Histórico — Complemento"
-        : "Gerar Histórico Automático";
+        : modo === "aporte"
+          ? "Gerar Histórico — Aporte"
+          : "Gerar Histórico Automático";
 
   return (
     <>

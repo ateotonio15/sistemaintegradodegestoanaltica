@@ -861,7 +861,7 @@ export default function Financeiro() {
         faturamento_iniciado_por: (f as any).faturamento_iniciado_por ?? null,
         faturamento_iniciado_por_nome: (f as any).faturamento_iniciado_por_nome ?? null,
         faturamento_iniciado_em: (f as any).faturamento_iniciado_em ?? null,
-        retroativo: temRetroativo && !aportesPorEmpresa[f.empresa_id],
+        retroativo: temRetroativo,
         aporte: aportesPorEmpresa[f.empresa_id] ?? null,
         pagamento_via_deposito: !!emp?.pagamento_via_deposito,
         prioridade_maxima: !!emp?.prioridade_maxima,
@@ -1743,6 +1743,13 @@ export default function Financeiro() {
   const handleGerarHistoricoCoparticipacao = (row: FinanceiroRow) => {
     setHistoricoCopRow(row);
     setHistoricoCopDialogOpen(true);
+  };
+
+  const [historicoAporteRow, setHistoricoAporteRow] = useState<FinanceiroRow | null>(null);
+  const [historicoAporteDialogOpen, setHistoricoAporteDialogOpen] = useState(false);
+  const handleGerarHistoricoAporte = (row: FinanceiroRow) => {
+    setHistoricoAporteRow(row);
+    setHistoricoAporteDialogOpen(true);
   };
 
   const handleGerarHistoricoComplemento = (row: FinanceiroRow) => {
@@ -3155,6 +3162,7 @@ export default function Financeiro() {
           onGerarHistorico={canManageFinanceiro ? handleGerarHistorico : undefined}
           onGerarHistoricoCoparticipacao={canManageFinanceiro ? handleGerarHistoricoCoparticipacao : undefined}
           onGerarHistoricoComplemento={canManageFinanceiro ? handleGerarHistoricoComplemento : undefined}
+          onGerarHistoricoAporte={canManageFinanceiro ? handleGerarHistoricoAporte : undefined}
           analiseResultados={analiseResultados}
           analiseLoading={analiseLoading}
           analiseComparacoes={analiseComparacoes}
@@ -3251,6 +3259,17 @@ export default function Financeiro() {
             resultados={historicoCompRow ? (analiseResultados[historicoCompRow.rowKey ?? historicoCompRow.id] ?? analiseResultados[historicoCompRow.id] ?? null) : null}
             anexosNomes={historicoCompRow ? ((anexosMap[historicoCompRow.id] || []).map((a: any) => a.nome_arquivo).filter(Boolean) as string[]) : []}
             modo="complemento"
+          />
+        )}
+
+        {canManageFinanceiro && (
+          <GerarHistoricoDialog
+            open={historicoAporteDialogOpen}
+            onOpenChange={setHistoricoAporteDialogOpen}
+            row={historicoAporteRow}
+            resultados={historicoAporteRow ? (analiseResultados[historicoAporteRow.rowKey ?? historicoAporteRow.id] ?? analiseResultados[historicoAporteRow.id] ?? null) : null}
+            anexosNomes={historicoAporteRow ? ((anexosMap[historicoAporteRow.id] || []).map((a: any) => a.nome_arquivo).filter(Boolean) as string[]) : []}
+            modo="aporte"
           />
         )}
       </div>

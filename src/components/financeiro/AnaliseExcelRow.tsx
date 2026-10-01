@@ -52,6 +52,8 @@ interface Props {
   onGerarHistorico?: () => void;
   onGerarHistoricoCoparticipacao?: () => void;
   onGerarHistoricoComplemento?: () => void;
+  onGerarHistoricoAporte?: () => void;
+  aporte?: { numero: number; total: number; valor: number } | null;
   contexto?: ContextoAnalise;
 }
 
@@ -95,7 +97,7 @@ function ValorComCheck({
   );
 }
 
-export function AnaliseExcelRow({ colSpan, isLoading, resultados, comparacoes, onReanalisar, onGerarHistorico, onGerarHistoricoCoparticipacao, onGerarHistoricoComplemento, contexto }: Props) {
+export function AnaliseExcelRow({ colSpan, isLoading, resultados, comparacoes, onReanalisar, onGerarHistorico, onGerarHistoricoCoparticipacao, onGerarHistoricoComplemento, onGerarHistoricoAporte, aporte, contexto }: Props) {
   const { toast } = useToast();
   const [analiseCompletaOpen, setAnaliseCompletaOpen] = useState(false);
 
@@ -671,6 +673,40 @@ export function AnaliseExcelRow({ colSpan, isLoading, resultados, comparacoes, o
                               <td className="px-3 py-2 text-right font-bold tabular-nums">{r.coparticipacao.quantidade}</td>
                               <td className="px-3 py-2" aria-hidden="true"></td>
                               <td className="px-3 py-2 text-right font-bold text-primary tabular-nums">{formatBRL(r.coparticipacao.total)}</td>
+                            </tr>
+                          </tbody>
+                        </table>
+                      </div>
+                    )}
+
+                    {idx === 0 && aporte && (
+                      <div className="mt-3 rounded-lg border border-info/40 bg-card overflow-hidden">
+                        <div className="bg-info/10 px-3 py-2 flex items-center justify-between gap-2">
+                          <span className="text-xs font-semibold text-info uppercase tracking-wide">
+                            Aporte Financeiro
+                          </span>
+                          {onGerarHistoricoAporte && (
+                            <Button variant="outline" size="sm" onClick={onGerarHistoricoAporte} className="h-7 gap-1.5 text-xs" title="Gerar histórico dedicado para a parcela do aporte">
+                              <FileText className="h-3 w-3" />
+                              Gerar Histórico Aporte
+                            </Button>
+                          )}
+                        </div>
+                        <table className="w-full text-sm">
+                          <thead>
+                            <tr className="bg-muted/30">
+                              <th className="text-left font-medium text-muted-foreground px-3 py-2">Categoria</th>
+                              <th className="text-right font-medium text-muted-foreground px-3 py-2">Parcela</th>
+                              <th className="px-3 py-2" aria-hidden="true"></th>
+                              <th className="text-right font-medium text-muted-foreground px-3 py-2">Total</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            <tr className="border-t border-border">
+                              <td className="px-3 py-2 font-medium">Aporte</td>
+                              <td className="px-3 py-2 text-right tabular-nums">{String(aporte.numero).padStart(2, "0")}/{String(aporte.total).padStart(2, "0")}</td>
+                              <td className="px-3 py-2" aria-hidden="true"></td>
+                              <td className="px-3 py-2 text-right font-bold text-primary tabular-nums">{formatBRL(aporte.valor)}</td>
                             </tr>
                           </tbody>
                         </table>

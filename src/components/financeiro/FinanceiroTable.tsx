@@ -70,6 +70,7 @@ interface Props {
   onGerarHistorico?: (row: FinanceiroRow) => void;
   onGerarHistoricoCoparticipacao?: (row: FinanceiroRow) => void;
   onGerarHistoricoComplemento?: (row: FinanceiroRow) => void;
+  onGerarHistoricoAporte?: (row: FinanceiroRow) => void;
   analiseResultados: Record<string, AnaliseResultado[]>;
   analiseLoading: Record<string, boolean>;
   analiseComparacoes?: Record<string, ComparacaoResultado[]>;
@@ -204,6 +205,7 @@ export function FinanceiroTable({
   onGerarHistorico,
   onGerarHistoricoCoparticipacao,
   onGerarHistoricoComplemento,
+  onGerarHistoricoAporte,
   analiseResultados,
   analiseLoading,
   analiseComparacoes,
@@ -521,6 +523,8 @@ export function FinanceiroTable({
                       onGerarHistorico={onGerarHistorico ? () => onGerarHistorico(row) : undefined}
                       onGerarHistoricoCoparticipacao={onGerarHistoricoCoparticipacao ? () => onGerarHistoricoCoparticipacao(row) : undefined}
                       onGerarHistoricoComplemento={onGerarHistoricoComplemento ? () => onGerarHistoricoComplemento(row) : undefined}
+                      onGerarHistoricoAporte={onGerarHistoricoAporte ? () => onGerarHistoricoAporte(row) : undefined}
+                      aporte={row.aporte ?? null}
                       contexto={{
                         empresaNome: row.empresa_nome,
                         empresaCnpj: row.empresa_cnpj,
