@@ -2282,6 +2282,9 @@ export async function analisarExcelFinanceiroPorCnpj(
   // Chaves já contabilizadas (rótulo + valor) para não somar o mesmo pivot
   // duas vezes quando ele se repete em mais de uma aba/linha.
   const pivotsVistos = new Set<string>();
+  // Detalhe por pagador abaixo de cada pivot "Cobrança Retroativa <Mês>":
+  // nome normalizado -> mês -> { qtd, total }.
+  const retroPorPagador = new Map<string, Map<string, { quantidade: number; total: number }>>();
   // Valor -> primeira ocorrência (mês do rótulo, quando houver, e quantidade).
   const valoresGenericos = new Map<string, { mes: string | null; qtd: number }>();
 
@@ -2388,6 +2391,24 @@ export async function analisarExcelFinanceiroPorCnpj(
       extraRetroTotal += total;
       if (mes) { mesesRetro.add(mes); addDetalhe(mes, qtd, total); }
 
+      // Linhas filhas do pivot (um pagador por linha) até o "Total".
+      if (mes && pvValIdx > hitIdx) {
+        for (let j = i + 1; j < rowsSheet.length; j++) {
+          const rr = rowsSheet[j] || [];
+          if (rr.some((c) => { const t = norm(c); return t.startsWith("total") || t.includes("cobranca retroativa") || t.includes("rotulos"); })) break;
+          const nomeCel = rr.slice(0, pvValIdx).find((c) => typeof c === "string" && /[a-z]/i.test(c));
+          const v = toNumber(rr[pvValIdx]);
+          if (!nomeCel || isNaN(v)) break;
+          const q = pvQtdIdx >= 0 ? toNumber(rr[pvQtdIdx]) : NaN;
+          const k = norm(nomeCel);
+          const porMes = retroPorPagador.get(k) || new Map();
+          const cur = porMes.get(mes) || { quantidade: 0, total: 0 };
+          cur.quantidade += isNaN(q) ? 0 : Math.round(q);
+          cur.total += v;
+          porMes.set(mes, cur);
+          retroPorPagador.set(k, porMes);
+        }
+      }
     }
   });
 
@@ -2457,6 +2478,14 @@ export async function analisarExcelFinanceiroPorCnpj(
     .map(([mes, v]) => ({ mes, quantidade: v.quantidade, total: v.total }));
 
 
+  const achaPagadorRetro = (nome: string) => {
+    const n = norm(nome || "");
+    if (!n) return null;
+    if (retroPorPagador.has(n)) return retroPorPagador.get(n)!;
+    for (const [k, v] of retroPorPagador) if (k.startsWith(n) || n.startsWith(k)) return v;
+    return null;
+  };
+
   const scaleDetalhe = (w: number): RetroativaMesDetalhe[] | undefined =>
     detalheArr.length
       ? detalheArr.map((d) => ({ mes: d.mes, quantidade: Math.round(d.quantidade * w), total: d.total * w }))
@@ -2488,6 +2517,20 @@ export async function analisarExcelFinanceiroPorCnpj(
           ...(detalheArr.length ? { mesesDetalhe: scaleDetalhe(1) } : {}),
         };
         b.inclusoes = { quantidade: b.inclusoes.quantidade + deltaQ, total: b.inclusoes.total + deltaT };
+      } else if (
+        retroPorPagador.size > 0 &&
+        blocos.every((b) => achaPagadorRetro(b.nome) !== null)
+      ) {
+        // Usa o valor exato de cada pagador informado no pivot.
+        blocos.forEach((b) => {
+          const porMes = achaPagadorRetro(b.nome)!;
+          const det = Array.from(porMes.entries()).map(([mes, d]) => ({ mes, quantidade: d.quantidade, total: d.total }));
+          const q = det.reduce((s, d) => s + d.quantidade, 0);
+          const v = det.reduce((s, d) => s + d.total, 0);
+          b.retroativas = { quantidade: (b.retroativas?.quantidade ?? 0) + q, total: (b.retroativas?.total ?? 0) + v, meses: det.map((d) => d.mes), mesesDetalhe: det };
+          b.retroativasReajuste = { quantidade: (b.retroativasReajuste?.quantidade ?? 0) + q, total: (b.retroativasReajuste?.total ?? 0) + v, meses: det.map((d) => d.mes), mesesDetalhe: det };
+          b.inclusoes = { quantidade: b.inclusoes.quantidade + q, total: b.inclusoes.total + v };
+        });
       } else {
         const base = blocos.map((b) => Math.abs(b.inclusoes.total) || 0);
         const soma = base.reduce((s, v) => s + v, 0);
