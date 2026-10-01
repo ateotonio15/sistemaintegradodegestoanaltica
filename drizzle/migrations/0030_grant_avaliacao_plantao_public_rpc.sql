@@ -1,0 +1,2 @@
+GRANT EXECUTE ON FUNCTION public.get_avaliacao_plantao_detalhes_por_token(text) TO anon, authenticated, service_role;
+GRANT EXECUTE ON FUNCTION public.responder_avaliacao_plantao_com_executiva_por_token(text, jsonb, text, numeric, date, text, text) TO anon, authenticated, service_role;
