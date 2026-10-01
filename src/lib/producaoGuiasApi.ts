@@ -1,4 +1,9 @@
 import { supabase } from "@/integrations/supabase/client";
+
+async function exigirSessao() {
+  const { data } = await supabase.auth.getSession();
+  if (!data.session) throw new Error("Sessão expirada. Entre novamente no sistema.");
+}
 import { USUARIOS_PERMITIDOS_PRODUCAO_GUIAS, normalizarNomeUsuario } from "@/config/usuariosPermitidos";
 
 export interface TarefaUsuarioApi { TAREFA: string; QTD: number; PERC_QTD: number; PACIENTES: number; PERC_PACIENTES: number }
@@ -19,6 +24,7 @@ export interface ProducaoGuiasApi {
 }
 
 export async function fetchProducaoGuias(dt_inicio: string, dt_fim: string, nm_empresa?: string): Promise<ProducaoGuiasApi> {
+  await exigirSessao();
   const { data, error } = await supabase.functions.invoke("producao-guias-proxy", {
     method: "POST",
     body: { dt_inicio, dt_fim, nm_empresa: nm_empresa || undefined },
@@ -62,6 +68,7 @@ export function filtrarUsuariosPermitidos(api: ProducaoGuiasApi): ProducaoGuiasA
 }
 
 export async function fetchEmpresasProducaoGuias(): Promise<string[]> {
+  await exigirSessao();
   const { data, error } = await supabase.functions.invoke("producao-guias-proxy", {
     method: "POST",
     body: { acao: "empresas" },

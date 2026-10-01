@@ -1,5 +1,10 @@
 import { supabase } from "@/integrations/supabase/client";
 
+async function exigirSessao() {
+  const { data } = await supabase.auth.getSession();
+  if (!data.session) throw new Error("Sessão expirada. Entre novamente no sistema.");
+}
+
 export const VIDAS_OPERADORA_URL =
   `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/vidas-operadora-proxy`;
 
@@ -20,6 +25,7 @@ export interface VidasOperadoraResponse {
 export async function fetchVidasOperadoraAgrupado(
   dsClassificacao?: string,
 ): Promise<VidasOperadoraResponse["data"]> {
+  await exigirSessao();
   const { data, error } = await supabase.functions.invoke<VidasOperadoraResponse>(
     "vidas-operadora-proxy",
     {
