@@ -1,5 +1,10 @@
 import { supabase } from "@/integrations/supabase/client";
 
+async function exigirSessao() {
+  const { data } = await supabase.auth.getSession();
+  if (!data.session) throw new Error("Sessão expirada. Entre novamente no sistema.");
+}
+
 export interface FaixaApi { QT_IDADE_INICIAL: number; QT_IDADE_FINAL: number; VL_PRECO_ATUAL: number }
 export interface PlanoApi { NR_SEQ_PLANO: number; NM_FANTASIA: string; FAIXAS_ETARIAS: FaixaApi[] }
 export interface ReajusteContratoApi {
@@ -12,6 +17,7 @@ export interface ReajusteContratoApi {
 }
 
 export async function fetchReajustesOperadora(): Promise<ReajusteContratoApi[]> {
+  await exigirSessao();
   const { data, error } = await supabase.functions.invoke("reajustes-operadora-proxy", { method: "GET" });
   if (error) throw error;
   if (!data?.status) throw new Error(data?.message || "Falha ao consultar a API");

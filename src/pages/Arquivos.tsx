@@ -60,7 +60,7 @@ import {
   origemDoLancamento,
 } from "@/lib/retroativos-espelho";
 
-const CATEGORIAS = ["Mensalidade", "Reajuste", "Implantação", "Retroativo", "Retorno Reaj.", "Fluxo"] as const;
+const CATEGORIAS = ["Mensalidade", "Reajuste", "Implantação", "Retroativo", "Retorno Reaj.", "Fluxo", "Aporte"] as const;
 type Categoria = (typeof CATEGORIAS)[number];
 
 function categoriaChipClass(cat: string): string {
@@ -77,6 +77,8 @@ function categoriaChipClass(cat: string): string {
       return "bg-rose-500/15 text-rose-700 dark:text-rose-300 border-rose-500/30";
     case "Fluxo":
       return "bg-cyan-500/15 text-cyan-700 dark:text-cyan-300 border-cyan-500/30";
+    case "Aporte":
+      return "bg-teal-500/15 text-teal-700 dark:text-teal-300 border-teal-500/30";
     default:
       return "bg-muted text-muted-foreground border-border";
   }
@@ -230,6 +232,22 @@ export default function Arquivos() {
     },
   });
 
+  const { data: aportes = [] } = useQuery({
+    queryKey: ["financeiro-aportes"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("financeiro_aportes")
+        .select("id, arquivo_id, parcelas, financeiro_aporte_parcelas(id, numero, competencia, valor)");
+      if (error) throw error;
+      return (data ?? []).map((a: any) => ({
+        id: a.id as string,
+        arquivo_id: a.arquivo_id as string,
+        parcelas_total: a.parcelas as number,
+        parcelas: (a.financeiro_aporte_parcelas ?? []) as { id: string; numero: number; competencia: string; valor: number }[],
+      }));
+    },
+  });
+
   /** Arquivos + lançamentos retroativos, na mesma lista (pasta "Retroativo"). */
   const arquivos = useMemo<ArquivoRow[]>(() => {
     const extras: ArquivoRow[] = lancamentos.map((l) => {
@@ -278,8 +296,28 @@ export default function Arquivos() {
         anexoNome: nomeAnexo,
       };
     });
-    return [...arquivosRaw, ...extras];
-  }, [arquivosRaw, lancamentos, anexosRetro]);
+    // Aporte: o mesmo anexo aparece em todas as competências das parcelas
+    const aporteRows: ArquivoRow[] = [];
+    const originaisAporte = new Map<string, ArquivoRow>();
+    for (const ap of aportes) {
+      const arq = arquivosRaw.find((a) => a.id === ap.arquivo_id);
+      if (!arq) continue;
+      for (const p of ap.parcelas) {
+        const titulo = `Aporte ${String(p.numero).padStart(2, "0")}/${String(ap.parcelas_total).padStart(2, "0")} · ${formatBRLCentavos(Math.round(Number(p.valor) * 100))}`;
+        const row: ArquivoRow = {
+          ...arq,
+          competencia: p.competencia,
+          nome_original: `${titulo} · ${arq.nome_original}`,
+          id: p.competencia === arq.competencia ? arq.id : `aporte-${p.id}`,
+          origem: p.competencia === arq.competencia ? arq.origem : "aporte_parcela",
+        };
+        if (p.competencia === arq.competencia) originaisAporte.set(arq.id, row);
+        else aporteRows.push(row);
+      }
+    }
+    const base = arquivosRaw.map((a) => originaisAporte.get(a.id) ?? a);
+    return [...base, ...extras, ...aporteRows];
+  }, [arquivosRaw, lancamentos, anexosRetro, aportes]);
 
 
   // Movimentações da empresa selecionada — para mostrar o período ao lado da competência
@@ -433,7 +471,16 @@ export default function Arquivos() {
     }
   }
 
-  async function handleChangeCategoria(a: ArquivoRow, novaCategoria: string) {
+  /** Linhas de parcela do aporte apontam para o arquivo original. */
+  function resolverAporte(a: ArquivoRow): ArquivoRow {
+    if (!a.id.startsWith("aporte-")) return a;
+    const pid = a.id.slice(7);
+    const ap = aportes.find((x) => x.parcelas.some((p) => p.id === pid));
+    return ap ? { ...a, id: ap.arquivo_id } : a;
+  }
+
+  async function handleChangeCategoria(a0: ArquivoRow, novaCategoria: string) {
+    const a = resolverAporte(a0);
     if (a.categoria === novaCategoria) return;
     try {
       const { error } = await supabase
@@ -448,8 +495,13 @@ export default function Arquivos() {
     }
   }
 
-  async function handleDelete(a: ArquivoRow) {
+  async function handleDelete(a0: ArquivoRow) {
+    const a = resolverAporte(a0);
     try {
+      if (a.categoria === "Aporte") {
+        await supabase.from("financeiro_aportes").delete().eq("arquivo_id", a.id);
+        queryClient.invalidateQueries({ queryKey: ["financeiro-aportes"] });
+      }
       if (a.lanc) {
         const { error } = await supabase
           .from("cobrancas_retroativas")

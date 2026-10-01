@@ -1,5 +1,6 @@
 import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
+import { useAuth } from "@/hooks/useAuth";
 import * as XLSX from "xlsx";
 import { Link } from "react-router-dom";
 import {
@@ -42,19 +43,23 @@ export default function ProducaoGuias() {
   const [page, setPage] = useState(0);
   const PAGE = 20;
 
+  const { user } = useAuth();
   const [empresa, setEmpresa] = useState("");
   const [empOpen, setEmpOpen] = useState(false);
   const { data: empresas = [], isLoading: loadingEmpresas } = useQuery({
     queryKey: ["producao-guias-empresas"],
     queryFn: fetchEmpresasProducaoGuias,
     staleTime: 60 * 60 * 1000,
+    enabled: !!user,
+    retry: false,
   });
 
   const periodoOk = !!ini && !!fim && ini <= fim;
   const { data, isLoading, isFetching, error, refetch } = useQuery({
     queryKey: ["producao-guias", ini, fim, empresa],
     queryFn: () => fetchProducaoGuias(ini, fim, empresa),
-    enabled: periodoOk,
+    enabled: periodoOk && !!user,
+    retry: false,
   });
 
   const tarefas = data?.TAREFAS ?? [];

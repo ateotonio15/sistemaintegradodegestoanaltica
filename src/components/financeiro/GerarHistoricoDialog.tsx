@@ -226,7 +226,17 @@ export function GerarHistoricoDialog({
       tipoAnalise: (row as any)?.tipo_analise ?? null,
     });
 
-    return deveIncluirObsDda ? garantirObsDda(textoGerado) : textoGerado;
+    let texto = deveIncluirObsDda ? garantirObsDda(textoGerado) : textoGerado;
+    const ap = (row as any)?.aporte as { numero: number; total: number } | null | undefined;
+    if (ap && modo === "mensalidade") {
+      const linhaAporte = `Aporte Financeiro ${String(ap.numero).padStart(2, "0")}/${String(ap.total).padStart(2, "0")}. Data de vencimento: ${vencimentoBR}.`;
+      const linhas = texto.split("\n");
+      const idx = linhas.findIndex((l) => /^data de vencimento:/i.test(l.trim()));
+      if (idx >= 0) linhas.splice(idx, 1, linhaAporte);
+      else linhas.unshift(linhaAporte, "");
+      texto = linhas.join("\n");
+    }
+    return texto;
   };
 
 
