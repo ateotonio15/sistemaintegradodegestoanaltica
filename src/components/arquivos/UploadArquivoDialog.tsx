@@ -334,6 +334,7 @@ export function UploadArquivoDialog({ open, onOpenChange, defaultEmpresaId, defa
     if (okCount > 0) {
       toast.success(`${okCount} arquivo${okCount === 1 ? "" : "s"} enviado${okCount === 1 ? "" : "s"} com sucesso`);
       queryClient.invalidateQueries({ queryKey: ["financeiro-arquivos"] });
+      queryClient.invalidateQueries({ queryKey: ["financeiro-aportes"] });
     }
   }
 

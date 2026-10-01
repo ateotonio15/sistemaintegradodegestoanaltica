@@ -37,6 +37,7 @@ export type FinanceiroRow = FinanceiroMovimentacao & {
   faturamento_iniciado_em?: string | null;
   /** Indica que existe ao menos um anexo originado de Reajuste/Cobrança Retroativa */
   retroativo?: boolean;
+  aporte?: { numero: number; total: number; valor: number } | null;
   prioridade_maxima?: boolean;
   prioridade_intensa?: boolean;
   nao_reajustado?: boolean;
@@ -334,6 +335,16 @@ export function FinanceiroTable({
                             <Badge variant="outline" className="text-info border-info/50 text-[10px] px-1.5 py-0 h-5">
                               <History className="h-2.5 w-2.5 mr-1" />
                               Retroativo
+                            </Badge>
+                          )}
+                          {row.aporte && (
+                            <Badge
+                              variant="outline"
+                              className="text-info border-info/50 text-[10px] px-1.5 py-0 h-5"
+                              title={`Parcela ${row.aporte.numero}/${row.aporte.total} — ${row.aporte.valor.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}`}
+                            >
+                              <History className="h-2.5 w-2.5 mr-1" />
+                              Aporte {String(row.aporte.numero).padStart(2, "0")}/{String(row.aporte.total).padStart(2, "0")}
                             </Badge>
                           )}
                           {(row.status === "Nota emitida" || row.status === "Enviada") && !row.pagamento_via_deposito && (

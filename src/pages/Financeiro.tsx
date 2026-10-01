@@ -198,6 +198,26 @@ export default function Financeiro() {
     enabled: !!user && canViewFinanceiro && empresaIds.length > 0,
   });
 
+  // Parcelas de Aporte na competência (aba Arquivos → categoria "Aporte")
+  const { data: aportesPorEmpresa = {} as Record<string, { numero: number; total: number; valor: number }> } = useQuery({
+    queryKey: ["financeiro-aportes", "competencia", mes, empresaIds.sort().join(",")],
+    queryFn: async () => {
+      const out: Record<string, { numero: number; total: number; valor: number }> = {};
+      if (empresaIds.length === 0) return out;
+      const { data, error } = await supabase
+        .from("financeiro_aporte_parcelas")
+        .select("empresa_id, numero, valor, financeiro_aportes(parcelas)")
+        .eq("competencia", mes)
+        .in("empresa_id", empresaIds);
+      if (error) throw error;
+      (data || []).forEach((r: any) => {
+        out[r.empresa_id] = { numero: r.numero, total: r.financeiro_aportes?.parcelas ?? r.numero, valor: Number(r.valor) };
+      });
+      return out;
+    },
+    enabled: !!user && canViewFinanceiro && empresaIds.length > 0,
+  });
+
   const { data: empresasMap = {}, isLoading: empresasLoading } = useQuery({
     queryKey: ["financeiro-empresas", empresaIds.sort().join(",")],
     queryFn: async () => {
@@ -841,7 +861,8 @@ export default function Financeiro() {
         faturamento_iniciado_por: (f as any).faturamento_iniciado_por ?? null,
         faturamento_iniciado_por_nome: (f as any).faturamento_iniciado_por_nome ?? null,
         faturamento_iniciado_em: (f as any).faturamento_iniciado_em ?? null,
-        retroativo: temRetroativo,
+        retroativo: temRetroativo && !aportesPorEmpresa[f.empresa_id],
+        aporte: aportesPorEmpresa[f.empresa_id] ?? null,
         pagamento_via_deposito: !!emp?.pagamento_via_deposito,
         prioridade_maxima: !!emp?.prioridade_maxima,
         nao_reajustado: !!emp?.nao_reajustado,
