@@ -20,6 +20,7 @@ export type StatusFinanceiro =
   | "Nota emitida"
   | "Faturado"
   | "Aguardando validação"
+  | "Aguardando faturamento"
   | "Enviada"
   | "Em faturamento"
   | "Aguardando nota"
@@ -134,6 +135,7 @@ export async function fetchEmpresaGrupoMap(
  * 1. **Enviada** — `data_envio_nota` preenchida (estágio final do Financeiro)
  * 2. **Nota emitida** — existe ao menos um anexo PDF
  * 3. **Aguardando validação** — empresa exige PO/PC e há anexo XLS/planilha (e nenhum PDF)
+ * 3b. **Aguardando faturamento** — empresa configurada (aguarda_faturamento_excel) com XLS anexado (e nenhum PDF); não exige PO/PC
  * 4. **Faturado** — existe ao menos um anexo XLS/planilha (e nenhum PDF)
  * 5. **Em faturamento** — usuário iniciou o faturamento (faturamento_iniciado_em)
  * 6. **Fora do prazo** — `dentro_prazo === false` e sem anexo/nota
@@ -147,12 +149,14 @@ export function calcularStatusFinanceiro(
   envioOperacionalFeito: boolean,
   anexos: Array<{ mime_type?: string | null; nome_arquivo?: string | null; origem?: string | null }> = [],
   exigePoPc: boolean = false,
+  aguardaFaturamentoExcel: boolean = false,
 ): StatusFinanceiro {
   if (mov.data_envio_nota) return "Enviada";
   const anexosStatus = anexos.filter(anexoAlteraStatus);
   const temPdf = anexosStatus.some(isPdfAnexo);
   if (temPdf) return "Nota emitida";
   const temXls = anexosStatus.some(isXlsAnexo);
+  if (temXls && aguardaFaturamentoExcel) return "Aguardando faturamento";
   if (temXls) return exigePoPc ? "Aguardando validação" : "Faturado";
 
   if (mov.faturamento_iniciado_em) return "Em faturamento";
@@ -169,6 +173,8 @@ export function statusFinanceiroColor(status: StatusFinanceiro): string {
       return "bg-info text-info-foreground";
     case "Aguardando validação":
       return "bg-purple-100 text-purple-700 dark:bg-purple-500/20 dark:text-purple-300 border border-purple-300/60 dark:border-purple-400/30";
+    case "Aguardando faturamento":
+      return "bg-amber-100 text-amber-800 dark:bg-amber-500/20 dark:text-amber-300 border border-amber-300/60 dark:border-amber-400/30";
     case "Enviada":
       return "bg-success/80 text-success-foreground";
     case "Em faturamento":

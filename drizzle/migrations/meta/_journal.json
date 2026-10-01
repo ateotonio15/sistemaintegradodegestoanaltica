@@ -225,6 +225,13 @@
       "when": 1790880082432,
       "tag": "0031_financeiro_aportes",
       "breakpoints": true
+    },
+    {
+      "idx": 32,
+      "version": "7",
+      "when": 1790895929394,
+      "tag": "0032_empresas_aguarda_faturamento_excel",
+      "breakpoints": true
     }
   ]
 }

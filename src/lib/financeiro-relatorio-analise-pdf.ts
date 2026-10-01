@@ -13,6 +13,7 @@ const ORDEM_STATUS: StatusFinanceiro[] = [
   "Enviada",
   "Nota emitida",
   "Aguardando validação",
+  "Aguardando faturamento",
   "Faturado",
   "Em faturamento",
   "Fora do prazo",
@@ -89,7 +90,8 @@ export async function gerarRelatorioAnaliseFaturamento(dados: DadosRelatorio) {
   const emAndamento =
     (contagem.get("Em faturamento") ?? 0) +
     (contagem.get("Faturado") ?? 0) +
-    (contagem.get("Aguardando validação") ?? 0);
+    (contagem.get("Aguardando validação") ?? 0) +
+    (contagem.get("Aguardando faturamento") ?? 0);
   const semAcao =
     (contagem.get("Pendente") ?? 0) +
     (contagem.get("Aguardando nota") ?? 0) +

@@ -87,6 +87,7 @@ const emptyForm: TablesInsert<"empresas"> & { responsavel_user_id?: string | nul
   vidas: 0,
   tipo_contrato: "EMPRESARIAL",
   exige_po_pc: false,
+  aguarda_faturamento_excel: false,
   envio_boleto_com_nota: false,
   tem_coparticipacao: false,
   nao_reajustado: false,
@@ -679,6 +680,7 @@ export default function Empresas() {
       vidas: (e as any).vidas ?? 0,
       tipo_contrato: (e as any).tipo_contrato ?? "EMPRESARIAL",
       exige_po_pc: (e as any).exige_po_pc ?? false,
+      aguarda_faturamento_excel: (e as any).aguarda_faturamento_excel ?? false,
       envio_boleto_com_nota: (e as any).envio_boleto_com_nota ?? false,
       tem_coparticipacao: (e as any).tem_coparticipacao ?? false,
       nao_reajustado: (e as any).nao_reajustado ?? false,
@@ -1632,6 +1634,22 @@ export default function Empresas() {
                               />
                               <span className="text-sm text-muted-foreground">
                                 {(form as any).exige_po_pc ? "Sim" : "Não"}
+                              </span>
+                            </div>
+                          </div>
+                          <div className="space-y-2">
+                            <Label className="text-sm font-medium">
+                              Excel anexado = Aguardando faturamento?
+                            </Label>
+                            <div className="flex items-center gap-3 h-10 px-3 rounded-lg border bg-background">
+                              <Switch
+                                checked={!!(form as any).aguarda_faturamento_excel}
+                                onCheckedChange={(v) =>
+                                  setForm({ ...form, aguarda_faturamento_excel: v } as any)
+                                }
+                              />
+                              <span className="text-sm text-muted-foreground">
+                                {(form as any).aguarda_faturamento_excel ? "Sim" : "Não"}
                               </span>
                             </div>
                           </div>

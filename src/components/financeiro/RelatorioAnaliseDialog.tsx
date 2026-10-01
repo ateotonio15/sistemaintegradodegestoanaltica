@@ -31,6 +31,7 @@ const STATUS_ALL: StatusFinanceiro[] = [
   "Enviada",
   "Nota emitida",
   "Aguardando validação",
+  "Aguardando faturamento",
   "Faturado",
   "Em faturamento",
   "Fora do prazo",
