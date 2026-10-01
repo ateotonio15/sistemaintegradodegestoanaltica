@@ -248,7 +248,11 @@ export default function Usuarios() {
       const { data, error } = await supabase.functions.invoke("create-user", {
         body: { action: "reset-password", userId, newPassword },
       });
-      if (error) throw error;
+      if (error) {
+        let raw = String(error?.message || "");
+        try { const body = await (error as any).context?.json(); if (body?.error) raw = body.error; } catch {}
+        throw new Error(raw);
+      }
       if (data?.error) throw new Error(data.error);
     },
     onSuccess: () => {
@@ -258,7 +262,15 @@ export default function Usuarios() {
       toast({ title: "Senha redefinida com sucesso!" });
     },
     onError: (err: any) => {
-      toast({ title: "Erro ao redefinir senha", description: String(err?.message || ""), variant: "destructive" });
+      const raw = String(err?.message || "");
+      const low = raw.toLowerCase();
+      let msg = raw;
+      if (low.includes("pwned") || low.includes("weak") || low.includes("leaked") || low.includes("known to be")) {
+        msg = "Senha recusada: ela aparece em listas de senhas vazadas. Use uma senha diferente (ou clique em \"Gerar senha automática\").";
+      } else if (low.includes("at least") || low.includes("characters")) {
+        msg = "Senha muito curta ou fraca. Use pelo menos 8 caracteres com letras, números e símbolos.";
+      }
+      toast({ title: "Erro ao redefinir senha", description: msg, variant: "destructive" });
     },
   });
 
