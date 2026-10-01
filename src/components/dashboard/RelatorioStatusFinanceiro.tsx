@@ -174,7 +174,7 @@ export function RelatorioStatusFinanceiro() {
       for (let off = 0; ; off += PAGE) {
         const { data: emps } = await supabase
           .from("empresas")
-          .select("id, nome, codigo_contrato, exige_po_pc, aguarda_faturamento_excel", )
+          .select("id, nome, codigo_contrato, exige_po_pc, aguarda_faturamento_excel")
           .order("id", { ascending: true })
           .range(off, off + PAGE - 1);
         (emps ?? []).forEach((e: any) => empsAll.push(e));
