@@ -1,28 +1,28 @@
-# Dashboard Diretoria — Pesquisa de Satisfação
+# Cobrança "Aporte" na aba Arquivos
 
-## Objetivo
-Criar uma visão executiva separada para consolidar as pesquisas de **Palestras** e **Ações de Saúde**, preservando os QR Codes, formulários e resultados atuais.
+## O que o usuário vai ver
+1. **Aba Arquivos → Enviar arquivo:** nova categoria **"Aporte"**. Ao escolher, aparecem dois campos obrigatórios:
+   - Valor total do aporte (R$)
+   - Quantidade de parcelas (1 a 24)
+   - Mostra uma prévia: "6x de R$ 16,67 — Set/26 a Fev/27" (a partir da competência escolhida no envio).
+2. **Pasta "Aporte"** nova nos filtros de pasta da aba Arquivos. O mesmo anexo aparece em **todas as competências** das parcelas (ex.: Set/26, Out/26, Nov/26, Dez/26, Jan/27, Fev/27), sem precisar enviar de novo.
+3. **Faturamento:** nas competências com parcela, no lugar do card "Retroativo" aparece o card **"Aporte"**, com a parcela do mês (ex.: "Parcela 2/6 — R$ 16,67") e o anexo.
+4. **Histórico (Gerar Histórico):** inclui a linha padrão
+   `Aporte Financeiro 02/06. Data de vencimento: DD/MM/AAAA.`
+   seguida do final de sempre da empresa: dados bancários de **depósito** (Banco Itaú...) ou **"O boleto está disponível no sistema de DDA"**, conforme o cadastro da empresa.
 
-## Entrega
-- Adicionar o acesso **Dashboard Diretoria** na área Saúde nas Empresas, visível somente para Administrador, Diretoria e Diretoria de Saúde.
-- Criar filtros por período, tipo de pesquisa e empresa.
-- Exibir indicadores de respostas, empresas participantes, nota média, satisfação alta e comentários recebidos, com comparativo entre Palestras e Ações.
-- Mostrar evolução mensal, comparação entre os dois tipos, ranking de empresas e médias por pergunta.
-- Criar uma seção de pontos de atenção para notas baixas, empresas abaixo da média e comentários associados a avaliações críticas.
-- Incluir uma tabela detalhada com pesquisa, empresa, data, média e comentário, além de exportação para Excel.
-- Reaproveitar os dados e cálculos já usados em **Resultados consolidados**, ignorando respostas marcadas como teste.
-
-## Organização visual
-- Cabeçalho executivo com filtros e exportação.
-- Linha de indicadores resumidos.
-- Bloco de pontos de atenção.
-- Gráficos comparativos e rankings.
-- Tabela detalhada no final para consulta e auditoria.
-- Visual alinhado ao padrão verde e aos modos claro/escuro do sistema.
+## Regras
+- Valor da parcela = total ÷ parcelas, com arredondamento em centavos; a diferença fica na última parcela (soma sempre bate com o total).
+- Parcela 1 = competência escolhida no envio; as demais seguem mês a mês.
+- Vencimento de cada parcela usa o dia de vencimento já cadastrado da empresa naquela competência.
+- Excluir o arquivo de aporte remove todas as parcelas.
 
 ## Detalhes técnicos
-- Ampliar a consulta consolidada atual para fornecer uma linha por resposta, mantendo os itens por pergunta disponíveis para os gráficos.
-- Centralizar os cálculos do painel em um novo hook/utilitário para evitar duplicação e preservar a tela atual.
-- Adicionar uma rota protegida própria e um cartão de acesso na área Saúde nas Empresas.
-- Não criar, editar ou excluir respostas no banco; o painel será somente leitura.
-- Validar permissões, filtros, totais, exportação e apresentação em desktop e celular.
+- Nova tabela `financeiro_aportes` (empresa_id, arquivo_id → financeiro_arquivos, valor_total, parcelas, competencia_inicial, created_by) e `financeiro_aporte_parcelas` (aporte_id, numero, competencia, valor). GRANTs + RLS com os mesmos perfis que já gravam em `financeiro_arquivos` (admin, financeiro, comum); cascade no delete.
+- `UploadArquivoDialog.tsx`: campos condicionais para "Aporte" e criação do aporte + parcelas após inserir o arquivo.
+- `Arquivos.tsx`: adicionar "Aporte" em `CATEGORIAS` (cor própria do chip) e expandir o arquivo para cada competência das parcelas.
+- Faturamento: card de Aporte que substitui o card Retroativo quando existir parcela na competência (o card Retroativo continua normal quando não há aporte).
+- `historico-utils.ts`: nova linha "Aporte Financeiro NN/TT. Data de vencimento: ..." reusando o bloco de depósito/DDA já existente (`pagamentoViaDeposito`).
+
+## Ponto para confirmar
+- Se a empresa tiver Retroativo **e** Aporte no mesmo mês, a proposta é mostrar o card Aporte no lugar do Retroativo, como você pediu. Se preferir ver os dois lado a lado, me diga.
