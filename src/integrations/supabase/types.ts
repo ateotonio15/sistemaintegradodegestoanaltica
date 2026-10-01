@@ -2769,6 +2769,82 @@ export type Database = {
         }
         Relationships: []
       }
+      financeiro_aporte_parcelas: {
+        Row: {
+          aporte_id: string
+          competencia: string
+          empresa_id: string
+          id: string
+          numero: number
+          valor: number
+        }
+        Insert: {
+          aporte_id: string
+          competencia: string
+          empresa_id: string
+          id?: string
+          numero: number
+          valor: number
+        }
+        Update: {
+          aporte_id?: string
+          competencia?: string
+          empresa_id?: string
+          id?: string
+          numero?: number
+          valor?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "financeiro_aporte_parcelas_aporte_id_fkey"
+            columns: ["aporte_id"]
+            isOneToOne: false
+            referencedRelation: "financeiro_aportes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      financeiro_aportes: {
+        Row: {
+          arquivo_id: string
+          competencia_inicial: string
+          created_at: string
+          created_by: string | null
+          empresa_id: string
+          id: string
+          parcelas: number
+          valor_total: number
+        }
+        Insert: {
+          arquivo_id: string
+          competencia_inicial: string
+          created_at?: string
+          created_by?: string | null
+          empresa_id: string
+          id?: string
+          parcelas: number
+          valor_total: number
+        }
+        Update: {
+          arquivo_id?: string
+          competencia_inicial?: string
+          created_at?: string
+          created_by?: string | null
+          empresa_id?: string
+          id?: string
+          parcelas?: number
+          valor_total?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "financeiro_aportes_arquivo_id_fkey"
+            columns: ["arquivo_id"]
+            isOneToOne: false
+            referencedRelation: "financeiro_arquivos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       financeiro_arquivos: {
         Row: {
           anexo_financeiro_id: string | null
