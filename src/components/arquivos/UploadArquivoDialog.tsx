@@ -52,6 +52,13 @@ interface FileItem {
   mensagem?: string;
 }
 
+const MESES_CURTOS = ["Jan", "Fev", "Mar", "Abr", "Mai", "Jun", "Jul", "Ago", "Set", "Out", "Nov", "Dez"];
+const compCurta = (c: string) => {
+  const [y, m] = c.split("-");
+  return `${MESES_CURTOS[Number(m) - 1]}/${y.slice(2)}`;
+};
+const brl = (v: number) => v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+
 function mesAtual(): string {
   const d = new Date();
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
@@ -86,6 +93,24 @@ export function UploadArquivoDialog({ open, onOpenChange, defaultEmpresaId, defa
   const [empresaId, setEmpresaId] = useState<string>("");
   const [competencia, setCompetencia] = useState<string>(mesAtual());
   const [categoria, setCategoria] = useState<string>("Mensalidade");
+  const [aporteValor, setAporteValor] = useState("");
+  const [aporteParcelas, setAporteParcelas] = useState("");
+  const isAporte = categoria === "Aporte";
+  const aporteValorNum = Number(aporteValor.replace(/\./g, "").replace(",", ".")) || 0;
+  const aporteParcelasNum = Math.floor(Number(aporteParcelas) || 0);
+  const aporteValido = aporteValorNum > 0 && aporteParcelasNum >= 1 && aporteParcelasNum <= 24;
+  const parcelasAporte = useMemo(() => {
+    if (!aporteValido || !competencia) return [];
+    const totalC = Math.round(aporteValorNum * 100);
+    const base = Math.floor(totalC / aporteParcelasNum);
+    const [y0, m0] = competencia.split("-").map(Number);
+    return Array.from({ length: aporteParcelasNum }, (_, i) => {
+      const d = new Date(y0, m0 - 1 + i, 1);
+      const comp = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+      const c = i === aporteParcelasNum - 1 ? totalC - base * (aporteParcelasNum - 1) : base;
+      return { numero: i + 1, competencia: comp, valor: c / 100 };
+    });
+  }, [aporteValido, aporteValorNum, aporteParcelasNum, competencia]);
   const [observacao, setObservacao] = useState<string>("");
   const [arquivos, setArquivos] = useState<FileItem[]>([]);
   const [enviando, setEnviando] = useState(false);
@@ -178,6 +203,10 @@ export function UploadArquivoDialog({ open, onOpenChange, defaultEmpresaId, defa
       toast.error("Adicione ao menos um arquivo");
       return;
     }
+    if (isAporte && !aporteValido) {
+      toast.error("Informe o valor total do aporte e a quantidade de parcelas (1 a 24)");
+      return;
+    }
 
     setEnviando(true);
     let okCount = 0;
@@ -243,7 +272,7 @@ export function UploadArquivoDialog({ open, onOpenChange, defaultEmpresaId, defa
           prev.map((a) => (a.id === item.id ? { ...a, progresso: 80 } : a)),
         );
 
-        const { error: insErr } = await supabase.from("financeiro_arquivos").insert({
+        const { data: insData, error: insErr } = await supabase.from("financeiro_arquivos").insert({
           empresa_id: empresaId,
           competencia,
           categoria,
@@ -259,11 +288,31 @@ export function UploadArquivoDialog({ open, onOpenChange, defaultEmpresaId, defa
           storage_path: path,
           status: "ativo",
           versao: 1,
-        });
+        }).select("id").single();
         if (insErr) {
           // tenta limpar o objeto já enviado
           await supabase.storage.from(BUCKET).remove([path]);
           throw insErr;
+        }
+
+        if (isAporte && insData) {
+          const { data: ap, error: apErr } = await supabase
+            .from("financeiro_aportes")
+            .insert({
+              empresa_id: empresaId,
+              arquivo_id: insData.id,
+              valor_total: aporteValorNum,
+              parcelas: aporteParcelasNum,
+              competencia_inicial: competencia,
+              created_by: user?.id ?? null,
+            })
+            .select("id")
+            .single();
+          if (apErr) throw apErr;
+          const { error: pErr } = await supabase.from("financeiro_aporte_parcelas").insert(
+            parcelasAporte.map((p) => ({ aporte_id: ap.id, empresa_id: empresaId, ...p })),
+          );
+          if (pErr) throw pErr;
         }
 
         okCount += 1;
@@ -357,12 +406,47 @@ export function UploadArquivoDialog({ open, onOpenChange, defaultEmpresaId, defa
                 <SelectItem value="Retroativo">Retroativo</SelectItem>
                 <SelectItem value="Retorno Reaj.">Retorno Reaj.</SelectItem>
                 <SelectItem value="Fluxo">Fluxo</SelectItem>
+                <SelectItem value="Aporte">Aporte</SelectItem>
               </SelectContent>
             </Select>
             <p className="text-xs text-muted-foreground">
               Selecione "Implantação" para anexos de implementação de empresas novas.
             </p>
           </div>
+
+          {isAporte && (
+            <>
+              <div className="space-y-1.5">
+                <Label>Valor total do aporte (R$) *</Label>
+                <Input
+                  inputMode="decimal"
+                  value={aporteValor}
+                  onChange={(e) => setAporteValor(e.target.value)}
+                  placeholder="Ex: 100,00"
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label>Quantidade de parcelas *</Label>
+                <Input
+                  type="number"
+                  min={1}
+                  max={24}
+                  value={aporteParcelas}
+                  onChange={(e) => setAporteParcelas(e.target.value)}
+                  placeholder="Ex: 6"
+                />
+              </div>
+              {aporteValido && (
+                <p className="text-xs text-muted-foreground md:col-span-2">
+                  {aporteParcelasNum}x de {brl(parcelasAporte[0].valor)} —{" "}
+                  {compCurta(parcelasAporte[0].competencia)} a {compCurta(parcelasAporte[parcelasAporte.length - 1].competencia)}
+                  {parcelasAporte[parcelasAporte.length - 1].valor !== parcelasAporte[0].valor &&
+                    ` (última: ${brl(parcelasAporte[parcelasAporte.length - 1].valor)})`}
+                </p>
+              )}
+            </>
+          )}
+
 
 
           <div className="space-y-1.5 md:col-span-2">
