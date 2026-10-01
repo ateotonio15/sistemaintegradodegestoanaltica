@@ -715,6 +715,9 @@ export default function PainelTvFinanceiro() {
     USUARIOS_META.forEach((u) => (counts[u] = 0));
     const todayStr = new Date().toLocaleDateString("en-CA");
     const iniciadaEm = metaDiariaRow?.iniciada_em ? new Date(metaDiariaRow.iniciada_em).getTime() : 0;
+    // Anexos de grupo financeiro são replicados para cada contrato do grupo;
+    // cada arquivo deve contar uma única vez.
+    const vistos = new Set<string>();
     Object.entries(anexosMap as Record<string, any[]>).forEach(([movId, list]) => {
       // Restringe ao snapshot quando a meta tem snapshot definido,
       // mas permite empresas que entraram em faturamento APÓS a meta (posMetaIds).
@@ -738,6 +741,9 @@ export default function PainelTvFinanceiro() {
         const createdDate = new Date(a.created_at);
         if (createdDate.toLocaleDateString("en-CA") !== todayStr) return;
         if (iniciadaEm > 0 && createdDate.getTime() < iniciadaEm) return;
+        const chave = `${a.uploaded_by}|${a.created_at}|${a.nome_arquivo}`;
+        if (vistos.has(chave)) return;
+        vistos.add(chave);
         const name = ((profileNameMap as any)[a.uploaded_by] || "")
           .trim()
           .toLowerCase();
