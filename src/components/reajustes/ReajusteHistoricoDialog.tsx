@@ -9,7 +9,7 @@ import {
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { corStatusReajusteFluxo, labelStatusReajusteFluxo } from "@/lib/reajuste-utils";
-import { CheckCircle2, XCircle, Send, FileEdit, Sparkles, DollarSign } from "lucide-react";
+import { CheckCircle2, XCircle, Send, FileEdit, Sparkles, DollarSign, ChevronDown } from "lucide-react";
 import { useEffect, useState } from "react";
 
 interface Props {
