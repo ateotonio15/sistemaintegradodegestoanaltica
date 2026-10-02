@@ -464,7 +464,7 @@ export function SolicitarReajusteDialog({ open, onOpenChange, empresa, existingR
                 <Input inputMode="decimal" placeholder="0,00" value={percentual} onChange={(e) => setPercentual(e.target.value)} />
               </div>
               <div className="grid gap-1.5">
-                <Label className="text-sm">Previsão de aplicação</Label>
+                <Label className="text-sm">Data aplicação</Label>
                 <Input type="date" value={dataAplicacao} onChange={(e) => setDataAplicacao(e.target.value)} />
               </div>
             </div>
