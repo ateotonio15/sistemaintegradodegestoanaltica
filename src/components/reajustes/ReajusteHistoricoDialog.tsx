@@ -123,6 +123,8 @@ export function ReajusteHistoricoDialog({ open, onOpenChange, empresaId, empresa
                     pct: Number(r.percentual || 0),
                   });
                 }
+                const totalFinal = produtos.reduce((acc, p) => acc + p.final, 0);
+                const totalRetro = produtos.reduce((acc, p) => acc + p.retro, 0);
 
                 return (
                   <AccordionItem key={r.id} value={String(r.id)} className="border-b-0 mb-2 rounded-xl border bg-card overflow-hidden">
