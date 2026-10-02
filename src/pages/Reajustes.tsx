@@ -598,8 +598,15 @@ export default function Reajustes() {
                       <TableCell className="font-semibold">
                         {temValores
                           ? formatCentavosBRL(resumoReaj)
-                          : reajuste && !isSolicitado && ((reajuste as any).usa_faixa_etaria_enfermaria || (reajuste as any).usa_faixa_etaria_apartamento)
-                            ? <span className="text-xs font-normal text-muted-foreground">Por faixa etária</span>
+                          : reajuste && !isSolicitado && usaFaixaReaj
+                            ? (primeiraFaixaDb
+                                ? (
+                                  <div className="flex items-center gap-2">
+                                    <span>{formatCentavosBRL(Number(primeiraFaixaDb.valor_reajustado_centavos) || 0)}</span>
+                                    <Badge variant="outline" className="text-[10px] px-1 py-0">1ª Faixa {Number(primeiraFaixaDb.idade_final) >= 999 ? `${primeiraFaixaDb.idade_inicial}+` : `${primeiraFaixaDb.idade_inicial}–${primeiraFaixaDb.idade_final}`}</Badge>
+                                  </div>
+                                )
+                                : <span className="text-xs font-normal text-muted-foreground">Por faixa etária</span>)
                             : "—"}
                       </TableCell>
                       <TableCell className="text-sm">
