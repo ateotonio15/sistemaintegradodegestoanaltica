@@ -191,12 +191,71 @@ export function ReajusteHistoricoDialog({ open, onOpenChange, empresaId, empresa
                         </div>
                       </div>
 
+                      {/* Produto e valores */}
+                      {produtos.length === 1 ? (
+                        (() => {
+                          const p = produtos[0];
+                          return (
+                            <div className="mb-3 flex flex-wrap items-end gap-x-6 gap-y-2 border-y py-2.5 px-1">
+                              <div className="text-sm font-semibold min-w-[90px]">{p.nome}</div>
+                              <div>
+                                <div className="text-[10px] uppercase tracking-wide text-muted-foreground">Valor base</div>
+                                <div className="text-sm tabular-nums">{fmtBRL(p.antigo)}</div>
+                              </div>
+                              <div>
+                                <div className="text-[10px] uppercase tracking-wide text-muted-foreground">Valor reajustado</div>
+                                <div className="text-sm tabular-nums">{fmtBRL(p.reajustado)}</div>
+                              </div>
+                              <div>
+                                <div className="text-[10px] uppercase tracking-wide text-muted-foreground">Reajuste</div>
+                                <div className="text-xs text-muted-foreground tabular-nums">{p.pct.toFixed(2).replace(".", ",")}%</div>
+                              </div>
+                              <div>
+                                <div className="text-[10px] uppercase tracking-wide text-muted-foreground">Retroativo</div>
+                                <div className={`text-sm tabular-nums ${p.retro > 0 ? "font-semibold text-amber-600 dark:text-amber-400" : ""}`}>{fmtBRL(p.retro)}</div>
+                              </div>
+                              <div>
+                                <div className="text-[10px] uppercase tracking-wide text-muted-foreground">Valor final</div>
+                                <div className="text-base font-semibold text-primary tabular-nums">{fmtBRL(p.final)}</div>
+                              </div>
+                            </div>
+                          );
+                        })()
+                      ) : (
+                        <div className="rounded-md border overflow-x-auto mb-3">
+                          <table className="w-full text-xs">
+                            <thead className="bg-muted/50">
+                              <tr className="text-left">
+                                <th className="px-2 py-1.5 font-medium">Produto</th>
+                                <th className="px-2 py-1.5 font-medium text-right">Valor base</th>
+                                <th className="px-2 py-1.5 font-medium text-right">Valor reajustado</th>
+                                <th className="px-2 py-1.5 font-medium text-right">% Reajuste</th>
+                                <th className="px-2 py-1.5 font-medium text-right">Retroativo</th>
+                                <th className="px-2 py-1.5 font-medium text-right">Valor final</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {produtos.map((p, i) => (
+                                <tr key={i} className="border-t">
+                                  <td className="px-2 py-1.5 font-medium">{p.nome}</td>
+                                  <td className="px-2 py-1.5 text-right">{fmtBRL(p.antigo)}</td>
+                                  <td className="px-2 py-1.5 text-right">{fmtBRL(p.reajustado)}</td>
+                                  <td className="px-2 py-1.5 text-right text-muted-foreground">{p.pct.toFixed(2).replace(".", ",")}%</td>
+                                  <td className={`px-2 py-1.5 text-right ${p.retro > 0 ? "font-semibold text-amber-600 dark:text-amber-400" : ""}`}>{fmtBRL(p.retro)}</td>
+                                  <td className="px-2 py-1.5 text-right font-semibold text-primary">{fmtBRL(p.final)}</td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        </div>
+                      )}
+
                       {/* Detalhes técnicos (ocultos por padrão) */}
                       {(() => {
                         const idStr = String(r.id);
                         const aberto = detalhesAbertos.has(idStr);
                         return (
-                          <div className="mb-4">
+                          <div className="mb-3">
                             <button
                               type="button"
                               onClick={() => toggleDetalhes(idStr)}
@@ -229,45 +288,17 @@ export function ReajusteHistoricoDialog({ open, onOpenChange, empresaId, empresa
                         );
                       })()}
 
-                      {/* Tabela de valores por produto */}
-                      <div className="rounded-md border overflow-x-auto mb-4">
-                        <table className="w-full text-xs">
-                          <thead className="bg-muted/50">
-                            <tr className="text-left">
-                              <th className="px-2 py-1.5 font-medium">Produto</th>
-                              <th className="px-2 py-1.5 font-medium text-right">Valor base</th>
-                              <th className="px-2 py-1.5 font-medium text-right">Valor reajustado</th>
-                              <th className="px-2 py-1.5 font-medium text-right">% Reajuste</th>
-                              <th className="px-2 py-1.5 font-medium text-right">Retroativo</th>
-                              <th className="px-2 py-1.5 font-medium text-right">Valor final</th>
-                            </tr>
-                          </thead>
-                          <tbody>
-                            {produtos.map((p, i) => (
-                              <tr key={i} className="border-t">
-                                <td className="px-2 py-1.5 font-medium">{p.nome}</td>
-                                <td className="px-2 py-1.5 text-right">{fmtBRL(p.antigo)}</td>
-                                <td className="px-2 py-1.5 text-right">{fmtBRL(p.reajustado)}</td>
-                                <td className="px-2 py-1.5 text-right">{p.pct.toFixed(2).replace(".", ",")}%</td>
-                                <td className="px-2 py-1.5 text-right text-amber-600 dark:text-amber-400">{fmtBRL(p.retro)}</td>
-                                <td className="px-2 py-1.5 text-right font-semibold text-primary">{fmtBRL(p.final)}</td>
-                              </tr>
-                            ))}
-                          </tbody>
-                        </table>
-                      </div>
-
-                      {r.observacao && (
-                        <div className="rounded-md border bg-muted/30 p-2 text-xs mb-3">
-                          <span className="font-medium">Observação da Diretora:</span>{" "}
-                          <span className="text-muted-foreground">{r.observacao}</span>
+                      {r.motivo_rejeicao && (
+                        <div className="rounded-md border border-red-500/40 bg-red-500/10 p-2 text-xs mb-2">
+                          <span className="font-medium text-red-700 dark:text-red-300">Motivo da rejeição:</span>{" "}
+                          <span className="text-muted-foreground">{r.motivo_rejeicao}</span>
                         </div>
                       )}
 
-                      {r.motivo_rejeicao && (
-                        <div className="rounded-md border border-red-500/40 bg-red-500/10 p-2 text-xs mb-3">
-                          <span className="font-medium text-red-700 dark:text-red-300">Motivo da rejeição:</span>{" "}
-                          <span className="text-muted-foreground">{r.motivo_rejeicao}</span>
+                      {r.observacao && (
+                        <div className="border-l-2 border-muted-foreground/30 pl-3 py-1 text-xs">
+                          <div className="text-[10px] uppercase tracking-wide text-muted-foreground">Observação da Diretoria</div>
+                          <div className="text-muted-foreground">{r.observacao}</div>
                         </div>
                       )}
                     </AccordionContent>
