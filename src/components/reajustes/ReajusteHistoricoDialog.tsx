@@ -43,6 +43,7 @@ export function ReajusteHistoricoDialog({ open, onOpenChange, empresaId, empresa
       return (data as any[]) || [];
     },
     enabled: open && !!empresaId,
+    refetchOnMount: "always",
   });
 
   // Reajuste mais recente aberto por padrão; anos anteriores fechados.
@@ -81,6 +82,7 @@ export function ReajusteHistoricoDialog({ open, onOpenChange, empresaId, empresa
       return (data as any[]) || [];
     },
     enabled: open && !!empresaId,
+    refetchOnMount: "always",
   });
 
   const fmtBRL = (c?: number | null) =>
