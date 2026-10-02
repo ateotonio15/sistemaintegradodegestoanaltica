@@ -166,12 +166,30 @@ export default function Reajustes() {
     },
   });
 
+  const { data: faixasReajuste = [] } = useQuery({
+    queryKey: ["reajustes-faixas"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("reajuste_faixas" as any)
+        .select("reajuste_id,modalidade,idade_inicial,idade_final,valor_atual_centavos,percentual,valor_reajustado_centavos");
+      if (error) throw error;
+      return data as any[];
+    },
+  });
+  const faixasPorReajuste = useMemo(() => {
+    const map: Record<string, any[]> = {};
+    for (const f of faixasReajuste) (map[f.reajuste_id] ||= []).push(f);
+    for (const k in map) map[k].sort((a, b) => (Number(a.idade_inicial) || 0) - (Number(b.idade_inicial) || 0));
+    return map;
+  }, [faixasReajuste]);
+
   // Realtime
   useEffect(() => {
     const ch = supabase
       .channel("reajustes-realtime")
       .on("postgres_changes", { event: "*", schema: "public", table: "reajustes_anuais" }, () => {
         qc.invalidateQueries({ queryKey: ["reajustes-anuais"] });
+        qc.invalidateQueries({ queryKey: ["reajustes-faixas"] });
         qc.invalidateQueries({ queryKey: ["reajustes-pendentes-count"] });
         qc.invalidateQueries({ queryKey: ["alertas-reajuste-count"] });
       })
@@ -507,6 +525,16 @@ export default function Reajustes() {
                     const resumoRetro = usarEnf ? enfRetroV : usarApt ? aptRetroV : (reajuste?.valor_retroativo_centavos || 0);
                     const resumoFinal = usarEnf ? enfFinalV : usarApt ? aptFinalV : (reajuste?.valor_final_centavos || 0);
                     const resumoLabel = usarEnf ? "Enfermaria" : usarApt ? "Apartamento" : null;
+                    const usaFaixaReaj = !!(reajuste && ((reajuste as any).usa_faixa_etaria_enfermaria || (reajuste as any).usa_faixa_etaria_apartamento));
+                    // 1ª faixa etária (menor idade) da modalidade em uso no resumo da linha
+                    const primeiraFaixaDb = (() => {
+                      if (!reajuste || !usaFaixaReaj) return null;
+                      const fx = faixasPorReajuste[reajuste.id] || [];
+                      const mod = usarEnf ? "enfermaria" : usarApt ? "apartamento" : (fx.some((f: any) => f.modalidade === "enfermaria") ? "enfermaria" : "apartamento");
+                      const lista = fx.filter((f: any) => f.modalidade === mod);
+                      if (!lista.length) return null;
+                      return lista.find((f: any) => (Number(f.valor_atual_centavos) || 0) > 0) || lista[0];
+                    })();
                     return (
                     <>
                     <TableRow
@@ -542,6 +570,21 @@ export default function Reajustes() {
                            const useEnf = enfTot > 0;
                            const useApt = !useEnf && aptTot > 0;
                            if (!useEnf && !useApt) return "—";
+                           // Contrato por faixa etária: mostra apenas a 1ª faixa com valor (não o total somado)
+                           const isFaixa = !!(empresa as any).contrato_faixa_etaria || usaFaixaReaj;
+                           const arrFx = fe && typeof fe === "object" ? (useEnf ? fe.enfermaria : fe.apartamento) : null;
+                           const listaFx = Array.isArray(arrFx) ? arrFx.filter((f: any) => (Number(f?.centavos) || 0) > 0) : [];
+                           if (isFaixa && listaFx.length > 0) {
+                             const fx = listaFx[0];
+                             const ini = Number(fx.ini ?? fx.idade_inicial ?? 0);
+                             const fim = Number(fx.fim ?? fx.idade_final ?? 0);
+                             return (
+                               <div className="flex items-center gap-2">
+                                 <span className="text-muted-foreground">{formatCentavosBRL(Number(fx.centavos) || 0)}</span>
+                                 <Badge variant="outline" className="text-[10px] px-1 py-0">{useEnf ? "Enfermaria" : "Apartamento"} · 1ª Faixa {fim >= 999 ? `${ini}+` : `${ini}–${fim}`}</Badge>
+                               </div>
+                             );
+                           }
                            return (
                              <div className="flex items-center gap-2">
                                <span className="text-muted-foreground">{formatCentavosBRL(useEnf ? enfTot : aptTot)}</span>
@@ -555,8 +598,15 @@ export default function Reajustes() {
                       <TableCell className="font-semibold">
                         {temValores
                           ? formatCentavosBRL(resumoReaj)
-                          : reajuste && !isSolicitado && ((reajuste as any).usa_faixa_etaria_enfermaria || (reajuste as any).usa_faixa_etaria_apartamento)
-                            ? <span className="text-xs font-normal text-muted-foreground">Por faixa etária</span>
+                          : reajuste && !isSolicitado && usaFaixaReaj
+                            ? (primeiraFaixaDb
+                                ? (
+                                  <div className="flex items-center gap-2">
+                                    <span>{formatCentavosBRL(Number(primeiraFaixaDb.valor_reajustado_centavos) || 0)}</span>
+                                    <Badge variant="outline" className="text-[10px] px-1 py-0">1ª Faixa {Number(primeiraFaixaDb.idade_final) >= 999 ? `${primeiraFaixaDb.idade_inicial}+` : `${primeiraFaixaDb.idade_inicial}–${primeiraFaixaDb.idade_final}`}</Badge>
+                                  </div>
+                                )
+                                : <span className="text-xs font-normal text-muted-foreground">Por faixa etária</span>)
                             : "—"}
                       </TableCell>
                       <TableCell className="text-sm">
