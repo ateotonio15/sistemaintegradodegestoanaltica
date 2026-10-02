@@ -570,6 +570,21 @@ export default function Reajustes() {
                            const useEnf = enfTot > 0;
                            const useApt = !useEnf && aptTot > 0;
                            if (!useEnf && !useApt) return "—";
+                           // Contrato por faixa etária: mostra apenas a 1ª faixa com valor (não o total somado)
+                           const isFaixa = !!(empresa as any).contrato_faixa_etaria || usaFaixaReaj;
+                           const arrFx = fe && typeof fe === "object" ? (useEnf ? fe.enfermaria : fe.apartamento) : null;
+                           const listaFx = Array.isArray(arrFx) ? arrFx.filter((f: any) => (Number(f?.centavos) || 0) > 0) : [];
+                           if (isFaixa && listaFx.length > 0) {
+                             const fx = listaFx[0];
+                             const ini = Number(fx.ini ?? fx.idade_inicial ?? 0);
+                             const fim = Number(fx.fim ?? fx.idade_final ?? 0);
+                             return (
+                               <div className="flex items-center gap-2">
+                                 <span className="text-muted-foreground">{formatCentavosBRL(Number(fx.centavos) || 0)}</span>
+                                 <Badge variant="outline" className="text-[10px] px-1 py-0">{useEnf ? "Enfermaria" : "Apartamento"} · 1ª Faixa {fim >= 999 ? `${ini}+` : `${ini}–${fim}`}</Badge>
+                               </div>
+                             );
+                           }
                            return (
                              <div className="flex items-center gap-2">
                                <span className="text-muted-foreground">{formatCentavosBRL(useEnf ? enfTot : aptTot)}</span>
