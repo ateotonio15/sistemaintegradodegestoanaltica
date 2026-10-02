@@ -138,40 +138,53 @@ export function ReajusteHistoricoDialog({ open, onOpenChange, empresaId, empresa
                       </div>
                     </AccordionTrigger>
                     <AccordionContent className="px-4 pb-4 pt-1">
-                      {/* Dados do reajuste */}
-                      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4 text-xs">
-                        <div className="rounded-md border bg-muted/30 p-2">
-                          <div className="text-muted-foreground">Data liberação</div>
-                          <div className="font-medium">{fmtDate(r.data_liberacao)}</div>
+                      {/* Resumo do Reajuste */}
+                      <div className="mb-3 rounded-lg border bg-muted/20 px-3 py-2.5">
+                        <div className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground mb-2">Resumo do Reajuste</div>
+                        <div className="grid grid-cols-2 md:grid-cols-4 gap-x-4 gap-y-3 items-end">
+                          <div>
+                            <div className="text-[10px] uppercase tracking-wide text-muted-foreground">% Reajuste</div>
+                            <div className="text-lg font-semibold tabular-nums">{Number(r.percentual || 0).toFixed(2).replace(".", ",")}%</div>
+                          </div>
+                          <div>
+                            <div className="text-[10px] uppercase tracking-wide text-muted-foreground">Valor final</div>
+                            <div className="text-lg font-semibold text-primary tabular-nums">{fmtBRL(totalFinal)}</div>
+                          </div>
+                          <div>
+                            <div className="text-[10px] uppercase tracking-wide text-muted-foreground">Retroativo</div>
+                            <div className="text-lg font-semibold text-amber-600 dark:text-amber-400 tabular-nums">{fmtBRL(totalRetro)}</div>
+                          </div>
+                          <div>
+                            <div className="text-[10px] uppercase tracking-wide text-muted-foreground">Status</div>
+                            <Badge variant="outline" className={corStatusReajusteFluxo(r.status_reajuste)}>
+                              {labelStatusReajusteFluxo(r.status_reajuste)}
+                            </Badge>
+                          </div>
+                          <div>
+                            <div className="text-[10px] uppercase tracking-wide text-muted-foreground">Competência do reajuste</div>
+                            <div className="text-sm font-medium">{r.mes_reajuste ? `${meses[r.mes_reajuste]}/${r.ano}` : `—/${r.ano}`}</div>
+                          </div>
+                          <div>
+                            <div className="text-[10px] uppercase tracking-wide text-muted-foreground">Competência da cobrança</div>
+                            <div className="text-sm font-medium">{r.competencia || "—"}</div>
+                          </div>
+                          <div>
+                            <div className="text-[10px] uppercase tracking-wide text-muted-foreground">Índice / Tipo</div>
+                            <div className="text-sm font-medium">Negociação</div>
+                          </div>
+                          <div>
+                            <div className="text-[10px] uppercase tracking-wide text-muted-foreground">Meses retroativos</div>
+                            <div className="text-sm font-medium tabular-nums">{r.meses_retroativos ?? 0}</div>
+                          </div>
                         </div>
-                        <div className="rounded-md border bg-muted/30 p-2">
-                          <div className="text-muted-foreground">Competência reajuste</div>
-                          <div className="font-medium">{r.mes_reajuste ? `${meses[r.mes_reajuste]}/${r.ano}` : `—/${r.ano}`}</div>
-                        </div>
-                        <div className="rounded-md border bg-muted/30 p-2">
-                          <div className="text-muted-foreground">Aplicado no contrato (Cadastro)</div>
-                          <div className="font-medium">{fmtDate(r.retroativo_aplicado_em || r.data_confirmacao)}</div>
-                        </div>
-                        <div className="rounded-md border bg-muted/30 p-2">
-                          <div className="text-muted-foreground">Competência cobrança</div>
-                          <div className="font-medium">{r.competencia || "—"}</div>
-                        </div>
-                        <div className="rounded-md border bg-muted/30 p-2">
-                          <div className="text-muted-foreground">Meses retroativos</div>
-                          <div className="font-medium">{r.meses_retroativos ?? 0}</div>
-                        </div>
-                        <div className="rounded-md border bg-muted/30 p-2">
-                          <div className="text-muted-foreground">Índice / Tipo</div>
-                          <div className="font-medium">Negociação</div>
-                        </div>
-                        <div className="rounded-md border bg-muted/30 p-2">
-                          <div className="text-muted-foreground">Aplicado no contrato em</div>
-                          <div className="font-medium">{fmtDateTime(r.retroativo_aplicado_em)}</div>
-                        </div>
-                        <div className="rounded-md border bg-muted/30 p-2">
-                          <div className="text-muted-foreground">Aplicado por</div>
-                          <div className="font-medium">{r.retroativo_aplicado_por_nome || r.confirmado_por_nome || "—"}</div>
-                        </div>
+                      </div>
+
+                      {/* Informações complementares */}
+                      <div className="mb-4 flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted-foreground">
+                        <span>Data liberação: <span className="font-medium text-foreground">{fmtDate(r.data_liberacao)}</span></span>
+                        <span>Aplicado no contrato (Cadastro): <span className="font-medium text-foreground">{fmtDate(r.retroativo_aplicado_em || r.data_confirmacao)}</span></span>
+                        <span>Aplicado em: <span className="font-medium text-foreground">{fmtDateTime(r.retroativo_aplicado_em)}</span></span>
+                        <span>Aplicado por: <span className="font-medium text-foreground">{r.retroativo_aplicado_por_nome || r.confirmado_por_nome || "—"}</span></span>
                       </div>
 
                       {/* Tabela de valores por produto */}
