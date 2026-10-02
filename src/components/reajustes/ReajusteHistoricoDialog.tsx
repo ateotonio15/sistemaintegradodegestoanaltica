@@ -9,7 +9,7 @@ import {
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { corStatusReajusteFluxo, labelStatusReajusteFluxo } from "@/lib/reajuste-utils";
-import { CheckCircle2, XCircle, Send, FileEdit, Sparkles, DollarSign } from "lucide-react";
+import { CheckCircle2, XCircle, Send, FileEdit, Sparkles, DollarSign, ChevronDown } from "lucide-react";
 import { useEffect, useState } from "react";
 
 interface Props {
@@ -56,6 +56,16 @@ export function ReajusteHistoricoDialog({ open, onOpenChange, empresaId, empresa
     }
     if (!open) setAnoAberto(null);
   }, [open, reajustes]);
+
+  // Detalhes técnicos abertos por reajuste (ocultos por padrão).
+  const [detalhesAbertos, setDetalhesAbertos] = useState<Set<string>>(new Set());
+  const toggleDetalhes = (id: string) =>
+    setDetalhesAbertos((atual) => {
+      const novo = new Set(atual);
+      if (novo.has(id)) novo.delete(id);
+      else novo.add(id);
+      return novo;
+    });
 
   const ids = reajustes.map((r: any) => r.id);
 
@@ -181,13 +191,43 @@ export function ReajusteHistoricoDialog({ open, onOpenChange, empresaId, empresa
                         </div>
                       </div>
 
-                      {/* Informações complementares */}
-                      <div className="mb-4 flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted-foreground">
-                        <span>Data liberação: <span className="font-medium text-foreground">{fmtDate(r.data_liberacao)}</span></span>
-                        <span>Aplicado no contrato (Cadastro): <span className="font-medium text-foreground">{fmtDate(r.retroativo_aplicado_em || r.data_confirmacao)}</span></span>
-                        <span>Aplicado em: <span className="font-medium text-foreground">{fmtDateTime(r.retroativo_aplicado_em)}</span></span>
-                        <span>Aplicado por: <span className="font-medium text-foreground">{r.retroativo_aplicado_por_nome || r.confirmado_por_nome || "—"}</span></span>
-                      </div>
+                      {/* Detalhes técnicos (ocultos por padrão) */}
+                      {(() => {
+                        const idStr = String(r.id);
+                        const aberto = detalhesAbertos.has(idStr);
+                        return (
+                          <div className="mb-4">
+                            <button
+                              type="button"
+                              onClick={() => toggleDetalhes(idStr)}
+                              className="inline-flex items-center gap-1 text-xs font-medium text-primary hover:underline"
+                            >
+                              <ChevronDown className={`h-3.5 w-3.5 transition-transform ${aberto ? "rotate-180" : ""}`} />
+                              {aberto ? "Ocultar detalhes" : "Ver mais detalhes"}
+                            </button>
+                            {aberto && (
+                              <div className="grid grid-cols-2 md:grid-cols-4 gap-x-4 gap-y-2 text-xs mt-2 rounded-md border bg-muted/20 p-3">
+                                <div>
+                                  <div className="text-[10px] uppercase tracking-wide text-muted-foreground">Data de liberação</div>
+                                  <div className="font-medium">{fmtDate(r.data_liberacao) || "—"}</div>
+                                </div>
+                                <div>
+                                  <div className="text-[10px] uppercase tracking-wide text-muted-foreground">Aplicado no contrato (Cadastro)</div>
+                                  <div className="font-medium">{fmtDate(r.retroativo_aplicado_em || r.data_confirmacao) || "—"}</div>
+                                </div>
+                                <div>
+                                  <div className="text-[10px] uppercase tracking-wide text-muted-foreground">Aplicado no contrato em</div>
+                                  <div className="font-medium">{fmtDateTime(r.retroativo_aplicado_em) || "—"}</div>
+                                </div>
+                                <div>
+                                  <div className="text-[10px] uppercase tracking-wide text-muted-foreground">Aplicado por</div>
+                                  <div className="font-medium">{r.retroativo_aplicado_por_nome || r.confirmado_por_nome || "—"}</div>
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })()}
 
                       {/* Tabela de valores por produto */}
                       <div className="rounded-md border overflow-x-auto mb-4">
