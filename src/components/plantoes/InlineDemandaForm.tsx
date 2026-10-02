@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useQueries } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import { Plus, X, Loader2 } from "lucide-react";
 import { format } from "date-fns";
 import { Button } from "@/components/ui/button";
@@ -72,22 +72,21 @@ export function InlineDemandaForm({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [cpf]);
 
-  const queries = useQueries({
-    queries: plantaoIds.map((id) => ({
-      queryKey: ["plantoes", "atendimentos", id],
-      enabled: !loading && !!user && !!id,
-      queryFn: async () => {
-        const { data, error } = await supabase
-          .from("plantoes_atendimentos")
-          .select("*")
-          .eq("plantao_id", id);
-        if (error) throw error;
-        return data as PlantaoAtendimento[];
-      },
-    })),
+  // Uma única busca para todos os plantões do dia (antes: uma por plantão).
+  const idsOrdenados = [...plantaoIds].filter(Boolean).sort();
+  const { data: atendimentos = [] } = useQuery({
+    queryKey: ["plantoes_atendimentos", "dia", idsOrdenados.join(",")],
+    enabled: !loading && !!user && idsOrdenados.length > 0,
+    staleTime: 60_000,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("plantoes_atendimentos")
+        .select("*")
+        .in("plantao_id", idsOrdenados);
+      if (error) throw error;
+      return data as PlantaoAtendimento[];
+    },
   });
-
-  const atendimentos = queries.flatMap((q) => q.data ?? []);
   const total = atendimentos.length;
   let consultas = 0;
   let pendencias = 0;

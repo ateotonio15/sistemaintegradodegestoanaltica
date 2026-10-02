@@ -105,23 +105,67 @@ export function useAtendimentos(plantaoId?: string) {
   });
 }
 
+/**
+ * Invalida somente as buscas de atendimentos que contêm o plantão afetado:
+ * a lista do próprio plantão e os agrupamentos por dia que o incluem.
+ * Sem plantao_id conhecido, cai no comportamento amplo (seguro).
+ */
+export function invalidateAtendimentosDoPlantao(
+  qc: ReturnType<typeof useQueryClient>,
+  plantaoIds: (string | null | undefined)[],
+) {
+  const ids = plantaoIds.filter(Boolean) as string[];
+  if (!ids.length) {
+    qc.invalidateQueries({ queryKey: ["plantoes_atendimentos"] });
+    return;
+  }
+  qc.invalidateQueries({
+    predicate: (q) => {
+      const k = q.queryKey as unknown[];
+      if (k[0] !== "plantoes_atendimentos") return false;
+      if (k[1] === "dia") return String(k[2] ?? "").split(",").some((id) => ids.includes(id));
+      return ids.includes(String(k[1])) || k[1] === "all";
+    },
+  });
+}
+
 export function usePlantoesRealtime() {
   const qc = useQueryClient();
   useEffect(() => {
+    let pending = new Set<string>();
+    let wide = false;
+    let timer: ReturnType<typeof setTimeout> | null = null;
+    const flush = () => {
+      timer = null;
+      const ids = Array.from(pending);
+      pending = new Set();
+      if (wide) qc.invalidateQueries({ queryKey: ["plantoes_atendimentos"] });
+      else invalidateAtendimentosDoPlantao(qc, ids);
+      wide = false;
+      qc.invalidateQueries({ queryKey: QK.plantoes });
+    };
     const ch = supabase
       .channel("plantoes-changes")
       .on("postgres_changes", { event: "*", schema: "public", table: "plantoes" }, () =>
         qc.invalidateQueries({ queryKey: QK.plantoes })
       )
-      .on("postgres_changes", { event: "*", schema: "public", table: "plantoes_atendimentos" }, () => {
-        qc.invalidateQueries({ queryKey: ["plantoes_atendimentos"] });
-        qc.invalidateQueries({ queryKey: QK.plantoes });
+      .on("postgres_changes", { event: "*", schema: "public", table: "plantoes_atendimentos" }, (payload) => {
+        // INSERT/UPDATE: new; DELETE: old (tabela com REPLICA IDENTITY FULL).
+        // Em UPDATE que muda de plantão, atualiza origem e destino.
+        const novo: any = payload.new;
+        const antigo: any = payload.old;
+        const ids = [novo?.plantao_id, antigo?.plantao_id].filter(Boolean);
+        if (!ids.length) wide = true;
+        ids.forEach((id) => pending.add(id));
+        if (timer) clearTimeout(timer);
+        timer = setTimeout(flush, 400);
       })
       .on("postgres_changes", { event: "*", schema: "public", table: "plantoes_empresas" }, () =>
         qc.invalidateQueries({ queryKey: QK.empresas })
       )
       .subscribe();
     return () => {
+      if (timer) clearTimeout(timer);
       supabase.removeChannel(ch);
     };
   }, [qc]);
@@ -264,7 +308,7 @@ export function usePlantaoMutations() {
       }
     },
     onSuccess: (_d, vars) => {
-      qc.invalidateQueries({ queryKey: QK.atendimentos(vars.plantao_id) });
+      invalidateAtendimentosDoPlantao(qc, [vars.plantao_id]);
       qc.invalidateQueries({ queryKey: QK.plantoes });
       toast.success("Atendimento salvo");
     },
@@ -277,7 +321,7 @@ export function usePlantaoMutations() {
       if (error) throw error;
     },
     onSuccess: (_d, vars) => {
-      qc.invalidateQueries({ queryKey: QK.atendimentos(vars.plantao_id) });
+      invalidateAtendimentosDoPlantao(qc, [vars.plantao_id]);
       qc.invalidateQueries({ queryKey: QK.plantoes });
       toast.success("Atendimento removido");
     },
