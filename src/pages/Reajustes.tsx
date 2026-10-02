@@ -166,12 +166,30 @@ export default function Reajustes() {
     },
   });
 
+  const { data: faixasReajuste = [] } = useQuery({
+    queryKey: ["reajustes-faixas"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("reajuste_faixas" as any)
+        .select("reajuste_id,modalidade,idade_inicial,idade_final,valor_atual_centavos,percentual,valor_reajustado_centavos");
+      if (error) throw error;
+      return data as any[];
+    },
+  });
+  const faixasPorReajuste = useMemo(() => {
+    const map: Record<string, any[]> = {};
+    for (const f of faixasReajuste) (map[f.reajuste_id] ||= []).push(f);
+    for (const k in map) map[k].sort((a, b) => (Number(a.idade_inicial) || 0) - (Number(b.idade_inicial) || 0));
+    return map;
+  }, [faixasReajuste]);
+
   // Realtime
   useEffect(() => {
     const ch = supabase
       .channel("reajustes-realtime")
       .on("postgres_changes", { event: "*", schema: "public", table: "reajustes_anuais" }, () => {
         qc.invalidateQueries({ queryKey: ["reajustes-anuais"] });
+        qc.invalidateQueries({ queryKey: ["reajustes-faixas"] });
         qc.invalidateQueries({ queryKey: ["reajustes-pendentes-count"] });
         qc.invalidateQueries({ queryKey: ["alertas-reajuste-count"] });
       })
@@ -507,6 +525,16 @@ export default function Reajustes() {
                     const resumoRetro = usarEnf ? enfRetroV : usarApt ? aptRetroV : (reajuste?.valor_retroativo_centavos || 0);
                     const resumoFinal = usarEnf ? enfFinalV : usarApt ? aptFinalV : (reajuste?.valor_final_centavos || 0);
                     const resumoLabel = usarEnf ? "Enfermaria" : usarApt ? "Apartamento" : null;
+                    const usaFaixaReaj = !!(reajuste && ((reajuste as any).usa_faixa_etaria_enfermaria || (reajuste as any).usa_faixa_etaria_apartamento));
+                    // 1ª faixa etária (menor idade) da modalidade em uso no resumo da linha
+                    const primeiraFaixaDb = (() => {
+                      if (!reajuste || !usaFaixaReaj) return null;
+                      const fx = faixasPorReajuste[reajuste.id] || [];
+                      const mod = usarEnf ? "enfermaria" : usarApt ? "apartamento" : (fx.some((f: any) => f.modalidade === "enfermaria") ? "enfermaria" : "apartamento");
+                      const lista = fx.filter((f: any) => f.modalidade === mod);
+                      if (!lista.length) return null;
+                      return lista.find((f: any) => (Number(f.valor_atual_centavos) || 0) > 0) || lista[0];
+                    })();
                     return (
                     <>
                     <TableRow
