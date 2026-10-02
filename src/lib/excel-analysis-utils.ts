@@ -2310,7 +2310,11 @@ export async function analisarExcelFinanceiroPorCnpj(
         const t = norm(c);
         return t.includes("qtd") || t.includes("quantidade");
       });
-      const hVal = r.findIndex((c) => norm(c).includes("valor"));
+      const hVal = r.findIndex((c) => {
+        const t = norm(c);
+        // "Soma de Valor" ou "Soma de Mensalidade" (algumas pivots usam o nome da coluna de valor)
+        return t.includes("valor") || (t.startsWith("soma de") && t.includes("mensalidade"));
+      });
       if (hVal >= 0 || hQtd >= 0) {
         pvQtdIdx = hQtd;
         pvValIdx = hVal;
