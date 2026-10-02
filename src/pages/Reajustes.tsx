@@ -551,8 +551,14 @@ export default function Reajustes() {
                          })()}
 
                       </TableCell>
-                      <TableCell>{temValores ? `${Number(reajuste.percentual).toFixed(2).replace(".", ",")}%` : "—"}</TableCell>
-                      <TableCell className="font-semibold">{temValores ? formatCentavosBRL(resumoReaj) : "—"}</TableCell>
+                      <TableCell>{reajuste && !isSolicitado && Number(reajuste.percentual) > 0 ? `${Number(reajuste.percentual).toFixed(2).replace(".", ",")}%` : "—"}</TableCell>
+                      <TableCell className="font-semibold">
+                        {temValores
+                          ? formatCentavosBRL(resumoReaj)
+                          : reajuste && !isSolicitado && ((reajuste as any).usa_faixa_etaria_enfermaria || (reajuste as any).usa_faixa_etaria_apartamento)
+                            ? <span className="text-xs font-normal text-muted-foreground">Por faixa etária</span>
+                            : "—"}
+                      </TableCell>
                       <TableCell className="text-sm">
                         {temValores ? (
                           <>
