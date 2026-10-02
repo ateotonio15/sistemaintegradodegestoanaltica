@@ -1,9 +1,16 @@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from "@/components/ui/accordion";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { corStatusReajusteFluxo, labelStatusReajusteFluxo } from "@/lib/reajuste-utils";
-import { CheckCircle2, XCircle, Send, FileEdit, Sparkles, DollarSign, Clock } from "lucide-react";
+import { CheckCircle2, XCircle, Send, FileEdit, Sparkles, DollarSign } from "lucide-react";
+import { useEffect, useState } from "react";
 
 interface Props {
   open: boolean;
@@ -38,6 +45,18 @@ export function ReajusteHistoricoDialog({ open, onOpenChange, empresaId, empresa
     enabled: open && !!empresaId,
   });
 
+  // Reajuste mais recente aberto por padrão; anos anteriores fechados.
+  const [anoAberto, setAnoAberto] = useState<string | null>(null);
+  useEffect(() => {
+    if (open && reajustes.length > 0) {
+      setAnoAberto((atual) => {
+        if (atual && reajustes.some((r: any) => String(r.id) === atual)) return atual;
+        return String(reajustes[0].id);
+      });
+    }
+    if (!open) setAnoAberto(null);
+  }, [open, reajustes]);
+
   const ids = reajustes.map((r: any) => r.id);
 
   const { data: eventos = [], isLoading } = useQuery({
@@ -68,134 +87,140 @@ export function ReajusteHistoricoDialog({ open, onOpenChange, empresaId, empresa
           <DialogDescription>{empresaNome}</DialogDescription>
         </DialogHeader>
 
-        <div className="space-y-6 py-2">
-          {reajustes.map((r: any) => {
-            const evs = eventos.filter((e) => e.reajuste_id === r.id);
-            const produtos: Array<{ nome: string; antigo: number; reajustado: number; retro: number; final: number; pct: number }> = [];
-            if (r.possui_enfermaria) {
-              produtos.push({
-                nome: "Enfermaria",
-                antigo: r.valor_antigo_enfermaria_centavos || 0,
-                reajustado: r.valor_reajustado_enfermaria_centavos || 0,
-                retro: r.valor_retroativo_enfermaria_centavos || 0,
-                final: r.valor_final_enfermaria_centavos || 0,
-                pct: Number(r.percentual || 0),
-              });
-            }
-            if (r.possui_apartamento) {
-              produtos.push({
-                nome: "Apartamento",
-                antigo: r.valor_antigo_apartamento_centavos || 0,
-                reajustado: r.valor_reajustado_apartamento_centavos || 0,
-                retro: r.valor_retroativo_apartamento_centavos || 0,
-                final: r.valor_final_apartamento_centavos || 0,
-                pct: Number(r.percentual || 0),
-              });
-            }
-            if (produtos.length === 0) {
-              produtos.push({
-                nome: "Valor",
-                antigo: r.valor_antigo_centavos || 0,
-                reajustado: r.valor_reajustado_centavos || 0,
-                retro: r.valor_retroativo_centavos || 0,
-                final: r.valor_final_centavos || 0,
-                pct: Number(r.percentual || 0),
-              });
-            }
+        <div className="py-2">
+          {reajustes.length > 0 && (
+            <Accordion type="single" collapsible value={anoAberto ?? undefined} onValueChange={(v) => setAnoAberto(v || null)}>
+              {reajustes.map((r: any) => {
+                const evs = eventos.filter((e) => e.reajuste_id === r.id);
+                const produtos: Array<{ nome: string; antigo: number; reajustado: number; retro: number; final: number; pct: number }> = [];
+                if (r.possui_enfermaria) {
+                  produtos.push({
+                    nome: "Enfermaria",
+                    antigo: r.valor_antigo_enfermaria_centavos || 0,
+                    reajustado: r.valor_reajustado_enfermaria_centavos || 0,
+                    retro: r.valor_retroativo_enfermaria_centavos || 0,
+                    final: r.valor_final_enfermaria_centavos || 0,
+                    pct: Number(r.percentual || 0),
+                  });
+                }
+                if (r.possui_apartamento) {
+                  produtos.push({
+                    nome: "Apartamento",
+                    antigo: r.valor_antigo_apartamento_centavos || 0,
+                    reajustado: r.valor_reajustado_apartamento_centavos || 0,
+                    retro: r.valor_retroativo_apartamento_centavos || 0,
+                    final: r.valor_final_apartamento_centavos || 0,
+                    pct: Number(r.percentual || 0),
+                  });
+                }
+                if (produtos.length === 0) {
+                  produtos.push({
+                    nome: "Valor",
+                    antigo: r.valor_antigo_centavos || 0,
+                    reajustado: r.valor_reajustado_centavos || 0,
+                    retro: r.valor_retroativo_centavos || 0,
+                    final: r.valor_final_centavos || 0,
+                    pct: Number(r.percentual || 0),
+                  });
+                }
 
-            return (
-              <div key={r.id} className="rounded-xl border bg-card p-4">
-                <div className="flex items-center justify-between gap-2 mb-3 flex-wrap">
-                  <div className="flex items-center gap-2">
-                    <span className="font-semibold text-base">Ano {r.ano}</span>
-                    <Badge variant="outline">{Number(r.percentual || 0).toFixed(2).replace(".",",")}%</Badge>
-                  </div>
-                  <Badge variant="outline" className={corStatusReajusteFluxo(r.status_reajuste)}>
-                    {labelStatusReajusteFluxo(r.status_reajuste)}
-                  </Badge>
-                </div>
+                return (
+                  <AccordionItem key={r.id} value={String(r.id)} className="border-b-0 mb-2 rounded-xl border bg-card overflow-hidden">
+                    <AccordionTrigger className="px-4 py-3 hover:no-underline hover:bg-muted/40 transition-colors">
+                      <div className="flex items-center gap-3 flex-1 min-w-0 flex-wrap">
+                        <span className="font-semibold text-base">Ano {r.ano}</span>
+                        <Badge variant="secondary" className="font-semibold tabular-nums">
+                          {Number(r.percentual || 0).toFixed(2).replace(".", ",")}%
+                        </Badge>
+                        <Badge variant="outline" className={corStatusReajusteFluxo(r.status_reajuste)}>
+                          {labelStatusReajusteFluxo(r.status_reajuste)}
+                        </Badge>
+                      </div>
+                    </AccordionTrigger>
+                    <AccordionContent className="px-4 pb-4 pt-1">
+                      {/* Dados do reajuste */}
+                      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4 text-xs">
+                        <div className="rounded-md border bg-muted/30 p-2">
+                          <div className="text-muted-foreground">Data liberação</div>
+                          <div className="font-medium">{fmtDate(r.data_liberacao)}</div>
+                        </div>
+                        <div className="rounded-md border bg-muted/30 p-2">
+                          <div className="text-muted-foreground">Competência reajuste</div>
+                          <div className="font-medium">{r.mes_reajuste ? `${meses[r.mes_reajuste]}/${r.ano}` : `—/${r.ano}`}</div>
+                        </div>
+                        <div className="rounded-md border bg-muted/30 p-2">
+                          <div className="text-muted-foreground">Aplicado no contrato (Cadastro)</div>
+                          <div className="font-medium">{fmtDate(r.retroativo_aplicado_em || r.data_confirmacao)}</div>
+                        </div>
+                        <div className="rounded-md border bg-muted/30 p-2">
+                          <div className="text-muted-foreground">Competência cobrança</div>
+                          <div className="font-medium">{r.competencia || "—"}</div>
+                        </div>
+                        <div className="rounded-md border bg-muted/30 p-2">
+                          <div className="text-muted-foreground">Meses retroativos</div>
+                          <div className="font-medium">{r.meses_retroativos ?? 0}</div>
+                        </div>
+                        <div className="rounded-md border bg-muted/30 p-2">
+                          <div className="text-muted-foreground">Índice / Tipo</div>
+                          <div className="font-medium">Negociação</div>
+                        </div>
+                        <div className="rounded-md border bg-muted/30 p-2">
+                          <div className="text-muted-foreground">Aplicado no contrato em</div>
+                          <div className="font-medium">{fmtDateTime(r.retroativo_aplicado_em)}</div>
+                        </div>
+                        <div className="rounded-md border bg-muted/30 p-2">
+                          <div className="text-muted-foreground">Aplicado por</div>
+                          <div className="font-medium">{r.retroativo_aplicado_por_nome || r.confirmado_por_nome || "—"}</div>
+                        </div>
+                      </div>
 
-                {/* Dados do reajuste */}
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4 text-xs">
-                  <div className="rounded-md border bg-muted/30 p-2">
-                    <div className="text-muted-foreground">Data liberação</div>
-                    <div className="font-medium">{fmtDate(r.data_liberacao)}</div>
-                  </div>
-                  <div className="rounded-md border bg-muted/30 p-2">
-                    <div className="text-muted-foreground">Competência reajuste</div>
-                    <div className="font-medium">{r.mes_reajuste ? `${meses[r.mes_reajuste]}/${r.ano}` : `—/${r.ano}`}</div>
-                  </div>
-                  <div className="rounded-md border bg-muted/30 p-2">
-                    <div className="text-muted-foreground">Aplicado no contrato (Cadastro)</div>
-                    <div className="font-medium">{fmtDate(r.retroativo_aplicado_em || r.data_confirmacao)}</div>
-                  </div>
-                  <div className="rounded-md border bg-muted/30 p-2">
-                    <div className="text-muted-foreground">Competência cobrança</div>
-                    <div className="font-medium">{r.competencia || "—"}</div>
-                  </div>
-                  <div className="rounded-md border bg-muted/30 p-2">
-                    <div className="text-muted-foreground">Meses retroativos</div>
-                    <div className="font-medium">{r.meses_retroativos ?? 0}</div>
-                  </div>
-                  <div className="rounded-md border bg-muted/30 p-2">
-                    <div className="text-muted-foreground">Índice / Tipo</div>
-                    <div className="font-medium">Negociação</div>
-                  </div>
-                  <div className="rounded-md border bg-muted/30 p-2">
-                    <div className="text-muted-foreground">Aplicado no contrato em</div>
-                    <div className="font-medium">{fmtDateTime(r.retroativo_aplicado_em)}</div>
-                  </div>
-                  <div className="rounded-md border bg-muted/30 p-2">
-                    <div className="text-muted-foreground">Aplicado por</div>
-                    <div className="font-medium">{r.retroativo_aplicado_por_nome || r.confirmado_por_nome || "—"}</div>
-                  </div>
-                </div>
+                      {/* Tabela de valores por produto */}
+                      <div className="rounded-md border overflow-x-auto mb-4">
+                        <table className="w-full text-xs">
+                          <thead className="bg-muted/50">
+                            <tr className="text-left">
+                              <th className="px-2 py-1.5 font-medium">Produto</th>
+                              <th className="px-2 py-1.5 font-medium text-right">Valor base</th>
+                              <th className="px-2 py-1.5 font-medium text-right">Valor reajustado</th>
+                              <th className="px-2 py-1.5 font-medium text-right">% Reajuste</th>
+                              <th className="px-2 py-1.5 font-medium text-right">Retroativo</th>
+                              <th className="px-2 py-1.5 font-medium text-right">Valor final</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {produtos.map((p, i) => (
+                              <tr key={i} className="border-t">
+                                <td className="px-2 py-1.5 font-medium">{p.nome}</td>
+                                <td className="px-2 py-1.5 text-right">{fmtBRL(p.antigo)}</td>
+                                <td className="px-2 py-1.5 text-right">{fmtBRL(p.reajustado)}</td>
+                                <td className="px-2 py-1.5 text-right">{p.pct.toFixed(2).replace(".", ",")}%</td>
+                                <td className="px-2 py-1.5 text-right text-amber-600 dark:text-amber-400">{fmtBRL(p.retro)}</td>
+                                <td className="px-2 py-1.5 text-right font-semibold text-primary">{fmtBRL(p.final)}</td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
 
-                {/* Tabela de valores por produto */}
-                <div className="rounded-md border overflow-x-auto mb-4">
-                  <table className="w-full text-xs">
-                    <thead className="bg-muted/50">
-                      <tr className="text-left">
-                        <th className="px-2 py-1.5 font-medium">Produto</th>
-                        <th className="px-2 py-1.5 font-medium text-right">Valor base</th>
-                        <th className="px-2 py-1.5 font-medium text-right">Valor reajustado</th>
-                        <th className="px-2 py-1.5 font-medium text-right">% Reajuste</th>
-                        <th className="px-2 py-1.5 font-medium text-right">Retroativo</th>
-                        <th className="px-2 py-1.5 font-medium text-right">Valor final</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {produtos.map((p, i) => (
-                        <tr key={i} className="border-t">
-                          <td className="px-2 py-1.5 font-medium">{p.nome}</td>
-                          <td className="px-2 py-1.5 text-right">{fmtBRL(p.antigo)}</td>
-                          <td className="px-2 py-1.5 text-right">{fmtBRL(p.reajustado)}</td>
-                          <td className="px-2 py-1.5 text-right">{p.pct.toFixed(2).replace(".", ",")}%</td>
-                          <td className="px-2 py-1.5 text-right text-amber-600 dark:text-amber-400">{fmtBRL(p.retro)}</td>
-                          <td className="px-2 py-1.5 text-right font-semibold text-primary">{fmtBRL(p.final)}</td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
+                      {r.observacao && (
+                        <div className="rounded-md border bg-muted/30 p-2 text-xs mb-3">
+                          <span className="font-medium">Observação da Diretora:</span>{" "}
+                          <span className="text-muted-foreground">{r.observacao}</span>
+                        </div>
+                      )}
 
-                {r.observacao && (
-                  <div className="rounded-md border bg-muted/30 p-2 text-xs mb-3">
-                    <span className="font-medium">Observação da Diretora:</span>{" "}
-                    <span className="text-muted-foreground">{r.observacao}</span>
-                  </div>
-                )}
-
-                {r.motivo_rejeicao && (
-                  <div className="rounded-md border border-red-500/40 bg-red-500/10 p-2 text-xs mb-3">
-                    <span className="font-medium text-red-700 dark:text-red-300">Motivo da rejeição:</span>{" "}
-                    <span className="text-muted-foreground">{r.motivo_rejeicao}</span>
-                  </div>
-                )}
-
-              </div>
-            );
-          })}
+                      {r.motivo_rejeicao && (
+                        <div className="rounded-md border border-red-500/40 bg-red-500/10 p-2 text-xs mb-3">
+                          <span className="font-medium text-red-700 dark:text-red-300">Motivo da rejeição:</span>{" "}
+                          <span className="text-muted-foreground">{r.motivo_rejeicao}</span>
+                        </div>
+                      )}
+                    </AccordionContent>
+                  </AccordionItem>
+                );
+              })}
+            </Accordion>
+          )}
 
           {!isLoading && reajustes.length === 0 && (
             <div className="text-center text-sm text-muted-foreground py-8">Nenhum reajuste registrado.</div>
