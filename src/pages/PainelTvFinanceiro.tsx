@@ -211,31 +211,33 @@ export default function PainelTvFinanceiro() {
   // (faturamento iniciado, anexos enviados, novas empresas/movimentações etc.)
   useEffect(() => {
     if (!user || !podeVer) return;
-    const tables = [
-      "financeiro_movimentacoes",
-      "anexos_financeiro",
-      "movimentacoes",
-      "anexos_movimentacao",
-      "empresas",
-      "financeiro_pagadores",
-    ];
+    // Cada tabela invalida apenas as buscas que dependem dela.
+    const keysPorTabela: Record<string, string[]> = {
+      financeiro_movimentacoes: ["tv-financeiro-mov"],
+      anexos_financeiro: ["tv-fin-anexos"],
+      movimentacoes: ["tv-fin-envio-op"],
+      anexos_movimentacao: ["tv-fin-envio-op"],
+      empresas: ["tv-fin-empresas"],
+      financeiro_pagadores: ["tv-fin-pagadores"],
+    };
+    const pendentes = new Set<string>();
     let debounce: ReturnType<typeof setTimeout> | null = null;
-    const trigger = () => {
+    const trigger = (tabela: string) => {
+      keysPorTabela[tabela].forEach((k) => pendentes.add(k));
       if (debounce) clearTimeout(debounce);
       debounce = setTimeout(() => {
-        qc.invalidateQueries({ queryKey: ["tv-financeiro-mov"] });
-        qc.invalidateQueries({ queryKey: ["tv-fin-empresas"] });
-        qc.invalidateQueries({ queryKey: ["tv-fin-anexos"] });
-        qc.invalidateQueries({ queryKey: ["tv-fin-envio-op"] });
+        const keys = Array.from(pendentes);
+        pendentes.clear();
+        keys.forEach((k) => qc.invalidateQueries({ queryKey: [k] }));
         setLastUpdate(Date.now());
       }, 400);
     };
     const channel = supabase.channel(`painel-tv-financeiro-${mesPrincipal}`);
-    tables.forEach((t) => {
+    Object.keys(keysPorTabela).forEach((t) => {
       channel.on(
         "postgres_changes",
         { event: "*", schema: "public", table: t },
-        trigger,
+        () => trigger(t),
       );
     });
     channel.subscribe();
@@ -272,7 +274,8 @@ export default function PainelTvFinanceiro() {
       return data || [];
     },
     enabled: !!user && podeVer && mesesSelecionados.length > 0,
-    refetchInterval: 15000,
+    // Tempo real cobre as mudanças; o intervalo é só rede de segurança.
+    refetchInterval: 60_000,
   });
 
   // Filtra rows pelos periodos escolhidos dentro de cada competência
@@ -648,7 +651,7 @@ export default function PainelTvFinanceiro() {
       }
       return (data as unknown) as { valor: number; usuarios: string[]; iniciada_em: string; empresas_snapshot: string[] } | null;
     },
-    refetchInterval: 5000,
+    refetchInterval: 60_000,
     refetchOnWindowFocus: true,
   });
 
