@@ -57,6 +57,16 @@ export function ReajusteHistoricoDialog({ open, onOpenChange, empresaId, empresa
     if (!open) setAnoAberto(null);
   }, [open, reajustes]);
 
+  // Detalhes técnicos abertos por reajuste (ocultos por padrão).
+  const [detalhesAbertos, setDetalhesAbertos] = useState<Set<string>>(new Set());
+  const toggleDetalhes = (id: string) =>
+    setDetalhesAbertos((atual) => {
+      const novo = new Set(atual);
+      if (novo.has(id)) novo.delete(id);
+      else novo.add(id);
+      return novo;
+    });
+
   const ids = reajustes.map((r: any) => r.id);
 
   const { data: eventos = [], isLoading } = useQuery({
