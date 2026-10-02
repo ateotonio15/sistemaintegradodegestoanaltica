@@ -232,6 +232,13 @@
       "when": 1790895929394,
       "tag": "0032_empresas_aguarda_faturamento_excel",
       "breakpoints": true
+    },
+    {
+      "idx": 33,
+      "version": "7",
+      "when": 1790947109151,
+      "tag": "0033_reajuste_retroativo_por_previsao",
+      "breakpoints": true
     }
   ]
 }
