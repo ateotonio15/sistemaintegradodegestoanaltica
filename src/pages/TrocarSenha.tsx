@@ -44,7 +44,7 @@ export default function TrocarSenha() {
         <CardHeader>
           <CardTitle>Trocar senha</CardTitle>
           <p className="text-sm text-muted-foreground">
-            Este é seu primeiro acesso. Defina uma nova senha para continuar.
+            Sua senha é provisória. Crie uma nova senha e confirme para continuar.
           </p>
         </CardHeader>
         <CardContent>
