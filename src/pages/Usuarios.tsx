@@ -70,6 +70,7 @@ export default function Usuarios() {
   const [resetPasswordDialogOpen, setResetPasswordDialogOpen] = useState(false);
   const [resetPasswordUser, setResetPasswordUser] = useState<UserProfile | null>(null);
   const [resetPassword, setResetPassword] = useState("");
+  const [resetDone, setResetDone] = useState(false);
   const [editingUser, setEditingUser] = useState<UserProfile | null>(null);
   const [selectedRole, setSelectedRole] = useState<AppRole>("comum");
   const [selectedEmpresas, setSelectedEmpresas] = useState<string[]>([]);
@@ -256,10 +257,8 @@ export default function Usuarios() {
       if (data?.error) throw new Error(data.error);
     },
     onSuccess: () => {
-      setResetPasswordDialogOpen(false);
-      setResetPasswordUser(null);
-      setResetPassword("");
-      toast({ title: "Senha redefinida com sucesso!" });
+      setResetDone(true);
+      toast({ title: "Senha redefinida", description: "No próximo acesso o usuário vai criar uma nova senha." });
     },
     onError: (err: any) => {
       const raw = String(err?.message || "");
@@ -576,32 +575,45 @@ export default function Usuarios() {
         </Dialog>
 
         {/* Reset Password dialog */}
-        <Dialog open={resetPasswordDialogOpen} onOpenChange={(open) => { setResetPasswordDialogOpen(open); if (!open) { setResetPasswordUser(null); setResetPassword(""); } }}>
+        <Dialog open={resetPasswordDialogOpen} onOpenChange={(open) => { setResetPasswordDialogOpen(open); if (!open) { setResetPasswordUser(null); setResetPassword(""); setResetDone(false); } }}>
           <DialogContent className="sm:max-w-sm rounded-xl">
             <DialogHeader><DialogTitle>Redefinir Senha</DialogTitle></DialogHeader>
             <p className="text-sm text-muted-foreground">Usuário: <strong>{resetPasswordUser?.display_name}</strong></p>
-            <div className="space-y-3">
+            {!resetDone ? (
+              <p className="text-sm text-muted-foreground">
+                Será gerada uma senha provisória. No próximo acesso, o usuário deverá criar uma nova senha (nova senha + confirmação).
+              </p>
+            ) : (
               <div className="space-y-2">
-                <Label className="text-sm font-medium">Nova Senha *</Label>
-                <Input type="text" value={resetPassword} onChange={(e) => setResetPassword(e.target.value)} minLength={6} placeholder="Mínimo 6 caracteres" className="rounded-lg" />
+                <Label className="text-sm font-medium">Senha provisória</Label>
+                <div className="flex gap-2">
+                  <Input readOnly value={resetPassword} className="rounded-lg font-mono" />
+                  <Button type="button" variant="outline" onClick={() => { navigator.clipboard.writeText(resetPassword); toast({ title: "Senha copiada" }); }}>Copiar</Button>
+                </div>
+                <p className="text-xs text-muted-foreground">Passe esta senha ao usuário. Ela só vale para o primeiro acesso.</p>
               </div>
-              <Button type="button" variant="outline" size="sm" onClick={() => setResetPassword(generatePassword())} className="rounded-lg">
-                Gerar senha automática
-              </Button>
-            </div>
+            )}
             <div className="flex justify-end gap-2 mt-2">
-              <Button variant="outline" onClick={() => setResetPasswordDialogOpen(false)} className="rounded-lg">Cancelar</Button>
-              <Button
-                className="rounded-lg"
-                disabled={resetPassword.length < 6 || resetPasswordMutation.isPending}
-                onClick={() => {
-                  if (resetPasswordUser) {
-                    resetPasswordMutation.mutate({ userId: resetPasswordUser.user_id, newPassword: resetPassword });
-                  }
-                }}
-              >
-                {resetPasswordMutation.isPending ? "Redefinindo..." : "Redefinir"}
-              </Button>
+              {resetDone ? (
+                <Button className="rounded-lg" onClick={() => setResetPasswordDialogOpen(false)}>Fechar</Button>
+              ) : (
+                <>
+                  <Button variant="outline" onClick={() => setResetPasswordDialogOpen(false)} className="rounded-lg">Cancelar</Button>
+                  <Button
+                    className="rounded-lg"
+                    disabled={resetPasswordMutation.isPending}
+                    onClick={() => {
+                      if (resetPasswordUser) {
+                        const temp = generatePassword();
+                        setResetPassword(temp);
+                        resetPasswordMutation.mutate({ userId: resetPasswordUser.user_id, newPassword: temp });
+                      }
+                    }}
+                  >
+                    {resetPasswordMutation.isPending ? "Redefinindo..." : "Redefinir"}
+                  </Button>
+                </>
+              )}
             </div>
           </DialogContent>
         </Dialog>

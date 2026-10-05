@@ -120,6 +120,9 @@ Deno.serve(async (req) => {
       });
       if (error) throw error;
 
+      // Força o usuário a criar uma nova senha no próximo acesso
+      await adminClient.from("profiles").update({ must_change_password: true }).eq("user_id", userId);
+
       return new Response(JSON.stringify({ success: true }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
