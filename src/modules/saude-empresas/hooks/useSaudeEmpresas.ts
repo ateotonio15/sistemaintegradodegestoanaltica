@@ -313,7 +313,13 @@ export function useSaudeMutations() {
       const { data, error } = await supabase.functions.invoke("enviar-ficha-bio", {
         body: { triagem_id: triagemId },
       });
-      if (error) throw error;
+      if (error) throw new Error("Não foi possível enviar o e-mail agora.");
+      if (data?.ok === false) {
+        const raw = String(data.error ?? "");
+        throw new Error(/api key/i.test(raw)
+          ? "Envio de e-mail indisponível: o serviço de e-mail precisa ser reconfigurado. A ficha foi salva."
+          : raw || "Falha ao enviar e-mail");
+      }
       return data;
     },
     onSuccess: () => {
