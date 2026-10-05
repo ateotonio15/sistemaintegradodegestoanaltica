@@ -114,6 +114,6 @@ serve(async (req) => {
     return new Response(JSON.stringify({ ok: true, id: out.id }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
   } catch (e: any) {
     console.error("enviar-ficha-bio error", e);
-    return new Response(JSON.stringify({ error: e.message ?? String(e) }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    return new Response(JSON.stringify({ ok: false, error: e.message ?? String(e) }), { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } });
   }
 });
