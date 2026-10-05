@@ -35,6 +35,16 @@ export function modalidadePlano(nome: string): "enfermaria" | "apartamento" | nu
   return null;
 }
 
+/** Nome da classe do plano (ex.: "Gold - Enfermaria  CE" -> "Gold"; "Gold Plus - Apartamento CE" -> "Gold Plus"). */
+export function classePlano(nome: string): string {
+  const limpo = (nome || "")
+    .replace(/\(\s*(enfermaria|apartamento)\s*\)/gi, " ")
+    .replace(/[-–]\s*(enfermaria|apartamento)\b.*$/i, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+  return limpo || (nome || "").trim();
+}
+
 export interface FaixaCalc { idade_inicial: number; idade_final: number; antigo: number; reajustado: number }
 
 /** VL_PRECO_ATUAL = valor já reajustado; antigo = atual / (1 + tx/100). Valores em centavos. */
