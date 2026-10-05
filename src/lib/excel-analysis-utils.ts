@@ -359,6 +359,14 @@ function classificarPlano(plano: string): "enfermaria" | "apartamento" | null {
   ) {
     return "enfermaria";
   }
+  // Classes sem acomodação no nome (ex.: Reflect "Gold" / "Gold Plus"):
+  // a versão "Plus" equivale ao Apartamento; a base equivale à Enfermaria.
+  if (/\b(gold|class|classic)\s*\+|\b(gold|class|classic)[\s.\-_]*plus\b/.test(p)) {
+    return "apartamento";
+  }
+  if (/\b(gold|class|classic)\b/.test(p)) {
+    return "enfermaria";
+  }
   return null;
 }
 
