@@ -239,6 +239,13 @@
       "when": 1790947109151,
       "tag": "0033_reajuste_retroativo_por_previsao",
       "breakpoints": true
+    },
+    {
+      "idx": 34,
+      "version": "7",
+      "when": 1791210568779,
+      "tag": "0034_triagens_insert_tec_enfermagem",
+      "breakpoints": true
     }
   ]
 }
