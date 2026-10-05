@@ -11,6 +11,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { corStatusReajusteFluxo, labelStatusReajusteFluxo } from "@/lib/reajuste-utils";
 import { CheckCircle2, XCircle, Send, FileEdit, Sparkles, DollarSign, ChevronDown } from "lucide-react";
 import { useEffect, useState } from "react";
+import { buscarClassesPlano } from "@/lib/valoresOperadora";
 
 interface Props {
   open: boolean;
@@ -44,6 +45,34 @@ export function ReajusteHistoricoDialog({ open, onOpenChange, empresaId, empresa
     },
     enabled: open && !!empresaId,
     refetchOnMount: "always",
+  });
+
+  // Classe do plano (ex.: Gold / Gold Plus) vinda da operadora, só para exibição.
+  const { data: codigoContrato } = useQuery({
+    queryKey: ["reajustes-historico-codigo", empresaId],
+    queryFn: async () => {
+      const { data } = await supabase.from("empresas").select("codigo_contrato").eq("id", empresaId!).maybeSingle();
+      return (data?.codigo_contrato as string | null) ?? null;
+    },
+    enabled: open && !!empresaId,
+  });
+  const anosReajuste = reajustes.map((r: any) => r.ano).join(",");
+  const { data: classesPorAno = {} } = useQuery({
+    queryKey: ["reajustes-historico-classes", codigoContrato, anosReajuste],
+    queryFn: async () => {
+      const out: Record<string, { enfermaria?: string; apartamento?: string }> = {};
+      try {
+        for (const r of reajustes as any[]) {
+          const c = await buscarClassesPlano(codigoContrato!, Number(r.ano));
+          if (c) out[String(r.ano)] = c;
+        }
+      } catch {
+        /* exibição opcional: mantém Enfermaria/Apartamento */
+      }
+      return out;
+    },
+    enabled: open && !!codigoContrato && reajustes.length > 0,
+    staleTime: 5 * 60_000,
   });
 
   // Reajuste mais recente aberto por padrão; anos anteriores fechados.
@@ -107,7 +136,7 @@ export function ReajusteHistoricoDialog({ open, onOpenChange, empresaId, empresa
                 const produtos: Array<{ nome: string; antigo: number; reajustado: number; retro: number; final: number; pct: number }> = [];
                 if (r.possui_enfermaria) {
                   produtos.push({
-                    nome: "Enfermaria",
+                    nome: classesPorAno[String(r.ano)]?.enfermaria ? `${classesPorAno[String(r.ano)]?.enfermaria} · Enfermaria` : "Enfermaria",
                     antigo: r.valor_antigo_enfermaria_centavos || 0,
                     reajustado: r.valor_reajustado_enfermaria_centavos || 0,
                     retro: r.valor_retroativo_enfermaria_centavos || 0,
@@ -117,7 +146,7 @@ export function ReajusteHistoricoDialog({ open, onOpenChange, empresaId, empresa
                 }
                 if (r.possui_apartamento) {
                   produtos.push({
-                    nome: "Apartamento",
+                    nome: classesPorAno[String(r.ano)]?.apartamento ? `${classesPorAno[String(r.ano)]?.apartamento} · Apartamento` : "Apartamento",
                     antigo: r.valor_antigo_apartamento_centavos || 0,
                     reajustado: r.valor_reajustado_apartamento_centavos || 0,
                     retro: r.valor_retroativo_apartamento_centavos || 0,
