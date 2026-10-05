@@ -14,3 +14,5 @@ Função SECURITY DEFINER `processar_avaliacoes_envios()` rodando via pg_cron di
 UI em `/carteira-samel/avaliacoes/rh`: aba **Envios por empresa** (lista, gerar link individual/lote, copiar), aba **Dashboard** (rankings/médias), aba **Preview**. Configurações via `ConfigAvaliacoesDialog` (admin/diretora/executivo).
 
 Envio de e-mail real ainda não implementado — link é copiado manualmente. Para plugar, criar edge function que consome `avaliacoes_envios` com `status='enviado'`/`'lembrete'` e `email_destino` preenchido.
+
+Atualização 05/10/2026: aba "Avaliações Plantão" removida do sistema (tela AvaliacoesPlantao.tsx e EnviosPlantaoTab.tsx excluídos; rota /carteira-samel/avaliacoes/plantao retirada). Mantidos: dados no banco (tipo='plantao'), RPCs e a rota pública /avaliacoes/plantao/responder/:token com ResponderPlantao.tsx — QR Codes já distribuídos continuam funcionando. Avaliações Plantão seguem visíveis no Dashboard Diretoria.
