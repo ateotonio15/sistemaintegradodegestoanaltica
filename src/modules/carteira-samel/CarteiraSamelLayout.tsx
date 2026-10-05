@@ -2,7 +2,7 @@ import { Outlet, NavLink, useLocation } from "react-router-dom";
 import { EmpresasProvider } from "./context/EmpresasContext";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/hooks/useAuth";
-import { LayoutDashboard, Users, BarChart3, ShieldAlert, ClipboardList, Stethoscope, PieChart } from "lucide-react";
+import { LayoutDashboard, Users, BarChart3, ShieldAlert, ClipboardList, PieChart } from "lucide-react";
 
 const baseTabs = [
   { to: "/carteira-samel", label: "Visão Geral", icon: LayoutDashboard, end: true },
@@ -10,7 +10,6 @@ const baseTabs = [
   { to: "/carteira-samel/sinistralidade", label: "Sinistralidade", icon: BarChart3 },
   { to: "/carteira-samel/score", label: "Score de Risco", icon: ShieldAlert },
   { to: "/carteira-samel/avaliacoes/rh", label: "Avaliações RH", icon: ClipboardList },
-  { to: "/carteira-samel/avaliacoes/plantao", label: "Avaliações Plantão", icon: Stethoscope },
 ];
 
 export default function CarteiraSamelLayout() {

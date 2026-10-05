@@ -34,8 +34,6 @@ import CSScore from "./modules/carteira-samel/pages/ScoreRisco";
 import CSAvaliacoesRH from "./modules/carteira-samel/pages/AvaliacoesRH";
 import CSResponderRH from "./modules/carteira-samel/pages/ResponderRH";
 import CSResponderToken from "./modules/carteira-samel/pages/ResponderPorToken";
-import CSResponderPlantao from "./modules/carteira-samel/pages/ResponderPlantao";
-import CSAvaliacoesPlantao from "./modules/carteira-samel/pages/AvaliacoesPlantao";
 import CSDashboardDiretoria from "./modules/carteira-samel/pages/DashboardDiretoria";
 import EmpresasGroupLayout from "./components/EmpresasGroupLayout";
 import InteligenciaModulo from "./pages/InteligenciaModulo";
@@ -314,7 +312,6 @@ const AppRoutes = () => (
           <Route path="sinistralidade" element={<CSSinistralidade />} />
           <Route path="score" element={<CSScore />} />
           <Route path="avaliacoes/rh" element={<CSAvaliacoesRH />} />
-          <Route path="avaliacoes/plantao" element={<CSAvaliacoesPlantao />} />
           <Route element={<RoleGate allow={["admin", "diretora"]} redirect="/carteira-samel" />}>
             <Route path="dashboard-diretoria" element={<CSDashboardDiretoria />} />
           </Route>
