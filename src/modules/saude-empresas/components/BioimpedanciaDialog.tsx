@@ -72,9 +72,15 @@ export function BioimpedanciaDialog({ open, onOpenChange, triagemBase, editing }
     try {
       const saved = await upsertTriagem.mutateAsync(buildPayload());
       if (enviar && saved?.id) {
-        await enviarFichaEmail.mutateAsync(saved.id);
+        try {
+          await enviarFichaEmail.mutateAsync(saved.id);
+        } catch (e) {
+          console.error("Falha ao enviar ficha por e-mail", e);
+        }
       }
       onOpenChange(false);
+    } catch (e) {
+      console.error("Falha ao salvar ficha", e);
     } finally {
       setBusy(false);
     }
