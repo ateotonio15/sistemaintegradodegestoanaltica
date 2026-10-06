@@ -19,6 +19,18 @@ import {
 } from "@/components/ui/select";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { useQuery } from "@tanstack/react-query";
+
+type EmpresaCadastro = {
+  id: string;
+  nome: string;
+  endereco: string | null;
+  telefone_empresa: string | null;
+  email_empresa: string | null;
+};
+
+const normTxt = (v: string) =>
+  v.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().trim();
 
 export type MailingBrinde = {
   id: string;
@@ -94,6 +106,37 @@ const todayIso = () => new Date().toISOString();
 export function MailingBrindeDialog({ open, onOpenChange, editing, onSaved }: Props) {
   const [form, setForm] = useState({ ...empty });
   const [saving, setSaving] = useState(false);
+  const [sugestoesAbertas, setSugestoesAbertas] = useState(false);
+
+  const { data: empresasCadastro = [] } = useQuery({
+    queryKey: ["mailing-empresas-cadastro"],
+    enabled: open,
+    staleTime: 5 * 60 * 1000,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("empresas")
+        .select("id,nome,endereco,telefone_empresa,email_empresa")
+        .order("nome");
+      if (error) throw error;
+      return (data ?? []) as EmpresaCadastro[];
+    },
+  });
+
+  const termo = normTxt(form.empresa_nome);
+  const sugestoes = termo.length >= 2
+    ? empresasCadastro.filter((e) => normTxt(e.nome).includes(termo)).slice(0, 8)
+    : [];
+
+  const escolherEmpresa = (e: EmpresaCadastro) => {
+    setForm((p) => ({
+      ...p,
+      empresa_nome: e.nome,
+      endereco: e.endereco?.trim() || p.endereco,
+      telefone: p.telefone || e.telefone_empresa || "",
+      email: p.email || e.email_empresa || "",
+    }));
+    setSugestoesAbertas(false);
+  };
 
   useEffect(() => {
     if (editing) {
@@ -189,13 +232,38 @@ export function MailingBrindeDialog({ open, onOpenChange, editing, onSaved }: Pr
         </DialogHeader>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3 py-2">
-          <div className="md:col-span-2">
+          <div className="relative md:col-span-2">
             <Label>Empresa *</Label>
             <Input
               value={form.empresa_nome}
-              onChange={(e) => set("empresa_nome", e.target.value)}
+              onChange={(e) => {
+                set("empresa_nome", e.target.value);
+                setSugestoesAbertas(true);
+              }}
+              onFocus={() => setSugestoesAbertas(true)}
+              onBlur={() => setTimeout(() => setSugestoesAbertas(false), 150)}
               maxLength={200}
+              placeholder="Digite para buscar empresas cadastradas"
+              autoComplete="off"
             />
+            {sugestoesAbertas && sugestoes.length > 0 && (
+              <div className="absolute z-50 mt-1 max-h-64 w-full overflow-y-auto rounded-md border border-border bg-popover shadow-lg">
+                {sugestoes.map((e) => (
+                  <button
+                    key={e.id}
+                    type="button"
+                    onMouseDown={(ev) => ev.preventDefault()}
+                    onClick={() => escolherEmpresa(e)}
+                    className="block w-full px-3 py-2 text-left hover:bg-accent"
+                  >
+                    <div className="text-sm font-medium text-popover-foreground">{e.nome}</div>
+                    <div className="truncate text-xs text-muted-foreground">
+                      {e.endereco || "Sem endereço cadastrado"}
+                    </div>
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
           <div>
             <Label>Contato</Label>
