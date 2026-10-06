@@ -32,16 +32,27 @@ export function AlertaGlobalMargemUea() {
     return () => document.removeEventListener("mousedown", aoClicarFora);
   }, [expandido]);
 
-  const casosCriticos = useMemo(
-    () =>
-      proximasMudancasFaixa(titulares, 90)
-      .filter((mudanca) => mudanca.diferenca > 0 && mudanca.margem_apos < 0)
-        .sort((a, b) => {
-          const porData = a.data_mudanca.localeCompare(b.data_mudanca);
-          return porData !== 0 ? porData : a.margem_apos - b.margem_apos;
-        }),
-    [titulares],
-  );
+  // Alerta toda mudança de faixa prevista (90 dias) até a "Situação de Cobrança" ser validada para ela.
+  const casosCriticos = useMemo(() => {
+    const porId = new Map(titulares.map((t) => [t.id, t]));
+    const subtrairDias = (iso: string, dias: number) => {
+      const [y, m, d] = iso.slice(0, 10).split("-").map(Number);
+      const dt = new Date(y, m - 1, d - dias);
+      return `${dt.getFullYear()}-${String(dt.getMonth() + 1).padStart(2, "0")}-${String(dt.getDate()).padStart(2, "0")}`;
+    };
+    return proximasMudancasFaixa(titulares, 90)
+      .filter((mudanca) => {
+        if (mudanca.diferenca === 0) return false;
+        const t = porId.get(mudanca.titular_id);
+        if (!t || t.cobranca_status !== "validado") return true;
+        const validadaDia = t.cobranca_validada_em?.slice(0, 10);
+        return !validadaDia || validadaDia < subtrairDias(mudanca.data_mudanca, 90);
+      })
+      .sort((a, b) => {
+        const porData = a.data_mudanca.localeCompare(b.data_mudanca);
+        return porData !== 0 ? porData : a.margem_apos - b.margem_apos;
+      });
+  }, [titulares]);
 
   const totalTitularesCriticos = useMemo(() => {
     const titularesCriticos = casosCriticos.map((mudanca) => mudanca.titular_id);
@@ -78,9 +89,9 @@ export function AlertaGlobalMargemUea() {
               <AlertTriangle className="h-4 w-4" aria-hidden="true" />
             </span>
             <div className="min-w-0 flex-1">
-              <p className="pr-1 text-xs font-bold leading-tight">Mudanças de faixa com risco de falta de margem</p>
+              <p className="pr-1 text-xs font-bold leading-tight">Trocas de faixa pendentes de validação de cobrança</p>
               <p className="mt-1 text-[11px] font-medium leading-snug text-foreground">
-                {totalTitularesCriticos} {singular ? "titular ficará" : "titulares ficarão"} sem margem devido {singular ? "à próxima mudança" : "às próximas mudanças"} de faixa.
+                {totalTitularesCriticos} {singular ? "titular" : "titulares"} com troca de faixa próxima. Atualize a cobrança e valide em "Situação de Cobrança".
               </p>
               <Button
                 size="sm"
@@ -113,8 +124,8 @@ export function AlertaGlobalMargemUea() {
             setExpandido(true);
           }}
           aria-expanded={expandido}
-          aria-label={`Alerta: ${totalTitularesCriticos} ${singular ? "titular ficará" : "titulares ficarão"} sem margem. Clique para ver detalhes.`}
-          title="Mudanças de faixa com risco de falta de margem"
+          aria-label={`Alerta: ${totalTitularesCriticos} ${singular ? "titular" : "titulares"} com troca de faixa pendente de validação. Clique para ver detalhes.`}
+          title="Trocas de faixa pendentes de validação de cobrança"
           className={`relative flex h-12 w-12 items-center justify-center rounded-full border border-destructive/60 bg-destructive text-white shadow-xl transition-transform hover:scale-105 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-destructive/70 ${piscando ? "animate-pulse" : ""}`}
         >
           {piscando && (
@@ -128,7 +139,7 @@ export function AlertaGlobalMargemUea() {
       {painelAberto && (
         <aside
           id="painel-casos-criticos-uea"
-          aria-label="Titulares que ficarão sem margem"
+          aria-label="Trocas de faixa pendentes"
           className={painelAberto ? "fixed inset-x-3 bottom-3 top-20 z-50 flex flex-col overflow-hidden rounded-lg border border-destructive/40 bg-background shadow-2xl sm:inset-x-auto sm:right-4 sm:w-[460px]" : "hidden"}
 
         >
@@ -139,7 +150,7 @@ export function AlertaGlobalMargemUea() {
                   <AlertTriangle className="h-4 w-4 text-destructive" aria-hidden="true" />
                 </span>
                 <div className="min-w-0">
-                  <h2 className="text-sm font-bold leading-tight text-foreground">Titulares que ficarão sem margem</h2>
+                  <h2 className="text-sm font-bold leading-tight text-foreground">Trocas de faixa pendentes</h2>
                   <p className="mt-0.5 text-xs text-muted-foreground">Mudanças de faixa previstas nos próximos 90 dias.</p>
                 </div>
               </div>
@@ -154,7 +165,7 @@ export function AlertaGlobalMargemUea() {
               </Button>
             </div>
             <p className="mt-2.5 rounded-md bg-destructive/15 px-2.5 py-1.5 text-xs font-semibold text-destructive">
-              {casosCriticos.length} {casosCriticos.length === 1 ? "situação crítica" : "situações críticas"} em {totalTitularesCriticos} {singular ? "titular" : "titulares"}
+              {casosCriticos.length} {casosCriticos.length === 1 ? "troca pendente" : "trocas pendentes"} em {totalTitularesCriticos} {singular ? "titular" : "titulares"}
             </p>
           </header>
 
@@ -168,8 +179,8 @@ export function AlertaGlobalMargemUea() {
                     <div className="border-b border-border px-4 pt-3 pb-3">
                       <div className="flex items-start justify-between gap-2">
                         <p className="min-w-0 break-words text-sm font-bold leading-snug text-foreground">{caso.titular_nome}</p>
-                        <Badge variant="destructive" className="shrink-0 text-[10px] uppercase">
-                          Ficará sem margem
+                        <Badge variant={caso.ficara_sem_margem ? "destructive" : "secondary"} className="shrink-0 text-[10px] uppercase">
+                          {caso.ficara_sem_margem ? "Ficará sem margem" : "Validar cobrança"}
                         </Badge>
                       </div>
                       <p className="mt-1 truncate text-xs text-muted-foreground">Dependente: {caso.dependente_nome}</p>
@@ -203,8 +214,8 @@ export function AlertaGlobalMargemUea() {
                         <dd className="text-sm font-semibold tabular-nums text-foreground">{formatBRL(caso.novo_valor)}</dd>
                       </div>
                       <div className="flex items-baseline justify-between gap-3 py-2">
-                        <dt className="text-xs font-medium text-destructive">Aumento</dt>
-                        <dd className="text-sm font-bold tabular-nums text-destructive">+ {formatBRL(caso.diferenca)}</dd>
+                        <dt className="text-xs font-medium text-destructive">Diferença</dt>
+                        <dd className="text-sm font-bold tabular-nums text-destructive">{caso.diferenca > 0 ? "+ " : ""}{formatBRL(caso.diferenca)}</dd>
                       </div>
                       <div className="flex items-baseline justify-between gap-3 py-2">
                         <dt className="text-xs text-muted-foreground">Margem atual</dt>
