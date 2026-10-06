@@ -140,12 +140,46 @@ export function ResultadosPesquisa() {
         media: Number((v.soma / v.n).toFixed(2)),
         pessoas: v.pessoas.size,
       }))
-      .sort((a, b) => b.pessoas - a.pessoas || b.media - a.media)
-      .slice(0, 12);
+      .sort((a, b) => b.pessoas - a.pessoas || b.media - a.media);
   }, [notas, canonico]);
 
 
 
+
+  const ranking = porEmpresa;
+  const mediaNum = mediaGeral === "—" ? 0 : Number(mediaGeral);
+
+  const tendencia = useMemo(() => {
+    if (periodo === "all" || mediaGeral === "—") return "Todos os meses";
+    const [a, m] = periodo.split("-").map(Number);
+    const d = new Date(a, m - 2, 1);
+    const prevKey = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+    const prev = itens.filter(
+      (i) => i.tipo === "nota" && i.valor_nota != null && mesKey(i.data) === prevKey &&
+        (origem === "all" || i.origem === origem) && (empresa === "all" || nomeEmpresa(i.empresa) === empresa),
+    );
+    if (!prev.length) return `Sem base em ${mesLabel(prevKey)}`;
+    const pm = prev.reduce((s, b) => s + (b.valor_nota ?? 0), 0) / prev.length;
+    const dif = Number(mediaGeral) - pm;
+    return `${dif > 0 ? "▲ +" : dif < 0 ? "▼ " : "= "}${dif.toFixed(2)} vs ${mesLabel(prevKey)} (${pm.toFixed(2)})`;
+  }, [periodo, mediaGeral, itens, origem, empresa, canonico]);
+
+  const insights = useMemo(() => {
+    const out: { titulo: string; texto: string; tom: "ok" | "alerta" | "info" }[] = [];
+    if (!ranking.length || !totalRespostas) return out;
+    const top = ranking[0];
+    out.push({
+      titulo: "Conta-chave em destaque",
+      texto: `${top.empresa} representou ${Math.round((top.pessoas / totalRespostas) * 100)}% do público (${top.pessoas} pessoas) com nota média ${top.media.toFixed(2)}.`,
+      tom: "ok",
+    });
+    const maximas = ranking.filter((e) => e.media >= 4.95);
+    if (maximas.length) out.push({ titulo: "Excelência", texto: `${maximas.length} empresa${maximas.length > 1 ? "s" : ""} com nota máxima ou praticamente máxima: ${maximas.slice(0, 3).map((e) => e.empresa).join(", ")}${maximas.length > 3 ? "…" : ""}.`, tom: "ok" });
+    const abaixo = ranking.filter((e) => e.media < mediaNum - 0.001);
+    if (abaixo.length) out.push({ titulo: "Atenção de relacionamento", texto: `${abaixo.length} empresa${abaixo.length > 1 ? "s" : ""} abaixo da média geral (${mediaGeral}): ${abaixo.slice(0, 3).map((e) => `${e.empresa} (${e.media.toFixed(2)})`).join(", ")}${abaixo.length > 3 ? "…" : ""}.`, tom: abaixo.some((e) => e.media < 4) ? "alerta" : "info" });
+    else out.push({ titulo: "Atenção de relacionamento", texto: "Nenhuma empresa abaixo da média geral no período.", tom: "ok" });
+    return out;
+  }, [ranking, totalRespostas, mediaNum, mediaGeral]);
 
   const porPalestra = useMemo(() => {
     const map = new Map<string, { empresa: string; tema: string | null; data: string; origem: string; respostas: Set<string> }>();
@@ -232,111 +266,118 @@ export function ResultadosPesquisa() {
             {periodos.map((p) => <SelectItem key={p} value={p}>{mesLabel(p)}</SelectItem>)}
           </SelectContent>
         </Select>
-        <div className="ml-auto flex gap-2">
-          <Badge variant="outline">
-            {totalRespostas} {totalRespostas === 1 ? "pessoa avaliou" : "pessoas avaliaram"}
-          </Badge>
-          <Badge variant="secondary">Média geral: {mediaGeral}</Badge>
-        </div>
       </Card>
 
-      <Card className="p-4">
-        <div className="flex items-center justify-between mb-3">
-          <p className="text-sm font-semibold">Satisfação por empresa</p>
-          <Badge variant="outline" className="text-[11px]">
-            {porEmpresa.reduce((s, e) => s + e.pessoas, 0)} pessoas · {porEmpresa.length} empresas
-          </Badge>
-        </div>
-        {porEmpresa.length === 0 ? (
-          <p className="text-sm text-muted-foreground">Nenhuma avaliação no filtro atual.</p>
-        ) : (
-          <div className="space-y-3 max-h-[260px] overflow-auto pr-1">
-            {porEmpresa.map((e) => (
-              <div
-                key={e.empresa}
-                className="space-y-1 cursor-pointer rounded-md px-2 py-1.5 transition-colors hover:bg-muted/60"
-                role="button"
-                tabIndex={0}
-                title={`Filtrar resultados por ${e.empresa}`}
-                onClick={() => alternarEmpresa(e.empresa)}
-                onKeyDown={(event) => {
-                  if (event.key === "Enter" || event.key === " ") alternarEmpresa(e.empresa);
-                }}
-              >
-                <div className="flex items-baseline justify-between gap-3">
-                  <span className="text-xs font-medium truncate" title={e.empresa}>{e.empresa}</span>
-                  <span className="text-[11px] text-muted-foreground whitespace-nowrap">
-                    {e.pessoas} {e.pessoas === 1 ? "pessoa" : "pessoas"} · <span className="text-foreground font-semibold">{e.media}</span>/5
-                  </span>
-                </div>
-                <div className="h-2 rounded-full bg-muted overflow-hidden">
-                  <div
-                    className="h-full rounded-full bg-primary transition-all"
-                    style={{ width: `${Math.max(4, (e.media / 5) * 100)}%` }}
-                  />
-                </div>
-              </div>
-            ))}
+      {/* ===== KPIs executivos ===== */}
+      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+        <KpiExec
+          label="Nota média geral"
+          value={mediaGeral === "—" ? "—" : `${mediaGeral}`}
+          suffix={mediaGeral === "—" ? undefined : "/5"}
+          hint={tendencia}
+          destaque={mediaNum >= 4.5}
+        />
+        <KpiExec label="Participantes avaliadores" value={String(totalRespostas)} hint="Pessoas únicas que responderam" />
+        <KpiExec label="Empresas envolvidas" value={String(ranking.length)} hint="Com ao menos uma avaliação" />
+        <KpiExec
+          label="Engajamento médio"
+          value={porPalestra.length ? (totalRespostas / porPalestra.length).toFixed(1) : "—"}
+          hint={`Avaliadores por evento · ${porPalestra.length} evento${porPalestra.length === 1 ? "" : "s"}`}
+        />
+      </div>
+
+      <div className="grid gap-4 xl:grid-cols-3">
+        {/* ===== Leaderboard Empresa x Satisfação ===== */}
+        <Card className="rounded-xl border-border/60 p-0 shadow-sm xl:col-span-2 overflow-hidden">
+          <div className="flex items-center justify-between border-b border-border/60 px-5 py-4">
+            <div>
+              <p className="text-sm font-semibold tracking-tight">Matriz Empresa × Satisfação</p>
+              <p className="text-[11px] text-muted-foreground">
+                Ordenado por participantes e nota média · {empresa === "all" ? "clique numa empresa para filtrar" : `filtrando ${empresa} · clique para limpar`}
+              </p>
+            </div>
           </div>
-        )}
-      </Card>
+          {ranking.length === 0 ? (
+            <p className="px-5 py-8 text-center text-sm text-muted-foreground">Nenhuma avaliação no filtro atual.</p>
+          ) : (
+            <div className="max-h-[420px] overflow-auto">
+              <table className="w-full text-sm">
+                <thead className="sticky top-0 bg-card text-[10px] uppercase tracking-wider text-muted-foreground">
+                  <tr className="border-b border-border/60">
+                    <th className="px-5 py-2.5 text-left font-semibold">Empresa</th>
+                    <th className="px-3 py-2.5 text-right font-semibold">Participantes</th>
+                    <th className="px-3 py-2.5 text-left font-semibold w-[34%]">Nota média</th>
+                    <th className="px-5 py-2.5 text-right font-semibold">Status</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {ranking.map((e, idx) => {
+                    const st = statusNota(e.media);
+                    return (
+                      <tr
+                        key={e.empresa}
+                        className={`cursor-pointer border-b border-border/40 transition-colors hover:bg-muted/40 ${empresa === e.empresa ? "bg-muted/50" : ""}`}
+                        onClick={() => alternarEmpresa(e.empresa)}
+                        tabIndex={0}
+                        onKeyDown={(ev) => { if (ev.key === "Enter" || ev.key === " ") alternarEmpresa(e.empresa); }}
+                      >
+                        <td className="px-5 py-3">
+                          <div className="flex items-center gap-3 min-w-0">
+                            <span className="w-5 shrink-0 text-[11px] tabular-nums text-muted-foreground">{idx + 1}</span>
+                            <span className="truncate font-medium" title={e.empresa}>{e.empresa}</span>
+                          </div>
+                        </td>
+                        <td className="px-3 py-3 text-right tabular-nums">
+                          {e.pessoas}
+                          <span className="ml-1 text-[10px] text-muted-foreground">
+                            {totalRespostas ? `${Math.round((e.pessoas / totalRespostas) * 100)}%` : ""}
+                          </span>
+                        </td>
+                        <td className="px-3 py-3">
+                          <div className="flex items-center gap-2">
+                            <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-muted">
+                              <div
+                                className={`h-full rounded-full ${e.media >= 4.8 ? "bg-success" : e.media >= 4 ? "bg-primary/70" : "bg-warning"}`}
+                                style={{ width: `${Math.max(4, (e.media / 5) * 100)}%` }}
+                              />
+                            </div>
+                            <span className={`w-10 text-right text-xs font-semibold tabular-nums ${e.media >= 4.8 ? "text-success" : ""}`}>
+                              {e.media.toFixed(2)}
+                            </span>
+                          </div>
+                        </td>
+                        <td className="px-5 py-3 text-right">
+                          <span className={`inline-flex rounded-full px-2 py-0.5 text-[10px] font-semibold ${st.cls}`}>{st.label}</span>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </Card>
 
-      <ChartCard
-        title="Quantidade de pessoas por empresa"
-        subtitle={empresa === "all" ? "Avaliadores únicos · clique numa empresa para filtrar" : `Filtrando: ${empresa} · clique nela para limpar`}
-        empty={porEmpresa.length === 0}
-        height={260}
-      >
-          <ResponsiveContainer width="100%" height={260}>
-            <BarChart
-              data={porEmpresa}
-              layout="vertical"
-              margin={{ top: 5, right: 40, bottom: 5, left: 5 }}
-              className="cursor-pointer"
-            >
-              <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="hsl(var(--border))" />
-              <XAxis type="number" hide />
-              <YAxis
-                type="category"
-                dataKey="empresa"
-                width={130}
-                axisLine={false}
-                tickLine={false}
-                className="cursor-pointer"
-                tick={(props: any) => (
-                  <text
-                    x={props.x}
-                    y={props.y}
-                    dy={3}
-                    textAnchor="end"
-                    fill="hsl(var(--foreground))"
-                    fontSize={10}
-                    className="cursor-pointer"
-                    role="button"
-                    tabIndex={0}
-                    onClick={() => alternarEmpresa(props.payload?.value)}
-                    onKeyDown={(event) => {
-                      if (event.key === "Enter" || event.key === " ") alternarEmpresa(props.payload?.value);
-                    }}
-                  >
-                    {props.payload?.value}
-                  </text>
-                )}
-              />
-              <RTooltip
-                contentStyle={{ background: "hsl(var(--popover))", border: "1px solid hsl(var(--border))", borderRadius: 8, fontSize: 12 }}
-                formatter={(v: any) => [`${v} pessoa${v === 1 ? "" : "s"}`, "Pessoas"]}
-              />
-              <Bar
-                dataKey="pessoas"
-                name="Pessoas"
-                shape={(props: any) => <BarraEmpresa {...props} onSelecionar={alternarEmpresa} />}
-                label={{ position: "right", formatter: (v: number) => v, fontSize: 10, fill: "hsl(var(--foreground))" }}
-              />
-            </BarChart>
-          </ResponsiveContainer>
-
-        </ChartCard>
+        {/* ===== Insights ===== */}
+        <Card className="rounded-xl border-border/60 p-5 shadow-sm space-y-4">
+          <div>
+            <p className="text-sm font-semibold tracking-tight">Destaques e insights</p>
+            <p className="text-[11px] text-muted-foreground">Gerados automaticamente a partir do filtro</p>
+          </div>
+          {insights.length === 0 ? (
+            <p className="text-sm text-muted-foreground">Sem dados suficientes.</p>
+          ) : (
+            <ul className="space-y-3">
+              {insights.map((i, k) => (
+                <li key={k} className={`rounded-lg border-l-2 bg-muted/30 px-3 py-2.5 ${i.tom === "alerta" ? "border-warning" : i.tom === "ok" ? "border-success" : "border-border"}`}>
+                  <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">{i.titulo}</p>
+                  <p className="mt-0.5 text-[13px] leading-snug">{i.texto}</p>
+                </li>
+              ))}
+            </ul>
+          )}
+        </Card>
+      </div>
 
       <Card className="p-4">
         <p className="text-sm font-semibold mb-3">Respostas por palestra / ação</p>
@@ -422,5 +463,24 @@ export function ResultadosPesquisa() {
         )}
       </Card>
     </div>
+  );
+}
+
+
+function statusNota(m: number) {
+  if (m >= 4.8) return { label: "Excelente", cls: "bg-success/10 text-success" };
+  if (m >= 4) return { label: "Satisfatório", cls: "bg-muted text-foreground/80" };
+  return { label: "Atenção", cls: "bg-warning/15 text-warning" };
+}
+
+function KpiExec({ label, value, suffix, hint, destaque }: { label: string; value: string; suffix?: string; hint?: string; destaque?: boolean }) {
+  return (
+    <Card className="rounded-xl border-border/60 p-5 shadow-sm">
+      <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">{label}</p>
+      <p className={`mt-2 text-3xl font-semibold tabular-nums tracking-tight ${destaque ? "text-success" : ""}`}>
+        {value}{suffix && <span className="ml-0.5 text-base font-medium text-muted-foreground">{suffix}</span>}
+      </p>
+      {hint && <p className="mt-1 text-[11px] text-muted-foreground">{hint}</p>}
+    </Card>
   );
 }
