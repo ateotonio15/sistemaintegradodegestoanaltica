@@ -35,8 +35,11 @@ const MESES = [
 ];
 
 export default function PesquisaSatisfacao() {
-  const { user, isAdmin, isEnfermeira, isExecutivo } = useAuth();
+  const { user, role, isAdmin, isEnfermeira, isExecutivo, isDiretora } = useAuth();
   const canEdit = isAdmin || isEnfermeira || isExecutivo;
+  // Resultados consolidados: apenas admin, executivo e diretoria (enfermagem não vê).
+  const podeVerResultados =
+    !isEnfermeira && (isAdmin || isExecutivo || isDiretora || (role as string) === "diretora_saude");
   const hoje = new Date();
   const [ano, setAno] = useState(hoje.getFullYear());
   const [mes, setMes] = useState(hoje.getMonth());
@@ -244,12 +247,12 @@ export default function PesquisaSatisfacao() {
           >
             <ClipboardList className="h-4 w-4" /> Palestras
           </TabsTrigger>
-          <TabsTrigger
+          {podeVerResultados && <TabsTrigger
             value="resultados"
             className="gap-2 rounded-none border-b-2 border-transparent bg-transparent px-6 py-3 text-sm font-medium text-muted-foreground shadow-none data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:text-primary data-[state=active]:shadow-none"
           >
             <BarChart3 className="h-4 w-4" /> Resultados consolidados
-          </TabsTrigger>
+          </TabsTrigger>}
         </TabsList>
 
         <TabsContent value="palestras" className="space-y-4 mt-4">
@@ -310,7 +313,7 @@ export default function PesquisaSatisfacao() {
         </TabsContent>
 
         <TabsContent value="resultados" className="mt-4">
-          <ResultadosPesquisa />
+          {podeVerResultados && <ResultadosPesquisa />}
         </TabsContent>
       </Tabs>
 
