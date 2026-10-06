@@ -21,7 +21,8 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { ArrowLeft, Gift, Pencil, Plus, Search, Trash2, ExternalLink } from "lucide-react";
+import { ArrowLeft, Download, Gift, Pencil, Plus, Search, Trash2, ExternalLink } from "lucide-react";
+import { exportMailingBrindesExcel } from "@/lib/mailing-brindes-export";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
 import { MailingBrindeDialog, type MailingBrinde } from "@/components/mailing/MailingBrindeDialog";
@@ -114,6 +115,29 @@ export default function MailingBrindes() {
     return Array.from(set).sort();
   }, [rows]);
 
+  // Exporta respeitando busca, executiva e status; organiza por tipo de cesta no arquivo
+  const handleExport = async () => {
+    const q = search.trim().toLowerCase();
+    const base = rows.filter((r) => {
+      if (statusFilter !== "todos" && r.status !== statusFilter) return false;
+      if (execFilter !== "todos" && (r.executiva ?? "") !== execFilter) return false;
+      if (!q) return true;
+      return [r.empresa_nome, r.contato_nome, r.cidade, r.rastreio_codigo, r.email, r.executiva]
+        .filter(Boolean)
+        .some((v) => String(v).toLowerCase().includes(q));
+    });
+    if (base.length === 0) {
+      toast.warning("Nenhum registro para exportar");
+      return;
+    }
+    try {
+      await exportMailingBrindesExcel(base);
+      toast.success(`Excel gerado com ${base.length} registro(s)`);
+    } catch (e: any) {
+      toast.error("Erro ao gerar Excel", { description: e?.message });
+    }
+  };
+
   const handleNew = () => {
     setEditing(null);
     setDialogOpen(true);
@@ -157,11 +181,16 @@ export default function MailingBrindes() {
               </p>
             </div>
           </div>
-          {canEdit && (
-            <Button onClick={handleNew} className="gap-2">
-              <Plus className="h-4 w-4" />Novo contato
+          <div className="flex items-center gap-2 flex-wrap">
+            <Button variant="outline" onClick={handleExport} className="gap-2" disabled={loading}>
+              <Download className="h-4 w-4" />Baixar Excel
             </Button>
-          )}
+            {canEdit && (
+              <Button onClick={handleNew} className="gap-2">
+                <Plus className="h-4 w-4" />Novo contato
+              </Button>
+            )}
+          </div>
         </div>
       </div>
 
