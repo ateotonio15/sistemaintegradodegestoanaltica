@@ -1179,18 +1179,14 @@ export default function DemandasDashboard() {
 
             {!isLoading && filtered.length > 0 && (
               <>
-                {/* ===== 2. Resumo executivo ===== */}
-                <ResumoExecutivo periodoLabel={periodoLabel} blocos={resumoBlocos} />
-                <InsightsExecutivos itens={insightsExec} />
-
                 {/* ===== 3. KPIs principais ===== */}
                 <section className="space-y-3">
                   <SectionHeader
-                    eyebrow="Como está?"
-                    title="Indicadores principais"
+                    eyebrow="Resumo executivo"
+                    title="Indicadores globais"
                     subtitle={`Período selecionado, comparado ao ${prevPeriodoLabel.toLowerCase()}`}
                   />
-                  <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-6">
+                  <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
                     <KpiExecutivo
                       label="Demandas no período"
                       value={String(metrics.total)}
@@ -1237,29 +1233,35 @@ export default function DemandasDashboard() {
                       descricao={`Agenda Cirúrgica ${temposSegmentados.cirurgica.horas.toFixed(0)}h · demais setores ${temposSegmentados.demais.horas.toFixed(0)}h`}
                       metodologia="Média de dias corridos entre abertura e resolução, considerando apenas demandas já resolvidas no período."
                     />
-                    <KpiExecutivo
-                      label="Devolutivas fora do prazo"
-                      value={`${metrics.pctForaDoPrazo}%`}
-                      comparacao={cmpPP(metrics.pctForaDoPrazo, prevMetrics?.pctForaDoPrazo)}
-                      descricao={`${metrics.total - noPrazoQtd} de ${metrics.total} demandas excederam o prazo`}
-                      meta={{
-                        texto: `≤ ${META_FORA_PRAZO}%`,
-                        diferenca: `${metrics.pctForaDoPrazo - META_FORA_PRAZO > 0 ? "+" : ""}${metrics.pctForaDoPrazo - META_FORA_PRAZO} p.p.`,
-                      }}
-                      status={metrics.acimaDaMeta ? "Acima da meta" : "Dentro da meta"}
-                      tone={metrics.acimaDaMeta ? "danger" : "success"}
-                      metodologia="Percentual de demandas que excederam o prazo aplicável ao setor. Meta interna cadastrada no sistema."
-                    />
-                    <KpiExecutivo
-                      label="Eficiência operacional"
-                      value={String(metrics.score)}
-                      comparacao={cmpQtd(metrics.score, prevMetrics?.score, " pts")}
-                      descricao="Índice de 0 a 100 ponderando SLA, resolução, prazo e backlog"
-                      status={scoreStatus === "saudavel" ? "Saudável" : scoreStatus === "atencao" ? "Atenção" : "Crítico"}
-                      tone={scoreStatus === "saudavel" ? "success" : scoreStatus === "atencao" ? "warning" : "danger"}
-                      metodologia="SLA (40%) + resolvidas (30%) + aderência ao prazo (20%) + backlog controlado (10%)."
-                    />
                   </div>
+                </section>
+
+                <Tabs defaultValue="visao" className="w-full">
+                  <TabsList className="h-auto flex-wrap">
+                    <TabsTrigger value="visao">1 · Visão Executiva da Diretoria</TabsTrigger>
+                    <TabsTrigger value="gargalos">2 · Gargalos e Causas Raiz</TabsTrigger>
+                    <TabsTrigger value="recomendacoes">3 · Recomendações e Plano de Ação</TabsTrigger>
+                  </TabsList>
+                  <TabsContent value="visao" className="mt-6 space-y-10">
+                {/* ===== 5. Concentração de demandas ===== */}
+                <section className="space-y-3">
+                  <SectionHeader
+                    eyebrow="Onde está concentrado?"
+                    title="Concentração de demandas"
+                    subtitle="Volume por setor responsável — volume alto não indica, por si só, problema"
+                  />
+                  <ConcentracaoDemandas data={volumeSetor} total={filtered.length} />
+                </section>
+
+                {/* ===== 6. Mapa de pressão operacional ===== */}
+                <section className="space-y-3">
+                  <SectionHeader
+                    eyebrow="Onde existe pressão?"
+                    title="Mapa de pressão operacional"
+                    subtitle="Cruzamento de volume e impacto (prazo, backlog, tempo médio e recorrência)"
+                  />
+                  <MapaPressao rows={setorAgg} />
+                  <MatrizRiscoSetores data={matrizSetores} />
                 </section>
 
                 {/* ===== 4. Desempenho operacional ===== */}
@@ -1324,45 +1326,16 @@ export default function DemandasDashboard() {
                   </div>
                 </section>
 
-                {/* ===== 5. Concentração de demandas ===== */}
+                  </TabsContent>
+                  <TabsContent value="gargalos" className="mt-6 space-y-10">
+                {/* ===== 10. Prioridades de atuação ===== */}
                 <section className="space-y-3">
                   <SectionHeader
-                    eyebrow="Onde está concentrado?"
-                    title="Concentração de demandas"
-                    subtitle="Volume por setor responsável — volume alto não indica, por si só, problema"
+                    eyebrow="Onde acompanhar?"
+                    title="Prioridades de atuação"
+                    subtitle="Setores que merecem acompanhamento, segundo os indicadores do período"
                   />
-                  <ConcentracaoDemandas data={volumeSetor} total={filtered.length} />
-                </section>
-
-                {/* ===== 6. Mapa de pressão operacional ===== */}
-                <section className="space-y-3">
-                  <SectionHeader
-                    eyebrow="Onde existe pressão?"
-                    title="Mapa de pressão operacional"
-                    subtitle="Cruzamento de volume e impacto (prazo, backlog, tempo médio e recorrência)"
-                  />
-                  <MapaPressao rows={setorAgg} />
-                  <MatrizRiscoSetores data={matrizSetores} />
-                </section>
-
-                {/* ===== 7. Pontos de atenção ===== */}
-                <section className="space-y-3">
-                  <SectionHeader
-                    eyebrow="Onde estão os problemas?"
-                    title="Pontos de atenção"
-                    subtitle="Situações identificadas a partir dos indicadores do período"
-                  />
-                  <PontosAtencao itens={pontosAtencao} />
-                </section>
-
-                {/* ===== 8. Recorrência por setor ===== */}
-                <section className="space-y-3">
-                  <SectionHeader
-                    eyebrow="Por que está acontecendo?"
-                    title="Recorrência por setor"
-                    subtitle="Clientes com mais de uma demanda no mesmo setor"
-                  />
-                  <RecorrenciaSetor rows={setorAgg.filter((s) => s.clientesTotal > 0).slice(0, 10)} />
+                  <PrioridadesAtuacao itens={prioridades} />
                 </section>
 
                 {/* ===== 9. Gargalos operacionais ===== */}
@@ -1375,14 +1348,14 @@ export default function DemandasDashboard() {
                   <GargalosTabela rows={gargalos} />
                 </section>
 
-                {/* ===== 10. Prioridades de atuação ===== */}
+                {/* ===== 8. Recorrência por setor ===== */}
                 <section className="space-y-3">
                   <SectionHeader
-                    eyebrow="Onde acompanhar?"
-                    title="Prioridades de atuação"
-                    subtitle="Setores que merecem acompanhamento, segundo os indicadores do período"
+                    eyebrow="Por que está acontecendo?"
+                    title="Recorrência por setor"
+                    subtitle="Clientes com mais de uma demanda no mesmo setor"
                   />
-                  <PrioridadesAtuacao itens={prioridades} />
+                  <RecorrenciaSetor rows={setorAgg.filter((s) => s.clientesTotal > 0).slice(0, 10)} />
                 </section>
 
                 {/* ===== 11. Visão comparativa dos setores ===== */}
@@ -1402,6 +1375,24 @@ export default function DemandasDashboard() {
                     onClose={() => setSetorDrill(null)}
                   />
                 </section>
+                  </TabsContent>
+                  <TabsContent value="recomendacoes" className="mt-6 space-y-10">
+                <section className="space-y-3">
+                  <SectionHeader eyebrow="Insights" title="Leituras automáticas do período" subtitle="Gerado a partir dos indicadores filtrados" />
+                  <InsightsExecutivos itens={insightsExec} />
+                </section>
+                {/* ===== 7. Pontos de atenção ===== */}
+                <section className="space-y-3">
+                  <SectionHeader
+                    eyebrow="Onde estão os problemas?"
+                    title="Pontos de atenção"
+                    subtitle="Situações identificadas a partir dos indicadores do período"
+                  />
+                  <PontosAtencao itens={pontosAtencao} />
+                </section>
+
+                  </TabsContent>
+                </Tabs>
               </>
             )}
           </TabsContent>
