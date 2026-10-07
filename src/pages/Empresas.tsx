@@ -895,6 +895,7 @@ export default function Empresas() {
       { header: "Empresa", width: 44, get: (e) => e.nome ?? "" },
       { header: "CNPJ", width: 20, get: (e) => e.cnpj ?? "" },
       { header: "Tipo Contrato", width: 16, get: (e) => e.tipo_contrato ?? "" },
+      { header: "Contrato via Portal", width: 18, get: (e) => (e.contrato_via_portal ? "Sim" : "Não") },
       { header: "Status", width: 12, get: (e) => e.status_empresa ?? "" },
       { header: "Vidas", width: 10, get: (e) => e.vidas ?? 0 },
       { header: "Executiva (Resp. Contrato)", width: 28, get: (e) => e.responsavel_contrato ?? "" },
@@ -927,8 +928,8 @@ export default function Empresas() {
         cols.forEach((c, i) => { row[`c${i}`] = c.get(e); });
         ws.addRow(row);
       });
-    ws.getColumn(16).numFmt = '#,##0.00';
     ws.getColumn(17).numFmt = '#,##0.00';
+    ws.getColumn(18).numFmt = '#,##0.00';
 
     ws.autoFilter = { from: { row: 1, column: 1 }, to: { row: 1, column: ws.columns.length } };
     ws.views = [{ state: "frozen", ySplit: 1 }];
