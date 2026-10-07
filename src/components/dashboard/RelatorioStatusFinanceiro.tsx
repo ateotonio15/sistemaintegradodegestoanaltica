@@ -55,7 +55,16 @@ function isoInicioMes() {
   const d = new Date();
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-01`;
 }
+/** Dia (YYYY-MM-DD) no fuso local de um carimbo de data/hora; datas puras passam direto. */
+function diaLocal(ts: string | null | undefined): string | null {
+  if (!ts) return null;
+  if (/^\d{4}-\d{2}-\d{2}$/.test(ts)) return ts;
+  const d = new Date(ts);
+  if (isNaN(d.getTime())) return ts.slice(0, 10);
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+}
 function fmtDia(iso: string | null | undefined) {
+  iso = diaLocal(iso);
   if (!iso) return "—";
   const m = iso.slice(0, 10).match(/^(\d{4})-(\d{2})-(\d{2})$/);
   return m ? `${m[3]}/${m[2]}/${m[1]}` : iso;
@@ -246,7 +255,7 @@ export function RelatorioStatusFinanceiro() {
           statusLabel: labelStatusFinanceiro(status),
           data_envio_nota: r.data_envio_nota,
           data_nota_efetiva:
-            r.data_envio_nota ?? (anexoNota ? anexoNota.created_at.slice(0, 10) : null),
+            r.data_envio_nota ?? (anexoNota ? diaLocal(anexoNota.created_at) : null),
           data_vencimento: r.data_vencimento,
           dia_emissao: r.dia_emissao,
           aguardando_nota_em: r.aguardando_nota_em,
@@ -266,7 +275,7 @@ export function RelatorioStatusFinanceiro() {
             .filter((a) => a.uploaded_by && a.created_at)
             .map((a) => ({
               nome: nomeMap.get(a.uploaded_by as string) ?? "Não identificado",
-              dia: a.created_at.slice(0, 10),
+              dia: diaLocal(a.created_at),
             })),
         };
       });
@@ -279,10 +288,10 @@ export function RelatorioStatusFinanceiro() {
   function dataRef(l: LinhaRelatorio) {
     return (
       l.data_envio_nota ??
-      l.ultimo_anexo_em?.slice(0, 10) ??
-      l.faturamento_iniciado_em?.slice(0, 10) ??
-      l.aguardando_nota_em?.slice(0, 10) ??
-      l.atualizado_em?.slice(0, 10) ??
+      diaLocal(l.ultimo_anexo_em) ??
+      diaLocal(l.faturamento_iniciado_em) ??
+      diaLocal(l.aguardando_nota_em) ??
+      diaLocal(l.atualizado_em) ??
       null
     );
   }
@@ -291,11 +300,11 @@ export function RelatorioStatusFinanceiro() {
   function datasEventos(l: LinhaRelatorio) {
     return [
       l.data_envio_nota,
-      l.ultimo_anexo_em?.slice(0, 10) ?? null,
+      diaLocal(l.ultimo_anexo_em) ?? null,
       ...l.anexos_usuarios.map((a) => a.dia),
-      l.faturamento_iniciado_em?.slice(0, 10) ?? null,
-      l.aguardando_nota_em?.slice(0, 10) ?? null,
-      l.atualizado_em?.slice(0, 10) ?? null,
+      diaLocal(l.faturamento_iniciado_em) ?? null,
+      diaLocal(l.aguardando_nota_em) ?? null,
+      diaLocal(l.atualizado_em) ?? null,
     ].filter(Boolean) as string[];
   }
 
@@ -368,7 +377,7 @@ export function RelatorioStatusFinanceiro() {
     filtradas.forEach((l) => {
       // Produção = notas emitidas no período pelo usuário
       if (noPeriodo(l.data_nota_efetiva)) get(l.usuario_envio || "Não identificado").enviadas += 1;
-      if (noPeriodo(l.faturamento_iniciado_em?.slice(0, 10)))
+      if (noPeriodo(diaLocal(l.faturamento_iniciado_em)))
         get(l.usuario_faturamento || "Não identificado").faturamentos += 1;
       // Todos que anexaram no período contam, não apenas o último
       Array.from(
@@ -390,7 +399,7 @@ export function RelatorioStatusFinanceiro() {
     };
     filtradas.forEach((l) => {
       if (noPeriodo(l.data_nota_efetiva)) get(l.usuario_envio || "Não identificado").envios.push(l);
-      if (noPeriodo(l.faturamento_iniciado_em?.slice(0, 10)))
+      if (noPeriodo(diaLocal(l.faturamento_iniciado_em)))
         get(l.usuario_faturamento || "Não identificado").faturamentos.push(l);
       Array.from(
         new Set(l.anexos_usuarios.filter((a) => noPeriodo(a.dia)).map((a) => a.nome).filter(Boolean)),
