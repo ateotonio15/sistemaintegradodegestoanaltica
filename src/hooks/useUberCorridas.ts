@@ -74,6 +74,7 @@ export function useUpsertCorrida() {
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: QK });
+      qc.invalidateQueries({ queryKey: ["uber-enderecos-usados"] });
       toast.success("Corrida salva");
     },
     onError: (e: any) => toast.error(e.message ?? "Erro ao salvar"),
@@ -112,6 +113,7 @@ export function useImportCorridasLote() {
     },
     onSuccess: (n) => {
       qc.invalidateQueries({ queryKey: QK });
+      qc.invalidateQueries({ queryKey: ["uber-enderecos-usados"] });
       toast.success(`${n} corrida(s) importada(s)`);
     },
     onError: (e: any) => toast.error(e.message ?? "Erro ao importar"),
