@@ -55,7 +55,16 @@ function isoInicioMes() {
   const d = new Date();
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-01`;
 }
+/** Dia (YYYY-MM-DD) no fuso local de um carimbo de data/hora; datas puras passam direto. */
+function diaLocal(ts: string | null | undefined): string | null {
+  if (!ts) return null;
+  if (/^\d{4}-\d{2}-\d{2}$/.test(ts)) return ts;
+  const d = new Date(ts);
+  if (isNaN(d.getTime())) return ts.slice(0, 10);
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+}
 function fmtDia(iso: string | null | undefined) {
+  iso = diaLocal(iso);
   if (!iso) return "—";
   const m = iso.slice(0, 10).match(/^(\d{4})-(\d{2})-(\d{2})$/);
   return m ? `${m[3]}/${m[2]}/${m[1]}` : iso;
