@@ -111,9 +111,9 @@ export function useImportCorridasLote() {
       }
       return total;
     },
+    onSuccess: (n) => {
       qc.invalidateQueries({ queryKey: QK });
       qc.invalidateQueries({ queryKey: ["uber-enderecos-usados"] });
-      qc.invalidateQueries({ queryKey: QK });
       toast.success(`${n} corrida(s) importada(s)`);
     },
     onError: (e: any) => toast.error(e.message ?? "Erro ao importar"),
