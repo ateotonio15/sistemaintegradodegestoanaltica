@@ -40,6 +40,18 @@ const MOTIVOS = [
 const FORMAS_PAGAMENTO = ["Pix", "Cartão", "Dinheiro"];
 const ENDERECO_SAMEL = "Samel - Av. Joaquim Nabuco, 1550 - Centro";
 
+const LS_KEY = "uber-enderecos-novos";
+function lerEnderecosLocais(): string[] {
+  try { return JSON.parse(localStorage.getItem(LS_KEY) || "[]"); } catch { return []; }
+}
+function salvarEnderecoLocal(v: string) {
+  if (!v) return;
+  const atual = lerEnderecosLocais();
+  if (!atual.some((a) => a.toLowerCase() === v.toLowerCase())) {
+    localStorage.setItem(LS_KEY, JSON.stringify([...atual, v]));
+  }
+}
+
 function EnderecoCombobox({
   value,
   onChange,
@@ -71,7 +83,9 @@ function EnderecoCombobox({
           <CommandList>
             {(() => {
               const q = busca.trim().toLowerCase();
-              const filtradas = q ? opcoes.filter((o) => o.toLowerCase().includes(q)) : opcoes;
+              const norm = (t: string) => t.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+              const palavras = norm(q).split(/\s+/).filter(Boolean).map((w) => (w.length > 3 ? w.replace(/s$/, "") : w));
+              const filtradas = q ? opcoes.filter((o) => { const n = norm(o); return palavras.every((w) => n.includes(w)); }) : opcoes;
               const podeCriar = !!busca.trim() && !opcoes.some((o) => o.toLowerCase() === q);
               return (
                 <>
@@ -80,7 +94,7 @@ function EnderecoCombobox({
                     <CommandGroup heading="Novo endereço">
                       <CommandItem
                         value={`__novo__${busca}`}
-                        onSelect={() => { onChange(busca.trim()); setOpen(false); setBusca(""); }}
+                        onSelect={() => { salvarEnderecoLocal(busca.trim()); onChange(busca.trim()); setOpen(false); setBusca(""); }}
                       >
                         <Plus className="mr-2 h-4 w-4 shrink-0" />
                         <span className="truncate">Usar "{busca.trim()}"</span>
@@ -161,6 +175,7 @@ export function CorridaDialog({ open, onOpenChange, corrida }: Props) {
   const enderecos = useMemo(() => {
     const set = new Set<string>();
     set.add(ENDERECO_SAMEL);
+    lerEnderecosLocais().forEach((v) => { if (v && v.trim()) set.add(v.trim()); });
     [form.origem, form.destino].forEach((v) => { if (v && v.trim()) set.add(v.trim()); });
     enderecosUsados.forEach((c) => {
       [c.origem, c.destino].forEach((v) => { if (v && v.trim()) set.add(v.trim()); });
