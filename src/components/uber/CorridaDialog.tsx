@@ -154,19 +154,21 @@ export function CorridaDialog({ open, onOpenChange, corrida }: Props) {
       if (error) throw error;
       return (data ?? []) as unknown as { origem: string | null; destino: string | null }[];
     },
-    staleTime: 60 * 1000,
+    staleTime: 0,
+    refetchOnMount: "always",
   });
 
   const enderecos = useMemo(() => {
     const set = new Set<string>();
     set.add(ENDERECO_SAMEL);
+    [form.origem, form.destino].forEach((v) => { if (v && v.trim()) set.add(v.trim()); });
     enderecosUsados.forEach((c) => {
       [c.origem, c.destino].forEach((v) => { if (v && v.trim()) set.add(v.trim()); });
     });
     empresas.forEach((e) => { if (e.endereco && e.endereco.trim()) set.add(e.endereco.trim()); });
     const arr = Array.from(set);
     return [ENDERECO_SAMEL, ...arr.filter((a) => a !== ENDERECO_SAMEL).sort((a, b) => a.localeCompare(b, "pt-BR"))];
-  }, [enderecosUsados, empresas]);
+  }, [enderecosUsados, empresas, form.origem, form.destino]);
 
   useEffect(() => {
     if (open) {
