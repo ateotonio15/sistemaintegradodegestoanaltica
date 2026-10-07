@@ -246,6 +246,13 @@
       "when": 1791210568779,
       "tag": "0034_triagens_insert_tec_enfermagem",
       "breakpoints": true
+    },
+    {
+      "idx": 35,
+      "version": "7",
+      "when": 1791395317321,
+      "tag": "0035_migration",
+      "breakpoints": true
     }
   ]
 }
