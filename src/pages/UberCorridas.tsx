@@ -20,6 +20,12 @@ const fmtDate = (s: string) => {
   return `${d}/${m}/${y}`;
 };
 
+const MESES_PT = ["Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho", "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"];
+const fmtMes = (ym: string) => {
+  const [y, m] = ym.split("-");
+  return `${MESES_PT[Number(m) - 1]}/${y}`;
+};
+
 export default function UberCorridas() {
   const { user, isAdmin, isViewOnly, isVendas } = useAuth();
   const canManageCorridas = !!user && !isViewOnly && !isVendas;
@@ -30,6 +36,7 @@ export default function UberCorridas() {
   const [empresa, setEmpresa] = useState<string>("all");
   const [colaborador, setColaborador] = useState<string>("all");
   const [responsavel, setResponsavel] = useState<string>("all");
+  const [mes, setMes] = useState<string>("all");
   const [periodo, setPeriodo] = useState<string>("30");
   const [dataInicio, setDataInicio] = useState<string>("");
   const [dataFim, setDataFim] = useState<string>("");
@@ -42,6 +49,10 @@ export default function UberCorridas() {
   const empresas = useMemo(() => Array.from(new Set(corridas.map((c) => c.empresa).filter(Boolean))).sort() as string[], [corridas]);
   const colaboradores = useMemo(() => Array.from(new Set(corridas.map((c) => c.colaborador).filter(Boolean))).sort() as string[], [corridas]);
   const responsaveis = useMemo(() => Array.from(new Set(corridas.map((c) => c.responsavel).filter(Boolean))).sort() as string[], [corridas]);
+  const meses = useMemo(
+    () => Array.from(new Set(corridas.map((c) => c.data?.slice(0, 7)).filter(Boolean))).sort().reverse() as string[],
+    [corridas],
+  );
 
   const filtered = useMemo(() => {
     const today = new Date(); today.setHours(0, 0, 0, 0);
