@@ -56,14 +56,17 @@ export default function UberCorridas() {
 
   const filtered = useMemo(() => {
     const today = new Date(); today.setHours(0, 0, 0, 0);
-    const usarRange = !!(dataInicio || dataFim);
-    const limite = usarRange || periodo === "all" ? null : new Date(today.getTime() - Number(periodo) * 86400000);
+    const usarMes = mes !== "all";
+    const usarRange = !usarMes && !!(dataInicio || dataFim);
+    const limite = usarMes || usarRange || periodo === "all" ? null : new Date(today.getTime() - Number(periodo) * 86400000);
     const q = search.trim().toLowerCase();
     return corridas.filter((c) => {
       if (empresa !== "all" && c.empresa !== empresa) return false;
       if (colaborador !== "all" && c.colaborador !== colaborador) return false;
       if (responsavel !== "all" && c.responsavel !== responsavel) return false;
-      if (usarRange) {
+      if (usarMes) {
+        if (!c.data || !c.data.startsWith(mes)) return false;
+      } else if (usarRange) {
         if (dataInicio && c.data < dataInicio) return false;
         if (dataFim && c.data > dataFim) return false;
       } else if (limite) {
@@ -77,7 +80,7 @@ export default function UberCorridas() {
       }
       return true;
     });
-  }, [corridas, empresa, colaborador, responsavel, periodo, dataInicio, dataFim, search]);
+  }, [corridas, empresa, colaborador, responsavel, mes, periodo, dataInicio, dataFim, search]);
 
 
   const totals = useMemo(() => {
@@ -177,7 +180,14 @@ export default function UberCorridas() {
             {responsaveis.map((r) => <SelectItem key={r} value={r}>{r}</SelectItem>)}
           </SelectContent>
         </Select>
-        <Select value={periodo} onValueChange={setPeriodo} disabled={!!(dataInicio || dataFim)}>
+        <Select value={mes} onValueChange={setMes}>
+          <SelectTrigger className="w-[160px]"><SelectValue /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">Todos os meses</SelectItem>
+            {meses.map((m) => <SelectItem key={m} value={m}>{fmtMes(m)}</SelectItem>)}
+          </SelectContent>
+        </Select>
+        <Select value={periodo} onValueChange={setPeriodo} disabled={mes !== "all" || !!(dataInicio || dataFim)}>
           <SelectTrigger className="w-[140px]"><SelectValue /></SelectTrigger>
           <SelectContent>
             <SelectItem value="7">7 dias</SelectItem>
@@ -189,11 +199,11 @@ export default function UberCorridas() {
         </Select>
         <div className="flex items-center gap-1">
           <span className="text-xs text-muted-foreground">De</span>
-          <Input type="date" value={dataInicio} onChange={(e) => setDataInicio(e.target.value)} className="w-[150px]" />
+          <Input type="date" value={dataInicio} disabled={mes !== "all"} onChange={(e) => setDataInicio(e.target.value)} className="w-[150px]" />
           <span className="text-xs text-muted-foreground">até</span>
-          <Input type="date" value={dataFim} onChange={(e) => setDataFim(e.target.value)} className="w-[150px]" />
-          {(dataInicio || dataFim) && (
-            <Button variant="ghost" size="sm" onClick={() => { setDataInicio(""); setDataFim(""); }}>Limpar</Button>
+          <Input type="date" value={dataFim} disabled={mes !== "all"} onChange={(e) => setDataFim(e.target.value)} className="w-[150px]" />
+          {(dataInicio || dataFim || mes !== "all") && (
+            <Button variant="ghost" size="sm" onClick={() => { setDataInicio(""); setDataFim(""); setMes("all"); }}>Limpar</Button>
           )}
         </div>
       </Card>
