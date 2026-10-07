@@ -252,8 +252,9 @@ export function RelatorioStatusFinanceiro() {
           aguardando_nota_em: r.aguardando_nota_em,
           faturamento_iniciado_em: r.faturamento_iniciado_em,
           dentro_prazo: r.dentro_prazo,
+          // Crédito da nota: quem anexou a nota fiscal; senão quem registrou o envio; senão último anexo.
           usuario_envio:
-            nomeMap.get(r.enviado_por_user_id) ?? (anexoNotaPor || ultimoPor || ""),
+            anexoNotaPor || nomeMap.get(r.enviado_por_user_id) || ultimoPor || "",
           usuario_faturamento:
             r.faturamento_iniciado_por_nome ?? nomeMap.get(r.faturamento_iniciado_por) ?? "",
           atualizado_em: r.updated_at,
