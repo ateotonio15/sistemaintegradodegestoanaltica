@@ -888,39 +888,47 @@ export default function Empresas() {
     }
 
     const userMap = new Map(usuarios.map((u: any) => [u.user_id, u.display_name]));
-    const isDateKey = (k: string) => k.startsWith("data_") || k.endsWith("_em") || k === "created_at" || k === "updated_at" || k === "ultima_alteracao";
-    const isCentavosKey = (k: string) => k.endsWith("_centavos");
-    const isUserKey = (k: string) => k === "responsavel_user_id" || k === "executiva_user_id";
-    const skipKeys = new Set(["faixas_etarias", "portal_secoes"]);
-
-    const sample = rows[0] as any;
-    const keys = Object.keys(sample).filter((k) => !skipKeys.has(k));
-
+    const dia = (v: any) => (v == null || v === "" ? "" : String(v).padStart(2, "0"));
+    const reais = (c: any) => (c == null ? "" : Number(c) / 100);
+    const cols: { header: string; width: number; get: (e: any) => any }[] = [
+      { header: "Cód. Contrato", width: 14, get: (e) => e.codigo_contrato ?? "" },
+      { header: "Empresa", width: 44, get: (e) => e.nome ?? "" },
+      { header: "CNPJ", width: 20, get: (e) => e.cnpj ?? "" },
+      { header: "Tipo Contrato", width: 16, get: (e) => e.tipo_contrato ?? "" },
+      { header: "Status", width: 12, get: (e) => e.status_empresa ?? "" },
+      { header: "Vidas", width: 10, get: (e) => e.vidas ?? 0 },
+      { header: "Executiva (Resp. Contrato)", width: 28, get: (e) => e.responsavel_contrato ?? "" },
+      { header: "Responsável Cadastro", width: 26, get: (e) => (e.responsavel_user_id ? userMap.get(e.responsavel_user_id) ?? "" : "") },
+      { header: "Corretora / Operadora", width: 24, get: (e) => e.operadora_plano ?? "" },
+      { header: "Tipo Movimentação", width: 18, get: (e) => e.tipo_movimentacao ?? "" },
+      { header: "Dia Corte", width: 10, get: (e) => dia(e.data_corte) },
+      { header: "Dia Emissão Fatura", width: 12, get: (e) => dia(e.data_emissao_fatura) },
+      { header: "Dia Vencimento Fatura", width: 12, get: (e) => dia(e.data_vencimento_fatura) },
+      { header: "Data Implantação", width: 16, get: (e) => (e.data_implantacao ? formatDateBR(e.data_implantacao) : "") },
+      { header: "Data Rescisão", width: 16, get: (e) => (e.data_rescisao ? formatDateBR(e.data_rescisao) : "") },
+      { header: "Valor Enfermaria (R$)", width: 16, get: (e) => reais(e.valor_enfermaria_centavos) },
+      { header: "Valor Apartamento (R$)", width: 16, get: (e) => reais(e.valor_apartamento_centavos) },
+      { header: "E-mail Empresa", width: 28, get: (e) => e.email_empresa ?? "" },
+      { header: "Telefone", width: 16, get: (e) => e.telefone_empresa ?? "" },
+      { header: "Contato", width: 22, get: (e) => e.contato_empresa ?? "" },
+      { header: "Endereço", width: 40, get: (e) => e.endereco ?? "" },
+    ];
 
     const wb = new ExcelJS.Workbook();
     const ws = wb.addWorksheet(aba);
-    ws.columns = keys.map((k) => ({
-      header: k.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase()),
-      key: k,
-      width: Math.min(Math.max(k.length + 4, 14), 40),
-    }));
+    ws.columns = cols.map((c, i) => ({ header: c.header, key: `c${i}`, width: c.width }));
     ws.getRow(1).font = { bold: true };
     ws.getRow(1).fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FFE5E7EB" } } as any;
 
-    rows.forEach((e: any) => {
-      const row: Record<string, any> = {};
-      for (const k of keys) {
-        let v = e[k];
-        if (v === null || v === undefined) { row[k] = ""; continue; }
-        if (isUserKey(k)) { row[k] = userMap.get(v) ?? v; continue; }
-        if (isDateKey(k) && typeof v === "string") { row[k] = formatDateBR(v) || v; continue; }
-        if (isCentavosKey(k) && typeof v === "number") { row[k] = v / 100; continue; }
-        if (typeof v === "boolean") { row[k] = v ? "Sim" : "Não"; continue; }
-        if (typeof v === "object") { row[k] = JSON.stringify(v); continue; }
-        row[k] = v;
-      }
-      ws.addRow(row);
-    });
+    [...rows]
+      .sort((a: any, b: any) => String(a.nome ?? "").localeCompare(String(b.nome ?? ""), "pt-BR"))
+      .forEach((e: any) => {
+        const row: Record<string, any> = {};
+        cols.forEach((c, i) => { row[`c${i}`] = c.get(e); });
+        ws.addRow(row);
+      });
+    ws.getColumn(16).numFmt = '#,##0.00';
+    ws.getColumn(17).numFmt = '#,##0.00';
 
     ws.autoFilter = { from: { row: 1, column: 1 }, to: { row: 1, column: ws.columns.length } };
     ws.views = [{ state: "frozen", ySplit: 1 }];
