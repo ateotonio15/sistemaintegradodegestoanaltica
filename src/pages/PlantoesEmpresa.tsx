@@ -1,6 +1,6 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Link, useParams, useNavigate, useLocation } from "react-router-dom";
-import { ArrowLeft, Plus, Trash2, Pencil, FileSpreadsheet, FileText, User, MapPin, ChevronRight, PlusCircle } from "lucide-react";
+import { AlertTriangle, ArrowLeft, Plus, Trash2, Pencil, FileSpreadsheet, FileText, User, MapPin, ChevronRight, PlusCircle } from "lucide-react";
 import { format } from "date-fns";
 import * as XLSX from "xlsx";
 import { Button } from "@/components/ui/button";
@@ -12,6 +12,7 @@ import { usePlantaoEmpresas, usePlantoes, usePlantaoMutations, usePlantoesRealti
 import { PlantaoDialog } from "@/components/plantoes/PlantaoDialog";
 import { PlantaoDetalheDialog } from "@/components/plantoes/PlantaoDetalheDialog";
 import { InlineDemandaForm } from "@/components/plantoes/InlineDemandaForm";
+import { usePendenciasPlantao } from "@/hooks/usePendenciasPlantao";
 
 export default function PlantoesEmpresa() {
   const { empresaId } = useParams<{ empresaId: string }>();
