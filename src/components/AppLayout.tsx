@@ -37,6 +37,7 @@ import { HondaAlertasBanner } from "@/components/honda/HondaAlertasBanner";
 import { HeaderTabs } from "@/components/HeaderTabs";
 import { SimularPerfilSwitcher, SimularPerfilBanner } from "@/components/SimularPerfilSwitcher";
 import { CadastroEmpresasPopover } from "@/components/CadastroEmpresasPopover";
+import { AlertaPendenciasPlantao } from "@/components/plantoes/AlertaPendenciasPlantao";
 import { FloatingFilaChat } from "@/components/atendimentos/FloatingFilaChat";
 import { AlertaGlobalMargemUea } from "@/components/dependentes-uea/AlertaGlobalMargemUea";
 
@@ -705,6 +706,7 @@ export function AppLayout({ children }: { children?: React.ReactNode }) {
               )}
 
 
+              {(isAdmin || role === "executivo" || isExecutivoExterno) && <AlertaPendenciasPlantao />}
 
               <button
                 onClick={toggleTheme}

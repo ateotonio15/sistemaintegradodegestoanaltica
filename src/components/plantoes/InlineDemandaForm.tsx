@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { Plus, X, Loader2 } from "lucide-react";
+import { Plus, X, Loader2, AlertTriangle } from "lucide-react";
 import { format } from "date-fns";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -232,7 +232,7 @@ export function InlineDemandaForm({
       <div className="grid grid-cols-2 gap-2">
         <Kpi label="Atendimentos" value={total} color="text-emerald-600" />
         <Kpi label="Consultas" value={consultas} />
-        <Kpi label="Pendências" value={pendencias} color={pendencias > 0 ? "text-amber-600" : ""} />
+        <Kpi label="Pendências" value={pendencias} alerta={pendencias > 0} />
         <Kpi label="Exames Autoriz." value={examesAutoriz} />
       </div>
 
@@ -254,10 +254,12 @@ export function InlineDemandaForm({
   );
 }
 
-function Kpi({ label, value, color }: { label: string; value: number; color?: string }) {
+function Kpi({ label, value, color, alerta }: { label: string; value: number; color?: string; alerta?: boolean }) {
   return (
-    <div className="rounded-md border p-2 text-center">
-      <div className={`text-lg font-bold ${color ?? ""}`}>{value}</div>
+    <div className={`rounded-md border p-2 text-center ${alerta ? "border-warning bg-warning/10" : ""}`}>
+      <div className={`text-lg font-bold inline-flex items-center gap-1 ${alerta ? "text-warning" : color ?? ""}`}>
+        {alerta && <AlertTriangle className="h-4 w-4" />}{value}
+      </div>
       <div className="text-[10px] uppercase tracking-wide text-muted-foreground leading-tight">{label}</div>
     </div>
   );
