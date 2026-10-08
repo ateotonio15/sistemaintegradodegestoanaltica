@@ -362,9 +362,12 @@ export function PlantaoDetalheDialog({ open, onOpenChange, plantao, empresaNome,
 }
 
 function KPI({ value, label, big }: { value: number; label: string; big?: boolean }) {
+  const alerta = label === "Pendências" && value > 0;
   return (
-    <div className="rounded-md border p-3 text-center">
-      <div className={big ? "text-2xl font-bold text-primary" : "text-xl font-bold"}>{value}</div>
+    <div className={`rounded-md border p-3 text-center ${alerta ? "border-warning bg-warning/10" : ""}`}>
+      <div className={`${big ? "text-2xl" : "text-xl"} font-bold ${alerta ? "text-warning" : big ? "text-primary" : ""}`}>
+        {alerta && "⚠ "}{value}
+      </div>
       <div className="text-[10px] uppercase tracking-wide text-muted-foreground mt-1">{label}</div>
     </div>
   );

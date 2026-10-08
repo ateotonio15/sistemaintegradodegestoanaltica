@@ -29,6 +29,15 @@ export default function PlantoesEmpresa() {
   const [novo, setNovo] = useState(false);
   const [detalhe, setDetalhe] = useState<Plantao | null>(null);
 
+  const { data: pendData } = usePendenciasPlantao();
+  const pendPorDia = new Map<string, number>();
+  pendData?.dias.filter((d) => d.empresaId === empresaId).forEach((d) => pendPorDia.set(d.data, d.total));
+  const dataAlvo = new URLSearchParams(location.search).get("data");
+  useEffect(() => {
+    if (!dataAlvo || plantoes.length === 0) return;
+    const el = document.getElementById(`dia-${dataAlvo}`);
+    el?.scrollIntoView({ behavior: "smooth", block: "center" });
+  }, [dataAlvo, plantoes.length]);
   const today = format(new Date(), "yyyy-MM-dd");
 
   const exportExcel = () => {
@@ -93,9 +102,16 @@ export default function PlantoesEmpresa() {
               const dataFmt = new Date(data + "T00:00:00").toLocaleDateString("pt-BR");
               const atend = lista.reduce((s, p) => s + (p.atendimentos_count ?? 0), 0);
               const primeiro = lista[0];
+              const pend = pendPorDia.get(data) ?? 0;
+              const destacado = dataAlvo === data;
               return (
-                <Card key={data} className="hover:shadow-md transition-shadow">
+                <Card key={data} id={`dia-${data}`} className={`hover:shadow-md transition-shadow ${pend > 0 ? "border-warning/60" : ""} ${destacado ? "ring-2 ring-warning" : ""}`}>
                   <CardContent className="p-4 space-y-3">
+                    {pend > 0 && (
+                      <Badge className="bg-warning/15 text-warning hover:bg-warning/15 border border-warning/40 gap-1">
+                        <AlertTriangle className="h-3 w-3" /> Possui Pendências ({pend})
+                      </Badge>
+                    )}
                     <div className="flex items-start justify-between gap-2">
                       <div className="font-semibold">{dataFmt}</div>
                       {isToday ? (

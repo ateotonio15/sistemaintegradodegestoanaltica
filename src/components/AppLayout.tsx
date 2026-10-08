@@ -706,6 +706,7 @@ export function AppLayout({ children }: { children?: React.ReactNode }) {
               )}
 
 
+              {(isAdmin || role === "executivo" || isExecutivoExterno) && <AlertaPendenciasPlantao />}
 
               <button
                 onClick={toggleTheme}
