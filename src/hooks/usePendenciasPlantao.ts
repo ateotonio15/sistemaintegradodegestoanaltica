@@ -1,5 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/hooks/useAuth";
 import { parseAssunto } from "@/components/plantoes/AtendimentoDialog";
 
 export interface PendenciaDia {
@@ -17,15 +18,23 @@ export interface PendenciaDia {
  * (mesma regra da caixa PENDÊNCIAS dos cards). Agrupado por empresa + dia.
  */
 export function usePendenciasPlantao(enabled = true) {
+  const { user, loading, isExecutivoExterno } = useAuth();
+  const norm = (v?: string | null) => (v ?? "").trim().toLowerCase();
   return useQuery({
-    queryKey: ["plantoes_atendimentos", "pendencias-globais"],
-    enabled,
+    queryKey: ["plantoes_atendimentos", "pendencias-globais", isExecutivoExterno ? `own:${user?.id ?? ""}` : "all"],
+    enabled: enabled && !loading && !!user,
     staleTime: 30_000,
     refetchInterval: 60_000,
     queryFn: async () => {
+      // Executivo externo vê só as próprias pendências (plantões dele pelo nome, que ele criou ou onde ele atendeu)
+      let meuNome = "";
+      if (isExecutivoExterno && user?.id) {
+        const { data: prof } = await supabase.from("profiles").select("display_name").eq("user_id", user.id).maybeSingle();
+        meuNome = norm((prof as any)?.display_name);
+      }
       const { data, error } = await supabase
         .from("plantoes_atendimentos")
-        .select("id, assunto, resolvido, plantao:plantoes!inner(id, data, plantonista, empresa_id, empresa:plantoes_empresas(nome))")
+        .select("id, assunto, resolvido, created_by, plantao:plantoes!inner(id, data, plantonista, empresa_id, created_by, empresa:plantoes_empresas(nome))")
         .eq("resolvido", false)
         .limit(5000);
       if (error) throw error;
@@ -35,6 +44,13 @@ export function usePendenciasPlantao(enabled = true) {
         if (meta.status === "Resolvido" || meta.status === "Cancelado") continue;
         const p = a.plantao;
         if (!p) continue;
+        if (isExecutivoExterno) {
+          const meu =
+            a.created_by === user?.id ||
+            p.created_by === user?.id ||
+            (!!meuNome && norm(p.plantonista) === meuNome);
+          if (!meu) continue;
+        }
         const key = `${p.empresa_id}|${p.data}`;
         let g = map.get(key);
         if (!g) {
