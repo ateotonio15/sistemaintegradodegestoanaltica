@@ -2290,6 +2290,16 @@ export async function analisarExcelFinanceiroPorCnpj(
   // Chaves já contabilizadas (rótulo + valor) para não somar o mesmo pivot
   // duas vezes quando ele se repete em mais de uma aba/linha.
   const pivotsVistos = new Set<string>();
+  // Rótulos de retroativo com erro de digitação (não somados — só geram aviso).
+  const errosDigitacaoRetro = new Set<string>();
+  const distanciaEdicao = (a: string, b: string): number => {
+    const dp: number[][] = Array.from({ length: a.length + 1 }, (_, i) => [i, ...Array(b.length).fill(0)]);
+    for (let j = 0; j <= b.length; j++) dp[0][j] = j;
+    for (let i = 1; i <= a.length; i++)
+      for (let j = 1; j <= b.length; j++)
+        dp[i][j] = Math.min(dp[i - 1][j] + 1, dp[i][j - 1] + 1, dp[i - 1][j - 1] + (a[i - 1] === b[j - 1] ? 0 : 1));
+    return dp[a.length][b.length];
+  };
   // Detalhe por pagador abaixo de cada pivot "Cobrança Retroativa <Mês>":
   // nome normalizado -> mês -> { qtd, total }.
   const retroPorPagador = new Map<string, Map<string, { quantidade: number; total: number }>>();
@@ -2335,8 +2345,17 @@ export async function analisarExcelFinanceiroPorCnpj(
         const t = norm(r[c]);
         // "Cobrança Retroativa <Mês>" ou "Retroativo <Mês>/<Ano>" (sem a palavra "cobrança").
         // Ignora linhas de total consolidado ("Valor Total Retroativo - ...").
-        const ehRetroMes = /^r[ea]{0,2}troativ[oa]s?/.test(t) && !t.includes("total") && extrairMes(String(r[c] ?? "")) !== null;
+        const ehRetroMes = /^retroativ[oa]s?/.test(t) && !t.includes("total") && extrairMes(String(r[c] ?? "")) !== null;
         if (t.includes("cobranca retroativa") || ehRetroMes) { hitIdx = c; hitLabel = String(r[c] ?? ""); break; }
+        // Rótulo parecido com "Retroativo <Mês>" mas escrito errado (ex.: "Reatroativo Agosto26"):
+        // NÃO é somado; apenas avisamos para o usuário corrigir a planilha.
+        if (!t.includes("total") && extrairMes(String(r[c] ?? "")) !== null) {
+          const palavra = t.split(/[^a-z]+/)[0] || "";
+          if (palavra.length >= 7 && palavra !== "retroativo" && palavra !== "retroativa" && palavra !== "retroativos" && palavra !== "retroativas") {
+            const dist = Math.min(distanciaEdicao(palavra, "retroativo"), distanciaEdicao(palavra, "retroativa"));
+            if (dist <= 2) errosDigitacaoRetro.add(String(r[c] ?? "").replace(/\s+/g, " ").trim());
+          }
+        }
       }
       if (hitIdx < 0) continue;
       let total = NaN;
@@ -2587,6 +2606,12 @@ export async function analisarExcelFinanceiroPorCnpj(
     });
   }
 
+
+  if (errosDigitacaoRetro.size > 0) {
+    const lista = Array.from(errosDigitacaoRetro).map((l) => `"${l}"`).join(", ");
+    const aviso = `Erro de digitação na planilha: ${lista} — deveria estar escrito "Retroativo". Essa linha NÃO foi somada na cobrança retroativa. Corrija a planilha e reanalise.`;
+    blocos.forEach((b) => { if (!b.avisos.includes(aviso)) b.avisos.push(aviso); });
+  }
 
   // Reconciliação com o total declarado pela planilha: se a soma das linhas
   // ficou acima do "TOTAL" do bloco no Excel, a diferença veio de cobrança
