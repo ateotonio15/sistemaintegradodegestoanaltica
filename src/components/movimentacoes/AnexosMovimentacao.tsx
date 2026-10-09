@@ -65,6 +65,28 @@ export function AnexosMovimentacao({ movimentacaoId, empresaId, required, onCoun
     queueMicrotask(() => onCountChange(anexos.length));
   }
 
+  type ItemUpload = {
+    file: File;
+    alvoEmpresaId: string;
+    alvoMovId: string;
+    contratoRotulo: string;
+    periodo: string | null;
+    mes: string | null;
+    redirecionado: boolean;
+    aviso?: string;
+  };
+  const [pendente, setPendente] = useState<ItemUpload[] | null>(null);
+
+  const rotuloContrato = (a?: ContratoAlvo | null) =>
+    a ? `${a.codigo ?? ""} ${a.nome ?? ""}`.trim() || "contrato" : "este contrato";
+
+  const formatMes = (mes: string | null) => {
+    if (!mes) return "";
+    const [ano, m] = mes.split("-");
+    return `${m}/${ano}`;
+  };
+
+  // Passo 1: descobre para qual contrato/período cada arquivo vai.
   const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files ?? []);
     e.target.value = "";
@@ -94,33 +116,77 @@ export function AnexosMovimentacao({ movimentacaoId, empresaId, required, onCoun
         }));
         movAtual = (mv as any) ?? null;
       }
-      const redirecionados: string[] = [];
 
+      const atual = alvos.find((x) => x.empresaId === empresaId) ?? null;
+      const itens: ItemUpload[] = [];
       for (const file of files) {
-        let alvoEmpresaId = empresaId;
-        let alvoMovId = movimentacaoId;
+        const item: ItemUpload = {
+          file,
+          alvoEmpresaId: empresaId,
+          alvoMovId: movimentacaoId,
+          contratoRotulo: rotuloContrato(atual),
+          periodo: movAtual?.periodo ?? null,
+          mes: movAtual?.mes_referencia ?? null,
+          redirecionado: false,
+        };
         if (alvos.length && movAtual) {
           const match = identificarContratoDoAnexo(file.name, alvos);
           if (match && match.empresaId !== empresaId) {
             let q = supabase
               .from("movimentacoes")
-              .select("id")
+              .select("id, periodo, mes_referencia")
               .eq("empresa_id", match.empresaId)
               .eq("mes_referencia", movAtual.mes_referencia);
             // Administradoras têm períodos diferentes por contrato: vale só o mês.
             q = !ehAdministradora && movAtual.periodo ? q.eq("periodo", movAtual.periodo) : q;
             const { data: irm } = await q.limit(1).maybeSingle();
+            const a = alvos.find((x) => x.empresaId === match.empresaId);
             if ((irm as any)?.id) {
-              alvoEmpresaId = match.empresaId;
-              alvoMovId = (irm as any).id;
-              const a = alvos.find((x) => x.empresaId === match.empresaId);
-              redirecionados.push(`${file.name} → ${a?.codigo ?? ""} ${a?.nome ?? ""}`.trim());
+              item.alvoEmpresaId = match.empresaId;
+              item.alvoMovId = (irm as any).id;
+              item.contratoRotulo = rotuloContrato(a);
+              item.periodo = (irm as any).periodo ?? null;
+              item.mes = (irm as any).mes_referencia ?? item.mes;
+              item.redirecionado = true;
             } else {
-              const a = alvos.find((x) => x.empresaId === match.empresaId);
-              toast.warning(`"${file.name}" parece ser do contrato ${a?.codigo ?? ""}, mas ele não tem movimentação neste mês/período. Anexado neste contrato.`);
+              item.aviso = `Parece ser do contrato ${rotuloContrato(a)}, mas ele não tem movimentação neste mês/período. Ficará neste contrato.`;
             }
           }
         }
+        itens.push(item);
+      }
+
+      // Com grupo/administradora, pede autorização antes de enviar.
+      if (alvos.length) {
+        setPendente(itens);
+        return;
+      }
+      await executarUpload(itens);
+    } catch (err: any) {
+      toast.error("Erro no upload: " + err.message);
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  const confirmarDirecionamento = async () => {
+    if (!pendente) return;
+    const itens = pendente;
+    setPendente(null);
+    setUploading(true);
+    try {
+      await executarUpload(itens);
+    } catch (err: any) {
+      toast.error("Erro no upload: " + err.message);
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  // Passo 2: envia de fato, já com o destino autorizado.
+  const executarUpload = async (itens: ItemUpload[]) => {
+    {
+      for (const { file, alvoEmpresaId, alvoMovId } of itens) {
 
         const path = buildPath(alvoEmpresaId, alvoMovId, file.name);
         const { error: upErr } = await supabase.storage
@@ -177,15 +243,8 @@ export function AnexosMovimentacao({ movimentacaoId, empresaId, required, onCoun
         }
       }
       queryClient.invalidateQueries({ queryKey: ["anexos-movimentacao-grupo"] });
-      if (redirecionados.length) {
-        toast.info(`Anexo direcionado pelo código do contrato:\n${redirecionados.join("\n")}`, { duration: 8000 });
-      }
       onAttachmentsChange?.();
-      toast.success(files.length > 1 ? `${files.length} arquivos enviados` : "Arquivo enviado");
-    } catch (err: any) {
-      toast.error("Erro no upload: " + err.message);
-    } finally {
-      setUploading(false);
+      toast.success(itens.length > 1 ? `${itens.length} arquivos enviados` : "Arquivo enviado");
     }
   };
 
@@ -419,6 +478,47 @@ export function AnexosMovimentacao({ movimentacaoId, empresaId, required, onCoun
 
         </ul>
       )}
+
+      <AlertDialog
+        open={!!pendente}
+        onOpenChange={(v) => {
+          if (!v) setPendente(null);
+        }}
+      >
+        <AlertDialogContent onClick={(e) => e.stopPropagation()}>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Confirmar para onde vai cada anexo</AlertDialogTitle>
+            <AlertDialogDescription>
+              O sistema leu o código do contrato no nome do arquivo. Os anexos só serão enviados depois da sua autorização.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <ul className="max-h-64 space-y-2 overflow-y-auto text-sm">
+            {(pendente ?? []).map((it, i) => (
+              <li key={i} className="rounded-md border border-border bg-muted/40 p-2">
+                <div className="truncate font-medium" title={it.file.name}>{it.file.name}</div>
+                <div className="text-xs text-muted-foreground">
+                  Vai para: <strong className="text-foreground">{it.contratoRotulo}</strong>
+                  {it.mes && <> · mês {formatMes(it.mes)}</>}
+                  {it.periodo && <> · período {it.periodo}</>}
+                  {!it.redirecionado && !it.aviso && " (contrato que você abriu)"}
+                </div>
+                {it.aviso && <div className="mt-1 text-xs text-warning">{it.aviso}</div>}
+              </li>
+            ))}
+          </ul>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={(e) => {
+                e.preventDefault();
+                confirmarDirecionamento();
+              }}
+            >
+              Autorizar e anexar
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       <AlertDialog
         open={!!alvoExclusao}
