@@ -23,7 +23,7 @@ export function ResumoFaturamentoArquivo({ resultados }: { resultados: AnalisePo
           <section key={`${r.cnpj}-${index}`} className="space-y-2">
             <h3 className="text-sm font-semibold break-words">{r.nomeExibicao || r.nome}</h3>
             <div className="overflow-x-auto rounded-md border border-border">
-              <table className="w-full min-w-[520px] text-sm">
+              <table className="w-full table-fixed text-[11px] [&_th]:break-words [&_td]:break-words [&_th]:px-1.5 [&_td]:px-1.5">
                 <thead className="bg-muted/50 text-muted-foreground">
                   <tr>
                     <th className="px-3 py-2 text-left font-medium">Categoria</th>
@@ -50,11 +50,9 @@ export function ResumoFaturamentoArquivo({ resultados }: { resultados: AnalisePo
                     </tr>
                   ))}
                 </tbody>
-                {r.totalDeclaradoExcel != null && (
-                  <tfoot className="border-t border-border bg-primary/10 font-semibold">
-                    <tr><td colSpan={3} className="px-3 py-2">Total informado na planilha</td><td className="px-3 py-2 text-right tabular-nums whitespace-nowrap">{formatBRL(r.totalDeclaradoExcel)}</td></tr>
-                  </tfoot>
-                )}
+                <tfoot className="border-t border-border bg-primary/10 font-semibold">
+                  <tr><td colSpan={3} className="px-3 py-2">{r.totalDeclaradoExcel != null ? "Total informado na planilha" : "Total Geral"}</td><td className="px-3 py-2 text-right tabular-nums whitespace-nowrap">{formatBRL(r.totalDeclaradoExcel ?? planos.reduce((s, p) => s + p.total, 0) + outros.reduce((s, item) => s + (item.total ?? 0), 0))}</td></tr>
+                </tfoot>
               </table>
             </div>
             {r.faixasEtarias && r.faixasEtarias.length > 0 && <p className="text-xs text-muted-foreground">Mensalidade média por beneficiário; valores variam por faixa etária.</p>}
