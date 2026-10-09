@@ -82,6 +82,7 @@ interface Props {
   row: FinanceiroRow | null;
   resultados: AnaliseResultado[] | null;
   anexosNomes: string[];
+  individual?: boolean;
   modo?: "mensalidade" | "coparticipacao" | "complemento" | "aporte" | "retroativo";
 }
 
@@ -92,6 +93,7 @@ export function GerarHistoricoDialog({
   resultados,
   anexosNomes,
   modo = "mensalidade",
+  individual = false,
 }: Props) {
   const queryClient = useQueryClient();
   const { user } = useAuth();
@@ -247,14 +249,14 @@ export function GerarHistoricoDialog({
   // Quando carregar dados, se houver histórico salvo, abre direto no preview
   useEffect(() => {
     if (!open) return;
-    if (modo !== "mensalidade") return; // coparticipação/complemento não persistem versão separada
+    if (modo !== "mensalidade" || individual) return; // coparticipação/complemento não persistem versão separada
     if (savedRecord?.texto_historico) {
       const textoCarregado = deveIncluirObsDda ? garantirObsDda(savedRecord.texto_historico) : savedRecord.texto_historico;
       setTexto(textoCarregado);
       setTextoOriginalGerado(textoCarregado);
       setStep("preview");
     }
-  }, [open, savedRecord, deveIncluirObsDda, modo]);
+  }, [open, savedRecord, deveIncluirObsDda, modo, individual]);
 
   useEffect(() => {
     if (!open || step !== "preview" || !deveIncluirObsDda || !texto || texto.includes(OBS_DDA)) return;
@@ -446,8 +448,8 @@ export function GerarHistoricoDialog({
   };
 
   const textoAlterado = textoFinal !== textoOriginalGerado;
-  const possuiSalvo = modo === "mensalidade" && !!savedRecord?.texto_historico;
-  const podeSalvar = modo === "mensalidade";
+  const possuiSalvo = modo === "mensalidade" && !individual && !!savedRecord?.texto_historico;
+  const podeSalvar = modo === "mensalidade" && !individual;
   const tituloDialog =
     modo === "coparticipacao"
       ? "Gerar Histórico — Coparticipação"

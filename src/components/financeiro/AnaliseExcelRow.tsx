@@ -14,7 +14,7 @@ import {
   Maximize2,
 } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { linhasRetroativo, temMensalidade } from "@/lib/financeiro-apresentacao";
 import {
   formatBRL,
   obterDivergenciasNotaFiscal,
@@ -49,10 +49,10 @@ interface Props {
   resultados: AnaliseResultado[] | null;
   comparacoes?: ComparacaoQualquer[] | null;
   onReanalisar?: () => void;
-  onGerarHistorico?: () => void;
-  onGerarHistoricoCoparticipacao?: () => void;
-  onGerarHistoricoComplemento?: () => void;
-  onGerarHistoricoRetroativo?: () => void;
+  onGerarHistorico?: (indice?: number) => void;
+  onGerarHistoricoCoparticipacao?: (indice?: number) => void;
+  onGerarHistoricoComplemento?: (indice?: number) => void;
+  onGerarHistoricoRetroativo?: (indice?: number) => void;
   onGerarHistoricoAporte?: () => void;
   aporte?: { numero: number; total: number; valor: number } | null;
   contexto?: ContextoAnalise;
@@ -102,29 +102,6 @@ export function AnaliseExcelRow({ colSpan, isLoading, resultados, comparacoes, o
   const { toast } = useToast();
   const [analiseCompletaOpen, setAnaliseCompletaOpen] = useState(false);
 
-  const temResultados =
-    !!resultados &&
-    resultados.length > 0 &&
-    resultados.some(
-      (r) =>
-        r.enfermaria.beneficiarios > 0 ||
-        r.enfermaria.total > 0 ||
-        r.apartamento.beneficiarios > 0 ||
-        r.apartamento.total > 0 ||
-        r.inclusoes.quantidade > 0 ||
-        (r.inclusoes.total ?? 0) > 0 ||
-        (r.exclusoes && (r.exclusoes.quantidade > 0 || r.exclusoes.total !== 0)) ||
-        (r.devolucoes && (r.devolucoes.quantidade > 0 || r.devolucoes.total !== 0)) ||
-        (r.permuta && (r.permuta.quantidade > 0 || r.permuta.total !== 0)) ||
-        (r.taxaAdesao && ((r.taxaAdesao.quantidade ?? 0) > 0 || (r.taxaAdesao.total ?? 0) > 0)),
-    );
-
-  const temRetroativo =
-    !!resultados && resultados.some((r) => (r.retroativas?.total ?? 0) > 0);
-
-  const temCoparticipacao =
-    !!resultados && resultados.some((r) => (r.coparticipacao?.total ?? 0) > 0);
-
   const handleAnaliseCompleta = () => {
     if (!contexto?.nomeExcel) {
       toast({
@@ -147,7 +124,7 @@ export function AnaliseExcelRow({ colSpan, isLoading, resultados, comparacoes, o
 
   // Botões de ação na mesma linha do cabeçalho do bloco (alinhados à direita),
   // em vez de ficarem flutuando sobre o conteúdo.
-  const botoesAcao = !isLoading && (onReanalisar || (onGerarHistorico && temResultados) || contexto) ? (
+  const botoesAcao = !isLoading && (onReanalisar || onGerarHistorico || contexto) ? (
     <div className="flex items-center gap-2 shrink-0">
       {contexto && (
         <Button
@@ -159,30 +136,6 @@ export function AnaliseExcelRow({ colSpan, isLoading, resultados, comparacoes, o
         >
           <Maximize2 className="h-3 w-3" />
           Análise Completa
-        </Button>
-      )}
-      {onGerarHistorico && temResultados && (
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={onGerarHistorico}
-          className="h-7 gap-1.5 text-xs"
-          title="Gerar histórico financeiro a partir da análise"
-        >
-          <FileText className="h-3 w-3" />
-          Gerar Histórico
-        </Button>
-      )}
-      {onGerarHistoricoRetroativo && temRetroativo && (
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={onGerarHistoricoRetroativo}
-          className="h-7 gap-1.5 text-xs"
-          title="Gerar histórico dedicado para Excel de retroativos apartado da mensalidade"
-        >
-          <FileText className="h-3 w-3" />
-          Gerar Histórico Retroativo
         </Button>
       )}
       {onReanalisar && (
@@ -217,7 +170,7 @@ export function AnaliseExcelRow({ colSpan, isLoading, resultados, comparacoes, o
             </div>
           ) : (
             <div className="space-y-4">
-              {resultados.map((r, idx) => {
+              {resultados.map((r, idx) => ({ r, idx })).sort((a, b) => Number(temMensalidade(b.r)) - Number(temMensalidade(a.r))).map(({ r, idx }, ordem) => {
                 const cmpRaw = comparacoes?.[idx] ?? null;
                 const simplificada = isSimplificada(cmpRaw);
                 const cmp = !simplificada ? (cmpRaw as ComparacaoResultado | null) : null;
@@ -245,8 +198,6 @@ export function AnaliseExcelRow({ colSpan, isLoading, resultados, comparacoes, o
                     total: CampoValidacao;
                   } | null;
                   destaqueNegativo?: boolean;
-                  mesesRetro?: string[];
-                  mesesRetroDetalhe?: Array<{ mes: string; quantidade: number; total: number }>;
                 }> = [];
 
 
@@ -295,14 +246,7 @@ export function AnaliseExcelRow({ colSpan, isLoading, resultados, comparacoes, o
                   }
                 }
                 if (r.retroativas && (r.retroativas.quantidade > 0 || r.retroativas.total !== 0)) {
-                  linhas.push({
-                    label: "Cobrança Retroativa",
-                    beneficiarios: r.retroativas.quantidade,
-                    mensalidade: null,
-                    total: r.retroativas.total,
-                    mesesRetro: r.retroativas.meses,
-                    mesesRetroDetalhe: r.retroativas.mesesDetalhe,
-                  });
+                  linhas.push(...linhasRetroativo(r.retroativas));
                 }
 
 
@@ -357,7 +301,7 @@ export function AnaliseExcelRow({ colSpan, isLoading, resultados, comparacoes, o
                 return (
                   <div
                     key={`${r.pagador}-${idx}`}
-                    className={idx > 0 ? "pt-4 border-t border-border" : ""}
+                    className={ordem > 0 ? "pt-4 border-t border-border" : ""}
                   >
                     <div className="flex items-center gap-3 mb-2 flex-wrap">
                       <div className="flex items-center gap-2">
@@ -377,9 +321,19 @@ export function AnaliseExcelRow({ colSpan, isLoading, resultados, comparacoes, o
                           )}
                         </div>
                       )}
-                      {idx === 0 && botoesAcao && (
-                        <div className="ml-auto">{botoesAcao}</div>
-                      )}
+                      <div className="ml-auto flex flex-wrap items-center gap-2">
+                        {onGerarHistorico && linhas.length > 0 && temMensalidade(r) && (
+                          <Button variant="outline" size="sm" onClick={() => onGerarHistorico(idx)} className="h-7 gap-1.5 text-xs">
+                            <FileText className="h-3 w-3" />Gerar Histórico
+                          </Button>
+                        )}
+                        {onGerarHistoricoRetroativo && !temMensalidade(r) && r.retroativas && r.retroativas.total !== 0 && (
+                          <Button variant="outline" size="sm" onClick={() => onGerarHistoricoRetroativo(idx)} className="h-7 gap-1.5 text-xs">
+                            <FileText className="h-3 w-3" />Gerar Histórico Retroativo
+                          </Button>
+                        )}
+                        {ordem === 0 && botoesAcao}
+                      </div>
                     </div>
 
                     {r.avisos.length > 0 && (
@@ -417,73 +371,13 @@ export function AnaliseExcelRow({ colSpan, isLoading, resultados, comparacoes, o
                             </tr>
                           </thead>
                           <tbody>
-                            {linhas.map((l) => {
+                            {linhas.map((l, linhaIdx) => {
                               return (
-                                <tr key={l.label} className="border-t border-border">
+                                <tr key={`${l.label}-${linhaIdx}`} className="border-t border-border">
                                   <td className="px-3 py-2 font-medium">
                                     <span className="inline-flex items-center gap-2">
                                       {l.label}
-                                      {l.mesesRetro && l.mesesRetro.length > 0 && (() => {
-                                        const detalhe = (l.mesesRetroDetalhe && l.mesesRetroDetalhe.length > 0)
-                                          ? l.mesesRetroDetalhe
-                                          : l.mesesRetro!.map((m) => ({ mes: m, quantidade: 0, total: 0 }));
-                                        const somaDet = detalhe.reduce((s, d) => s + d.total, 0);
-                                        return (
-                                          <Popover>
-                                            <PopoverTrigger asChild>
-                                              <button
-                                                type="button"
-                                                className="inline-flex items-center gap-1 rounded-full border border-amber-300/60 bg-amber-100/60 px-2 py-0.5 text-[11px] font-semibold text-amber-900 dark:border-amber-700/50 dark:bg-amber-950/40 dark:text-amber-200 hover:bg-amber-200/70 dark:hover:bg-amber-900/60 transition-colors cursor-pointer"
-                                                aria-label="Ver detalhes de cobrança retroativa"
-                                              >
-                                                <span aria-hidden>↩</span>
-                                                {detalhe.length} {detalhe.length === 1 ? "mês" : "meses"}
-                                              </button>
-                                            </PopoverTrigger>
-                                            <PopoverContent side="top" align="start" className="w-72 p-0">
-                                              <div className="px-3 py-2 border-b border-border bg-muted/40">
-                                                <div className="text-xs font-semibold text-foreground">Cobrança retroativa por mês</div>
-                                                <div className="text-[11px] text-muted-foreground">
-                                                  {detalhe.length} {detalhe.length === 1 ? "competência" : "competências"} identificadas
-                                                </div>
-                                              </div>
-                                              <div className="max-h-56 overflow-auto">
-                                                <table className="w-full text-xs">
-                                                  <thead className="bg-muted/30">
-                                                    <tr>
-                                                      <th className="text-left font-medium text-muted-foreground px-3 py-1.5">Mês</th>
-                                                      <th className="text-right font-medium text-muted-foreground px-3 py-1.5">Valor</th>
-                                                    </tr>
-                                                  </thead>
-                                                  <tbody>
-                                                    {detalhe
-                                                      .slice()
-                                                      .sort((a, b) => a.mes.localeCompare(b.mes))
-                                                      .map((d) => (
-                                                        <tr key={d.mes} className="border-t border-border/60">
-                                                          <td className="px-3 py-1.5 font-medium">{d.mes}</td>
-                                                          <td className="px-3 py-1.5 text-right tabular-nums">
-                                                            {d.total ? formatBRL(d.total) : <span className="text-muted-foreground">—</span>}
-                                                          </td>
-                                                        </tr>
-                                                      ))}
-                                                  </tbody>
-                                                  {somaDet > 0 && (
-                                                    <tfoot>
-                                                      <tr className="border-t border-border bg-muted/30">
-                                                        <td className="px-3 py-1.5 font-semibold">Total</td>
-                                                        <td className="px-3 py-1.5 text-right font-semibold tabular-nums">{formatBRL(somaDet)}</td>
-                                                      </tr>
-                                                    </tfoot>
-                                                  )}
-                                                </table>
-                                              </div>
-                                            </PopoverContent>
-                                          </Popover>
-                                        );
-                                      })()}
-
-                                    </span>
+                                      </span>
                                   </td>
 
                                   <td className="px-3 py-2 text-right">
@@ -603,7 +497,7 @@ export function AnaliseExcelRow({ colSpan, isLoading, resultados, comparacoes, o
                             <Button
                               variant="outline"
                               size="sm"
-                              onClick={onGerarHistoricoComplemento}
+                              onClick={() => onGerarHistoricoComplemento(idx)}
                               className="h-7 gap-1.5 text-xs"
                               title="Gerar histórico dedicado para os valores de complemento"
                             >
@@ -654,7 +548,7 @@ export function AnaliseExcelRow({ colSpan, isLoading, resultados, comparacoes, o
                             <Button
                               variant="outline"
                               size="sm"
-                              onClick={onGerarHistoricoCoparticipacao}
+                              onClick={() => onGerarHistoricoCoparticipacao(idx)}
                               className="h-7 gap-1.5 text-xs"
                               title="Gerar histórico dedicado para os valores de coparticipação"
                             >
@@ -804,7 +698,7 @@ export function AnaliseExcelRow({ colSpan, isLoading, resultados, comparacoes, o
           comparacoes={comparacoes ?? null}
           nomeExcel={contexto.nomeExcel}
           onReanalisar={onReanalisar}
-          onGerarHistorico={onGerarHistorico}
+          onGerarHistorico={onGerarHistorico ? () => onGerarHistorico() : undefined}
           usuarioNome={contexto.usuarioNome ?? null}
         />
       )}
