@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { FileText, Paperclip, Eye, Download, MessageSquareText, Users } from "lucide-react";
 import { toast } from "sonner";
 import { PreviewArquivoDialog } from "@/components/arquivos/PreviewArquivoDialog";
+import { filtrarAnexosDoGrupoParaContrato } from "@/lib/anexo-contrato-match";
 
 const BUCKET = "anexos-movimentacoes";
 
@@ -111,12 +112,18 @@ export function AnexosMovimentacaoDialog({
         }
       }
 
-      const { data: anexos, error: anexosErr } = await supabase
+      const { data: anexosBrutos, error: anexosErr } = await supabase
         .from("anexos_movimentacao")
         .select("id, nome_arquivo, storage_path, created_at, uploaded_by, movimentacao_id, empresa_id")
         .in("movimentacao_id", [movimentacaoId as string, ...irmaosMovIds])
         .order("created_at", { ascending: false });
       if (anexosErr) throw anexosErr;
+      const anexos = await filtrarAnexosDoGrupoParaContrato(
+        anexosBrutos ?? [],
+        movimentacaoId as string,
+        mov?.empresa_id,
+        Array.from(nomePorEmpresa.keys()),
+      );
 
       const ids = Array.from(
         new Set((anexos ?? []).map((a) => a.uploaded_by).filter(Boolean)),

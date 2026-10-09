@@ -1,5 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { filtrarAnexosDoGrupoParaContrato } from "@/lib/anexo-contrato-match";
 
 export interface AnexoMovGrupo {
   id: string;
@@ -143,7 +144,13 @@ export function useAnexosMovimentacaoGrupo(movimentacaoId: string | null | undef
         .order("created_at", { ascending: false });
       if (error) throw error;
 
-      const anexos: AnexoMovGrupo[] = ((data as any[]) ?? []).map((a) => ({
+      const filtrados = await filtrarAnexosDoGrupoParaContrato(
+        ((data as any[]) ?? []),
+        movimentacaoId!,
+        info.empresaId,
+        info.empresas.map((e) => e.empresa_id),
+      );
+      const anexos: AnexoMovGrupo[] = filtrados.map((a) => ({
         ...a,
         do_grupo: a.movimentacao_id !== movimentacaoId,
         origem_empresa:
