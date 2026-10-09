@@ -39,6 +39,7 @@ import {
   gerarHistoricoTexto,
   gerarHistoricoCoparticipacaoTexto,
   gerarHistoricoComplementoTexto,
+  gerarHistoricoRetroativoTexto,
   isoToBR,
 } from "@/lib/historico-utils";
 import { calcularPeriodoCobranca, formatPeriodoCobranca } from "@/lib/date-utils";
@@ -81,7 +82,7 @@ interface Props {
   row: FinanceiroRow | null;
   resultados: AnaliseResultado[] | null;
   anexosNomes: string[];
-  modo?: "mensalidade" | "coparticipacao" | "complemento" | "aporte";
+  modo?: "mensalidade" | "coparticipacao" | "complemento" | "aporte" | "retroativo";
 }
 
 export function GerarHistoricoDialog({
@@ -214,7 +215,9 @@ export function GerarHistoricoDialog({
         ? gerarHistoricoCoparticipacaoTexto
         : modo === "complemento"
           ? gerarHistoricoComplementoTexto
-          : gerarHistoricoTexto;
+          : modo === "retroativo"
+            ? gerarHistoricoRetroativoTexto
+            : gerarHistoricoTexto;
     const textoGerado = gerador(resultados, {
       competenciaLabel: competencia.label,
       dataVencimento: vencimentoBR,
@@ -452,6 +455,8 @@ export function GerarHistoricoDialog({
         ? "Gerar Histórico — Complemento"
         : modo === "aporte"
           ? "Gerar Histórico — Aporte"
+          : modo === "retroativo"
+            ? "Gerar Histórico — Retroativo"
           : "Gerar Histórico Automático";
 
   return (

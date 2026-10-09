@@ -287,6 +287,84 @@ export function gerarHistoricoCoparticipacaoTexto(
   return linhas.join("\n");
 }
 
+const MESES_RETRO: Record<string, string> = {
+  JAN: "Janeiro", FEV: "Fevereiro", MAR: "Março", ABR: "Abril", MAI: "Maio", JUN: "Junho",
+  JUL: "Julho", AGO: "Agosto", SET: "Setembro", OUT: "Outubro", NOV: "Novembro", DEZ: "Dezembro",
+};
+
+/** "SET/26" -> "Setembro26". Mantém o texto original quando não reconhece. */
+export function rotuloMesRetroativo(mes: string): string {
+  const m = /^([A-Za-zÇç]{3})[^0-9]*(\d{2,4})$/.exec(String(mes || "").trim());
+  if (!m) return String(mes || "").trim();
+  const nome = MESES_RETRO[m[1].toUpperCase()];
+  return nome ? `${nome}${m[2].slice(-2)}` : String(mes).trim();
+}
+
+/** Gera histórico dedicado para Excel de cobrança retroativa apartado da mensalidade. */
+export function gerarHistoricoRetroativoTexto(
+  resultados: AnaliseResultado[],
+  opts: HistoricoOpts,
+): string {
+  const porMes = new Map<string, number>();
+  let totalSemMes = 0;
+  resultados.forEach((r) => {
+    const ret = (r as any).retroativas as
+      | { total?: number; mesesDetalhe?: { mes: string; total: number }[] }
+      | undefined;
+    if (!ret || !(ret.total ?? 0)) return;
+    if (ret.mesesDetalhe && ret.mesesDetalhe.length > 0) {
+      ret.mesesDetalhe.forEach((d) => {
+        porMes.set(d.mes, (porMes.get(d.mes) ?? 0) + (d.total ?? 0));
+      });
+    } else {
+      totalSemMes += ret.total ?? 0;
+    }
+  });
+  if (porMes.size === 0 && totalSemMes <= 0) return "";
+
+  const cabecalho = opts.periodoCobrancaLabel && opts.periodoCobrancaLabel.trim()
+    ? opts.periodoCobrancaLabel.trim()
+    : opts.competenciaLabel;
+
+  const linhas: string[] = [];
+  linhas.push(`Período de: ${cabecalho}.`);
+  porMes.forEach((total, mes) => {
+    linhas.push(`Retroativo ${rotuloMesRetroativo(mes)}: ${fmtBR(total)}`);
+  });
+  if (totalSemMes > 0) linhas.push(`Retroativo: ${fmtBR(totalSemMes)}`);
+  linhas.push("");
+  linhas.push(`Data de Vencimento: ${opts.dataVencimento}.`);
+  if (opts.poFixo && opts.poFixo.trim()) {
+    linhas.push("");
+    linhas.push(`${(opts.poRotulo || "PO").trim()}:${opts.poFixo.trim()}`);
+  }
+  linhas.push("");
+
+  if (opts.pagamentoViaDeposito) {
+    linhas.push(
+      "OBS.: Dados bancários para depósito: Banco Itaú, Agência: 0071, Conta Corrente: 11663-6.",
+    );
+    linhas.push("");
+    linhas.push(
+      "Dedução de base de cálculo conforme PARECER Nº02/2018 CJUR/PGM(Processo nº2018/2287/2908/00191 PGM).",
+    );
+    linhas.push(
+      "Decisão judicial conforme Processo n° 0655998-44.2022.8.04.0001 TJAM",
+    );
+  } else {
+    linhas.push("OBS.: O boleto está disponível no sistema de DDA.");
+    linhas.push("");
+    linhas.push(
+      "Dedução de base de cálculo conforme PARECER Nº02/2018 CJUR/PGM(Processo nº2018/2287/2908/00191 PGM).",
+    );
+    linhas.push(
+      "Suspensão de PIS e COFINS, trânsito em julgado conforme Processo n° 0655998-44.2022.8.04.0001 TJAM",
+    );
+  }
+
+  return linhas.join("\n");
+}
+
 /** Gera histórico dedicado para valores de complemento (proporcional). */
 export function gerarHistoricoComplementoTexto(
   resultados: AnaliseResultado[],

@@ -1757,6 +1757,13 @@ export default function Financeiro() {
     setHistoricoAporteDialogOpen(true);
   };
 
+  const [historicoRetroRow, setHistoricoRetroRow] = useState<FinanceiroRow | null>(null);
+  const [historicoRetroDialogOpen, setHistoricoRetroDialogOpen] = useState(false);
+  const handleGerarHistoricoRetroativo = (row: FinanceiroRow) => {
+    setHistoricoRetroRow(row);
+    setHistoricoRetroDialogOpen(true);
+  };
+
   const handleGerarHistoricoComplemento = (row: FinanceiroRow) => {
     setHistoricoCompRow(row);
     setHistoricoCompDialogOpen(true);
@@ -3167,6 +3174,7 @@ export default function Financeiro() {
           onGerarHistorico={canManageFinanceiro ? handleGerarHistorico : undefined}
           onGerarHistoricoCoparticipacao={canManageFinanceiro ? handleGerarHistoricoCoparticipacao : undefined}
           onGerarHistoricoComplemento={canManageFinanceiro ? handleGerarHistoricoComplemento : undefined}
+          onGerarHistoricoRetroativo={canManageFinanceiro ? handleGerarHistoricoRetroativo : undefined}
           onGerarHistoricoAporte={canManageFinanceiro ? handleGerarHistoricoAporte : undefined}
           analiseResultados={analiseResultados}
           analiseLoading={analiseLoading}
@@ -3275,6 +3283,17 @@ export default function Financeiro() {
             resultados={historicoAporteRow ? (analiseResultados[historicoAporteRow.rowKey ?? historicoAporteRow.id] ?? analiseResultados[historicoAporteRow.id] ?? null) : null}
             anexosNomes={historicoAporteRow ? ((anexosMap[historicoAporteRow.id] || []).map((a: any) => a.nome_arquivo).filter(Boolean) as string[]) : []}
             modo="aporte"
+          />
+        )}
+
+        {canManageFinanceiro && (
+          <GerarHistoricoDialog
+            open={historicoRetroDialogOpen}
+            onOpenChange={setHistoricoRetroDialogOpen}
+            row={historicoRetroRow}
+            resultados={historicoRetroRow ? (analiseResultados[historicoRetroRow.rowKey ?? historicoRetroRow.id] ?? analiseResultados[historicoRetroRow.id] ?? null) : null}
+            anexosNomes={historicoRetroRow ? ((anexosMap[historicoRetroRow.id] || []).map((a: any) => a.nome_arquivo).filter(Boolean) as string[]) : []}
+            modo="retroativo"
           />
         )}
       </div>
