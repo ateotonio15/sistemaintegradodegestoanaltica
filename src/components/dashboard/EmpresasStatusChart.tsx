@@ -40,7 +40,7 @@ export function EmpresasStatusChart({ empresas, movimentacoes, notaEnviadaEmpres
       { name: "Em dia", value: emDia, color: "hsl(var(--success))" },
       { name: "Pendente", value: pendente, color: "hsl(var(--warning))" },
       { name: "Nota enviada", value: notEnviada, color: "hsl(var(--primary))" },
-      { name: "Suspensa", value: suspensas, color: "hsl(var(--muted-foreground))" },
+      { name: "Contratos Suspensos", value: suspensas, color: "hsl(var(--muted-foreground))" },
     ].filter((d) => d.value > 0);
   }, [empresas, movimentacoes, notaEnviadaEmpresaIds]);
 
