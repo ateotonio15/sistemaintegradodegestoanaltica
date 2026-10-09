@@ -1408,6 +1408,9 @@ function analisarResumoSheet(wb: ExcelJS.Workbook): AnalisePorCnpj[] | null {
     /** Valor da linha "TOTAL" declarada na planilha para este bloco. */
     totalDecl: number | null;
     faixas: Map<string, { label: string; idadeInicial: number; idadeFinal: number | null; quantidade: number; total: number }>;
+    /** Competência retroativa do sub-bloco corrente ("JUN/26"), se houver. */
+    retroMesAtual?: string | null;
+    retroMeses?: Map<string, { quantidade: number; total: number }>;
   };
 
   // Regex para faixa etária: "0 à 18", "19 a 23", "60+", "60 +"
@@ -1509,6 +1512,17 @@ function analisarResumoSheet(wb: ExcelJS.Workbook): AnalisePorCnpj[] | null {
 
     if (!cur) continue;
 
+    // Cabeçalho de competência retroativa: "Retroação à Junho/26", "Retroativo Julho/26".
+    {
+      const mHdr = /^(retroa[cç][aã]o|retroativ[oa]s?)\b.*?(janeiro|fevereiro|mar[cç]o|abril|maio|junho|julho|agosto|setembro|outubro|novembro|dezembro)\s*[\/_-]?\s*(\d{4}|\d{2})(?!\d)/i.exec(labelRaw.trim());
+      const temNumeros = r.some((c, ci) => ci !== idxLabel && !isNaN(toNumber(c)) && toNumber(c) !== 0);
+      if (mHdr && !temNumeros) {
+        const mesAbrev = mHdr[2].normalize("NFD").replace(/[\u0300-\u036f]/g, "").slice(0, 3).toUpperCase();
+        cur.retroMesAtual = `${mesAbrev}/${mHdr[3].slice(-2)}`;
+        continue;
+      }
+    }
+
     const qtdN = idxQtd >= 0 ? Math.round(toNumber(r[idxQtd])) : NaN;
     const mensN = idxMens >= 0 ? toNumber(r[idxMens]) : NaN;
     const val = toNumber(r[idxValor]);
@@ -1588,6 +1602,20 @@ function analisarResumoSheet(wb: ExcelJS.Workbook): AnalisePorCnpj[] | null {
     // Algumas abas RESUMO repetem os módulos no rodapé antes de "Total Geral"
     // apenas com a quantidade (ex.: "M.Empresarial 395"), o que duplicava vidas.
     if (cat && qtdNum > 0 && !hasMensalidade && !hasValor) continue;
+    // Linha de plano dentro de um bloco "Retroação à <Mês>/<Ano>": é cobrança
+    // retroativa daquela competência, não mensalidade.
+    if (cat && cur.retroMesAtual) {
+      cur.incQtd += qtdNum;
+      cur.incTotal += valNum;
+      cur.retroQtd += qtdNum;
+      cur.retroTotal += valNum;
+      if (!cur.retroMeses) cur.retroMeses = new Map();
+      const prev = cur.retroMeses.get(cur.retroMesAtual) || { quantidade: 0, total: 0 };
+      prev.quantidade += qtdNum;
+      prev.total += valNum;
+      cur.retroMeses.set(cur.retroMesAtual, prev);
+      continue;
+    }
     if (cat === "enfermaria") {
       cur.enfQtd += qtdNum;
       cur.enfMens = mensNum || cur.enfMens;
@@ -1783,6 +1811,11 @@ function analisarResumoSheet(wb: ExcelJS.Workbook): AnalisePorCnpj[] | null {
     if (g.totalDecl !== null) bloco.totalDeclaradoExcel = g.totalDecl;
     if (g.retroQtd > 0 || g.retroTotal !== 0) {
       bloco.retroativas = { quantidade: g.retroQtd, total: g.retroTotal };
+      if (g.retroMeses && g.retroMeses.size > 0) {
+        const det = Array.from(g.retroMeses.entries()).map(([mes, v]) => ({ mes, quantidade: v.quantidade, total: v.total }));
+        bloco.retroativas.meses = det.map((d) => d.mes);
+        bloco.retroativas.mesesDetalhe = det;
+      }
     }
     if (g.excQtd > 0 || g.excTotal !== 0) {
       bloco.exclusoes = { quantidade: g.excQtd, total: g.excTotal };
