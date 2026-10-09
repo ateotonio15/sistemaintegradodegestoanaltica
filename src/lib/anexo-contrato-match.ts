@@ -83,3 +83,32 @@ export function identificarContratoDoAnexo(
   if (segundo && segundo.score === melhor.score) return null;
   return melhor;
 }
+
+/**
+ * Em Grupo Financeiro: mantém o anexo de outro contrato do grupo somente
+ * quando ele não foi identificado (CNPJ e depois código) como sendo de
+ * um contrato específico diferente do contrato atual.
+ */
+export async function filtrarAnexosDoGrupoParaContrato<T extends { empresa_id: string; nome_arquivo: string; movimentacao_id: string }>(
+  anexos: T[],
+  movimentacaoAtualId: string,
+  empresaAtualId: string | null | undefined,
+  empresasGrupoIds: string[],
+): Promise<T[]> {
+  if (!empresaAtualId || !anexos.some((a) => a.movimentacao_id !== movimentacaoAtualId)) return anexos;
+  const { supabase } = await import("@/integrations/supabase/client");
+  const { data } = await supabase
+    .from("empresas")
+    .select("id, codigo_contrato, cnpj")
+    .in("id", Array.from(new Set([empresaAtualId, ...empresasGrupoIds])));
+  const alvos: ContratoAlvo[] = ((data as any[]) ?? []).map((e) => ({
+    empresaId: e.id,
+    codigo: e.codigo_contrato,
+    cnpj: e.cnpj,
+  }));
+  return anexos.filter((a) => {
+    if (a.movimentacao_id === movimentacaoAtualId) return true;
+    const m = identificarContratoDoAnexo(a.nome_arquivo, alvos);
+    return !m || m.empresaId === empresaAtualId;
+  });
+}
