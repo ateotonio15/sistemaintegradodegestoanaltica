@@ -107,7 +107,8 @@ export function AnexosMovimentacao({ movimentacaoId, empresaId, required, onCoun
               .select("id")
               .eq("empresa_id", match.empresaId)
               .eq("mes_referencia", movAtual.mes_referencia);
-            q = movAtual.periodo ? q.eq("periodo", movAtual.periodo) : q;
+            // Administradoras têm períodos diferentes por contrato: vale só o mês.
+            q = !ehAdministradora && movAtual.periodo ? q.eq("periodo", movAtual.periodo) : q;
             const { data: irm } = await q.limit(1).maybeSingle();
             if ((irm as any)?.id) {
               alvoEmpresaId = match.empresaId;
