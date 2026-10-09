@@ -484,6 +484,25 @@ export default function Movimentacoes() {
         }
       }
 
+      // Anexos enviados neste processo e direcionados a outros contratos:
+      // repete a "Data Envio Financeiro" nesses contratos (só se estiver vazia).
+      if (editingId && payload.data_envio_financeiro) {
+        const { data: direcionados } = await supabase
+          .from("anexos_movimentacao")
+          .select("movimentacao_id")
+          .like("storage_path", `%/${editingId}/%`)
+          .neq("movimentacao_id", editingId);
+        const destinos = Array.from(new Set(((direcionados as any[]) ?? []).map((r) => r.movimentacao_id as string)));
+        if (destinos.length) {
+          const { error: errDest } = await supabase
+            .from("movimentacoes")
+            .update({ data_envio_financeiro: payload.data_envio_financeiro })
+            .in("id", destinos)
+            .is("data_envio_financeiro", null);
+          if (errDest) throw errDest;
+        }
+      }
+
     },
 
     onSuccess: () => {
