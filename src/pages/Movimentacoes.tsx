@@ -498,6 +498,7 @@ export default function Movimentacoes() {
             .from("movimentacoes")
             .update({ data_envio_financeiro: payload.data_envio_financeiro })
             .in("id", destinos)
+            .eq("mes_referencia", values.mes_referencia)
             .is("data_envio_financeiro", null);
           if (errDest) throw errDest;
         }
