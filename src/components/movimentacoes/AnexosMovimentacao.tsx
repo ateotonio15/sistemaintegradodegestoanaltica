@@ -480,6 +480,47 @@ export function AnexosMovimentacao({ movimentacaoId, empresaId, required, onCoun
       )}
 
       <AlertDialog
+        open={!!pendente}
+        onOpenChange={(v) => {
+          if (!v) setPendente(null);
+        }}
+      >
+        <AlertDialogContent onClick={(e) => e.stopPropagation()}>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Confirmar para onde vai cada anexo</AlertDialogTitle>
+            <AlertDialogDescription>
+              O sistema leu o código do contrato no nome do arquivo. Os anexos só serão enviados depois da sua autorização.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <ul className="max-h-64 space-y-2 overflow-y-auto text-sm">
+            {(pendente ?? []).map((it, i) => (
+              <li key={i} className="rounded-md border border-border bg-muted/40 p-2">
+                <div className="truncate font-medium" title={it.file.name}>{it.file.name}</div>
+                <div className="text-xs text-muted-foreground">
+                  Vai para: <strong className="text-foreground">{it.contratoRotulo}</strong>
+                  {it.mes && <> · mês {formatMes(it.mes)}</>}
+                  {it.periodo && <> · período {it.periodo}</>}
+                  {!it.redirecionado && !it.aviso && " (contrato que você abriu)"}
+                </div>
+                {it.aviso && <div className="mt-1 text-xs text-warning">{it.aviso}</div>}
+              </li>
+            ))}
+          </ul>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={(e) => {
+                e.preventDefault();
+                confirmarDirecionamento();
+              }}
+            >
+              Autorizar e anexar
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog
         open={!!alvoExclusao}
         onOpenChange={(v) => {
           if (!v && !excluindo) {
