@@ -114,4 +114,27 @@ describe("análise financeira Jabil", () => {
     expect(matriz?.inclusoes).toEqual({ quantidade: 75, total: 3750 });
     expect(filial?.inclusoes).toEqual({ quantidade: 11, total: 440 });
   });
+
+  it("lê linhas 'Retroativo <Mês>/<Ano>' e ignora o total consolidado", async () => {
+    const wb = new ExcelJS.Workbook();
+    const dados = wb.addWorksheet("RELATORIO BENEFICIARIOS");
+    dados.addRow(["CNPJ", "Subestipulante", "Tipo de cobrança", "Plano", "Mensalidade"]);
+    dados.addRow(["12.345.678/0001-90", "EMPRESA X", "Mensalidade", "M. Empresarial", 1000]);
+    const resumo = wb.addWorksheet("TABELAS");
+    resumo.addRow(["", "Soma de QTD", "Soma de Valor"]);
+    resumo.addRow(["Retroativo Julho/2026", 56, 813.68]);
+    resumo.addRow(["Total Geral", 56, 813.68]);
+    resumo.addRow(["", "Soma de QTD", "Soma de Valor"]);
+    resumo.addRow(["Retroativo  Agosto/2026", 54, 784.62]);
+    resumo.addRow(["Total Geral", 54, 784.62]);
+    resumo.addRow(["", "Soma de QTD", "Soma de Valor"]);
+    resumo.addRow(["Retroativo Setembro/2026", 54, 784.62]);
+    resumo.addRow(["Total Geral", 54, 784.62]);
+    resumo.addRow(["Valor Total Retroativo - Julho/2026 a Setembro/2026", "", 2382.92]);
+
+    const blocos = await analisarExcelFinanceiroPorCnpj(await workbookToBuffer(wb));
+
+    expect(blocos[0].retroativas?.total).toBeCloseTo(2382.92, 2);
+    expect(blocos[0].retroativas?.quantidade).toBe(164);
+  });
 });
