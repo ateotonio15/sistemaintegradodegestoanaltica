@@ -325,6 +325,7 @@ export default function Empresas() {
   const [prioridadeDialog, setPrioridadeDialog] = useState<{ open: boolean; empresa: Empresa | null; mode: "marcar" | "remover" }>({ open: false, empresa: null, mode: "marcar" });
   const [historicoPrioridade, setHistoricoPrioridade] = useState<Empresa | null>(null);
   const [deleteEmpresa, setDeleteEmpresa] = useState<Empresa | null>(null);
+  const [filtroSuspensao, setFiltroSuspensao] = useState<"todos" | "ativos" | "suspensos">("todos");
   const [filtroPrioridade, setFiltroPrioridade] = useState<"todas" | "somente" | "ativas" | "concluidas">("todas");
 
   const { data: usuarios = [] } = useQuery({
@@ -793,6 +794,8 @@ export default function Empresas() {
       .filter((e) => corretoraFilter === "all" || (e.operadora_plano ?? "").trim() === corretoraFilter)
       .filter((e) => executivaFilter === "all" || ((e as any).executiva_user_id ?? "") === executivaFilter)
       .filter((e) => {
+        if (filtroSuspensao === "ativos" && (e as any).contrato_suspenso) return false;
+        if (filtroSuspensao === "suspensos" && !(e as any).contrato_suspenso) return false;
         if (filtroPrioridade === "todas") return true;
         if (filtroPrioridade === "somente" || filtroPrioridade === "ativas") return !!(e as any).prioridade_maxima_id;
         if (filtroPrioridade === "concluidas") return !(e as any).prioridade_maxima_id;
@@ -808,7 +811,7 @@ export default function Empresas() {
         const pb = (b as any).prioridade_maxima_id ? 1 : 0;
         return pb - pa;
       });
-  }, [empresas, search, showInativas, isExecutivo, user, respFilter, corretoraFilter, executivaFilter, filtroPrioridade]);
+  }, [empresas, search, showInativas, isExecutivo, user, respFilter, corretoraFilter, executivaFilter, filtroPrioridade, filtroSuspensao]);
 
   async function exportarInativasExcel() {
     const inativas = empresas
@@ -1907,6 +1910,14 @@ export default function Empresas() {
               ))}
             </SelectContent>
           </Select>
+          <Select value={filtroSuspensao} onValueChange={(v) => setFiltroSuspensao(v as any)}>
+            <SelectTrigger className="rounded-lg w-[170px] bg-muted/40 border-border/60"><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="todos">Todos</SelectItem>
+              <SelectItem value="ativos">Ativos</SelectItem>
+              <SelectItem value="suspensos">Suspensos</SelectItem>
+            </SelectContent>
+          </Select>
           <Select value={filtroPrioridade} onValueChange={(v) => setFiltroPrioridade(v as any)}>
             <SelectTrigger className="rounded-lg w-[200px] bg-muted/40 border-border/60"><SelectValue placeholder="Prioridade" /></SelectTrigger>
             <SelectContent>
@@ -1995,6 +2006,15 @@ export default function Empresas() {
                                 {suspenso && <Ban className="h-4 w-4 text-muted-foreground shrink-0 mt-0.5" />}
                                 <span className="break-words">{e.nome}</span>
                               </div>
+                              {suspenso && (
+                                <span
+                                  className="inline-flex items-center gap-1 rounded-full border border-destructive/40 bg-destructive/10 px-2 py-0.5 text-[10px] font-medium text-destructive"
+                                  title={`Motivo: ${(e as any).motivo_suspensao || "—"}`}
+                                >
+                                  Contrato suspenso
+                                  {(e as any).data_suspensao && ` · desde ${formatDateBR((e as any).data_suspensao)}`}
+                                </span>
+                              )}
                               {(temPrioridade || faixa || (e as any).contrato_via_portal) && (
                                 <div className="flex items-center gap-1 flex-wrap">
                                   {temPrioridade && <PrioridadeBadge variant="compact" intense={isPrioridadeAlertaIntenso(e as any)} />}
