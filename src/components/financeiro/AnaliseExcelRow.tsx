@@ -52,6 +52,7 @@ interface Props {
   onGerarHistorico?: () => void;
   onGerarHistoricoCoparticipacao?: () => void;
   onGerarHistoricoComplemento?: () => void;
+  onGerarHistoricoRetroativo?: () => void;
   onGerarHistoricoAporte?: () => void;
   aporte?: { numero: number; total: number; valor: number } | null;
   contexto?: ContextoAnalise;
@@ -97,7 +98,7 @@ function ValorComCheck({
   );
 }
 
-export function AnaliseExcelRow({ colSpan, isLoading, resultados, comparacoes, onReanalisar, onGerarHistorico, onGerarHistoricoCoparticipacao, onGerarHistoricoComplemento, onGerarHistoricoAporte, aporte, contexto }: Props) {
+export function AnaliseExcelRow({ colSpan, isLoading, resultados, comparacoes, onReanalisar, onGerarHistorico, onGerarHistoricoCoparticipacao, onGerarHistoricoComplemento, onGerarHistoricoRetroativo, onGerarHistoricoAporte, aporte, contexto }: Props) {
   const { toast } = useToast();
   const [analiseCompletaOpen, setAnaliseCompletaOpen] = useState(false);
 
@@ -117,6 +118,9 @@ export function AnaliseExcelRow({ colSpan, isLoading, resultados, comparacoes, o
         (r.permuta && (r.permuta.quantidade > 0 || r.permuta.total !== 0)) ||
         (r.taxaAdesao && ((r.taxaAdesao.quantidade ?? 0) > 0 || (r.taxaAdesao.total ?? 0) > 0)),
     );
+
+  const temRetroativo =
+    !!resultados && resultados.some((r) => (r.retroativas?.total ?? 0) > 0);
 
   const temCoparticipacao =
     !!resultados && resultados.some((r) => (r.coparticipacao?.total ?? 0) > 0);
@@ -167,6 +171,18 @@ export function AnaliseExcelRow({ colSpan, isLoading, resultados, comparacoes, o
         >
           <FileText className="h-3 w-3" />
           Gerar Histórico
+        </Button>
+      )}
+      {onGerarHistoricoRetroativo && temRetroativo && (
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={onGerarHistoricoRetroativo}
+          className="h-7 gap-1.5 text-xs"
+          title="Gerar histórico dedicado para Excel de retroativos apartado da mensalidade"
+        >
+          <FileText className="h-3 w-3" />
+          Gerar Histórico Retroativo
         </Button>
       )}
       {onReanalisar && (
