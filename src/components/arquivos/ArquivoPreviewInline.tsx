@@ -18,6 +18,8 @@ import {
 import { supabase } from "@/integrations/supabase/client";
 import type { PDFDocumentProxy, RenderTask } from "pdfjs-dist";
 import { cn } from "@/lib/utils";
+import { analisarExcelFinanceiroPorCnpj, type AnalisePorCnpj } from "@/lib/excel-analysis-utils";
+import { ResumoFaturamentoArquivo } from "./ResumoFaturamentoArquivo";
 
 pdfjsLib.GlobalWorkerOptions.workerSrc = pdfWorkerUrl;
 
@@ -27,6 +29,7 @@ pdfjsLib.GlobalWorkerOptions.workerSrc = pdfWorkerUrl;
 const blobCache = new Map<string, Promise<Blob>>();
 const signedUrlCache = new Map<string, Promise<string>>();
 const parsedExcelCache = new Map<string, SheetData[]>();
+const resumoExcelCache = new Map<string, Promise<AnalisePorCnpj[]>>();
 // Cache de PDFs já carregados — reabrir o mesmo PDF é praticamente instantâneo
 const pdfDocCache = new Map<string, Promise<PDFDocumentProxy>>();
 
@@ -126,7 +129,7 @@ function parseCell(rawValue: any, cell: any, rowOutline: number): ExcelCell {
   const bold = !!cell?.font?.bold;
   const indent = Math.max(rowOutline, cell?.alignment?.indent ?? 0);
   return {
-    text: isNumber ? formatNumberBR(numeric!) : cellToString(rawValue),
+    text: numeric !== null ? formatNumberBR(numeric) : cellToString(rawValue),
     isNumber,
     bold,
     indent,
@@ -150,6 +153,9 @@ export function ArquivoPreviewInline({ bucket, storagePath, nomeArquivo, mimeTyp
   const [error, setError] = useState<string | null>(null);
   const [sheets, setSheets] = useState<SheetData[] | null>(null);
   const [activeSheet, setActiveSheet] = useState(0);
+  const [resumo, setResumo] = useState<AnalisePorCnpj[]>([]);
+  const [loadingResumo, setLoadingResumo] = useState(false);
+  const [mostrarOriginal, setMostrarOriginal] = useState(false);
   const [imageUrl, setImageUrl] = useState<string | null>(null);
   const [manualZoom, setManualZoom] = useState(false);
   const [fullscreen, setFullscreen] = useState(false);
@@ -183,6 +189,9 @@ export function ArquivoPreviewInline({ bucket, storagePath, nomeArquivo, mimeTyp
       // Só limpa sheets se for outro arquivo Excel
       if (!isExcel || !parsedExcelCache.has(cacheKey)) setSheets(null);
       setActiveSheet(0);
+      setResumo([]);
+      setLoadingResumo(false);
+      setMostrarOriginal(false);
       setImageUrl(null);
 
       try {
@@ -274,6 +283,22 @@ export function ArquivoPreviewInline({ bucket, storagePath, nomeArquivo, mimeTyp
             const idx = list.findIndex((s) => /resumo/i.test(s.name));
             return idx >= 0 ? idx : 0;
           });
+          if ((parsedExcelCache.get(cacheKey) ?? []).some((s) => /resumo/i.test(s.name))) {
+            setLoadingResumo(true);
+            let promise = resumoExcelCache.get(cacheKey);
+            if (!promise) {
+              promise = getBlob(bucket, storagePath)
+                .then((b) => b.arrayBuffer())
+                .then(analisarExcelFinanceiroPorCnpj)
+                .catch(() => { resumoExcelCache.delete(cacheKey); return []; });
+              resumoExcelCache.set(cacheKey, promise);
+            }
+            void promise.then((resultados) => {
+              if (cancelled) return;
+              setResumo(resultados.filter((r) => r.enfermaria.beneficiarios > 0 || r.apartamento.beneficiarios > 0 || r.enfermaria.total !== 0 || r.apartamento.total !== 0));
+              setLoadingResumo(false);
+            });
+          }
         } else if (isImage) {
           const blob = await getBlob(bucket, storagePath);
           if (cancelled) return;
@@ -527,7 +552,19 @@ export function ArquivoPreviewInline({ bucket, storagePath, nomeArquivo, mimeTyp
                     ))}
                   </div>
                 )}
-                <ExcelSheetView sheet={currentSheet} />
+                {/resumo/i.test(currentSheet.name) && (loadingResumo || resumo.length > 0) && (
+                  <div className="flex items-center justify-between gap-2 border-b border-border px-3 py-2 shrink-0">
+                    <span className="text-xs font-medium text-muted-foreground">Resumo do faturamento</span>
+                    {loadingResumo ? <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" /> : (
+                      <Button variant="outline" size="sm" className="h-7 text-xs" onClick={() => setMostrarOriginal((v) => !v)}>
+                        {mostrarOriginal ? "Ver resumo do faturamento" : "Ver planilha original"}
+                      </Button>
+                    )}
+                  </div>
+                )}
+                {/resumo/i.test(currentSheet.name) && resumo.length > 0 && !mostrarOriginal ? (
+                  <div className="flex-1 min-h-0 overflow-auto"><ResumoFaturamentoArquivo resultados={resumo} /></div>
+                ) : <ExcelSheetView sheet={currentSheet} />}
               </div>
             )}
           </>
