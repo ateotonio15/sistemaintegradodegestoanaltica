@@ -138,3 +138,20 @@ describe("análise financeira Jabil", () => {
     expect(blocos[0].retroativas?.quantidade).toBe(164);
   });
 });
+describe("retroativo com rótulo digitado errado", () => {
+  it("lê Julho26, 'Reatroativo Agosto26' e Setembro26 com o mesmo valor", async () => {
+    const wb = new ExcelJS.Workbook();
+    const dados = wb.addWorksheet("RELATORIO BENEFICIARIOS");
+    dados.addRow(["CNPJ", "Subestipulante", "Tipo de cobrança", "Plano", "Mensalidade"]);
+    dados.addRow(["12.345.678/0001-90", "TRANSPORTES BERTOLIN", "Mensalidade", "M. Empresarial", 18227.43]);
+    const r = wb.addWorksheet("TABELAS");
+    for (const l of ["Retroativo Julho26", "Reatroativo Agosto26", "Retroativo Setembro26"]) {
+      r.addRow(["Rótulos de Linha", "Soma de QTD", "Soma de Valor"]);
+      r.addRow([l, 9, 8651.43]);
+      r.addRow(["Total Geral", 9, 8651.43]);
+    }
+    const blocos = await analisarExcelFinanceiroPorCnpj((await wb.xlsx.writeBuffer()) as ArrayBuffer);
+    expect(blocos[0].retroativas?.total).toBeCloseTo(25954.29, 2);
+    expect(blocos[0].retroativas?.quantidade).toBe(27);
+  });
+});

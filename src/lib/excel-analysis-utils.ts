@@ -2335,7 +2335,7 @@ export async function analisarExcelFinanceiroPorCnpj(
         const t = norm(r[c]);
         // "Cobrança Retroativa <Mês>" ou "Retroativo <Mês>/<Ano>" (sem a palavra "cobrança").
         // Ignora linhas de total consolidado ("Valor Total Retroativo - ...").
-        const ehRetroMes = /^retroativ[oa]s?\b/.test(t) && !t.includes("total") && extrairMes(String(r[c] ?? "")) !== null;
+        const ehRetroMes = /^r[ea]{0,2}troativ[oa]s?/.test(t) && !t.includes("total") && extrairMes(String(r[c] ?? "")) !== null;
         if (t.includes("cobranca retroativa") || ehRetroMes) { hitIdx = c; hitLabel = String(r[c] ?? ""); break; }
       }
       if (hitIdx < 0) continue;
