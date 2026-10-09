@@ -67,10 +67,10 @@ interface Props {
   expandedRowId: string | null;
   onToggleExpand: (row: FinanceiroRow) => void;
   onReanalisar?: (row: FinanceiroRow) => void;
-  onGerarHistorico?: (row: FinanceiroRow) => void;
-  onGerarHistoricoCoparticipacao?: (row: FinanceiroRow) => void;
-  onGerarHistoricoComplemento?: (row: FinanceiroRow) => void;
-  onGerarHistoricoRetroativo?: (row: FinanceiroRow) => void;
+  onGerarHistorico?: (row: FinanceiroRow, indice?: number) => void;
+  onGerarHistoricoCoparticipacao?: (row: FinanceiroRow, indice?: number) => void;
+  onGerarHistoricoComplemento?: (row: FinanceiroRow, indice?: number) => void;
+  onGerarHistoricoRetroativo?: (row: FinanceiroRow, indice?: number) => void;
   onGerarHistoricoAporte?: (row: FinanceiroRow) => void;
   analiseResultados: Record<string, AnaliseResultado[]>;
   analiseLoading: Record<string, boolean>;
@@ -522,10 +522,10 @@ export function FinanceiroTable({
                       resultados={analiseResultados[rowKey] ?? analiseResultados[row.id] ?? null}
                       comparacoes={analiseComparacoes?.[rowKey] ?? analiseComparacoes?.[row.id] ?? null}
                       onReanalisar={onReanalisar ? () => onReanalisar(row) : undefined}
-                      onGerarHistorico={onGerarHistorico ? () => onGerarHistorico(row) : undefined}
-                      onGerarHistoricoCoparticipacao={onGerarHistoricoCoparticipacao ? () => onGerarHistoricoCoparticipacao(row) : undefined}
-                      onGerarHistoricoComplemento={onGerarHistoricoComplemento ? () => onGerarHistoricoComplemento(row) : undefined}
-                      onGerarHistoricoRetroativo={onGerarHistoricoRetroativo ? () => onGerarHistoricoRetroativo(row) : undefined}
+                      onGerarHistorico={onGerarHistorico ? (indice) => onGerarHistorico(row, indice) : undefined}
+                      onGerarHistoricoCoparticipacao={onGerarHistoricoCoparticipacao ? (indice) => onGerarHistoricoCoparticipacao(row, indice) : undefined}
+                      onGerarHistoricoComplemento={onGerarHistoricoComplemento ? (indice) => onGerarHistoricoComplemento(row, indice) : undefined}
+                      onGerarHistoricoRetroativo={onGerarHistoricoRetroativo ? (indice) => onGerarHistoricoRetroativo(row, indice) : undefined}
                       onGerarHistoricoAporte={onGerarHistoricoAporte ? () => onGerarHistoricoAporte(row) : undefined}
                       aporte={row.aporte ?? null}
                       contexto={{

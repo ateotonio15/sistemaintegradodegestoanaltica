@@ -35,6 +35,7 @@ import { HistoricoAnalisesDialog } from "@/components/financeiro/HistoricoAnalis
 import { RegrasEmpresariaisDialog } from "@/components/financeiro/RegrasEmpresariaisDialog";
 import { getForceGroupByNamePatterns } from "@/lib/regras-empresariais";
 import { periodoDaDataCorte, isPrioridadeAlertaIntenso } from "@/lib/movimentacao-utils";
+import { selecionarResultadoHistorico } from "@/lib/financeiro-apresentacao";
 import { aplicarOffsetCompetencia } from "@/lib/historico-utils";
 import { identificarContratoDoAnexo, type ContratoAlvo } from "@/lib/anexo-contrato-match";
 import { formatDateBR, calcularPeriodoCobranca, formatPeriodoCobranca } from "@/lib/date-utils";
@@ -118,6 +119,10 @@ export default function Financeiro() {
   }>>(new Map());
   const [historicoOpen, setHistoricoOpen] = useState(false);
   const [regrasEmpresariaisOpen, setRegrasEmpresariaisOpen] = useState(false);
+  const [historicoIndice, setHistoricoIndice] = useState<number | undefined>();
+  const [historicoCopIndice, setHistoricoCopIndice] = useState<number | undefined>();
+  const [historicoCompIndice, setHistoricoCompIndice] = useState<number | undefined>();
+  const [historicoRetroIndice, setHistoricoRetroIndice] = useState<number | undefined>();
   const [historicoRow, setHistoricoRow] = useState<FinanceiroRow | null>(null);
   const [historicoDialogOpen, setHistoricoDialogOpen] = useState(false);
   const [historicoCopRow, setHistoricoCopRow] = useState<FinanceiroRow | null>(null);
@@ -1740,12 +1745,14 @@ export default function Financeiro() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [expandedRowId, anexosMap]);
 
-  const handleGerarHistorico = (row: FinanceiroRow) => {
+  const handleGerarHistorico = (row: FinanceiroRow, indice?: number) => {
+    setHistoricoIndice(indice);
     setHistoricoRow(row);
     setHistoricoDialogOpen(true);
   };
 
-  const handleGerarHistoricoCoparticipacao = (row: FinanceiroRow) => {
+  const handleGerarHistoricoCoparticipacao = (row: FinanceiroRow, indice?: number) => {
+    setHistoricoCopIndice(indice);
     setHistoricoCopRow(row);
     setHistoricoCopDialogOpen(true);
   };
@@ -1759,12 +1766,14 @@ export default function Financeiro() {
 
   const [historicoRetroRow, setHistoricoRetroRow] = useState<FinanceiroRow | null>(null);
   const [historicoRetroDialogOpen, setHistoricoRetroDialogOpen] = useState(false);
-  const handleGerarHistoricoRetroativo = (row: FinanceiroRow) => {
+  const handleGerarHistoricoRetroativo = (row: FinanceiroRow, indice?: number) => {
+    setHistoricoRetroIndice(indice);
     setHistoricoRetroRow(row);
     setHistoricoRetroDialogOpen(true);
   };
 
-  const handleGerarHistoricoComplemento = (row: FinanceiroRow) => {
+  const handleGerarHistoricoComplemento = (row: FinanceiroRow, indice?: number) => {
+    setHistoricoCompIndice(indice);
     setHistoricoCompRow(row);
     setHistoricoCompDialogOpen(true);
   };
@@ -3248,7 +3257,8 @@ export default function Financeiro() {
             open={historicoDialogOpen}
             onOpenChange={setHistoricoDialogOpen}
             row={historicoRow}
-            resultados={historicoRow ? (analiseResultados[historicoRow.rowKey ?? historicoRow.id] ?? analiseResultados[historicoRow.id] ?? null) : null}
+            resultados={selecionarResultadoHistorico(historicoRow ? (analiseResultados[historicoRow.rowKey ?? historicoRow.id] ?? analiseResultados[historicoRow.id] ?? null) : null, historicoIndice)}
+            individual={historicoIndice !== undefined}
             anexosNomes={historicoRow ? ((anexosMap[historicoRow.id] || []).map((a: any) => a.nome_arquivo).filter(Boolean) as string[]) : []}
           />
         )}
@@ -3258,7 +3268,7 @@ export default function Financeiro() {
             open={historicoCopDialogOpen}
             onOpenChange={setHistoricoCopDialogOpen}
             row={historicoCopRow}
-            resultados={historicoCopRow ? (analiseResultados[historicoCopRow.rowKey ?? historicoCopRow.id] ?? analiseResultados[historicoCopRow.id] ?? null) : null}
+            resultados={selecionarResultadoHistorico(historicoCopRow ? (analiseResultados[historicoCopRow.rowKey ?? historicoCopRow.id] ?? analiseResultados[historicoCopRow.id] ?? null) : null, historicoCopIndice)}
             anexosNomes={historicoCopRow ? ((anexosMap[historicoCopRow.id] || []).map((a: any) => a.nome_arquivo).filter(Boolean) as string[]) : []}
             modo="coparticipacao"
           />
@@ -3269,7 +3279,7 @@ export default function Financeiro() {
             open={historicoCompDialogOpen}
             onOpenChange={setHistoricoCompDialogOpen}
             row={historicoCompRow}
-            resultados={historicoCompRow ? (analiseResultados[historicoCompRow.rowKey ?? historicoCompRow.id] ?? analiseResultados[historicoCompRow.id] ?? null) : null}
+            resultados={selecionarResultadoHistorico(historicoCompRow ? (analiseResultados[historicoCompRow.rowKey ?? historicoCompRow.id] ?? analiseResultados[historicoCompRow.id] ?? null) : null, historicoCompIndice)}
             anexosNomes={historicoCompRow ? ((anexosMap[historicoCompRow.id] || []).map((a: any) => a.nome_arquivo).filter(Boolean) as string[]) : []}
             modo="complemento"
           />
@@ -3291,7 +3301,7 @@ export default function Financeiro() {
             open={historicoRetroDialogOpen}
             onOpenChange={setHistoricoRetroDialogOpen}
             row={historicoRetroRow}
-            resultados={historicoRetroRow ? (analiseResultados[historicoRetroRow.rowKey ?? historicoRetroRow.id] ?? analiseResultados[historicoRetroRow.id] ?? null) : null}
+            resultados={selecionarResultadoHistorico(historicoRetroRow ? (analiseResultados[historicoRetroRow.rowKey ?? historicoRetroRow.id] ?? analiseResultados[historicoRetroRow.id] ?? null) : null, historicoRetroIndice)}
             anexosNomes={historicoRetroRow ? ((anexosMap[historicoRetroRow.id] || []).map((a: any) => a.nome_arquivo).filter(Boolean) as string[]) : []}
             modo="retroativo"
           />
