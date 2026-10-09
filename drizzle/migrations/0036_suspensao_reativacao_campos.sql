@@ -1,0 +1,1 @@
+ALTER TABLE public.empresa_suspensoes ADD COLUMN IF NOT EXISTS observacao_reativacao text, ADD COLUMN IF NOT EXISTS reativado_em timestamptz;

@@ -2067,6 +2067,8 @@ export type Database = {
           id: string
           motivo: string
           observacao: string | null
+          observacao_reativacao: string | null
+          reativado_em: string | null
           reativado_por: string | null
           suspenso_por: string | null
           updated_at: string
@@ -2079,6 +2081,8 @@ export type Database = {
           id?: string
           motivo: string
           observacao?: string | null
+          observacao_reativacao?: string | null
+          reativado_em?: string | null
           reativado_por?: string | null
           suspenso_por?: string | null
           updated_at?: string
@@ -2091,6 +2095,8 @@ export type Database = {
           id?: string
           motivo?: string
           observacao?: string | null
+          observacao_reativacao?: string | null
+          reativado_em?: string | null
           reativado_por?: string | null
           suspenso_por?: string | null
           updated_at?: string
