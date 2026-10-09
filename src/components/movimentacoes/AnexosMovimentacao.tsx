@@ -72,16 +72,24 @@ export function AnexosMovimentacao({ movimentacaoId, empresaId, required, onCoun
 
     setUploading(true);
     try {
-      // Grupo Financeiro: identificar pelo nome do arquivo a qual contrato o anexo pertence
+      // Grupo Financeiro (empresarial) ou Administradora: identificar pelo nome do arquivo o contrato
       let alvos: ContratoAlvo[] = [];
       let movAtual: { mes_referencia: string; periodo: string | null } | null = null;
-      if (grupoInfo?.grupoId && (grupoInfo.empresas?.length ?? 0) > 1) {
+      const { data: empAtual } = await supabase
+        .from("empresas").select("tipo_contrato").eq("id", empresaId).maybeSingle();
+      const ehAdministradora = (empAtual as any)?.tipo_contrato === "ADMINISTRADORA";
+      let emps: any[] | null = null;
+      if (ehAdministradora) {
+        const { data } = await supabase.from("empresas").select("id, nome, codigo_contrato, cnpj").eq("tipo_contrato", "ADMINISTRADORA");
+        emps = data as any[];
+      } else if (grupoInfo?.grupoId && (grupoInfo.empresas?.length ?? 0) > 1) {
         const ids = grupoInfo.empresas.map((e) => e.empresa_id);
-        const [{ data: emps }, { data: mv }] = await Promise.all([
-          supabase.from("empresas").select("id, nome, codigo_contrato, cnpj").in("id", ids),
-          supabase.from("movimentacoes").select("mes_referencia, periodo").eq("id", movimentacaoId).maybeSingle(),
-        ]);
-        alvos = ((emps as any[]) ?? []).map((e) => ({
+        const { data } = await supabase.from("empresas").select("id, nome, codigo_contrato, cnpj").in("id", ids);
+        emps = data as any[];
+      }
+      if (emps?.length) {
+        const { data: mv } = await supabase.from("movimentacoes").select("mes_referencia, periodo").eq("id", movimentacaoId).maybeSingle();
+        alvos = emps.map((e) => ({
           empresaId: e.id, nome: e.nome, codigo: e.codigo_contrato, cnpj: e.cnpj,
         }));
         movAtual = (mv as any) ?? null;
