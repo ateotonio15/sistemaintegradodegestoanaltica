@@ -18,6 +18,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { formatDateBR, todayLocalISO } from "@/lib/date-utils";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { Ban, RotateCcw, AlertCircle } from "lucide-react";
 
 const MOTIVOS = [
@@ -81,6 +82,20 @@ export function SuspensaoDialog({ open, onOpenChange, empresa }: Props) {
       return data;
     },
     enabled: !!empresa && open,
+  });
+
+  const userIds = Array.from(
+    new Set(historico.flatMap((h: any) => [h.suspenso_por, h.reativado_por]).filter(Boolean)),
+  ) as string[];
+  const { data: nomes = {} } = useQuery({
+    queryKey: ["suspensoes-nomes", userIds],
+    enabled: userIds.length > 0,
+    queryFn: async () => {
+      const { data } = await supabase.rpc("get_user_display_names", { _ids: userIds });
+      const map: Record<string, string> = {};
+      (data ?? []).forEach((u: any) => (map[u.user_id] = u.display_name));
+      return map;
+    },
   });
 
   const suspender = useMutation({
@@ -240,31 +255,70 @@ export function SuspensaoDialog({ open, onOpenChange, empresa }: Props) {
             <h4 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">
               Histórico de Suspensões
             </h4>
-            <div className="space-y-2 max-h-56 overflow-y-auto pr-1">
-              {historico.map((h: any) => (
-                <div
-                  key={h.id}
-                  className="rounded-lg border p-3 bg-card"
-                >
-                  <div className="flex items-center justify-between gap-2 mb-1">
-                    <Badge variant={h.data_fim ? "secondary" : "destructive"} className="rounded-md">
-                      {h.data_fim ? "Encerrada" : "Em vigor"}
-                    </Badge>
-                    <span className="text-xs text-muted-foreground">
-                      {formatDateBR(h.data_inicio)}
-                      {h.data_fim ? ` → ${formatDateBR(h.data_fim)}` : " → ..."}
-                    </span>
-                  </div>
-                  <p className="text-sm font-medium">{h.motivo}</p>
-                  {h.observacao && (
-                    <p className="text-xs text-muted-foreground mt-1">{h.observacao}</p>
-                  )}
-                  {h.observacao_reativacao && (
-                    <p className="text-xs text-muted-foreground mt-1">Reativação: {h.observacao_reativacao}</p>
-                  )}
-                </div>
-              ))}
+            <div className="rounded-lg border p-3 text-sm grid grid-cols-[auto,1fr] gap-x-3 gap-y-1 bg-muted/30">
+              <span className="text-muted-foreground">Suspensões registradas:</span>
+              <span className="font-medium">{historico.length}</span>
+              <span className="text-muted-foreground">Situação atual:</span>
+              <span className={isSuspenso ? "font-medium text-destructive" : "font-medium text-success"}>
+                {isSuspenso ? `Suspenso desde ${formatDateBR(empresa.data_suspensao)}` : "Ativo"}
+              </span>
             </div>
+            <Accordion
+              type="multiple"
+              defaultValue={historico.filter((h: any) => !h.data_fim).map((h: any) => h.id)}
+              className="space-y-2 max-h-72 overflow-y-auto pr-1"
+            >
+              {historico.map((h: any, idx: number) => {
+                const num = historico.length - idx;
+                const emVigor = !h.data_fim;
+                const dias = h.data_fim
+                  ? Math.round(
+                      (new Date(h.data_fim + "T00:00:00").getTime() - new Date(h.data_inicio + "T00:00:00").getTime()) / 86400000,
+                    )
+                  : null;
+                return (
+                  <AccordionItem
+                    key={h.id}
+                    value={h.id}
+                    className={emVigor ? "rounded-lg border border-destructive/40 bg-destructive/5 px-3" : "rounded-lg border bg-card px-3"}
+                  >
+                    <AccordionTrigger className="py-2 text-sm hover:no-underline">
+                      <span className="flex items-center gap-2">
+                        <span className="font-medium">Suspensão #{num}</span>
+                        <span className="text-xs text-muted-foreground">
+                          {emVigor ? "Suspensão atual" : `de ${formatDateBR(h.data_inicio)}`}
+                        </span>
+                        <Badge variant={emVigor ? "destructive" : "secondary"} className="rounded-md">
+                          {emVigor ? "Em vigor" : "Encerrada"}
+                        </Badge>
+                      </span>
+                    </AccordionTrigger>
+                    <AccordionContent>
+                      <div className="text-xs grid grid-cols-[auto,1fr] gap-x-3 gap-y-1 pb-1">
+                        <span className="text-muted-foreground">Suspensão:</span><span>{formatDateBR(h.data_inicio)}</span>
+                        {!emVigor && (
+                          <>
+                            <span className="text-muted-foreground">Reativação:</span><span>{formatDateBR(h.data_fim)}</span>
+                            <span className="text-muted-foreground">Período suspenso:</span><span>{dias} {dias === 1 ? "dia" : "dias"}</span>
+                          </>
+                        )}
+                        <span className="text-muted-foreground">Motivo:</span><span>{h.motivo}</span>
+                        <span className="text-muted-foreground">Suspenso por:</span><span>{nomes[h.suspenso_por] || "—"}</span>
+                        <span className="text-muted-foreground">Registrado em:</span><span>{new Date(h.created_at).toLocaleString("pt-BR")}</span>
+                        {h.observacao && (<><span className="text-muted-foreground">Observação:</span><span>{h.observacao}</span></>)}
+                        {!emVigor && (
+                          <>
+                            <span className="text-muted-foreground">Reativado por:</span><span>{nomes[h.reativado_por] || "—"}</span>
+                            {h.reativado_em && (<><span className="text-muted-foreground">Reativado em:</span><span>{new Date(h.reativado_em).toLocaleString("pt-BR")}</span></>)}
+                            {h.observacao_reativacao && (<><span className="text-muted-foreground">Obs. reativação:</span><span>{h.observacao_reativacao}</span></>)}
+                          </>
+                        )}
+                      </div>
+                    </AccordionContent>
+                  </AccordionItem>
+                );
+              })}
+            </Accordion>
           </div>
         )}
 

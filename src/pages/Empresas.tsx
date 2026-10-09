@@ -749,6 +749,18 @@ export default function Empresas() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [editarParam, isLoading, empresas]);
 
+  // Abre detalhes via ?ver=<empresa_id> (ex.: alerta global de contratos suspensos)
+  const verParam = searchParams.get("ver");
+  useEffect(() => {
+    if (!verParam || isLoading) return;
+    const alvo = empresas.find((x) => x.id === verParam);
+    if (alvo) setDetailEmpresa(alvo);
+    const next = new URLSearchParams(searchParams);
+    next.delete("ver");
+    setSearchParams(next, { replace: true });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [verParam, isLoading, empresas]);
+
   const getResponsavelName = (empresa: Empresa) => {
     const userId = (empresa as any).responsavel_user_id;
     if (userId) {

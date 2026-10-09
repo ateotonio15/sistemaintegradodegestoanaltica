@@ -3,6 +3,9 @@ import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { Ban } from "lucide-react";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Button } from "@/components/ui/button";
+import { formatDateBR } from "@/lib/date-utils";
 
 export function SuspensaoBanner() {
   const { user } = useAuth();
@@ -13,7 +16,7 @@ export function SuspensaoBanner() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("empresas")
-        .select("id, nome, motivo_suspensao, data_suspensao")
+        .select("id, nome, codigo_contrato, motivo_suspensao, data_suspensao")
         .eq("contrato_suspenso", true)
         .order("data_suspensao", { ascending: false });
       if (error) throw error;
@@ -24,30 +27,42 @@ export function SuspensaoBanner() {
 
   if (suspensas.length === 0) return null;
 
-  const first = suspensas[0];
-  const more = suspensas.length - 1;
+  const label =
+    suspensas.length === 1
+      ? `⛔ Contrato suspenso: ${suspensas[0].nome}`
+      : `⛔ ${suspensas.length} contratos suspensos`;
 
   return (
-    <button
-      onClick={() => navigate("/empresas")}
-      className="w-full text-left rounded-xl border border-muted-foreground/30 bg-muted/60 hover:bg-muted transition-colors p-3 flex items-center gap-3"
-    >
-      <div className="h-9 w-9 rounded-lg bg-muted-foreground/20 flex items-center justify-center shrink-0">
-        <Ban className="h-4 w-4 text-muted-foreground" />
-      </div>
-      <div className="flex-1 min-w-0">
-        <p className="text-sm font-semibold text-foreground">
-          ⛔ Contrato suspenso: {first.nome}
-          {more > 0 && (
-            <span className="ml-1 text-muted-foreground font-normal">
-              (+{more} {more === 1 ? "outra" : "outras"})
-            </span>
-          )}
-        </p>
-        <p className="text-xs text-muted-foreground truncate">
-          Motivo: {first.motivo_suspensao || "—"}
-        </p>
-      </div>
-    </button>
+    <Popover>
+      <PopoverTrigger asChild>
+        <button className="inline-flex max-w-full items-center gap-2 rounded-full border border-destructive/40 bg-destructive/10 px-3 py-1 text-xs font-medium text-destructive hover:bg-destructive/15 transition-colors">
+          <Ban className="h-3.5 w-3.5 shrink-0" />
+          <span className="truncate">{label.replace("⛔ ", "")}</span>
+        </button>
+      </PopoverTrigger>
+      <PopoverContent align="start" className="w-80 p-0">
+        <div className="px-3 py-2 border-b text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+          Contratos suspensos
+        </div>
+        <div className="max-h-80 overflow-y-auto divide-y">
+          {suspensas.map((s) => (
+            <div key={s.id} className="p-3 space-y-0.5 text-sm">
+              <p className="font-medium">{s.nome}</p>
+              <p className="text-xs text-muted-foreground">Contrato {s.codigo_contrato || "—"}</p>
+              <p className="text-xs text-muted-foreground">Suspenso desde: {formatDateBR(s.data_suspensao)}</p>
+              <p className="text-xs text-muted-foreground">Motivo: {s.motivo_suspensao || "—"}</p>
+              <Button
+                size="sm"
+                variant="outline"
+                className="mt-1 h-7 text-xs"
+                onClick={() => navigate(`/empresas?ver=${s.id}`)}
+              >
+                Ver empresa
+              </Button>
+            </div>
+          ))}
+        </div>
+      </PopoverContent>
+    </Popover>
   );
 }
