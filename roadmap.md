@@ -1,8 +1,8 @@
 # Roadmap
 
 ## Apresentação das cobranças
-- [ ] Histórico individual por análise/pagador, mensalidade primeiro e retroativos mensais abaixo.
-- [ ] Validar geração individual sem alterar leitura, valores ou arquivos.
+- [x] Histórico individual por análise/pagador, mensalidade primeiro e retroativos mensais abaixo.
+- [x] Validar geração individual sem alterar leitura, valores ou arquivos (14 testes; dois botões conferidos na ELGIN em setembro).
 
 - [x] Retirar o gráfico “Distribuição por status” do Dashboard Diretoria.
 - [x] Mostrar em “Desempenho por executiva” somente executivas avaliadas, sem responsáveis do cadastro.
