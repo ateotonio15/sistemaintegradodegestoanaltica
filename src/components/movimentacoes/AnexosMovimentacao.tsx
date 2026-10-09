@@ -167,7 +167,10 @@ export function AnexosMovimentacao({ movimentacaoId, empresaId, required, onCoun
           }
         }
       }
-      queryClient.invalidateQueries({ queryKey: ["anexos-movimentacao-grupo", movimentacaoId] });
+      queryClient.invalidateQueries({ queryKey: ["anexos-movimentacao-grupo"] });
+      if (redirecionados.length) {
+        toast.info(`Anexo direcionado pelo código do contrato:\n${redirecionados.join("\n")}`, { duration: 8000 });
+      }
       onAttachmentsChange?.();
       toast.success(files.length > 1 ? `${files.length} arquivos enviados` : "Arquivo enviado");
     } catch (err: any) {
