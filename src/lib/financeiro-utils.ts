@@ -43,6 +43,7 @@ export function isXlsAnexo(a: { mime_type?: string | null; nome_arquivo?: string
     mime.includes("excel") ||
     mime === "text/csv" ||
     nome.endsWith(".xlsx") ||
+    nome.endsWith(".xlsm") ||
     nome.endsWith(".xls") ||
     nome.endsWith(".csv")
   );
@@ -216,10 +217,11 @@ export function buildStoragePath(
   return `${empresaId}/${movimentacaoId}/${uuid}.${ext}`;
 }
 
-export const ACCEPTED_FILE_TYPES = ".pdf,.xlsx,.xls,.csv";
+export const ACCEPTED_FILE_TYPES = ".pdf,.xlsx,.xlsm,.xls,.csv";
 export const ACCEPTED_MIME_TYPES = [
   "application/pdf",
   "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+  "application/vnd.ms-excel.sheet.macroEnabled.12",
   "application/vnd.ms-excel",
   "text/csv",
 ];
