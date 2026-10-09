@@ -139,7 +139,7 @@ describe("análise financeira Jabil", () => {
   });
 });
 describe("retroativo com rótulo digitado errado", () => {
-  it("lê Julho26, 'Reatroativo Agosto26' e Setembro26 com o mesmo valor", async () => {
+  it("não soma 'Reatroativo Agosto26' e avisa o erro de digitação", async () => {
     const wb = new ExcelJS.Workbook();
     const dados = wb.addWorksheet("RELATORIO BENEFICIARIOS");
     dados.addRow(["CNPJ", "Subestipulante", "Tipo de cobrança", "Plano", "Mensalidade"]);
@@ -151,7 +151,7 @@ describe("retroativo com rótulo digitado errado", () => {
       r.addRow(["Total Geral", 9, 8651.43]);
     }
     const blocos = await analisarExcelFinanceiroPorCnpj((await wb.xlsx.writeBuffer()) as ArrayBuffer);
-    expect(blocos[0].retroativas?.total).toBeCloseTo(25954.29, 2);
-    expect(blocos[0].retroativas?.quantidade).toBe(27);
+    expect(blocos[0].retroativas?.total).toBeCloseTo(17302.86, 2);
+    expect(blocos[0].avisos.some((a) => a.includes("Reatroativo Agosto26") && a.includes("Erro de digitação"))).toBe(true);
   });
 });
