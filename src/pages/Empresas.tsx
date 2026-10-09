@@ -2475,7 +2475,7 @@ export default function Empresas() {
                   )}
                 </>
               )}
-              {isAdmin && detailEmpresa && (
+              {isComumLike && detailEmpresa && (
                 <Button
                   variant={(detailEmpresa as any).contrato_suspenso ? "default" : "secondary"}
                   className="rounded-lg gap-2"
