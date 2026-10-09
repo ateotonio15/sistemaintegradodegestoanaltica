@@ -17,7 +17,17 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { formatDateBR, todayLocalISO } from "@/lib/date-utils";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Ban, RotateCcw, AlertCircle } from "lucide-react";
+
+const MOTIVOS = [
+  "Inadimplência",
+  "Solicitação da empresa",
+  "Pendência contratual",
+  "Pendência documental",
+  "Determinação administrativa",
+  "Outros",
+];
 
 interface Props {
   open: boolean;
@@ -28,6 +38,7 @@ interface Props {
     contrato_suspenso: boolean;
     data_suspensao: string | null;
     motivo_suspensao: string | null;
+    codigo_contrato?: string | null;
   } | null;
 }
 
@@ -37,9 +48,20 @@ export function SuspensaoDialog({ open, onOpenChange, empresa }: Props) {
   const [motivo, setMotivo] = useState("");
   const [observacao, setObservacao] = useState("");
   const [data, setData] = useState(todayLocalISO());
+  const [motivoSel, setMotivoSel] = useState("");
+  const [motivoOutro, setMotivoOutro] = useState("");
+  const [confirmando, setConfirmando] = useState(false);
+
+  useEffect(() => {
+    if (motivoSel === "Outros") setMotivo(motivoOutro);
+    else setMotivo(motivoSel);
+  }, [motivoSel, motivoOutro]);
 
   useEffect(() => {
     if (open) {
+      setMotivoSel("");
+      setMotivoOutro("");
+      setConfirmando(false);
       setMotivo("");
       setObservacao("");
       setData(todayLocalISO());
@@ -102,6 +124,8 @@ export function SuspensaoDialog({ open, onOpenChange, empresa }: Props) {
           .update({
             data_fim: data,
             reativado_por: user?.id ?? null,
+            reativado_em: new Date().toISOString(),
+            observacao_reativacao: observacao.trim() || null,
           })
           .eq("id", aberta.id);
         if (e1) throw e1;
@@ -166,12 +190,19 @@ export function SuspensaoDialog({ open, onOpenChange, empresa }: Props) {
             <>
               <div className="space-y-1.5">
                 <Label htmlFor="motivo_susp">Motivo *</Label>
-                <Input
-                  id="motivo_susp"
-                  value={motivo}
-                  onChange={(e) => setMotivo(e.target.value)}
-                  placeholder="Ex: Inadimplência"
-                />
+                <Select value={motivoSel} onValueChange={setMotivoSel}>
+                  <SelectTrigger id="motivo_susp"><SelectValue placeholder="Selecione o motivo" /></SelectTrigger>
+                  <SelectContent>
+                    {MOTIVOS.map((m) => <SelectItem key={m} value={m}>{m}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+                {motivoSel === "Outros" && (
+                  <Input
+                    value={motivoOutro}
+                    onChange={(e) => setMotivoOutro(e.target.value)}
+                    placeholder="Informe o motivo"
+                  />
+                )}
               </div>
               <div className="space-y-1.5">
                 <Label htmlFor="obs_susp">Observação</Label>
@@ -184,6 +215,12 @@ export function SuspensaoDialog({ open, onOpenChange, empresa }: Props) {
                 />
               </div>
             </>
+          )}
+          {isSuspenso && (
+            <div className="space-y-1.5">
+              <Label htmlFor="obs_reat">Observação da reativação</Label>
+              <Textarea id="obs_reat" value={observacao} onChange={(e) => setObservacao(e.target.value)} rows={2} placeholder="Opcional" />
+            </div>
           )}
           <div className="space-y-1.5">
             <Label htmlFor="data_susp">
@@ -222,30 +259,61 @@ export function SuspensaoDialog({ open, onOpenChange, empresa }: Props) {
                   {h.observacao && (
                     <p className="text-xs text-muted-foreground mt-1">{h.observacao}</p>
                   )}
+                  {h.observacao_reativacao && (
+                    <p className="text-xs text-muted-foreground mt-1">Reativação: {h.observacao_reativacao}</p>
+                  )}
                 </div>
               ))}
             </div>
           </div>
         )}
 
+        {confirmando ? (
+          <div className="rounded-lg border p-4 space-y-2 bg-muted/40">
+            <p className="font-semibold">{isSuspenso ? "Confirmar reativação deste contrato?" : "Confirmar suspensão?"}</p>
+            <div className="text-sm grid grid-cols-[auto,1fr] gap-x-3 gap-y-1">
+              <span className="text-muted-foreground">Empresa:</span><span>{empresa.nome}</span>
+              <span className="text-muted-foreground">Contrato:</span><span>{empresa.codigo_contrato || "—"}</span>
+              {isSuspenso ? (
+                <>
+                  <span className="text-muted-foreground">Suspenso desde:</span><span>{formatDateBR(empresa.data_suspensao)}</span>
+                  <span className="text-muted-foreground">Motivo:</span><span>{empresa.motivo_suspensao || "—"}</span>
+                  <span className="text-muted-foreground">Data da reativação:</span><span>{formatDateBR(data)}</span>
+                </>
+              ) : (
+                <>
+                  <span className="text-muted-foreground">Data da suspensão:</span><span>{formatDateBR(data)}</span>
+                  <span className="text-muted-foreground">Motivo:</span><span>{motivo}</span>
+                </>
+              )}
+            </div>
+            {!isSuspenso && (
+              <p className="text-xs text-muted-foreground pt-1">
+                A suspensão não excluirá informações. Enquanto estiver suspenso, o contrato será retirado dos fluxos operacionais e financeiros configurados.
+              </p>
+            )}
+          </div>
+        ) : null}
+
         <DialogFooter>
-          <Button variant="outline" onClick={() => onOpenChange(false)}>
+          <Button variant="outline" onClick={() => (confirmando ? setConfirmando(false) : onOpenChange(false))}>
             Cancelar
           </Button>
-          {isSuspenso ? (
+          {!confirmando ? (
             <Button
-              onClick={() => reativar.mutate()}
-              disabled={!data || reativar.isPending}
+              variant={isSuspenso ? "default" : "destructive"}
+              onClick={() => setConfirmando(true)}
+              disabled={!data || (!isSuspenso && !motivo.trim())}
             >
-              {reativar.isPending ? "Reativando..." : "Reativar contrato"}
+              {isSuspenso ? "Reativar contrato" : "Suspender contrato"}
+            </Button>
+          ) : isSuspenso ? (
+            <Button onClick={() => reativar.mutate()} disabled={reativar.isPending}>
+              {reativar.isPending ? "Reativando..." : "Confirmar reativação"}
             </Button>
           ) : (
-            <Button
-              variant="destructive"
-              onClick={() => suspender.mutate()}
-              disabled={!motivo.trim() || !data || suspender.isPending}
-            >
-              {suspender.isPending ? "Suspendendo..." : "Suspender contrato"}
+            <Button variant="destructive" onClick={() => suspender.mutate()} disabled={suspender.isPending}>
+              {suspender.isPending ? "Suspendendo..." : "Confirmar suspensão"}
             </Button>
           )}
         </DialogFooter>
