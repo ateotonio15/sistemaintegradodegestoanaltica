@@ -28,7 +28,10 @@ describe("histórico global de reincidência", () => {
     render(<QueryClientProvider client={client}><ReincidenciaPanel cpf="123.456.789-01" fillHeight /></QueryClientProvider>);
     await waitFor(() => expect(client.getQueryData<any[]>(["plantoes-reincidencia", "12345678901"])?.length).toBe(501));
     expect(mocks.from).toHaveBeenCalledWith("plantoes_atendimentos");
-    expect(mocks.inCpf).toHaveBeenCalledExactlyOnceWith("cpf", ["12345678901", "123.456.789-01"]);
+    expect(mocks.inCpf.mock.calls).toEqual([
+      ["cpf", ["12345678901", "123.456.789-01"]],
+      ["cpf", ["12345678901", "123.456.789-01"]],
+    ]);
     expect(mocks.range.mock.calls).toEqual([[0, 499], [500, 999]]);
     expect(client.getQueryData<any[]>(["plantoes-reincidencia", "12345678901"])?.[0].id).toBe("recente");
   });
