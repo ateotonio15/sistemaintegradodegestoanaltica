@@ -2548,7 +2548,7 @@ export async function analisarExcelFinanceiroPorCnpj(
   // Quando o pivot não informou o valor por pagador, lê as abas dedicadas
   // ("Retroativo Maio.26") usando a coluna Pagador de cada linha — evita
   // ratear o retroativo proporcionalmente entre os pagadores.
-  if (retroPorPagador.size === 0) {
+  {
     const porPag = new Map<string, Map<string, { quantidade: number; total: number }>>();
     wb.worksheets.forEach((sheet) => {
       const nomeAba = norm(sheet.name || "");
@@ -2587,7 +2587,7 @@ export async function analisarExcelFinanceiroPorCnpj(
         porPag.set(pag, m);
       }
     });
-    if (porPag.size > 1) porPag.forEach((v, k) => retroPorPagador.set(k, v));
+    if (porPag.size > 1) { retroPorPagador.clear(); porPag.forEach((v, k) => retroPorPagador.set(k, v)); }
   }
 
 
