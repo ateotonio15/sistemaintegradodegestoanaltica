@@ -116,6 +116,10 @@ export function ConfigFinanceiraEmpresaDialog({
   });
 
   useEffect(() => {
+    setNaoReajGrupo(false);
+  }, [open, empresa?.id]);
+
+  useEffect(() => {
     if (!empresa) return;
     const e = empresa as any;
     const m = (movimentacao as any) || null;
