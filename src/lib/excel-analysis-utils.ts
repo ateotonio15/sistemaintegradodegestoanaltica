@@ -1974,12 +1974,15 @@ function analisarResumoRetroativoPorCompetencia(wb: ExcelJS.Workbook): AnalisePo
   if (!ws) return null;
   const rows: string[][] = [];
   ws.eachRow({ includeEmpty: false }, (row) => rows.push((row.values as unknown[]).slice(1).map((c) => cellToText(c).trim())));
-  const reComp = /^compet[eê]ncia\s+(janeiro|fevereiro|mar[cç]o|abril|maio|junho|julho|agosto|setembro|outubro|novembro|dezembro)\s*[\/_-]?\s*(\d{4}|\d{2})(?!\d)/i;
+  const reComp = /^(?:compet[eê]ncia|cobran[cç]a\s+retroativ[ao])\s+(janeiro|fevereiro|mar[cç]o|abril|maio|junho|julho|agosto|setembro|outubro|novembro|dezembro)\s*[\/_-]?\s*(\d{4}|\d{2})(?!\d)/i;
   const reCnpj = /(\d{2}\.?\d{3}\.?\d{3}\/?\d{4}-?\d{2})/;
   if (rows.filter((r) => r.some((c) => reComp.test(c))).length < 2) return null;
   let cnpj = ""; let nome = "";
   const meses: { mes: string; quantidade: number; total: number }[] = [];
   let atual: string | null = null;
+  // Uma tabela com "Total Geral" sem cabeçalho de competência é mensalidade:
+  // nesse caso este layout não se aplica.
+  let semCabecalho = false;
   for (const r of rows) {
     const txt = r.find((c) => c) ?? "";
     const hdr = r.map((c) => reComp.exec(c)).find(Boolean);
@@ -1988,14 +1991,32 @@ function analisarResumoRetroativoPorCompetencia(wb: ExcelJS.Workbook): AnalisePo
       continue;
     }
     if (!cnpj) {
-      const m = r.map((c) => reCnpj.exec(c)).find(Boolean);
+      const m = r.filter((c) => c && isNaN(Number(c))).map((c) => reCnpj.exec(c)).find(Boolean);
       if (m) { cnpj = m[1].replace(/\D/g, ""); nome = txt.split(/\n|cnpj/i)[0].trim(); continue; }
     }
+    if (!atual && norm(txt).startsWith("total geral")) { semCabecalho = true; continue; }
     if (atual && norm(txt).startsWith("total geral")) {
       const nums = r.map((c) => toNumber(c)).filter((n) => !isNaN(n));
       if (nums.length >= 2) meses.push({ mes: atual, quantidade: Math.round(nums[0]), total: nums[nums.length - 1] });
       atual = null;
     }
+  }
+  if (semCabecalho) return null;
+  if (!nome) nome = (rows.find((r) => r.some(Boolean))?.find(Boolean) ?? "").split(/\n|\s-\s*contrato|cnpj/i)[0].trim();
+  if (!cnpj) {
+    // CNPJ do pagador vindo das abas de detalhe (coluna "CNPJ"), quando é único.
+    const achados = new Set<string>();
+    wb.worksheets.filter((w) => w !== ws).forEach((w) => {
+      const hdr = (w.getRow(1).values as unknown[]).slice(1).map((c) => norm(cellToText(c)));
+      const ci = hdr.findIndex((h) => h === "cnpj");
+      if (ci < 0) return;
+      w.eachRow({ includeEmpty: false }, (row, n) => {
+        if (n === 1) return;
+        const d = cellToText((row.values as unknown[])[ci + 1]).replace(/\D/g, "");
+        if (d.length === 14) achados.add(d);
+      });
+    });
+    if (achados.size === 1) cnpj = [...achados][0];
   }
   if (!cnpj || meses.length < 2) return null;
   const quantidade = meses.reduce((s, m) => s + m.quantidade, 0);
