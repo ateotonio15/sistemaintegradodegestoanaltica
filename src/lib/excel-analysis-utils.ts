@@ -1991,7 +1991,7 @@ function analisarResumoRetroativoPorCompetencia(wb: ExcelJS.Workbook): AnalisePo
       continue;
     }
     if (!cnpj) {
-      const m = r.map((c) => reCnpj.exec(c)).find(Boolean);
+      const m = r.filter((c) => c && isNaN(Number(c))).map((c) => reCnpj.exec(c)).find(Boolean);
       if (m) { cnpj = m[1].replace(/\D/g, ""); nome = txt.split(/\n|cnpj/i)[0].trim(); continue; }
     }
     if (!atual && norm(txt).startsWith("total geral")) { semCabecalho = true; continue; }
