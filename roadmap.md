@@ -1,8 +1,9 @@
 # Roadmap
 
 ## Reincidência no plantão
-- [ ] Acoplar painel à direita do modal, com altura igual e rolagem independente, preservando o conteúdo principal.
-- [ ] Conferir busca por CPF e alinhamento na tela.
+- [x] Acoplar painel à direita do modal, com altura igual e rolagem independente, preservando o conteúdo principal.
+- [x] Conferir alinhamento visual isolado e testes de busca paginada por CPF (2 testes).
+- [ ] Conferir histórico real na sessão autenticada — aguarda login na pré-visualização; sessão automática indisponível para a conta solicitante.
 
 ## Apresentação das cobranças
 - [x] Histórico individual por análise/pagador, mensalidade primeiro e retroativos mensais abaixo.
