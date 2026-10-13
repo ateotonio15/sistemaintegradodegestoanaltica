@@ -717,9 +717,16 @@ export default function Arquivos() {
             <div className="px-4 py-4 border-b bg-muted/30">
               <div className="flex items-center justify-between mb-3 gap-2">
                 <div className="min-w-0 flex-1">
-                  <h2 className="text-base font-semibold truncate">
-                    {selectedEmpresa?.nome ?? "Selecione uma empresa"}
-                  </h2>
+                  <div className="flex items-center gap-2 min-w-0">
+                    <h2 className="text-base font-semibold truncate">
+                      {selectedEmpresa?.nome ?? "Selecione uma empresa"}
+                    </h2>
+                    {selectedEmpresa?.codigo_contrato && (
+                      <Badge variant="outline" className="shrink-0 text-xs font-medium">
+                        Contrato {selectedEmpresa.codigo_contrato}
+                      </Badge>
+                    )}
+                  </div>
                   <p className="text-xs text-muted-foreground mt-0.5">
                     {arquivosEmpresa.length} arquivo{arquivosEmpresa.length === 1 ? "" : "s"}
                   </p>
