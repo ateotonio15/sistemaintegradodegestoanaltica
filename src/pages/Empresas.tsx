@@ -501,6 +501,7 @@ export default function Empresas() {
               .in("id", outros);
             if (gErr) throw gErr;
           }
+          setNaoReajGrupo(false);
         }
         return { id: editingId, isNew: false };
       } else {
