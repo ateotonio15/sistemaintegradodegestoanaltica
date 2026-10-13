@@ -14,6 +14,7 @@ import type { Tables } from "@/integrations/supabase/types";
 import { formatDateBR, todayLocalISO } from "@/lib/date-utils";
 import { periodoDaDataCorte } from "@/lib/movimentacao-utils";
 import { AnexosMovimentacao } from "@/components/movimentacoes/AnexosMovimentacao";
+import { sincronizarEnvioDosAnexos } from "@/lib/movimentacao-envio-anexos";
 import { AnexosViewerDialog } from "@/components/dashboard/AnexosViewerDialog";
 import { ImportarAdministradorasDialog } from "@/components/dashboard/ImportarAdministradorasDialog";
 import { useAuth } from "@/hooks/useAuth";
@@ -735,6 +736,9 @@ export default function DashboardAdministradoras() {
         existingMov={selectedEmpresa ? movsPorEmpresa[selectedEmpresa.id] ?? null : null}
         onClose={() => setSelectedEmpresa(null)}
         onSaved={() => {
+          queryClient.invalidateQueries({ queryKey: ["movimentacoes"] });
+          queryClient.invalidateQueries({ queryKey: ["movimentacoes-dashboard"] });
+          queryClient.invalidateQueries({ queryKey: ["empresas-dashboard"] });
           queryClient.invalidateQueries({ queryKey: ["movs-administradoras"] });
           queryClient.invalidateQueries({ queryKey: ["anexos-count-administradoras"] });
         }}
@@ -848,6 +852,7 @@ function EnvioFinanceiroDialog({
           .eq("id", id);
         if (error) throw error;
       }
+      if (id && editEnvio) await sincronizarEnvioDosAnexos(id, editEnvio, mesRef);
       toast.success(editEnvio ? "Envio ao financeiro registrado" : "Data de envio limpa");
       onSaved();
       onClose();

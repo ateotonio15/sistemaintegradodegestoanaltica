@@ -37,6 +37,7 @@ import {
 
 import { PrioridadeBadge } from "@/components/prioridade/PrioridadeBadge";
 import { AnexosMovimentacao } from "@/components/movimentacoes/AnexosMovimentacao";
+import { sincronizarEnvioDosAnexos } from "@/lib/movimentacao-envio-anexos";
 import { AnexosMovimentacaoDialog } from "@/components/movimentacoes/AnexosMovimentacaoDialog";
 import { useEmpresaGrupoMap } from "@/hooks/useGrupoFinanceiro";
 import { GrupoTag } from "@/components/financeiro/GrupoTag";
@@ -487,21 +488,7 @@ export default function Movimentacoes() {
       // Anexos enviados neste processo e direcionados a outros contratos:
       // repete a "Data Envio Financeiro" nesses contratos (só se estiver vazia).
       if (editingId && payload.data_envio_financeiro) {
-        const { data: direcionados } = await supabase
-          .from("anexos_movimentacao")
-          .select("movimentacao_id")
-          .like("storage_path", `%/${editingId}/%`)
-          .neq("movimentacao_id", editingId);
-        const destinos = Array.from(new Set(((direcionados as any[]) ?? []).map((r) => r.movimentacao_id as string)));
-        if (destinos.length) {
-          const { error: errDest } = await supabase
-            .from("movimentacoes")
-            .update({ data_envio_financeiro: payload.data_envio_financeiro })
-            .in("id", destinos)
-            .eq("mes_referencia", values.mes_referencia)
-            .is("data_envio_financeiro", null);
-          if (errDest) throw errDest;
-        }
+        await sincronizarEnvioDosAnexos(editingId, payload.data_envio_financeiro, values.mes_referencia);
       }
 
     },

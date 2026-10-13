@@ -26,6 +26,7 @@ import { tipoArquivo } from "@/lib/arquivos-utils";
 import { formatDateBR } from "@/lib/date-utils";
 import { useAnexosMovimentacaoGrupo } from "@/hooks/useAnexosMovimentacaoGrupo";
 import { identificarContratoDoAnexo, type ContratoAlvo } from "@/lib/anexo-contrato-match";
+import { sincronizarEnvioDosAnexos } from "@/lib/movimentacao-envio-anexos";
 
 
 interface Props {
@@ -185,10 +186,12 @@ export function AnexosMovimentacao({ movimentacaoId, empresaId, required, onCoun
 
   // Passo 2: envia de fato, já com o destino autorizado.
   const executarUpload = async (itens: ItemUpload[]) => {
+    if (!empresaId || !movimentacaoId) return;
     {
       for (const { file, alvoEmpresaId, alvoMovId } of itens) {
 
-        const path = buildPath(alvoEmpresaId, alvoMovId, file.name);
+        // Preserva a origem autorizada no caminho; o registro aponta para o destino.
+        const path = buildPath(empresaId, movimentacaoId, file.name);
         const { error: upErr } = await supabase.storage
           .from(STORAGE_BUCKET)
           .upload(path, file);
@@ -242,6 +245,21 @@ export function AnexosMovimentacao({ movimentacaoId, empresaId, required, onCoun
           }
         }
       }
+      try {
+        const { data: origem, error } = await supabase.from("movimentacoes")
+          .select("data_envio_financeiro, mes_referencia")
+          .eq("id", movimentacaoId).single();
+        if (error) throw error;
+        if (origem.data_envio_financeiro) {
+          await sincronizarEnvioDosAnexos(movimentacaoId, origem.data_envio_financeiro, origem.mes_referencia);
+        }
+      } catch {
+        toast.warning('Os arquivos foram anexados, mas a data de envio não foi repetida. Salve a movimentação novamente.');
+      }
+      queryClient.invalidateQueries({ queryKey: ["movimentacoes"] });
+      queryClient.invalidateQueries({ queryKey: ["movimentacoes-dashboard"] });
+      queryClient.invalidateQueries({ queryKey: ["empresas-dashboard"] });
+      queryClient.invalidateQueries({ queryKey: ["movs-administradoras"] });
       queryClient.invalidateQueries({ queryKey: ["anexos-movimentacao-grupo"] });
       onAttachmentsChange?.();
       toast.success(itens.length > 1 ? `${itens.length} arquivos enviados` : "Arquivo enviado");
