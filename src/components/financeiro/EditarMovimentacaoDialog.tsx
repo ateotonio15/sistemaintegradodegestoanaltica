@@ -260,6 +260,8 @@ export function EditarMovimentacaoDialog({ open, onOpenChange, movimentacao, emp
 
     },
     enabled: !!movimentacao && open,
+    staleTime: 0,
+    refetchOnMount: "always",
   });
 
   const { data: pagadores = [] } = useQuery({
