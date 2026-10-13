@@ -645,16 +645,13 @@ export default function Empresas() {
   };
 
   const resetForm = () => {
+    setNaoReajGrupo(false);
     setForm(emptyForm);
     setEditingId(null);
-    setDraftEmpresaId(null);
-    setDataImplantacao("");
-    setDataVencimentoFatura("");
-    setDataEmissaoFatura("");
-    setRespUnlocked(false);
   };
 
   const openEdit = (e: Empresa) => {
+    setNaoReajGrupo(false);
     setEditingId(e.id);
     setForm({
       nome: e.nome,

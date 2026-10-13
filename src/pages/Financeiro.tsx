@@ -3258,7 +3258,7 @@ export default function Financeiro() {
             onOpenChange={setHistoricoDialogOpen}
             row={historicoRow}
             resultados={selecionarResultadoHistorico(historicoRow ? (analiseResultados[historicoRow.rowKey ?? historicoRow.id] ?? analiseResultados[historicoRow.id] ?? null) : null, historicoIndice)}
-            individual={historicoIndice !== undefined}
+            individual={historicoIndice !== undefined && ((historicoRow ? (analiseResultados[historicoRow.rowKey ?? historicoRow.id] ?? analiseResultados[historicoRow.id]) : null)?.length ?? 0) > 1}
             anexosNomes={historicoRow ? ((anexosMap[historicoRow.id] || []).map((a: any) => a.nome_arquivo).filter(Boolean) as string[]) : []}
           />
         )}

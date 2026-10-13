@@ -483,6 +483,10 @@ export default function Arquivos() {
     const a = resolverAporte(a0);
     if (a.categoria === novaCategoria) return;
     try {
+      if (a.categoria === "Aporte") {
+        const { error: apErr } = await supabase.from("financeiro_aportes").delete().eq("arquivo_id", a.id);
+        if (apErr) throw apErr;
+      }
       const { error } = await supabase
         .from("financeiro_arquivos")
         .update({ categoria: novaCategoria })
@@ -490,6 +494,7 @@ export default function Arquivos() {
       if (error) throw error;
       toast.success(`Movido para "${novaCategoria}"`);
       queryClient.invalidateQueries({ queryKey: ["financeiro-arquivos"] });
+      queryClient.invalidateQueries({ queryKey: ["financeiro-aportes"] });
     } catch (e: any) {
       toast.error("Erro ao mover: " + (e?.message ?? "desconhecido"));
     }
