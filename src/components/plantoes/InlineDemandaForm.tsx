@@ -13,6 +13,7 @@ import { useAuth } from "@/hooks/useAuth";
 import DemandaFormDialog from "@/components/demandas/DemandaFormDialog";
 import { fetchBeneficiarioByCpf } from "@/lib/beneficiario-lookup";
 import { toast } from "sonner";
+import { ReincidenciaPanel } from "@/components/plantoes/ReincidenciaPanel";
 
 const TIPOS = ["Consulta", "Exames", "Reclamação", "Outros"] as const;
 const CANAIS = ["Presencial", "WhatsApp"] as const;
@@ -162,6 +163,7 @@ export function InlineDemandaForm({
           <Plus className="h-4 w-4" /> Adicionar demanda
         </Button>
       ) : (
+        <div className="grid gap-3 md:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
         <div className="space-y-2 rounded-md border p-3 bg-muted/30">
           <div className="flex items-center justify-between">
             <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Nova demanda</span>
@@ -226,6 +228,8 @@ export function InlineDemandaForm({
               {tipo === "Reclamação" ? "Continuar" : upsertAtendimento.isPending ? "Salvando..." : "Salvar"}
             </Button>
           </div>
+        </div>
+        <ReincidenciaPanel cpf={cpf} />
         </div>
       )}
 
