@@ -1,5 +1,10 @@
 # Roadmap
 
+## Reincidência no plantão
+- [x] Acoplar painel à direita do modal, com altura igual e rolagem independente, preservando o conteúdo principal.
+- [x] Conferir alinhamento visual isolado e testes de busca paginada por CPF (2 testes).
+- [ ] Conferir histórico real na sessão autenticada — aguarda login na pré-visualização; sessão automática indisponível para a conta solicitante.
+
 ## Apresentação das cobranças
 - [x] Histórico individual por análise/pagador, mensalidade primeiro e retroativos mensais abaixo.
 - [x] Validar geração individual sem alterar leitura, valores ou arquivos (14 testes; dois botões conferidos na ELGIN em setembro).

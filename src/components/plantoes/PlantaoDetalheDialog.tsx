@@ -16,6 +16,7 @@ import { AtendimentoDialog, parseAssunto } from "@/components/plantoes/Atendimen
 import { PlantaoDialog } from "@/components/plantoes/PlantaoDialog";
 import { AdicionarExecutivaDialog } from "@/components/plantoes/AdicionarExecutivaDialog";
 import { InlineDemandaForm } from "@/components/plantoes/InlineDemandaForm";
+import { ReincidenciaPanel } from "@/components/plantoes/ReincidenciaPanel";
 import { toast } from "sonner";
 
 async function exportarAtendimentosXlsx(
@@ -121,6 +122,7 @@ export function PlantaoDetalheDialog({ open, onOpenChange, plantao, empresaNome,
   const [novoAt, setNovoAt] = useState(false);
   const [editPlantao, setEditPlantao] = useState(false);
   const [demandasOpen, setDemandasOpen] = useState(true);
+  const [cpfReincidencia, setCpfReincidencia] = useState("");
 
   const today = new Date().toISOString().slice(0, 10);
   const isToday = active.data === today;
@@ -137,8 +139,8 @@ export function PlantaoDetalheDialog({ open, onOpenChange, plantao, empresaNome,
   return (
     <>
       <Dialog open={open} onOpenChange={onOpenChange}>
-        <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto p-0">
-          <div className="p-6 space-y-5">
+        <DialogContent className="w-[calc(100%-2rem)] max-w-[1120px] h-[90dvh] max-h-[90dvh] overflow-hidden p-0 gap-0 grid-cols-1 grid-rows-[minmax(0,1fr)_minmax(0,0.6fr)] md:grid-cols-[minmax(0,768fr)_minmax(0,320fr)] md:grid-rows-[minmax(0,1fr)]">
+          <div className="p-6 space-y-5 min-h-0 min-w-0 overflow-y-auto" data-plantao-principal>
             {/* Header */}
             <div className="space-y-3">
               <div className="flex items-center gap-2 flex-wrap">
@@ -231,12 +233,14 @@ export function PlantaoDetalheDialog({ open, onOpenChange, plantao, empresaNome,
                 {demandasOpen && (
                   <div className="space-y-2">
                     <InlineDemandaForm
+                      key={active.id}
                       plantaoIds={[active.id]}
                       defaultPlantaoId={active.id}
                       empresaNome={empresaNome}
                       empresaId={active.empresa_id}
                       executivaNome={active.plantonista ?? undefined}
                       dataPlantao={active.data}
+                      onCpfChange={setCpfReincidencia}
                     />
                     <div className="divide-y border rounded-md">
                       {atendimentos.length === 0 && (
@@ -341,6 +345,9 @@ export function PlantaoDetalheDialog({ open, onOpenChange, plantao, empresaNome,
               </div>
             )}
           </div>
+          <aside className="min-h-0 min-w-0 h-full border-t md:border-t-0 md:border-l p-4 pt-6" aria-label="Histórico de reincidência">
+            <ReincidenciaPanel cpf={cpfReincidencia} fillHeight />
+          </aside>
         </DialogContent>
       </Dialog>
 
