@@ -2011,6 +2011,15 @@ export default function Financeiro() {
         return !!cnpjBloco && cnpjsDoContratoAnalise.has(cnpjBloco);
       });
     }
+    // Planilhas extras sem layout de faturamento (sem CNPJ e sem valores) não
+    // contam como pagador quando outra planilha do contrato foi lida.
+    const blocoVazio = (b: import("@/lib/excel-analysis-utils").AnalisePorCnpj) =>
+      !onlyDigitsLocal(b.cnpj) &&
+      !b.enfermaria?.total && !b.apartamento?.total && !b.inclusoes?.total &&
+      !b.retroativas?.total && !b.totalDeclaradoExcel;
+    if (blocosTotais.some((b) => !blocoVazio(b))) {
+      blocosTotais = blocosTotais.filter((b) => !blocoVazio(b));
+    }
     const houveDescarte = blocosTotais.length < totalBlocosAntes;
 
     if (blocosTotais.length === 0) {
