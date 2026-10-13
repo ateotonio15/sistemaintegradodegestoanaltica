@@ -227,7 +227,7 @@ export function ArquivoPreviewInline({ bucket, storagePath, nomeArquivo, mimeTyp
             const parsed: SheetData[] = [];
             wb.eachSheet((ws) => {
               const rows: ExcelCell[][] = [];
-              const maxCol = ws.actualColumnCount || ws.columnCount || 0;
+              const maxCol = Math.max(ws.columnCount || 0, ws.actualColumnCount || 0);
               // Mesclas: só a célula superior-esquerda mantém o texto na prévia.
               // Sem isso, valores como "EMPRESA: XYZ" aparecem repetidos em todas
               // as colunas cobertas pelo merge e impedem detectar colunas vazias.
@@ -295,7 +295,7 @@ export function ArquivoPreviewInline({ bucket, storagePath, nomeArquivo, mimeTyp
             }
             void promise.then((resultados) => {
               if (cancelled) return;
-              setResumo(resultados.filter((r) => r.enfermaria.beneficiarios > 0 || r.apartamento.beneficiarios > 0 || r.enfermaria.total !== 0 || r.apartamento.total !== 0));
+              setResumo(resultados.filter((r) => r.enfermaria.beneficiarios > 0 || r.apartamento.beneficiarios > 0 || r.enfermaria.total !== 0 || r.apartamento.total !== 0 || (r.retroativas?.total ?? 0) !== 0));
               setLoadingResumo(false);
             });
           }
