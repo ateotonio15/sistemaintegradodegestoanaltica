@@ -1,5 +1,9 @@
 # Roadmap
 
+## Reincidência no plantão
+- [ ] Acoplar painel à direita do modal, com altura igual e rolagem independente, preservando o conteúdo principal.
+- [ ] Conferir busca por CPF e alinhamento na tela.
+
 ## Apresentação das cobranças
 - [x] Histórico individual por análise/pagador, mensalidade primeiro e retroativos mensais abaixo.
 - [x] Validar geração individual sem alterar leitura, valores ou arquivos (14 testes; dois botões conferidos na ELGIN em setembro).
