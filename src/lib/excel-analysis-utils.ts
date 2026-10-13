@@ -1964,11 +1964,62 @@ function completarInclusoesDoDetalhe(
  *   1) Aba RESUMO consolidada (Empresa/Módulo | Qtd | Mensalidade | Valor)
  *   2) Aba de beneficiários (linha-a-linha, legado)
  */
+/**
+ * Layout "RETROATIVOS <mês> A <mês>": aba RESUMO com uma tabela por
+ * "Competência <Mês>/<Ano>" (cada uma com seu "Total Geral"). Todas as
+ * competências são cobrança retroativa; não há mensalidade do mês.
+ */
+function analisarResumoRetroativoPorCompetencia(wb: ExcelJS.Workbook): AnalisePorCnpj[] | null {
+  const ws = wb.worksheets.find((w) => norm(w.name).replace(/\s+/g, "") === "resumo");
+  if (!ws) return null;
+  const rows: string[][] = [];
+  ws.eachRow({ includeEmpty: false }, (row) => rows.push((row.values as unknown[]).slice(1).map((c) => cellToText(c).trim())));
+  const reComp = /^compet[eê]ncia\s+(janeiro|fevereiro|mar[cç]o|abril|maio|junho|julho|agosto|setembro|outubro|novembro|dezembro)\s*[\/_-]?\s*(\d{4}|\d{2})(?!\d)/i;
+  const reCnpj = /(\d{2}\.?\d{3}\.?\d{3}\/?\d{4}-?\d{2})/;
+  if (rows.filter((r) => r.some((c) => reComp.test(c))).length < 2) return null;
+  let cnpj = ""; let nome = "";
+  const meses: { mes: string; quantidade: number; total: number }[] = [];
+  let atual: string | null = null;
+  for (const r of rows) {
+    const txt = r.find((c) => c) ?? "";
+    const hdr = r.map((c) => reComp.exec(c)).find(Boolean);
+    if (hdr) {
+      atual = `${hdr[1].normalize("NFD").replace(/[\u0300-\u036f]/g, "").slice(0, 3).toUpperCase()}/${hdr[2].slice(-2)}`;
+      continue;
+    }
+    if (!cnpj) {
+      const m = r.map((c) => reCnpj.exec(c)).find(Boolean);
+      if (m) { cnpj = m[1].replace(/\D/g, ""); nome = txt.split(/\n|cnpj/i)[0].trim(); continue; }
+    }
+    if (atual && norm(txt).startsWith("total geral")) {
+      const nums = r.map((c) => toNumber(c)).filter((n) => !isNaN(n));
+      if (nums.length >= 2) meses.push({ mes: atual, quantidade: Math.round(nums[0]), total: nums[nums.length - 1] });
+      atual = null;
+    }
+  }
+  if (!cnpj || meses.length < 2) return null;
+  const quantidade = meses.reduce((s, m) => s + m.quantidade, 0);
+  const total = Math.round(meses.reduce((s, m) => s + m.total, 0) * 100) / 100;
+  const retro = { quantidade, total, meses: meses.map((m) => m.mes), mesesDetalhe: meses };
+  return [{
+    cnpj, nome, nomeExibicao: nome,
+    enfermaria: { beneficiarios: 0, mensalidade: 0, total: 0 },
+    apartamento: { beneficiarios: 0, mensalidade: 0, total: 0 },
+    inclusoes: { quantidade, total },
+    retroativas: retro,
+    retroativasReajuste: retro,
+    avisos: [],
+  } as AnalisePorCnpj];
+}
+
 export async function analisarExcelFinanceiroPorCnpj(
   buffer: ArrayBuffer,
 ): Promise<AnalisePorCnpj[]> {
   const wb = new ExcelJS.Workbook();
   await wb.xlsx.load(buffer);
+
+  const viaCompetencias = analisarResumoRetroativoPorCompetencia(wb);
+  if (viaCompetencias) return viaCompetencias;
 
   const viaResumo = analisarResumoSheet(wb);
   if (viaResumo && viaResumo.length > 0) {
