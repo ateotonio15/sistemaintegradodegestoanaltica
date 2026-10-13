@@ -1,5 +1,6 @@
 import type { AnalisePorCnpj } from "@/lib/excel-analysis-utils";
 import { formatBRL } from "@/lib/excel-analysis-utils";
+import { linhasRetroativo } from "@/lib/financeiro-apresentacao";
 
 export function ResumoFaturamentoArquivo({ resultados }: { resultados: AnalisePorCnpj[] }) {
   return (
@@ -11,7 +12,7 @@ export function ResumoFaturamentoArquivo({ resultados }: { resultados: AnalisePo
         ].filter((p) => p.beneficiarios > 0 || p.total !== 0);
         const outros = [
           { categoria: "Inclusões", quantidade: r.inclusoes.quantidade - (r.retroativas?.quantidade ?? 0), total: r.inclusoes.total - (r.retroativas?.total ?? 0) },
-          { categoria: "Cobrança Retroativa", ...r.retroativas },
+          ...(r.retroativas ? linhasRetroativo(r.retroativas).map((l) => ({ categoria: l.label, quantidade: l.beneficiarios, total: l.total })) : []),
           { categoria: "Exclusões", ...r.exclusoes },
           { categoria: "Devolução", ...r.devolucoes },
           { categoria: "Permuta", ...r.permuta },

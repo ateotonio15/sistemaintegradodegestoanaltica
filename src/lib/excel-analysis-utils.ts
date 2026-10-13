@@ -1429,12 +1429,35 @@ function analisarResumoSheet(wb: ExcelJS.Workbook): AnalisePorCnpj[] | null {
   let inCoparticBlock = false;
 
 
+  // Layout "RETROATIVOS <mês> A <mês>": RESUMO com várias tabelas
+  // "Competência Maio/2026", cada uma com seu "Total Geral". Cada tabela é a
+  // cobrança retroativa daquela competência, não mensalidade.
+  const reCompHdr = /^compet[eê]ncia\s+(janeiro|fevereiro|mar[cç]o|abril|maio|junho|julho|agosto|setembro|outubro|novembro|dezembro)\s*[\/_-]?\s*(\d{4}|\d{2})(?!\d)/i;
+  const compHdrs = rows.filter((row) => (row || []).some((c) => reCompHdr.test(cellToText(c).trim())));
+  const multiCompetencia = compHdrs.length >= 2;
+  const mesDeCompHdr = (row: unknown[]): string | null => {
+    for (const c of row || []) {
+      const m = reCompHdr.exec(cellToText(c).trim());
+      if (m) return `${m[1].normalize("NFD").replace(/[\u0300-\u036f]/g, "").slice(0, 3).toUpperCase()}/${m[2].slice(-2)}`;
+    }
+    return null;
+  };
+  let pendingRetroMes: string | null = multiCompetencia ? mesDeCompHdr(rows[headerIdx] || []) : null;
+
   for (let i = headerIdx + 1; i < rows.length; i++) {
     const r = rows[i] || [];
+    if (multiCompetencia) {
+      const mesHdr = mesDeCompHdr(r);
+      if (mesHdr) { if (cur) cur.retroMesAtual = mesHdr; else pendingRetroMes = mesHdr; continue; }
+    }
     const labelRaw = cellToText(r[idxLabel]).trim();
     if (!labelRaw) continue;
     const labelNorm = norm(labelRaw);
     const rowNorms = r.map((cell) => norm(cell)).filter(Boolean);
+    if (multiCompetencia) {
+      if (labelNorm.startsWith("total geral") || labelNorm.startsWith("valor total")) continue;
+      if (cur && pendingRetroMes) { cur.retroMesAtual = pendingRetroMes; pendingRetroMes = null; }
+    }
     if (
       labelNorm.startsWith("total geral") ||
       rowNorms.some((cell) => cell.startsWith("total geral")) ||
@@ -1505,6 +1528,7 @@ function analisarResumoSheet(wb: ExcelJS.Workbook): AnalisePorCnpj[] | null {
       };
 
       blocos.push(cur);
+      if (pendingRetroMes) { cur.retroMesAtual = pendingRetroMes; pendingRetroMes = null; }
       inCoparticBlock = false;
       continue;
     }
@@ -1940,11 +1964,62 @@ function completarInclusoesDoDetalhe(
  *   1) Aba RESUMO consolidada (Empresa/Módulo | Qtd | Mensalidade | Valor)
  *   2) Aba de beneficiários (linha-a-linha, legado)
  */
+/**
+ * Layout "RETROATIVOS <mês> A <mês>": aba RESUMO com uma tabela por
+ * "Competência <Mês>/<Ano>" (cada uma com seu "Total Geral"). Todas as
+ * competências são cobrança retroativa; não há mensalidade do mês.
+ */
+function analisarResumoRetroativoPorCompetencia(wb: ExcelJS.Workbook): AnalisePorCnpj[] | null {
+  const ws = wb.worksheets.find((w) => norm(w.name).replace(/\s+/g, "") === "resumo");
+  if (!ws) return null;
+  const rows: string[][] = [];
+  ws.eachRow({ includeEmpty: false }, (row) => rows.push((row.values as unknown[]).slice(1).map((c) => cellToText(c).trim())));
+  const reComp = /^compet[eê]ncia\s+(janeiro|fevereiro|mar[cç]o|abril|maio|junho|julho|agosto|setembro|outubro|novembro|dezembro)\s*[\/_-]?\s*(\d{4}|\d{2})(?!\d)/i;
+  const reCnpj = /(\d{2}\.?\d{3}\.?\d{3}\/?\d{4}-?\d{2})/;
+  if (rows.filter((r) => r.some((c) => reComp.test(c))).length < 2) return null;
+  let cnpj = ""; let nome = "";
+  const meses: { mes: string; quantidade: number; total: number }[] = [];
+  let atual: string | null = null;
+  for (const r of rows) {
+    const txt = r.find((c) => c) ?? "";
+    const hdr = r.map((c) => reComp.exec(c)).find(Boolean);
+    if (hdr) {
+      atual = `${hdr[1].normalize("NFD").replace(/[\u0300-\u036f]/g, "").slice(0, 3).toUpperCase()}/${hdr[2].slice(-2)}`;
+      continue;
+    }
+    if (!cnpj) {
+      const m = r.map((c) => reCnpj.exec(c)).find(Boolean);
+      if (m) { cnpj = m[1].replace(/\D/g, ""); nome = txt.split(/\n|cnpj/i)[0].trim(); continue; }
+    }
+    if (atual && norm(txt).startsWith("total geral")) {
+      const nums = r.map((c) => toNumber(c)).filter((n) => !isNaN(n));
+      if (nums.length >= 2) meses.push({ mes: atual, quantidade: Math.round(nums[0]), total: nums[nums.length - 1] });
+      atual = null;
+    }
+  }
+  if (!cnpj || meses.length < 2) return null;
+  const quantidade = meses.reduce((s, m) => s + m.quantidade, 0);
+  const total = Math.round(meses.reduce((s, m) => s + m.total, 0) * 100) / 100;
+  const retro = { quantidade, total, meses: meses.map((m) => m.mes), mesesDetalhe: meses };
+  return [{
+    cnpj, nome, nomeExibicao: nome,
+    enfermaria: { beneficiarios: 0, mensalidade: 0, total: 0 },
+    apartamento: { beneficiarios: 0, mensalidade: 0, total: 0 },
+    inclusoes: { quantidade, total },
+    retroativas: retro,
+    retroativasReajuste: retro,
+    avisos: [],
+  } as AnalisePorCnpj];
+}
+
 export async function analisarExcelFinanceiroPorCnpj(
   buffer: ArrayBuffer,
 ): Promise<AnalisePorCnpj[]> {
   const wb = new ExcelJS.Workbook();
   await wb.xlsx.load(buffer);
+
+  const viaCompetencias = analisarResumoRetroativoPorCompetencia(wb);
+  if (viaCompetencias) return viaCompetencias;
 
   const viaResumo = analisarResumoSheet(wb);
   if (viaResumo && viaResumo.length > 0) {
