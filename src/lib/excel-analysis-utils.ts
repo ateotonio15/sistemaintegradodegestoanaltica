@@ -1970,7 +1970,9 @@ function completarInclusoesDoDetalhe(
  * competências são cobrança retroativa; não há mensalidade do mês.
  */
 function analisarResumoRetroativoPorCompetencia(wb: ExcelJS.Workbook): AnalisePorCnpj[] | null {
-  const ws = wb.worksheets.find((w) => norm(w.name).replace(/\s+/g, "") === "resumo");
+  // Aceita "RESUMO" e variações como "RESUMO_AUTOMATICO" / "Resumo Automático".
+  const ws = wb.worksheets.find((w) => /^resumo(?:[\s_-]*automatic[oa])?$/.test(norm(w.name).replace(/\s+/g, "").normalize("NFD").replace(/[\u0300-\u036f]/g, "")))
+    ?? wb.worksheets.find((w) => norm(w.name).replace(/\s+/g, "") === "resumo");
   if (!ws) return null;
   const rows: string[][] = [];
   ws.eachRow({ includeEmpty: false }, (row) => rows.push((row.values as unknown[]).slice(1).map((c) => cellToText(c).trim())));
