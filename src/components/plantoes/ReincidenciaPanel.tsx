@@ -12,24 +12,31 @@ const statusClass: Record<string, string> = {
 };
 
 /** Histórico de atendimentos do mesmo CPF — somente "Plantões de Atendimento". */
-export function ReincidenciaPanel({ cpf }: { cpf: string }) {
+export function ReincidenciaPanel({ cpf, fillHeight = false }: { cpf: string; fillHeight?: boolean }) {
   const digits = String(cpf || "").replace(/\D/g, "");
   const valido = digits.length === 11;
   const formatado = valido ? `${digits.slice(0, 3)}.${digits.slice(3, 6)}.${digits.slice(6, 9)}-${digits.slice(9)}` : "";
 
-  const { data = [], isFetching } = useQuery({
+  const { data = [], isFetching, isError } = useQuery({
     queryKey: ["plantoes-reincidencia", digits],
     enabled: valido,
     staleTime: 30_000,
     queryFn: async () => {
+      const registros: any[] = [];
+      const tamanhoPagina = 500;
+      for (let inicio = 0; ; inicio += tamanhoPagina) {
       const { data, error } = await supabase
         .from("plantoes_atendimentos")
         .select("id, hora, assunto, resolvido, observacao, created_at, cpf, plantao:plantoes(data)")
         .in("cpf", [digits, formatado])
         .order("created_at", { ascending: false })
-        .limit(200);
+        .order("id", { ascending: false })
+        .range(inicio, inicio + tamanhoPagina - 1);
       if (error) throw error;
-      return (data as any[]).sort((a, b) => {
+      registros.push(...(data ?? []));
+      if ((data?.length ?? 0) < tamanhoPagina) break;
+      }
+      return registros.sort((a, b) => {
         const ka = `${a.plantao?.data ?? a.created_at?.slice(0, 10)} ${a.hora ?? ""}`;
         const kb = `${b.plantao?.data ?? b.created_at?.slice(0, 10)} ${b.hora ?? ""}`;
         return kb.localeCompare(ka);
@@ -40,8 +47,8 @@ export function ReincidenciaPanel({ cpf }: { cpf: string }) {
   const lista = valido ? data : [];
 
   return (
-    <div className="flex flex-col rounded-md border bg-card p-3 min-h-0">
-      <div className="flex items-center justify-between mb-2">
+    <div className={`flex flex-col rounded-md border bg-card p-3 min-h-0 ${fillHeight ? "h-full overflow-hidden" : ""}`}>
+      <div className="flex shrink-0 items-center justify-between mb-2">
         <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
           Reincidência ({lista.length})
         </span>
@@ -49,10 +56,12 @@ export function ReincidenciaPanel({ cpf }: { cpf: string }) {
       </div>
       {!valido ? (
         <p className="text-xs text-muted-foreground">Informe o CPF para ver os atendimentos anteriores.</p>
+      ) : isError ? (
+        <p className="text-xs text-destructive">Não foi possível carregar o histórico de atendimentos.</p>
       ) : lista.length === 0 && !isFetching ? (
         <p className="text-xs text-muted-foreground">Nenhuma reincidência encontrada para este beneficiário.</p>
       ) : (
-        <div className="space-y-2 overflow-y-auto max-h-80 pr-1">
+        <div className={`space-y-2 overflow-y-auto min-h-0 pr-1 overscroll-contain ${fillHeight ? "flex-1" : "max-h-80"}`}>
           {lista.map((a) => {
             const meta = parseAssunto(a.assunto, a.resolvido);
             const obs = parseObservacaoPlantao(a.observacao).observacao;

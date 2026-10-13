@@ -30,6 +30,7 @@ export function InlineDemandaForm({
   empresaId,
   executivaNome,
   dataPlantao,
+  onCpfChange,
 }: {
   plantaoIds: string[];
   defaultPlantaoId: string;
@@ -37,6 +38,7 @@ export function InlineDemandaForm({
   empresaId?: string;
   executivaNome?: string;
   dataPlantao?: string;
+  onCpfChange?: (cpf: string) => void;
 }) {
   const { user, loading } = useAuth();
   const { upsertAtendimento } = usePlantaoMutations();
@@ -52,6 +54,10 @@ export function InlineDemandaForm({
   const [reclamacaoInitial, setReclamacaoInitial] = useState<any>(null);
   const [cpfLookupLoading, setCpfLookupLoading] = useState(false);
   const [empresaDetectada, setEmpresaDetectada] = useState<string>("");
+
+  useEffect(() => {
+    onCpfChange?.(cpf);
+  }, [cpf, onCpfChange]);
 
   // Busca automática dos dados do beneficiário quando CPF tem 11 dígitos
   useEffect(() => {
@@ -163,7 +169,7 @@ export function InlineDemandaForm({
           <Plus className="h-4 w-4" /> Adicionar demanda
         </Button>
       ) : (
-        <div className="grid gap-3 md:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
+        <div className={onCpfChange ? "grid gap-3" : "grid gap-3 md:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]"}>
         <div className="space-y-2 rounded-md border p-3 bg-muted/30">
           <div className="flex items-center justify-between">
             <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Nova demanda</span>
@@ -229,7 +235,7 @@ export function InlineDemandaForm({
             </Button>
           </div>
         </div>
-        <ReincidenciaPanel cpf={cpf} />
+        {!onCpfChange && <ReincidenciaPanel cpf={cpf} />}
         </div>
       )}
 
