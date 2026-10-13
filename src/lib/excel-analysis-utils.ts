@@ -1429,12 +1429,35 @@ function analisarResumoSheet(wb: ExcelJS.Workbook): AnalisePorCnpj[] | null {
   let inCoparticBlock = false;
 
 
+  // Layout "RETROATIVOS <mês> A <mês>": RESUMO com várias tabelas
+  // "Competência Maio/2026", cada uma com seu "Total Geral". Cada tabela é a
+  // cobrança retroativa daquela competência, não mensalidade.
+  const reCompHdr = /^compet[eê]ncia\s+(janeiro|fevereiro|mar[cç]o|abril|maio|junho|julho|agosto|setembro|outubro|novembro|dezembro)\s*[\/_-]?\s*(\d{4}|\d{2})(?!\d)/i;
+  const compHdrs = rows.filter((row) => (row || []).some((c) => reCompHdr.test(cellToText(c).trim())));
+  const multiCompetencia = compHdrs.length >= 2;
+  const mesDeCompHdr = (row: unknown[]): string | null => {
+    for (const c of row || []) {
+      const m = reCompHdr.exec(cellToText(c).trim());
+      if (m) return `${m[1].normalize("NFD").replace(/[\u0300-\u036f]/g, "").slice(0, 3).toUpperCase()}/${m[2].slice(-2)}`;
+    }
+    return null;
+  };
+  let pendingRetroMes: string | null = multiCompetencia ? mesDeCompHdr(rows[headerIdx] || []) : null;
+
   for (let i = headerIdx + 1; i < rows.length; i++) {
     const r = rows[i] || [];
+    if (multiCompetencia) {
+      const mesHdr = mesDeCompHdr(r);
+      if (mesHdr) { if (cur) cur.retroMesAtual = mesHdr; else pendingRetroMes = mesHdr; continue; }
+    }
     const labelRaw = cellToText(r[idxLabel]).trim();
     if (!labelRaw) continue;
     const labelNorm = norm(labelRaw);
     const rowNorms = r.map((cell) => norm(cell)).filter(Boolean);
+    if (multiCompetencia) {
+      if (labelNorm.startsWith("total geral") || labelNorm.startsWith("valor total")) continue;
+      if (cur && pendingRetroMes) { cur.retroMesAtual = pendingRetroMes; pendingRetroMes = null; }
+    }
     if (
       labelNorm.startsWith("total geral") ||
       rowNorms.some((cell) => cell.startsWith("total geral")) ||
@@ -1505,6 +1528,7 @@ function analisarResumoSheet(wb: ExcelJS.Workbook): AnalisePorCnpj[] | null {
       };
 
       blocos.push(cur);
+      if (pendingRetroMes) { cur.retroMesAtual = pendingRetroMes; pendingRetroMes = null; }
       inCoparticBlock = false;
       continue;
     }
