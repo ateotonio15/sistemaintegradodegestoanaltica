@@ -1,7 +1,8 @@
 # Roadmap
 
 ## Enviado Financ. nos anexos direcionados
-- [ ] Investigar data ausente nos contratos 8007 e 4005, corrigir o fluxo e conferir os registros.
+- [x] Investigar data ausente nos contratos 8007 e 4005; preservar origem dos anexos e sincronizar na anexação e no salvamento das duas telas.
+- [x] Preencher 13/10/2026 nos dois destinos vazios; confirmar os três contratos e salvamento na tela autenticada (2 testes passaram).
 
 ## Reincidência no plantão
 - [x] Acoplar painel à direita do modal, com altura igual e rolagem independente, preservando o conteúdo principal.
