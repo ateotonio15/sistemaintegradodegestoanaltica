@@ -259,6 +259,7 @@ export function AnexosMovimentacao({ movimentacaoId, empresaId, required, onCoun
       queryClient.invalidateQueries({ queryKey: ["movimentacoes"] });
       queryClient.invalidateQueries({ queryKey: ["movimentacoes-dashboard"] });
       queryClient.invalidateQueries({ queryKey: ["empresas-dashboard"] });
+      queryClient.invalidateQueries({ queryKey: ["movs-administradoras"] });
       queryClient.invalidateQueries({ queryKey: ["anexos-movimentacao-grupo"] });
       onAttachmentsChange?.();
       toast.success(itens.length > 1 ? `${itens.length} arquivos enviados` : "Arquivo enviado");
