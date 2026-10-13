@@ -122,6 +122,9 @@ export function GerarHistoricoDialog({
       return data;
     },
     enabled: !!row?.empresa_id && open,
+    // Sempre lê a regra de vencimento atual ao abrir (ex.: alterada em Empresas).
+    staleTime: 0,
+    refetchOnMount: "always",
   });
 
   // Histórico salvo
