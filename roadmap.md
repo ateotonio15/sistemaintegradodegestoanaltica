@@ -1,5 +1,8 @@
 # Roadmap
 
+## Enviado Financ. nos anexos direcionados
+- [ ] Investigar data ausente nos contratos 8007 e 4005, corrigir o fluxo e conferir os registros.
+
 ## Reincidência no plantão
 - [x] Acoplar painel à direita do modal, com altura igual e rolagem independente, preservando o conteúdo principal.
 - [x] Conferir alinhamento visual isolado e testes de busca paginada por CPF (2 testes).
