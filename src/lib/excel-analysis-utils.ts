@@ -2545,6 +2545,52 @@ export async function analisarExcelFinanceiroPorCnpj(
     .map(([mes, v]) => ({ mes, quantidade: v.quantidade, total: v.total }));
 
 
+  // Quando o pivot não informou o valor por pagador, lê as abas dedicadas
+  // ("Retroativo Maio.26") usando a coluna Pagador de cada linha — evita
+  // ratear o retroativo proporcionalmente entre os pagadores.
+  if (retroPorPagador.size === 0) {
+    const porPag = new Map<string, Map<string, { quantidade: number; total: number }>>();
+    wb.worksheets.forEach((sheet) => {
+      const nomeAba = norm(sheet.name || "");
+      if (!nomeAba.includes("retroativ")) return;
+      const mes = extrairMes(sheet.name || "");
+      if (!mes) return;
+      const rowsSheet: unknown[][] = [];
+      sheet.eachRow({ includeEmpty: false }, (row) => rowsSheet.push((row.values as unknown[]).slice(1)));
+      let hIdx = -1, iVal = -1, iQtd = -1, iTipo = -1, iPag = -1;
+      for (let i = 0; i < Math.min(5, rowsSheet.length); i++) {
+        const r = rowsSheet[i];
+        const v = findColumnIndex(r, COL_VALOR);
+        const p = findColumnIndex(r, COL_PAGADOR);
+        if (v >= 0 && p >= 0) {
+          hIdx = i; iVal = v; iPag = p;
+          iQtd = r.findIndex((c) => norm(c) === "qtd");
+          iTipo = findColumnIndex(r, COL_TIPO_COBRANCA);
+          break;
+        }
+      }
+      if (hIdx < 0) return;
+      for (let i = hIdx + 1; i < rowsSheet.length; i++) {
+        const r = rowsSheet[i];
+        if (!r || r.length === 0) continue;
+        const tipoCell = iTipo >= 0 ? String(r[iTipo] ?? "") : "";
+        if (iTipo >= 0 && (isExclusao(tipoCell) || isDevolucao(tipoCell))) continue;
+        const pag = norm(r[iPag]);
+        const val = toNumber(r[iVal]);
+        if (!pag || isNaN(val)) continue;
+        const q = iQtd >= 0 ? toNumber(r[iQtd]) : 1;
+        const m = porPag.get(pag) || new Map();
+        const cur = m.get(mes) || { quantidade: 0, total: 0 };
+        cur.quantidade += isNaN(q) ? 1 : Math.round(q);
+        cur.total += val;
+        m.set(mes, cur);
+        porPag.set(pag, m);
+      }
+    });
+    if (porPag.size > 1) porPag.forEach((v, k) => retroPorPagador.set(k, v));
+  }
+
+
   const achaPagadorRetro = (nome: string) => {
     const n = norm(nome || "");
     if (!n) return null;
