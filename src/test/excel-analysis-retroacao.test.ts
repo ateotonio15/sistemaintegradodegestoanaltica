@@ -19,3 +19,20 @@ describe("RESUMO com blocos 'Retroação à <Mês>'", () => {
     expect(r[0].retroativas?.mesesDetalhe?.map((d) => d.mes)).toEqual(["JUN/26", "JUL/26"]);
   });
 });
+
+describe("aba RESUMO_AUTOMATICO", () => {
+  it("lê retroativos por competência com o nome RESUMO_AUTOMATICO", async () => {
+    const wb = new ExcelJS.Workbook();
+    const ws = wb.addWorksheet("RESUMO_AUTOMATICO");
+    [[null, "WE CAN BR\nCONTRATO 2108 | CNPJ 02762632000118"],
+     [null, "Competência Setembro/2026", "Soma de QTD", "Soma de Valor"],
+     [null, "Total Geral", 59, 14016.63],
+     [null, "Competência Outubro/2026", "Soma de QTD", "Soma de Valor"],
+     [null, "Total Geral", 55, 13066.35]].forEach((r) => ws.addRow(r));
+    const buf = await wb.xlsx.writeBuffer();
+    const [r] = await analisarExcelFinanceiroPorCnpj(new Uint8Array(buf as ArrayBuffer).buffer as ArrayBuffer);
+    expect(r.cnpj).toBe("02762632000118");
+    expect(r.retroativas?.total).toBe(27082.98);
+    expect(r.enfermaria.total).toBe(0);
+  });
+});
