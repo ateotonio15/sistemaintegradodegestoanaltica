@@ -145,7 +145,19 @@ export function useColetaMutations() {
     onError: (e: any) => toast.error(e.message ?? "Erro ao cadastrar"),
   });
 
-  return { salvarAgendamento, excluirAgendamento, atualizarStatusInscricoes, inscricaoManual };
+  const editarInscricao = useMutation({
+    mutationFn: async ({ id, ...patch }: { id: string; nome: string; cpf: string; data_nascimento: string; telefone: string; setor: string | null }) => {
+      const { error } = await sb.from("coleta_inscricoes").update(patch).eq("id", id);
+      if (error) {
+        if (error.code === "23505") throw new Error("CPF já inscrito neste agendamento");
+        throw error;
+      }
+    },
+    onSuccess: () => { inv(); toast.success("Participante atualizada"); },
+    onError: (e: any) => toast.error(e.message ?? "Erro ao atualizar"),
+  });
+
+  return { salvarAgendamento, excluirAgendamento, atualizarStatusInscricoes, inscricaoManual, editarInscricao };
 }
 
 export function cpfValido(cpf: string) {

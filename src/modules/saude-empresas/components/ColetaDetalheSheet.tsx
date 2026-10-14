@@ -32,7 +32,7 @@ export function ColetaDetalheSheet({ ag, onClose, onEdit }: { ag: ColetaAgendame
   const m = useColetaMutations();
   const [busca, setBusca] = useState("");
   const [sel, setSel] = useState<Set<string>>(new Set());
-  const [manual, setManual] = useState<null | { nome: string; cpf: string; nasc: string; tel: string; setor: string }>(null);
+  const [manual, setManual] = useState<null | { id?: string; nome: string; cpf: string; nasc: string; tel: string; setor: string }>(null);
 
   const lista = useMemo(() => {
     const q = busca.trim().toLowerCase();
@@ -77,6 +77,13 @@ export function ColetaDetalheSheet({ ag, onClose, onEdit }: { ag: ColetaAgendame
     if (!manual) return;
     if (manual.nome.trim().length < 3 || !cpfValido(manual.cpf) || !manual.nasc || manual.tel.replace(/\D/g, "").length < 10) {
       toast.error("Preencha nome, CPF válido, nascimento e telefone"); return;
+    }
+    if (manual.id) {
+      m.editarInscricao.mutate({
+        id: manual.id, nome: manual.nome.trim().toUpperCase(), cpf: manual.cpf.replace(/\D/g, ""),
+        data_nascimento: manual.nasc, telefone: manual.tel.replace(/\D/g, ""), setor: manual.setor || null,
+      }, { onSuccess: () => setManual(null) });
+      return;
     }
     m.inscricaoManual.mutate({
       agendamento_id: ag.id, empresa_id: ag.empresa_id, nome: manual.nome.trim().toUpperCase(), cpf: manual.cpf.replace(/\D/g, ""),
@@ -143,6 +150,7 @@ export function ColetaDetalheSheet({ ag, onClose, onEdit }: { ag: ColetaAgendame
 
           {manual && (
             <div className="rounded-md border border-border p-3 grid grid-cols-2 gap-2">
+              {manual.id && <div className="col-span-2 text-sm font-medium">Editar participante</div>}
               <div className="col-span-2"><Label>Nome completo</Label><Input value={manual.nome} onChange={(e) => setManual({ ...manual, nome: e.target.value })} /></div>
               <div><Label>CPF</Label><Input value={manual.cpf} onChange={(e) => setManual({ ...manual, cpf: maskCpf(e.target.value) })} /></div>
               <div><Label>Nascimento</Label><Input type="date" value={manual.nasc} onChange={(e) => setManual({ ...manual, nasc: e.target.value })} /></div>
@@ -184,6 +192,10 @@ export function ColetaDetalheSheet({ ag, onClose, onEdit }: { ag: ColetaAgendame
                   </div>
                 </div>
                 <Badge variant="outline" className={STATUS_BADGE[i.status]}>{STATUS_INSCRICAO_LABEL[i.status]}</Badge>
+                <Button size="icon" variant="ghost" title="Editar participante" onClick={() => {
+                  setManual({ id: i.id, nome: i.nome, cpf: maskCpf(i.cpf), nasc: i.data_nascimento ?? "", tel: maskTel(i.telefone), setor: i.setor ?? "" });
+                  window.scrollTo?.({ top: 0 });
+                }}><Pencil className="h-4 w-4" /></Button>
                 {i.status !== "realizada" && (
                   <Button size="icon" variant="ghost" title="Coleta realizada" onClick={() => mudar([i.id], "realizada")}><CheckCircle2 className="h-4 w-4" /></Button>
                 )}
