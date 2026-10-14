@@ -358,7 +358,7 @@ export function PlantaoDetalheDialog({ open, onOpenChange, plantao, empresaNome,
                               aria-label="Ver no Registro de Reclamações"
                               onClick={() => {
                                 onOpenChange(false);
-                                navigate(`/demandas?id=${a.demanda_id}`);
+                                navigate(`/demandas?id=${a.demanda_id}&voltar=${encodeURIComponent(`${location.pathname}?abrirPlantao=${active.id}`)}`);
                               }}
                             >
                               <ExternalLink className="h-4 w-4" />
@@ -391,7 +391,7 @@ export function PlantaoDetalheDialog({ open, onOpenChange, plantao, empresaNome,
                                 size="icon"
                                 variant="ghost"
                                 onClick={() => {
-                                  if (confirm("Excluir demanda?")) deleteAtendimento.mutate({ id: a.id, plantao_id: active.id });
+                                  if (confirm(a.demanda_id ? "Tem certeza que deseja excluir esta reclamação de ambos os módulos?" : "Excluir demanda?")) deleteAtendimento.mutate({ id: a.id, plantao_id: active.id });
                                 }}
                               >
                                 <Trash2 className="h-4 w-4 text-destructive" />

@@ -267,6 +267,13 @@
       "when": 1791994580645,
       "tag": "0037_sync_status_reclamacao_plantao",
       "breakpoints": true
+    },
+    {
+      "idx": 38,
+      "version": "7",
+      "when": 1791995788270,
+      "tag": "0038_sync_delete_reclamacao_plantao",
+      "breakpoints": true
     }
   ]
 }

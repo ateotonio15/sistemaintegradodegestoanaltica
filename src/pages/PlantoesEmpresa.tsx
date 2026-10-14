@@ -39,6 +39,15 @@ export default function PlantoesEmpresa() {
     const el = document.getElementById(`dia-${dataAlvo}`);
     el?.scrollIntoView({ behavior: "smooth", block: "center" });
   }, [dataAlvo, plantoes.length]);
+  const abrirPlantao = new URLSearchParams(location.search).get("abrirPlantao");
+  useEffect(() => {
+    if (!abrirPlantao || plantoes.length === 0) return;
+    const p = plantoes.find((x) => x.id === abrirPlantao);
+    if (p) {
+      setDetalhe(p);
+      navigate(location.pathname, { replace: true });
+    }
+  }, [abrirPlantao, plantoes.length]);
   const today = format(new Date(), "yyyy-MM-dd");
 
   const exportExcel = () => {

@@ -89,7 +89,7 @@ export function useDeleteDemanda() {
       const { error } = await supabase.from("demandas").delete().eq("id", id);
       if (error) throw error;
     },
-    onSuccess: () => qc.invalidateQueries({ queryKey: QK_DEMANDAS }),
+    onSuccess: () => { qc.invalidateQueries({ queryKey: QK_DEMANDAS }); qc.invalidateQueries({ queryKey: ["plantoes_atendimentos"] }); qc.invalidateQueries({ queryKey: ["plantoes"] }); },
   });
 }
 
