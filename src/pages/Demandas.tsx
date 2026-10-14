@@ -259,6 +259,11 @@ export default function Demandas() {
       {/* Cabeçalho */}
       <div className="flex flex-col md:flex-row md:items-end gap-3 justify-between">
         <div className="flex flex-col gap-1">
+          {voltarPlantao && (
+            <Button size="sm" className="self-start mb-1" onClick={() => navigate(voltarPlantao)}>
+              <ArrowLeft className="h-4 w-4 mr-1" /> Voltar ao Plantão
+            </Button>
+          )}
           <Link to="/" className="text-xs text-muted-foreground hover:text-primary inline-flex items-center gap-1">
             <ArrowLeft className="h-3 w-3" />
             Voltar ao início
