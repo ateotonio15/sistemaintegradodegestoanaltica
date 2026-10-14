@@ -61,6 +61,10 @@ export default function Demandas() {
   const [params, setParams] = useSearchParams();
   const reclamacaoParam = params.get("reclamacao");
   const idParam = params.get("id");
+  const [voltarPlantao] = useState(() => {
+    const v = params.get("voltar");
+    return v && v.startsWith("/plantoes") ? v : null;
+  });
 
   const { data: demandas = [], isLoading } = useDemandas();
   const del = useDeleteDemanda();
@@ -80,6 +84,17 @@ export default function Demandas() {
   const [openImport, setOpenImport] = useState(false);
   const [openHist, setOpenHist] = useState(false);
   const [confirmDel, setConfirmDel] = useState<Demanda | null>(null);
+  const { data: confirmDelNoPlantao = false } = useQuery({
+    queryKey: ["demanda-no-plantao", confirmDel?.id],
+    enabled: !!confirmDel?.id,
+    queryFn: async () => {
+      const { count } = await supabase
+        .from("plantoes_atendimentos")
+        .select("id", { count: "exact", head: true })
+        .eq("demanda_id", confirmDel!.id);
+      return (count ?? 0) > 0;
+    },
+  });
 
   // Drilldown via ?id= → abre o formulário do registro
   useEffect(() => {
@@ -504,6 +519,9 @@ export default function Demandas() {
           <AlertDialogHeader>
             <AlertDialogTitle>Excluir demanda?</AlertDialogTitle>
             <AlertDialogDescription>
+              {confirmDelNoPlantao && (
+                <b className="block mb-2">Tem certeza que deseja excluir esta reclamação de ambos os módulos? Ela também será removida do Plantão de Atendimento.</b>
+              )}
               Esta ação não pode ser desfeita. A demanda de <b>{confirmDel?.nome_cliente}</b> será
               removida permanentemente.
             </AlertDialogDescription>
