@@ -303,7 +303,8 @@ export function PlantaoDetalheDialog({ open, onOpenChange, plantao, empresaNome,
                             observacao: a.observacao,
                             assunto: `${meta.tipo} · ${meta.canal} · ${novo}`,
                             resolvido: novo === "Resolvido",
-                          });
+                            demanda_id: a.demanda_id,
+                          }, { onSuccess: () => toast.success(a.demanda_id ? "Status atualizado também no Registro de Reclamações" : "Status atualizado") });
                         };
                         return (
                         <div
