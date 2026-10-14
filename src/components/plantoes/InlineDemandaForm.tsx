@@ -257,7 +257,7 @@ export function InlineDemandaForm({
             setReclamacaoInitial(null);
           }
         }}
-        plantaoContext={{ plantao_id: defaultPlantaoId, empresa_id: empresaId }}
+        plantaoContext={{ plantao_id: defaultPlantaoId, empresa_id: empresaId, status: status === "Resolvido" ? "Pendente" : status, canal }}
         initialValues={reclamacaoInitial || undefined}
       />
     </div>

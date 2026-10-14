@@ -43,7 +43,7 @@ type Props = {
   onOpenChange: (v: boolean) => void;
   demanda?: Demanda | null;
   initialValues?: Partial<Demanda>;
-  plantaoContext?: { plantao_id: string; empresa_id?: string } | null;
+  plantaoContext?: { plantao_id: string; empresa_id?: string; status?: string; canal?: string } | null;
   onSaved?: (demanda: Demanda) => void;
 };
 
@@ -221,8 +221,8 @@ export default function DemandaFormDialog({ open, onOpenChange, demanda, initial
               nome_cliente: saved.nome_cliente,
               cpf: saved.cpf ?? null,
               hora,
-              assunto: `Reclamação · Presencial · Resolvido`,
-              resolvido: true,
+              assunto: `Reclamação · ${plantaoContext.canal || "Presencial"} · ${saved.resolvido_executiva ? "Resolvido" : (plantaoContext.status || "Pendente")}`,
+              resolvido: !!saved.resolvido_executiva,
               observacao: saved.detalhamento ?? null,
             });
           } catch (err: any) {
