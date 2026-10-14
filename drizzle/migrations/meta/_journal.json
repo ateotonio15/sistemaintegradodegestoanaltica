@@ -260,6 +260,13 @@
       "when": 1791555555099,
       "tag": "0036_suspensao_reativacao_campos",
       "breakpoints": true
+    },
+    {
+      "idx": 37,
+      "version": "7",
+      "when": 1791994580645,
+      "tag": "0037_sync_status_reclamacao_plantao",
+      "breakpoints": true
     }
   ]
 }
