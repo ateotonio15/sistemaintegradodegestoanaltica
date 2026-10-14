@@ -1,4 +1,6 @@
 import { useMemo, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
 import { useNavigate, useLocation } from "react-router-dom";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
@@ -123,6 +125,44 @@ export function PlantaoDetalheDialog({ open, onOpenChange, plantao, empresaNome,
   const [editPlantao, setEditPlantao] = useState(false);
   const [demandasOpen, setDemandasOpen] = useState(true);
   const [cpfReincidencia, setCpfReincidencia] = useState("");
+  const [selecionadoId, setSelecionadoId] = useState<string | null>(null);
+
+  const cpfsDia = useMemo(() => {
+    const s = new Set<string>();
+    atendimentos.forEach((a) => {
+      const d = String(a.cpf ?? "").replace(/\D/g, "");
+      if (d.length === 11) {
+        s.add(d);
+        s.add(`${d.slice(0, 3)}.${d.slice(3, 6)}.${d.slice(6, 9)}-${d.slice(9)}`);
+      }
+    });
+    return Array.from(s).sort();
+  }, [atendimentos]);
+
+  const { data: contagemCpf = {} } = useQuery({
+    queryKey: ["plantoes-reincidencia-contagem", cpfsDia],
+    enabled: cpfsDia.length > 0,
+    staleTime: 30_000,
+    queryFn: async () => {
+      const mapa: Record<string, number> = {};
+      const tamanho = 1000;
+      for (let inicio = 0; ; inicio += tamanho) {
+        const { data, error } = await supabase
+          .from("plantoes_atendimentos")
+          .select("id, cpf")
+          .in("cpf", cpfsDia)
+          .order("id")
+          .range(inicio, inicio + tamanho - 1);
+        if (error) throw error;
+        (data ?? []).forEach((r: any) => {
+          const d = String(r.cpf ?? "").replace(/\D/g, "");
+          mapa[d] = (mapa[d] ?? 0) + 1;
+        });
+        if ((data?.length ?? 0) < tamanho) break;
+      }
+      return mapa;
+    },
+  });
 
   const today = new Date().toISOString().slice(0, 10);
   const isToday = active.data === today;
@@ -240,7 +280,11 @@ export function PlantaoDetalheDialog({ open, onOpenChange, plantao, empresaNome,
                       empresaId={active.empresa_id}
                       executivaNome={active.plantonista ?? undefined}
                       dataPlantao={active.data}
-                      onCpfChange={setCpfReincidencia}
+                      onCpfChange={(v) => {
+                        if (!String(v ?? "").replace(/\D/g, "")) return;
+                        setSelecionadoId(null);
+                        setCpfReincidencia(v);
+                      }}
                     />
                     <div className="divide-y border rounded-md">
                       {atendimentos.length === 0 && (
@@ -262,17 +306,49 @@ export function PlantaoDetalheDialog({ open, onOpenChange, plantao, empresaNome,
                           });
                         };
                         return (
-                        <div key={a.id} className="p-3 flex items-center gap-3">
+                        <div
+                          key={a.id}
+                          role="button"
+                          tabIndex={0}
+                          title="Ver reincidência deste beneficiário"
+                          onClick={() => {
+                            setSelecionadoId(a.id);
+                            setCpfReincidencia(a.cpf ?? "");
+                          }}
+                          onKeyDown={(e) => {
+                            if (e.key === "Enter" || e.key === " ") {
+                              e.preventDefault();
+                              setSelecionadoId(a.id);
+                              setCpfReincidencia(a.cpf ?? "");
+                            }
+                          }}
+                          className={`p-3 flex items-center gap-3 cursor-pointer transition-colors border-l-2 ${
+                            selecionadoId === a.id ? "bg-primary/10 border-l-primary" : "border-l-transparent hover:bg-muted/40"
+                          }`}
+                        >
                           <div className="flex-1 min-w-0">
-                            <div className="text-sm">
+                            <div className="text-sm flex items-center flex-wrap gap-x-2">
                               <span className="font-medium">{a.nome_cliente}</span>
-                              {a.cpf && <span className="text-muted-foreground ml-2 text-xs">{a.cpf}</span>}
+                              {(() => {
+                                const d = String(a.cpf ?? "").replace(/\D/g, "");
+                                const outros = (contagemCpf[d] ?? 0) - 1;
+                                return outros > 0 ? (
+                                  <span
+                                    className="rounded-full border border-warning/30 bg-warning/15 text-warning px-1.5 py-0 text-[10px] font-semibold"
+                                    title={`${outros} outro(s) atendimento(s) no histórico`}
+                                  >
+                                    🔁 {outros}x
+                                  </span>
+                                ) : null;
+                              })()}
+                              {a.cpf && <span className="text-muted-foreground text-xs">{a.cpf}</span>}
                             </div>
                             <div className="text-xs text-muted-foreground">
                               {[meta.tipo, meta.canal, `${dataFmt} ${a.hora ?? ""}`.trim()].filter(Boolean).join(" · ")}
                             </div>
                             {a.observacao && <div className="text-xs text-muted-foreground mt-1">{a.observacao}</div>}
                           </div>
+                          <div className="contents" onClick={(e) => e.stopPropagation()} onKeyDown={(e) => e.stopPropagation()}>
                           <DropdownMenu>
                             <DropdownMenuTrigger asChild>
                               <button
@@ -307,6 +383,7 @@ export function PlantaoDetalheDialog({ open, onOpenChange, plantao, empresaNome,
                               </Button>
                             </div>
                           )}
+                          </div>
                         </div>
                         );
                       })}
