@@ -325,6 +325,7 @@ export function usePlantaoMutations() {
     onSuccess: (_d, vars) => {
       invalidateAtendimentosDoPlantao(qc, [vars.plantao_id]);
       qc.invalidateQueries({ queryKey: QK.plantoes });
+      qc.invalidateQueries({ queryKey: ["demandas"] });
       toast.success("Atendimento removido");
     },
     onError: (e: any) => toast.error(e.message ?? "Erro"),
