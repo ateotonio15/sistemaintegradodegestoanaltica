@@ -194,7 +194,6 @@ export function ColetaDetalheSheet({ ag, onClose, onEdit }: { ag: ColetaAgendame
                 <Badge variant="outline" className={STATUS_BADGE[i.status]}>{STATUS_INSCRICAO_LABEL[i.status]}</Badge>
                 <Button size="icon" variant="ghost" title="Editar participante" onClick={() => {
                   setManual({ id: i.id, nome: i.nome, cpf: maskCpf(i.cpf), nasc: i.data_nascimento ?? "", tel: maskTel(i.telefone), setor: i.setor ?? "" });
-                  window.scrollTo?.({ top: 0 });
                 }}><Pencil className="h-4 w-4" /></Button>
                 {i.status !== "realizada" && (
                   <Button size="icon" variant="ghost" title="Coleta realizada" onClick={() => mudar([i.id], "realizada")}><CheckCircle2 className="h-4 w-4" /></Button>
