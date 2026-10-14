@@ -310,6 +310,8 @@ export function usePlantaoMutations() {
     onSuccess: (_d, vars) => {
       invalidateAtendimentosDoPlantao(qc, [vars.plantao_id]);
       qc.invalidateQueries({ queryKey: QK.plantoes });
+      // Reclamações vinculadas têm o status sincronizado no Registro de Reclamações
+      qc.invalidateQueries({ queryKey: ["demandas"] });
       toast.success("Atendimento salvo");
     },
     onError: (e: any) => toast.error(e.message ?? "Erro ao salvar atendimento"),

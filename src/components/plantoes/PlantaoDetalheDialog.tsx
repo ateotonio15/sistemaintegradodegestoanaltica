@@ -10,7 +10,7 @@ import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import {
-  User, Building2, MapPin, ChevronDown, Plus, Pencil, Trash2, FileSpreadsheet,
+  User, Building2, MapPin, ChevronDown, Plus, Pencil, Trash2, FileSpreadsheet, ExternalLink,
 } from "lucide-react";
 import ExcelJS from "exceljs";
 import { useAtendimentos, usePlantaoMutations, usePlantoes, type Plantao, type PlantaoAtendimento } from "@/hooks/usePlantoes";
@@ -349,6 +349,20 @@ export function PlantaoDetalheDialog({ open, onOpenChange, plantao, empresaNome,
                             {a.observacao && <div className="text-xs text-muted-foreground mt-1">{a.observacao}</div>}
                           </div>
                           <div className="contents" onClick={(e) => e.stopPropagation()} onKeyDown={(e) => e.stopPropagation()}>
+                          {a.demanda_id && (
+                            <Button
+                              size="icon"
+                              variant="ghost"
+                              title="Ver no Registro de Reclamações"
+                              aria-label="Ver no Registro de Reclamações"
+                              onClick={() => {
+                                onOpenChange(false);
+                                navigate(`/demandas?id=${a.demanda_id}`);
+                              }}
+                            >
+                              <ExternalLink className="h-4 w-4" />
+                            </Button>
+                          )}
                           <DropdownMenu>
                             <DropdownMenuTrigger asChild>
                               <button
