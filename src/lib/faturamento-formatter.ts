@@ -265,7 +265,9 @@ export async function formatarFaturamentoExcel(
   ) {
     const { calcularProporcionalPeriodo } = await import("./faturamento-exclusoes");
     // mensalidade mais frequente por plano (linhas de Mensalidade)
+    // e mensalidade mais frequente por plano + faixa etária (beneficiários da mesma faixa)
     const counts = new Map<string, Map<number, number>>();
+    const countsFx = new Map<string, Map<number, number>>();
     for (const r of rows1) {
       if (lower(r[iTipo]) !== "mensalidade") continue;
       const plano = norm(r[iPlano]);
@@ -274,12 +276,28 @@ export async function formatarFaturamentoExcel(
       if (!counts.has(plano)) counts.set(plano, new Map());
       const inner = counts.get(plano)!;
       inner.set(v, (inner.get(v) ?? 0) + 1);
+      const fx = iFx >= 0 ? String(r[iFx] ?? "").trim() : "";
+      if (fx) {
+        const k = `${plano}|${fx}`;
+        if (!countsFx.has(k)) countsFx.set(k, new Map());
+        const m2 = countsFx.get(k)!;
+        m2.set(v, (m2.get(v) ?? 0) + 1);
+      }
     }
-    const mensPorPlano = new Map<string, number>();
-    for (const [plano, m] of counts) {
+    const moda = (m: Map<number, number>) => {
       let bv = 0, bc = 0;
       for (const [v, c] of m) if (c > bc || (c === bc && v > bv)) { bv = v; bc = c; }
+      return bv;
+    };
+    const mensPorPlano = new Map<string, number>();
+    for (const [plano, m] of counts) {
+      const bv = moda(m);
       if (bv > 0) mensPorPlano.set(plano, bv);
+    }
+    const mensPorPlanoFx = new Map<string, number>();
+    for (const [k, m] of countsFx) {
+      const bv = moda(m);
+      if (bv > 0) mensPorPlanoFx.set(k, bv);
     }
     const parseBRDate = (s: string): Date | null => {
       const m = /^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{2,4})$/.exec(s.trim());
@@ -302,7 +320,8 @@ export async function formatarFaturamentoExcel(
       const diaInicio = opts.periodoPorCnpj.get(cnpjDigits);
       if (!diaInicio) continue;
       const plano = norm(r[iPlano]);
-      const mens = mensPorPlano.get(plano);
+      const fx = iFx >= 0 ? String(r[iFx] ?? "").trim() : "";
+      const mens = (fx ? mensPorPlanoFx.get(`${plano}|${fx}`) : undefined) ?? mensPorPlano.get(plano);
       if (!mens) continue;
       const rv = r[iDtResc];
       const dResc = rv instanceof Date ? rv : parseBRDate(String(rv ?? ""));
