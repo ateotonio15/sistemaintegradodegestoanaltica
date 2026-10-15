@@ -42,7 +42,7 @@ export async function criarAvaliacoesRHPptx(s: AvaliacoesRHSnapshot, fundos: { c
   pptx.author = "CS Control";
   pptx.title = `${s.titulo} | Visão executiva`;
   pptx.subject = `Avaliações de RH · ${s.periodo}`;
-  pptx.lang = "pt-BR";
+  pptx.theme = { headFontFace: "Calibri", bodyFontFace: "Calibri", lang: "pt-BR" };
   const font = "Calibri";
   const num = (n: number, casas = 0) => n.toLocaleString("pt-BR", { minimumFractionDigits: casas, maximumFractionDigits: casas });
   const texto = (sl: any, t: string, x: number, y: number, w: number, h: number, size = 20, color = INK, bold = false) =>
@@ -96,7 +96,7 @@ export async function criarAvaliacoesRHPptx(s: AvaliacoesRHSnapshot, fundos: { c
   const rows = executivas.map((ex, i) => {
     const status = statusDesempenhoRH(ex.media, s.stats.media);
     const cor = status === "Acima da média" ? PRIMARY : status === "Abaixo da média" ? CORAL : GOLD;
-    return [String(i + 1), ex.nome, num(ex.media, 2), num(ex.qtd), { text: status, options: { color: cor, bold: true } }];
+    return [...[String(i + 1), ex.nome, num(ex.media, 2), num(ex.qtd)].map(text => ({ text })), { text: status, options: { color: cor, bold: true } }];
   });
   if (rows.length) {
     const cabecalho = ["#", "Executiva", "Média / 5", "Avaliações", "Status"].map(text => ({ text, options: { bold: true, color: WHITE, fill: { color: PRIMARY } } }));
@@ -117,7 +117,7 @@ export async function criarAvaliacoesRHPptx(s: AvaliacoesRHSnapshot, fundos: { c
     showValue: true, showLegend: false, dataLabelColor: INK, dataLabelFontSize: 16,
     catAxisLabelFontSize: 16, catAxisLabelColor: INK, valAxisLabelFontSize: 14,
     valAxisMinVal: 0, valAxisLabelFormatCode: "0", valGridLine: { color: "D8E4DF", size: 0.5 },
-    showCatName: false, showBorder: false,
+    showBorder: false,
   });
   else texto(c, "Sem empresas identificadas nas respostas.", 0.6, 2.4, 8, 1, 24, MUTED);
   bloco(c, 9.1, 2.05, 3.6, 4.28);
