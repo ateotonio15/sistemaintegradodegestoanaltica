@@ -376,6 +376,53 @@ export async function adicionarExclusoesAoBruto(
     }
   }
 
+  // Faixa etária: mensalidade por plano + faixa (moda entre beneficiários da mesma faixa)
+  const mensalidadePorPlanoFaixa = new Map<string, number>();
+  const faixasConhecidas: { label: string; min: number; max: number }[] = [];
+  const faixaPorCpf = new Map<string, string>();
+  const idxCpfBruto = findBrutoIdx("cpf");
+  if (idxFx >= 0) {
+    const counts = new Map<string, Map<number, number>>();
+    const vistos = new Set<string>();
+    for (let r = 1; r < aoaBruto.length; r++) {
+      const linha = aoaBruto[r] as unknown[];
+      const fx = String(linha[idxFx] ?? "").trim();
+      if (!fx) continue;
+      if (!vistos.has(fx)) {
+        vistos.add(fx);
+        const m = fx.match(/(\d+)\D+(\d+)/);
+        if (m) faixasConhecidas.push({ label: fx, min: Number(m[1]), max: Number(m[2]) });
+      }
+      if (idxCpfBruto >= 0) {
+        const cpf = onlyDigits(linha[idxCpfBruto]);
+        if (cpf && !faixaPorCpf.has(cpf)) faixaPorCpf.set(cpf, fx);
+      }
+      if (idxTipo < 0 || idxPlano < 0 || idxValor < 0) continue;
+      if (!normText(linha[idxTipo]).includes("MENSALIDADE")) continue;
+      const plano = normalizarPlano(linha[idxPlano]);
+      const val = toNumberSafe(linha[idxValor]);
+      if (!plano || val == null || val <= 0) continue;
+      const k = `${plano}|${fx}`;
+      if (!counts.has(k)) counts.set(k, new Map());
+      const inner = counts.get(k)!;
+      inner.set(val, (inner.get(val) ?? 0) + 1);
+    }
+    for (const [k, valMap] of counts) {
+      let best = 0, bestC = 0;
+      for (const [v, c] of valMap) if (c > bestC || (c === bestC && v > best)) (best = v), (bestC = c);
+      if (best > 0) mensalidadePorPlanoFaixa.set(k, best);
+    }
+  }
+  const usaFaixaEtaria = faixasConhecidas.length > 1;
+  const faixaPorIdade = (idade: number) =>
+    faixasConhecidas.find((f) => idade >= f.min && idade <= f.max)?.label ?? null;
+  const calcIdade = (nasc: Date, ref: Date) => {
+    let i = ref.getUTCFullYear() - nasc.getUTCFullYear();
+    const mm = ref.getUTCMonth() - nasc.getUTCMonth();
+    if (mm < 0 || (mm === 0 && ref.getUTCDate() < nasc.getUTCDate())) i--;
+    return i;
+  };
+
   // Competência da mensalidade (a mais recente presente no bruto)
   let maxComp: Date | null = null;
   if (idxComp >= 0) {
