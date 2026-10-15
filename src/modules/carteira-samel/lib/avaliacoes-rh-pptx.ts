@@ -1,3 +1,6 @@
+import fundoCapa from "@/assets/ppt/fundo-capa.jpg";
+import fundoConteudo from "@/assets/ppt/fundo-conteudo.jpg";
+
 // Exporta o Dashboard de Avaliação RH em PowerPoint (somente leitura dos dados já calculados na tela).
 export type AvaliacoesRHSnapshot = {
   titulo: string;
@@ -12,24 +15,35 @@ export type AvaliacoesRHSnapshot = {
 
 const INK = "0F1F2C", MUTED = "6B7A85", PRIMARY = "0F766E", LIGHT = "F1F5F4";
 
+async function paraDataUrl(url: string): Promise<string> {
+  const blob = await (await fetch(url)).blob();
+  return await new Promise((res, rej) => {
+    const r = new FileReader();
+    r.onload = () => res(String(r.result).replace(/^data:/, ""));
+    r.onerror = () => rej(r.error);
+    r.readAsDataURL(blob);
+  });
+}
+
 export async function exportarAvaliacoesRHPptx(s: AvaliacoesRHSnapshot) {
+  const [bgCapa, bgConteudo] = await Promise.all([paraDataUrl(fundoCapa), paraDataUrl(fundoConteudo)]);
   const { default: PptxGenJS } = await import("pptxgenjs");
   const pptx = new PptxGenJS();
   pptx.layout = "LAYOUT_WIDE";
   const font = "Calibri";
 
   const header = (slide: any, t: string) => {
-    slide.background = { color: "FFFFFF" };
-    slide.addText(t, { x: 0.5, y: 0.3, w: 12.3, h: 0.7, fontSize: 30, bold: true, color: INK, fontFace: font });
-    slide.addText(s.periodo, { x: 0.5, y: 0.95, w: 12.3, h: 0.4, fontSize: 14, color: MUTED, fontFace: font });
+    slide.background = { data: bgConteudo };
+    slide.addText(t, { x: 0.5, y: 0.3, w: 8.6, h: 0.7, fontSize: 26, bold: true, color: INK, fontFace: font, fit: "shrink" });
+    slide.addText(s.periodo, { x: 0.5, y: 0.95, w: 8.6, h: 0.4, fontSize: 14, color: MUTED, fontFace: font });
   };
 
   // Capa
   const capa = pptx.addSlide();
-  capa.background = { color: PRIMARY };
-  capa.addText(s.titulo, { x: 0.8, y: 2.6, w: 11.7, h: 1.2, fontSize: 48, bold: true, color: "FFFFFF", fontFace: font });
-  capa.addText(`Dashboard de avaliações · ${s.periodo}`, { x: 0.8, y: 3.8, w: 11.7, h: 0.6, fontSize: 22, color: "D1FAE5", fontFace: font });
-  capa.addText(`Gerado em ${new Date().toLocaleDateString("pt-BR")}`, { x: 0.8, y: 6.6, w: 11.7, h: 0.4, fontSize: 14, color: "D1FAE5", fontFace: font });
+  capa.background = { data: bgCapa };
+  capa.addText(s.titulo, { x: 0.8, y: 2.6, w: 6.3, h: 1.6, fontSize: 36, bold: true, color: PRIMARY, fontFace: font, valign: "top", fit: "shrink" });
+  capa.addText(`Dashboard de avaliações · ${s.periodo}`, { x: 0.8, y: 4.3, w: 6.3, h: 0.9, fontSize: 18, color: INK, fontFace: font, valign: "top" });
+  capa.addText(`Gerado em ${new Date().toLocaleDateString("pt-BR")}`, { x: 0.8, y: 6.4, w: 6.3, h: 0.4, fontSize: 14, color: MUTED, fontFace: font });
 
   // Indicadores
   const k = pptx.addSlide();
@@ -46,18 +60,18 @@ export async function exportarAvaliacoesRHPptx(s: AvaliacoesRHSnapshot) {
     k.addText(v, { x, y: 2.5, w: 2.9, h: 1.3, fontSize: 60, bold: true, color: PRIMARY, align: "center", fontFace: font });
     k.addText(l, { x, y: 3.9, w: 2.9, h: 0.6, fontSize: 18, color: INK, align: "center", fontFace: font });
   });
-  k.addText("Nota média em escala de 1 a 5.", { x: 0.5, y: 5.3, w: 12, h: 0.4, fontSize: 14, color: MUTED, fontFace: font });
+  k.addText("Nota média em escala de 1 a 5.", { x: 0.5, y: 5.2, w: 12, h: 0.4, fontSize: 14, color: MUTED, fontFace: font });
 
   // Distribuição + perguntas
   const d = pptx.addSlide();
   header(d, "Distribuição das notas e média por pergunta");
   d.addChart(pptx.ChartType.doughnut, [{ name: "Notas", labels: s.distribuicao.map(x => x.name), values: s.distribuicao.map(x => x.value) }], {
-    x: 0.4, y: 1.5, w: 5.6, h: 5.6, holeSize: 55, showLegend: true, legendPos: "b", legendFontSize: 14,
+    x: 0.4, y: 1.5, w: 5.6, h: 4.8, holeSize: 55, showLegend: true, legendPos: "b", legendFontSize: 14,
     chartColors: ["EF4444", "F97316", "EAB308", "84CC16", "22C55E"], showPercent: true, dataLabelColor: "FFFFFF",
   });
   if (s.mediaPorPergunta.length) {
     d.addChart(pptx.ChartType.bar, [{ name: "Média", labels: s.mediaPorPergunta.map(x => x.pergunta), values: s.mediaPorPergunta.map(x => x.media) }], {
-      x: 6.2, y: 1.5, w: 6.8, h: 5.6, barDir: "bar", chartColors: [PRIMARY], valAxisMinVal: 0, valAxisMaxVal: 5,
+      x: 6.2, y: 1.5, w: 6.8, h: 4.8, barDir: "bar", chartColors: [PRIMARY], valAxisMinVal: 0, valAxisMaxVal: 5,
       showValue: true, dataLabelFontSize: 14, catAxisLabelFontSize: 13, valAxisLabelFontSize: 12,
     });
   }
@@ -67,19 +81,19 @@ export async function exportarAvaliacoesRHPptx(s: AvaliacoesRHSnapshot) {
     const e = pptx.addSlide();
     header(e, "Evolução mensal da nota média");
     e.addChart(pptx.ChartType.bar, [{ name: "Nota média", labels: s.evolucao.map(x => x.mes), values: s.evolucao.map(x => x.media) }], {
-      x: 0.5, y: 1.5, w: 12.3, h: 5.6, chartColors: [PRIMARY], valAxisMinVal: 0, valAxisMaxVal: 5, showValue: true,
+      x: 0.5, y: 1.5, w: 12.3, h: 4.8, chartColors: [PRIMARY], valAxisMinVal: 0, valAxisMaxVal: 5, showValue: true,
       dataLabelFontSize: 14, catAxisLabelFontSize: 14,
     });
   }
 
   const tabela = (t: string, head: string[], rows: string[][]) => {
-    for (let i = 0; i < Math.max(rows.length, 1); i += 12) {
+    for (let i = 0; i < Math.max(rows.length, 1); i += 9) {
       const sl = pptx.addSlide();
       header(sl, i ? `${t} (cont.)` : t);
       const hd = head.map(h => ({ text: h, options: { bold: true, color: "FFFFFF", fill: { color: PRIMARY } } }));
-      const body = rows.slice(i, i + 12).map(r => r.map(c => ({ text: c })));
+      const body = rows.slice(i, i + 9).map(r => r.map(c => ({ text: c })));
       sl.addTable([hd, ...(body.length ? body : [[{ text: "Sem dados" }, ...head.slice(1).map(() => ({ text: "" }))]])], {
-        x: 0.5, y: 1.5, w: 12.3, fontSize: 15, fontFace: font, color: INK, border: { type: "solid", color: "D8DFE4", pt: 0.5 }, rowH: 0.42,
+        x: 0.5, y: 1.5, w: 12.3, fontSize: 15, fontFace: font, color: INK, border: { type: "solid", color: "D8DFE4", pt: 0.5 }, rowH: 0.4,
       });
     }
   };
