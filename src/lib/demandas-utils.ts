@@ -59,14 +59,22 @@ export function isPendente(d: Pick<Demanda, "resolvido_executiva" | "resolvido_s
   return getStatus(d) === "Pendente";
 }
 
-/** Dias em aberto: hoje - data_reclamacao quando aberto; resolucao - reclamacao quando fechado. */
-export function getDiasAberto(d: Demanda): number {
+/**
+ * Dias em aberto: conta da data da reclamação até a primeira data de resolução
+ * preenchida (setor ou executiva); sem resolução, até hoje.
+ */
+export function getDiasAberto(d: Pick<Demanda, "data_reclamacao" | "resolvido_setor" | "data_resolucao_setor" | "resolvido_executiva" | "data_resolucao_executiva">): number {
   if (!d.data_reclamacao) return 0;
   const inicio = parseLocalDate(d.data_reclamacao);
   if (!inicio) return 0;
-  const fim = d.resolvido_executiva && d.data_resolucao_executiva
-    ? parseLocalDate(d.data_resolucao_executiva)!
-    : new Date();
+  const datas: Date[] = [];
+  if (d.resolvido_setor && d.data_resolucao_setor) {
+    const x = parseLocalDate(d.data_resolucao_setor); if (x) datas.push(x);
+  }
+  if (d.resolvido_executiva && d.data_resolucao_executiva) {
+    const x = parseLocalDate(d.data_resolucao_executiva); if (x) datas.push(x);
+  }
+  const fim = datas.length ? new Date(Math.min(...datas.map((x) => x.getTime()))) : new Date();
   return Math.max(0, differenceInCalendarDays(fim, inicio));
 }
 
