@@ -113,7 +113,7 @@ export async function criarAvaliacoesRHPptx(s: AvaliacoesRHSnapshot, fundos: { c
   const c = header("Clientes | Distribuição e engajamento", 4);
   const empresas = s.rankingEmpresas.slice(0, 6);
   if (empresas.length) empresas.forEach((e, i) => {
-    const y = 2.05 + i * 0.72;
+    const y = 2.05 + i * 0.65;
     texto(c, e.nome, 0.6, y, 4.1, 0.48, 18);
     bloco(c, 4.9, y + 0.1, 3.1, 0.28);
     bloco(c, 4.9, y + 0.1, 3.1 * e.qtd / Math.max(...empresas.map(item => item.qtd), 1), 0.28, PRIMARY);
@@ -125,7 +125,7 @@ export async function criarAvaliacoesRHPptx(s: AvaliacoesRHSnapshot, fundos: { c
   texto(c, lider ? `${num(total ? lider.qtd / total * 100 : 0, 1)}%` : "—", 9.35, 3.0, 3.1, 0.88, 48, PRIMARY, true);
   texto(c, lider?.nome || "Sem dados", 9.35, 4.02, 3.1, 0.95, 22, INK, true);
   texto(c, lider ? `${num(lider.qtd)} ${lider.qtd === 1 ? "avaliação" : "avaliações"} do total. Entre os maiores volumes por empresa no período.` : "Aguardando respostas identificadas.", 9.35, 5.12, 3.1, 0.85, 18, MUTED);
-  texto(c, "Top 6 por volume. Participação nas respostas, não taxa de adesão da carteira total.", 0.6, 6.45, 12, 0.32, 14, MUTED);
+  texto(c, "Top 6 por volume. Participação nas respostas, não taxa de adesão da carteira total.", 0.6, 6.08, 12, 0.32, 14, MUTED);
 
   // 05 — Propostas explícitas; não atribui causas nem resultados não medidos.
   const a = header("Plano de ação estratégico", 5);
@@ -160,8 +160,8 @@ export async function criarAvaliacoesRHPptx(s: AvaliacoesRHSnapshot, fundos: { c
     texto(f, t, 1.55, y - 0.03, 10.8, 0.38, 22, INK, true);
     texto(f, desc, 1.55, y + 0.43, 10.8, 0.38, 20, MUTED);
   });
-  bloco(f, 0.6, 6.02, 12.15, 0.58);
-  texto(f, "Encaminhamento proposto: registrar responsáveis, prazos e critérios aprovados pela diretoria.", 0.82, 6.13, 11.7, 0.35, 18, PRIMARY, true);
+  bloco(f, 0.6, 5.82, 12.15, 0.52);
+  texto(f, "Encaminhamento proposto: registrar responsáveis, prazos e critérios aprovados pela diretoria.", 0.82, 5.91, 11.7, 0.35, 18, PRIMARY, true);
   return pptx;
 }
 
