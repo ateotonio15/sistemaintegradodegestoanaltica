@@ -1,8 +1,8 @@
 # Roadmap
 
 ## PowerPoint executivo de Avaliação RH
-- [ ] Reorganizar a exportação em seis slides com fundos padrão, dados do período e propostas estratégicas identificadas.
-- [ ] Conferir download real, conteúdo e apresentação visual dos seis slides.
+- [x] Reorganizar a exportação em seis slides com fundos padrão, dados do período e propostas estratégicas identificadas.
+- [x] Conferir download autenticado, conteúdo e visual dos seis slides; dois testes passaram. Corrigidos nomes quebrados na tabela, compatibilidade de imagens/gráfico e sobreposição do rodapé nos slides 4 e 6; arquivo de QA validado após reparos estruturais do gerador.
 
 ## Enviado Financ. nos anexos direcionados
 - [x] Investigar data ausente nos contratos 8007 e 4005; preservar origem dos anexos e sincronizar na anexação e no salvamento das duas telas.
