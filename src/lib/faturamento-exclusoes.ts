@@ -465,7 +465,23 @@ export async function adicionarExclusoesAoBruto(
     // Descobre plano e valor proporcional da linha
     const planoRaw = idxPlano >= 0 ? pickFromExcl(headersBruto[idxPlano], linhaExc, normExcMap) : "";
     const planoNorm = normalizarPlano(planoRaw);
-    const mensalidade = planoNorm ? mensalidadePorPlano.get(planoNorm) ?? null : null;
+    // Faixa etária do beneficiário: pela idade (nascimento) ou pelo CPF no bruto
+    let faixaLinha: string | null = null;
+    if (usaFaixaEtaria) {
+      const nasc = toDateSafe(pickFromExcl("dt", linhaExc, normExcMap));
+      const ref =
+        (idxRescExc != null ? toDateSafe(linhaExc[idxRescExc]) : null) ?? maxComp ?? new Date();
+      if (nasc) faixaLinha = faixaPorIdade(calcIdade(nasc, ref));
+      if (!faixaLinha) {
+        const cpf = onlyDigits(pickFromExcl("cpf", linhaExc, normExcMap));
+        if (cpf) faixaLinha = faixaPorCpf.get(cpf) ?? null;
+      }
+    }
+    const mensalidade = planoNorm
+      ? (faixaLinha ? mensalidadePorPlanoFaixa.get(`${planoNorm}|${faixaLinha}`) : undefined) ??
+        mensalidadePorPlano.get(planoNorm) ??
+        null
+      : null;
 
     // Resolve CNPJ da linha (para consultar se a empresa é de PERÍODO específico)
     let cnpjLinha = "";
@@ -505,7 +521,7 @@ export async function adicionarExclusoesAoBruto(
       if (ci === idxTipo) return "Exclusão";
       if (ci === idxValor) return valorProporcional;
       if (ci === idxComp) return compExclusaoStr;
-      if (ci === idxFx) return fxEtariaBruto;
+      if (ci === idxFx) return faixaLinha ?? fxEtariaBruto;
       if (ci === idxPlano) return planoNorm;
 
       let val = pickFromExcl(h, linhaExc, normExcMap);
