@@ -4,7 +4,9 @@ import { Card } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useAuth } from "@/hooks/useAuth";
-import { Loader2, Star, Users, MessageSquare, TrendingUp, Building2, Award, Calendar, Eye } from "lucide-react";
+import { Loader2, Star, Users, MessageSquare, TrendingUp, Building2, Award, Calendar, Eye, Presentation } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { toast } from "sonner";
 import {
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid,
   PieChart, Pie, Cell, Legend,
@@ -48,6 +50,7 @@ export function AvaliacoesRHDashboard({ form, tipo = "rh" }: Props) {
   const [mesFiltro, setMesFiltro] = useState<string>("todos");
   const [execSelecionada, setExecSelecionada] = useState<string | null>(null);
   const [meuNome, setMeuNome] = useState<string>("");
+  const [exportando, setExportando] = useState(false);
   const { user, isAdmin } = useAuth();
 
   useEffect(() => {
@@ -260,9 +263,32 @@ export function AvaliacoesRHDashboard({ form, tipo = "rh" }: Props) {
             </SelectContent>
           </Select>
         </div>
-        <span className="text-xs text-muted-foreground">
-          Exibindo {respostas.length} de {todasRespostas.length} avaliações
-        </span>
+        <div className="flex items-center gap-3">
+          <span className="text-xs text-muted-foreground">
+            Exibindo {respostas.length} de {todasRespostas.length} avaliações
+          </span>
+          <Button size="sm" variant="outline" disabled={!respostas.length || exportando} onClick={async () => {
+            setExportando(true);
+            try {
+              const { exportarAvaliacoesRHPptx } = await import("../lib/avaliacoes-rh-pptx");
+              await exportarAvaliacoesRHPptx({
+                titulo: form?.titulo || "Avaliação RH",
+                periodo: mesFiltro === "todos" ? "Todos os meses" : formatMesLabel(mesFiltro),
+                stats,
+                distribuicao: distribuicao.map(d => ({ name: `Nota ${d.nota.replace("★", "")}`, value: d.qtd })),
+                mediaPorPergunta,
+                rankingExecutivas,
+                rankingEmpresas: rankingVolume,
+                evolucao: evolucao.map(e => ({ ...e, mes: formatMesLabel(e.mes) })),
+              });
+              toast.success("Apresentação gerada");
+            } catch (e) { console.error(e); toast.error("Não foi possível gerar a apresentação"); }
+            finally { setExportando(false); }
+          }}>
+            {exportando ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : <Presentation className="h-4 w-4 mr-1" />}
+            Exportar PPT
+          </Button>
+        </div>
       </div>
 
       {respostas.length === 0 ? (
