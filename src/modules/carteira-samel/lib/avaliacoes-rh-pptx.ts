@@ -58,7 +58,7 @@ export async function exportarAvaliacoesRHPptx(s: AvaliacoesRHSnapshot) {
   if (s.mediaPorPergunta.length) {
     d.addChart(pptx.ChartType.bar, [{ name: "Média", labels: s.mediaPorPergunta.map(x => x.pergunta), values: s.mediaPorPergunta.map(x => x.media) }], {
       x: 6.2, y: 1.5, w: 6.8, h: 5.6, barDir: "bar", chartColors: [PRIMARY], valAxisMinVal: 0, valAxisMaxVal: 5,
-      showValue: true, dataLabelFontSize: 14, catAxisLabelFontSize: 13, valAxisLabelFontSize: 12, catAxisOrientation: "maxMin",
+      showValue: true, dataLabelFontSize: 14, catAxisLabelFontSize: 13, valAxisLabelFontSize: 12,
     });
   }
 
