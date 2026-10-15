@@ -42,7 +42,7 @@ export async function criarAvaliacoesRHPptx(s: AvaliacoesRHSnapshot, fundos: { c
   pptx.author = "CS Control";
   pptx.title = `${s.titulo} | Visão executiva`;
   pptx.subject = `Avaliações de RH · ${s.periodo}`;
-  pptx.theme = { headFontFace: "Calibri", bodyFontFace: "Calibri", lang: "pt-BR" };
+  pptx.theme = { headFontFace: "Calibri", bodyFontFace: "Calibri" };
   const font = "Calibri";
   const num = (n: number, casas = 0) => n.toLocaleString("pt-BR", { minimumFractionDigits: casas, maximumFractionDigits: casas });
   const texto = (sl: any, t: string, x: number, y: number, w: number, h: number, size = 20, color = INK, bold = false) =>
@@ -51,7 +51,7 @@ export async function criarAvaliacoesRHPptx(s: AvaliacoesRHSnapshot, fundos: { c
     sl.addShape(pptx.ShapeType.rect, { x, y, w, h, fill: { color }, line: { color } });
   const header = (t: string, n: number) => {
     const sl = pptx.addSlide();
-    sl.background = { data: fundos.conteudo };
+    sl.addImage({ data: fundos.conteudo, x: 0, y: 0, w: 13.333333, h: 7.5 });
     texto(sl, t, 0.6, 0.48, 8.25, 0.8, 32, INK, true);
     texto(sl, `${s.periodo}  /  ${String(n).padStart(2, "0")} de 06`, 0.6, 1.32, 10, 0.3, 14, MUTED);
     return sl;
@@ -63,7 +63,7 @@ export async function criarAvaliacoesRHPptx(s: AvaliacoesRHSnapshot, fundos: { c
 
   // 01 — Título executivo e métricas, sem encobrir a foto nem os logos.
   const capa = pptx.addSlide();
-  capa.background = { data: fundos.capa };
+  capa.addImage({ data: fundos.capa, x: 0, y: 0, w: 13.333333, h: 7.5 });
   texto(capa, "VISÃO EXECUTIVA", 0.8, 2.48, 6, 0.35, 16, PRIMARY, true);
   texto(capa, s.titulo, 0.8, 2.98, 6.1, 1.12, 42, PRIMARY, true);
   texto(capa, `Relacionamento, desempenho e prioridades\n${s.periodo}`, 0.8, 4.28, 6, 0.72, 20);
@@ -101,7 +101,7 @@ export async function criarAvaliacoesRHPptx(s: AvaliacoesRHSnapshot, fundos: { c
   if (rows.length) {
     const cabecalho = ["#", "Executiva", "Média / 5", "Avaliações", "Status"].map(text => ({ text, options: { bold: true, color: WHITE, fill: { color: PRIMARY } } }));
     r.addTable([cabecalho, ...rows], {
-      x: 0.6, y: 1.95, w: 12.15, colW: [0.55, 4.1, 1.6, 1.55, 4.35], rowH: 0.41,
+      x: 0.6, y: 1.95, w: 12.15, colW: [0.55, 4.75, 1.6, 1.55, 3.7], rowH: 0.41,
       fontSize: 18, fontFace: font, margin: 0.07, color: INK,
       border: { type: "solid", color: "D8E4DF", pt: 0.5 }, fill: { color: WHITE }, autoPage: false,
     });
@@ -112,19 +112,19 @@ export async function criarAvaliacoesRHPptx(s: AvaliacoesRHSnapshot, fundos: { c
   // 04 — Participação efetivamente observada, sem presumir o tamanho da carteira.
   const c = header("Clientes | Distribuição e engajamento", 4);
   const empresas = s.rankingEmpresas.slice(0, 6);
-  if (empresas.length) c.addChart(pptx.ChartType.bar, [{ name: "Avaliações", labels: empresas.map(e => e.nome.length > 42 ? `${e.nome.slice(0, 41)}…` : e.nome), values: empresas.map(e => e.qtd) }], {
-    x: 0.55, y: 1.95, w: 8.25, h: 4.55, barDir: "bar", chartColors: [PRIMARY],
-    showValue: true, showLegend: false, dataLabelColor: INK, dataLabelFontSize: 16,
-    catAxisLabelFontSize: 16, catAxisLabelColor: INK, valAxisLabelFontSize: 14,
-    valAxisMinVal: 0, valAxisLabelFormatCode: "0", valGridLine: { color: "D8E4DF", size: 0.5 },
-    showBorder: false,
+  if (empresas.length) empresas.forEach((e, i) => {
+    const y = 2.05 + i * 0.72;
+    texto(c, e.nome, 0.6, y, 4.1, 0.48, 18);
+    bloco(c, 4.9, y + 0.1, 3.1, 0.28);
+    bloco(c, 4.9, y + 0.1, 3.1 * e.qtd / Math.max(...empresas.map(item => item.qtd), 1), 0.28, PRIMARY);
+    texto(c, num(e.qtd), 8.12, y, 0.65, 0.48, 20, PRIMARY, true);
   });
   else texto(c, "Sem empresas identificadas nas respostas.", 0.6, 2.4, 8, 1, 24, MUTED);
   bloco(c, 9.1, 2.05, 3.6, 4.28);
   texto(c, "DESTAQUE DE PARTICIPAÇÃO", 9.35, 2.25, 3.1, 0.65, 16, PRIMARY, true);
   texto(c, lider ? `${num(total ? lider.qtd / total * 100 : 0, 1)}%` : "—", 9.35, 3.0, 3.1, 0.88, 48, PRIMARY, true);
   texto(c, lider?.nome || "Sem dados", 9.35, 4.02, 3.1, 0.95, 22, INK, true);
-  texto(c, lider ? `${num(lider.qtd)} avaliações do total recebido. Maior volume por empresa no período.` : "Aguardando respostas identificadas.", 9.35, 5.12, 3.1, 0.85, 18, MUTED);
+  texto(c, lider ? `${num(lider.qtd)} ${lider.qtd === 1 ? "avaliação" : "avaliações"} do total. Entre os maiores volumes por empresa no período.` : "Aguardando respostas identificadas.", 9.35, 5.12, 3.1, 0.85, 18, MUTED);
   texto(c, "Top 6 por volume. Participação nas respostas, não taxa de adesão da carteira total.", 0.6, 6.45, 12, 0.32, 14, MUTED);
 
   // 05 — Propostas explícitas; não atribui causas nem resultados não medidos.

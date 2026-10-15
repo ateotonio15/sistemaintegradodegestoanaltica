@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import JSZip from "jszip";
 import { criarAvaliacoesRHPptx, statusDesempenhoRH } from "@/modules/carteira-samel/lib/avaliacoes-rh-pptx";
 
 describe("PowerPoint executivo de RH", () => {
@@ -19,7 +20,9 @@ describe("PowerPoint executivo de RH", () => {
         rankingExecutivas: Array.from({ length: quantidade }, (_, i) => ({ nome: `Executiva ${i}`, media: 4.5, qtd: 1 })),
         rankingEmpresas: Array.from({ length: quantidade }, (_, i) => ({ nome: `Empresa ${i}`, qtd: 1 })),
       }, { capa: "image/png;base64,iVBORw0KGgo=", conteudo: "image/png;base64,iVBORw0KGgo=" });
-      expect(pptx._slides.length).toBe(6);
+      const arquivo = await pptx.write({ outputType: "nodebuffer" });
+      const zip = await JSZip.loadAsync(arquivo);
+      expect(Object.keys(zip.files).filter(path => /^ppt\/slides\/slide\d+\.xml$/.test(path))).toHaveLength(6);
     }
   });
 });
