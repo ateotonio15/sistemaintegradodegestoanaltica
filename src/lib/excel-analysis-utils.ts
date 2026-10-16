@@ -894,7 +894,7 @@ export function compararExcelComPdf(
       divergencias.push("Valor de inclusões não encontrado no PDF.");
     else if (pdf && !c.ok)
       divergencias.push(
-        `Valor de inclusões divergente (Excel ${formatBRL(excel.inclusoes.total)} × PDF ${formatBRL(pdfTotal!)}).`,
+        `Valor de inclusões divergente (Excel ${formatBRL(excel.inclusoes.total)} × PDF ${formatBRL(pdfIncTotal!)}).`,
       );
   }
 
