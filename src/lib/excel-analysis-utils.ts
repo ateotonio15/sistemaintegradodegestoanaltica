@@ -1190,6 +1190,7 @@ function parseCoparticipacaoResumoPorCnpj(
   rows: unknown[][],
   idxLabel: number,
   idxValor: number,
+  idxQtd: number = -1,
 ): { nome: string; quantidade: number; total: number }[] {
   const items: { nome: string; quantidade: number; total: number }[] = [];
   if (idxLabel < 0 || idxValor < 0) return items;
@@ -1238,7 +1239,12 @@ function parseCoparticipacaoResumoPorCnpj(
     // contrato e tomaria o total inteiro como coparticipação.
     const valorNaAncora = toNumber(r[idxValor]);
     if (!isNaN(valorNaAncora) && valorNaAncora !== 0) {
-      items.push({ nome: empresaNome, quantidade: 0, total: valorNaAncora });
+      const qtdNaAncora = idxQtd >= 0 ? Math.round(toNumber(r[idxQtd])) : NaN;
+      items.push({
+        nome: empresaNome,
+        quantidade: isNaN(qtdNaAncora) ? 0 : qtdNaAncora,
+        total: valorNaAncora,
+      });
       continue;
     }
 
@@ -1813,7 +1819,7 @@ function analisarResumoSheet(wb: ExcelJS.Workbook): AnalisePorCnpj[] | null {
   let coparticipItems = parseCoparticipacaoRows(rows);
   // Fallback SECULUS: bloco "CO-PARTICIPAÇÃO MMM/AA" logo abaixo de cada CNPJ.
   if (coparticipItems.length === 0) {
-    coparticipItems = parseCoparticipacaoResumoPorCnpj(rows, idxLabel, idxValor);
+    coparticipItems = parseCoparticipacaoResumoPorCnpj(rows, idxLabel, idxValor, idxQtd);
   }
   // Fallback pivot por Tipo de Cobrança (ex.: EPER — "Co-participação" como
   // sub-linha da empresa, sem CNPJ e sem rótulo "Empresarial").
