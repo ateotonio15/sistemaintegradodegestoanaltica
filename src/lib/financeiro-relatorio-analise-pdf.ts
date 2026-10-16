@@ -31,9 +31,15 @@ async function carregarLogo(): Promise<string | null> {
   try {
     const resp = await fetch(samelIcon.url);
     const blob = await resp.blob();
+    // Se o conteúdo não for um PNG válido (ex.: erro do CDN), segue sem logo
+    // em vez de quebrar a geração do PDF inteiro.
+    if (!blob.type.startsWith("image/png")) return null;
     return await new Promise<string>((resolve, reject) => {
       const fr = new FileReader();
-      fr.onload = () => resolve(String(fr.result));
+      fr.onload = () => {
+        const url = String(fr.result);
+        resolve(url.startsWith("data:image/png") ? url : null as unknown as string);
+      };
       fr.onerror = reject;
       fr.readAsDataURL(blob);
     });
