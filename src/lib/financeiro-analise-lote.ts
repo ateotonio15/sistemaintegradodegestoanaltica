@@ -107,22 +107,34 @@ function sumExcelTotal(r: AnaliseResultado): number {
   return somarTotalFaturamento(r as any);
 }
 
+/**
+ * Total do PDF preservando ausência e falha de leitura (item 6):
+ * - componente `null` = valor não encontrado no PDF (desconhecido), NÃO zero;
+ * - se qualquer componente relevante for desconhecido, o total é null
+ *   (inconclusivo) — ausência nunca produz um "total confirmado de zero";
+ * - zero explícito em todos os componentes continua sendo zero válido.
+ */
 function sumPdfTotal(c: ComparacaoResultado | ComparacaoSimplificada | null): number | null {
   if (!c) return null;
   if ("beneficiarios" in c && !("enfermaria" in (c as any))) {
-    // simplificada
+    // simplificada: inclusões/exclusões desconhecidas (pdf null) tornam o
+    // total inconclusivo; zero explícito permanece zero.
     const s = c as ComparacaoSimplificada;
-    const ai = s.inclusoes?.pdf ?? 0;
-    const ax = s.exclusoes?.pdf ?? 0;
-    return Number((ai + ax).toFixed(2));
+    const partes = [s.inclusoes?.pdf ?? null, s.exclusoes?.pdf ?? null];
+    if (partes.some((p) => p === null)) return null;
+    return Number(((partes[0] as number) + (partes[1] as number)).toFixed(2));
   }
   const cr = c as ComparacaoResultado;
-  const e = cr.enfermaria?.total?.pdf ?? 0;
-  const a = cr.apartamento?.total?.pdf ?? 0;
-  const i = cr.inclusoes?.total?.pdf ?? 0;
-  const x = (cr as any).exclusoes?.total?.pdf ?? 0;
-  const d = (cr as any).devolucoes?.total?.pdf ?? 0;
-  return Number((e + a + i + x + d).toFixed(2));
+  const partes = [
+    cr.enfermaria?.total?.pdf ?? null,
+    cr.apartamento?.total?.pdf ?? null,
+    cr.inclusoes?.total?.pdf ?? null,
+    (cr as any).exclusoes?.total?.pdf ?? null,
+    (cr as any).devolucoes?.total?.pdf ?? null,
+  ];
+  if (partes.some((p) => p === null)) return null;
+  const soma = (partes as number[]).reduce((acc, v) => acc + v, 0);
+  return Number(soma.toFixed(2));
 }
 
 /** Empresa simplificada usada no batch. */
