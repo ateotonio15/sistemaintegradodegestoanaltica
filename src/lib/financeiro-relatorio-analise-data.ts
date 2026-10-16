@@ -314,9 +314,14 @@ export async function carregarDadosRelatorioAnalise(
     const grupoId = empresaGrupo.get(m.empresa_id) ?? null;
     const chave = `${m.mes_referencia}|${grupoId ?? m.empresa_id}`;
     let valor = 0;
+    let valorSituacao: LinhaRelatorio["valor_situacao"] = "sem_analise";
     if (filtros.incluirValores && !usados.has(chave)) {
-      valor = valorPorChave.get(chave) ?? 0;
-      if (valor) usados.add(chave);
+      const agreg = valorPorChave.get(chave);
+      if (agreg) {
+        valor = agreg.valor;
+        valorSituacao = agreg.situacao;
+        usados.add(chave);
+      }
     }
 
     linhas.push({
