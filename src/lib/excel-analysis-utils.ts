@@ -987,7 +987,7 @@ export function compararExcelComPdfSimplificado(
   const inclusoesNaoEncontradas = naoEncontrado("Inclusões");
   const inclusoes = pdf
     ? inclusoesNaoEncontradas
-      ? { excel: excel.inclusoes.total, pdf: null, ok: true }
+      ? { excel: excel.inclusoes.total, pdf: null, ok: false }
       : mkCmp(excel.inclusoes.total, pdf.inclusoes.total > 0 ? pdf.inclusoes.total : null, "money")
     : null;
 
@@ -995,21 +995,9 @@ export function compararExcelComPdfSimplificado(
   const exclusoes =
     pdf && excel.exclusoes
       ? exclusoesNaoEncontradas
-        ? { excel: excel.exclusoes.total, pdf: null, ok: true }
+        ? { excel: excel.exclusoes.total, pdf: null, ok: false }
         : mkCmp(excel.exclusoes.total, pdf.exclusoes.total !== 0 ? pdf.exclusoes.total : null, "money")
       : null;
-
-  if (inclusoesNaoEncontradas)
-    divergencias.length >= 0 &&
-      pdf!.avisos.push();
-  if (inclusoesNaoEncontradas)
-    divergencias.push(
-      "Validação inconclusiva: categoria 'Inclusões' não encontrada no PDF (não é zero confirmado).",
-    );
-  if (exclusoesNaoEncontradas)
-    divergencias.push(
-      "Validação inconclusiva: categoria 'Exclusões' não encontrada no PDF (não é zero confirmado).",
-    );
 
   if (beneficiarios && !beneficiarios.ok) {
     divergencias.push(
