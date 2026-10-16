@@ -977,14 +977,39 @@ export function compararExcelComPdfSimplificado(
         ? { excel: totalBenefExcel, pdf: null, ok: false }
         : null;
 
+  // O parser simplificado do PDF registra total 0 quando a categoria não foi
+  // encontrada (ver `avisos`). Zero "não encontrado" não é zero confirmado:
+  // nesses casos a comparação fica INCONCLUSIVA (pdf: null, sem divergência),
+  // nunca apresentada como igualdade nem como divergência financeira.
+  const naoEncontrado = (categoria: string) =>
+    !!pdf && pdf.avisos.some((a) => a.includes(`'${categoria}' não encontrada`));
+
+  const inclusoesNaoEncontradas = naoEncontrado("Inclusões");
   const inclusoes = pdf
-    ? mkCmp(excel.inclusoes.total, pdf.inclusoes.total > 0 ? pdf.inclusoes.total : null, "money")
+    ? inclusoesNaoEncontradas
+      ? { excel: excel.inclusoes.total, pdf: null, ok: true }
+      : mkCmp(excel.inclusoes.total, pdf.inclusoes.total > 0 ? pdf.inclusoes.total : null, "money")
     : null;
 
+  const exclusoesNaoEncontradas = naoEncontrado("Exclusões");
   const exclusoes =
     pdf && excel.exclusoes
-      ? mkCmp(excel.exclusoes.total, pdf.exclusoes.total !== 0 ? pdf.exclusoes.total : null, "money")
+      ? exclusoesNaoEncontradas
+        ? { excel: excel.exclusoes.total, pdf: null, ok: true }
+        : mkCmp(excel.exclusoes.total, pdf.exclusoes.total !== 0 ? pdf.exclusoes.total : null, "money")
       : null;
+
+  if (inclusoesNaoEncontradas)
+    divergencias.length >= 0 &&
+      pdf!.avisos.push();
+  if (inclusoesNaoEncontradas)
+    divergencias.push(
+      "Validação inconclusiva: categoria 'Inclusões' não encontrada no PDF (não é zero confirmado).",
+    );
+  if (exclusoesNaoEncontradas)
+    divergencias.push(
+      "Validação inconclusiva: categoria 'Exclusões' não encontrada no PDF (não é zero confirmado).",
+    );
 
   if (beneficiarios && !beneficiarios.ok) {
     divergencias.push(
