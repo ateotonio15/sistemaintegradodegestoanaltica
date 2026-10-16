@@ -418,7 +418,13 @@ export async function gerarRelatorioAnaliseFaturamento(dados: DadosRelatorio) {
           String(r.anexos_count ?? 0),
           r.prazo,
         ];
-        if (comValores) base.splice(12, 0, r.valor ? brl(r.valor) : "—");
+        if (comValores) {
+          // Selo de completude: legada/parcial marcadas com * (ver nota ao
+          // fim do relatório); completo e sem análise sem marca.
+          const selo =
+            r.valor_situacao === "parcial" || r.valor_situacao === "legado" ? " *" : "";
+          base.splice(12, 0, r.valor ? brl(r.valor) + selo : "—");
+        }
         return base;
       }),
       columnStyles: comValores
