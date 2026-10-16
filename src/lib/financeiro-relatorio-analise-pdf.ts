@@ -164,7 +164,29 @@ export async function gerarRelatorioAnaliseFaturamento(dados: DadosRelatorio) {
     ["Sem ação (pendente/aguardando/fora do prazo)", String(semAcao), pct(semAcao, total)],
     ["Vidas somadas", vidasTotal.toLocaleString("pt-BR"), "—"],
   ];
-  if (comValores) resumo.push(["Valor total analisado", brl(valorTotal), "—"]);
+  if (comValores) {
+    resumo.push(["Valor total analisado", brl(valorTotal), "—"]);
+    const cons = dados.consolidado;
+    if (cons) {
+      // Nunca apresentar a soma como integralmente validada: decompõe.
+      resumo.push([
+        `Valor validado — ${cons.completas} análise(s) completa(s)`,
+        brl(cons.valorValidado),
+        "—",
+      ]);
+      resumo.push([
+        `Valor com limitação — ${cons.parciais} parcial(is), ${cons.legadas} legada(s)`,
+        brl(cons.valorComLimitacao),
+        "—",
+      ]);
+      if (cons.duplicadosIgnorados > 0)
+        resumo.push([
+          "Registros duplicados ignorados (mesmo arquivo)",
+          String(cons.duplicadosIgnorados),
+          "—",
+        ]);
+    }
+  }
 
   autoTable(doc, {
     ...tabelaBase,
