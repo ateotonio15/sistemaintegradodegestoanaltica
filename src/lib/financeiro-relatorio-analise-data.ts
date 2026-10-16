@@ -1,4 +1,5 @@
 import { supabase } from "@/integrations/supabase/client";
+import { extrairValorRegistroAnalise } from "@/lib/faturamento-totais";
 import {
   calcularStatusFinanceiro,
   calcularPrazoFinanceiro,
@@ -47,6 +48,8 @@ export interface LinhaRelatorio {
   data_vencimento: string | null;
   anexos_count: number;
   valor: number;
+  /** Completude do valor: cálculo centralizado (completo/parcial) ou legado. */
+  valor_situacao: "completo" | "parcial" | "legado" | "sem_analise";
   grupo_id: string | null;
   prazo: PrazoCategoria;
 }
@@ -56,6 +59,20 @@ export interface DadosRelatorio {
   filtros: RelatorioAnaliseFiltros;
   /** Total de contratos antes dos filtros de status/dia/tipo/período. */
   totalBase: number;
+  /**
+   * Consolidado de completude dos valores (quando incluirValores).
+   * valorValidado: chaves com cálculo centralizado completo.
+   * valorComLimitacao: chaves parciais ou legadas — NÃO somar ao validado
+   * como se fosse integralmente validado.
+   */
+  consolidado: {
+    completas: number;
+    parciais: number;
+    legadas: number;
+    valorValidado: number;
+    valorComLimitacao: number;
+    duplicadosIgnorados: number;
+  } | null;
 }
 
 const CHUNK = 300;
@@ -112,6 +129,57 @@ export function valorAnalise(a: any): number {
   );
 }
 
+export interface ChaveValorAgregado {
+  chave: string;
+  valor: number;
+  situacao: import("@/lib/faturamento-totais").SituacaoRegistroAnalise;
+}
+
+/**
+ * Agrega os registros de análise por chave (competência|grupo), com as
+ * regras do pacote:
+ * - Mesmo arquivo (hash_excel) analisado mais de uma vez na mesma chave
+ *   conta uma única vez (documento compartilhado/reanálise não duplica);
+ * - Documentos distintos (hashes diferentes) somam normalmente;
+ * - Registros sem hash contam individualmente (limite: reanálises antigas
+ *   sem hash podem duplicar — indicado no relatório como limitação);
+ * - O valor vem do cálculo centralizado sobre resultado_completo quando
+ *   compatível; caso contrário, das colunas escalares com selo "legado".
+ */
+export function agregarValoresAnalises(
+  analises: any[],
+  empresaGrupo: Map<string, string>,
+): { porChave: Map<string, ChaveValorAgregado>; duplicadosIgnorados: number } {
+  const porChave = new Map<string, ChaveValorAgregado>();
+  const hashVistoPorChave = new Map<string, Set<string>>();
+  let duplicadosIgnorados = 0;
+
+  for (const a of analises) {
+    const chave = `${a.mes_referencia}|${empresaGrupo.get(a.empresa_id) ?? a.empresa_id}`;
+    const hash = typeof a.hash_excel === "string" && a.hash_excel ? a.hash_excel : null;
+    if (hash) {
+      const vistos = hashVistoPorChave.get(chave) ?? new Set<string>();
+      if (vistos.has(hash)) {
+        duplicadosIgnorados++;
+        continue;
+      }
+      vistos.add(hash);
+      hashVistoPorChave.set(chave, vistos);
+    }
+    const extraido = extrairValorRegistroAnalise(a, valorAnalise(a));
+    const atual = porChave.get(chave);
+    if (!atual) {
+      porChave.set(chave, { chave, valor: extraido.valor, situacao: extraido.situacao });
+    } else {
+      atual.valor = Number((atual.valor + extraido.valor).toFixed(2));
+      // A pior situação prevalece: legado > parcial > completo.
+      const ordem = { completo: 0, parcial: 1, legado: 2 } as const;
+      if (ordem[extraido.situacao] > ordem[atual.situacao]) atual.situacao = extraido.situacao;
+    }
+  }
+  return { porChave, duplicadosIgnorados };
+}
+
 /**
  * Monta o dataset do relatório analítico direto do backend, replicando
  * as regras da aba Faturamento (empresa ativa/faturável, status calculado,
@@ -121,7 +189,7 @@ export async function carregarDadosRelatorioAnalise(
   filtros: RelatorioAnaliseFiltros,
 ): Promise<DadosRelatorio> {
   const comps = filtros.competencias.filter(Boolean);
-  if (comps.length === 0) return { linhas: [], filtros, totalBase: 0 };
+  if (comps.length === 0) return { linhas: [], filtros, totalBase: 0, consolidado: null };
 
   // 1) Movimentações financeiras das competências
   const movs = await fetchAll<any>((from, to) =>
@@ -135,7 +203,7 @@ export async function carregarDadosRelatorioAnalise(
       .range(from, to),
   );
 
-  if (movs.length === 0) return { linhas: [], filtros, totalBase: 0 };
+  if (movs.length === 0) return { linhas: [], filtros, totalBase: 0, consolidado: null };
 
   const empresaIds = Array.from(new Set(movs.map((m) => m.empresa_id)));
 
@@ -197,23 +265,24 @@ export async function carregarDadosRelatorioAnalise(
     });
   }
 
-  // 5) Valores das análises (por competência + chave de grupo)
-  const valorPorChave = new Map<string, number>();
+  // 5) Valores das análises (por competência + chave de grupo), com
+  // dedup por hash do arquivo e selo de completude (itens 1 e 3).
+  let valorPorChave = new Map<string, ChaveValorAgregado>();
+  let duplicadosIgnorados = 0;
   if (filtros.incluirValores) {
     const analises = await fetchAll<any>((from, to) =>
       supabase
         .from("financeiro_analises")
         .select(
-          "id, empresa_id, mes_referencia, valor_excel_apartamento, valor_excel_enfermaria, valor_excel_inclusoes, valor_excel_exclusoes, valor_pdf_apartamento, valor_pdf_enfermaria, valor_pdf_inclusoes, valor_pdf_exclusoes",
+          "id, empresa_id, mes_referencia, hash_excel, resultado_completo, valor_excel_apartamento, valor_excel_enfermaria, valor_excel_inclusoes, valor_excel_exclusoes, valor_pdf_apartamento, valor_pdf_enfermaria, valor_pdf_inclusoes, valor_pdf_exclusoes",
         )
         .in("mes_referencia", comps)
         .order("id")
         .range(from, to),
     );
-    analises.forEach((a) => {
-      const chave = `${a.mes_referencia}|${empresaGrupo.get(a.empresa_id) ?? a.empresa_id}`;
-      valorPorChave.set(chave, (valorPorChave.get(chave) ?? 0) + valorAnalise(a));
-    });
+    const agreg = agregarValoresAnalises(analises, empresaGrupo);
+    valorPorChave = agreg.porChave;
+    duplicadosIgnorados = agreg.duplicadosIgnorados;
   }
 
   // 6) Montagem das linhas
@@ -245,9 +314,14 @@ export async function carregarDadosRelatorioAnalise(
     const grupoId = empresaGrupo.get(m.empresa_id) ?? null;
     const chave = `${m.mes_referencia}|${grupoId ?? m.empresa_id}`;
     let valor = 0;
+    let valorSituacao: LinhaRelatorio["valor_situacao"] = "sem_analise";
     if (filtros.incluirValores && !usados.has(chave)) {
-      valor = valorPorChave.get(chave) ?? 0;
-      if (valor) usados.add(chave);
+      const agreg = valorPorChave.get(chave);
+      if (agreg) {
+        valor = agreg.valor;
+        valorSituacao = agreg.situacao;
+        usados.add(chave);
+      }
     }
 
     linhas.push({
@@ -270,6 +344,7 @@ export async function carregarDadosRelatorioAnalise(
       data_vencimento: m.data_vencimento ?? null,
       anexos_count: anexosMov.length,
       valor,
+      valor_situacao: valorSituacao,
       grupo_id: grupoId,
       prazo: calcularPrazoFinanceiro({
         aguardando_nota_em: m.aguardando_nota_em,
@@ -298,7 +373,35 @@ export async function carregarDadosRelatorioAnalise(
     return true;
   });
 
-  return { linhas: filtradas, filtros, totalBase };
+  // Consolidado de completude: separa valor validado (cálculo centralizado
+  // completo) de valor conhecido com limitação (parcial ou legado). Nunca
+  // apresentar a soma dos dois como total integralmente validado.
+  let consolidado: DadosRelatorio["consolidado"] = null;
+  if (filtros.incluirValores) {
+    const c = {
+      completas: 0,
+      parciais: 0,
+      legadas: 0,
+      valorValidado: 0,
+      valorComLimitacao: 0,
+      duplicadosIgnorados,
+    };
+    for (const agreg of valorPorChave.values()) {
+      if (agreg.situacao === "completo") {
+        c.completas++;
+        c.valorValidado = Number((c.valorValidado + agreg.valor).toFixed(2));
+      } else if (agreg.situacao === "parcial") {
+        c.parciais++;
+        c.valorComLimitacao = Number((c.valorComLimitacao + agreg.valor).toFixed(2));
+      } else {
+        c.legadas++;
+        c.valorComLimitacao = Number((c.valorComLimitacao + agreg.valor).toFixed(2));
+      }
+    }
+    consolidado = c;
+  }
+
+  return { linhas: filtradas, filtros, totalBase, consolidado };
 }
 
 /** Opções disponíveis (dias, tipos, períodos, responsáveis) para as competências. */

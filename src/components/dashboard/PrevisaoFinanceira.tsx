@@ -3,6 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { expandirAnexosPorGrupo, fetchEmpresaGrupoMap } from "@/lib/financeiro-utils";
 import { somarTotalFaturamento } from "@/lib/faturamento-totais";
+import { somarTotalPrevisto } from "@/lib/previsao-total";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -590,25 +591,21 @@ export function PrevisaoFinanceira() {
 
   // KPIs respeitam o período escolhido; antes disso permanecem zerados.
   const kpis = useMemo(() => {
-    let totalPrevisto = 0;
     let venceHoje = 0;
     let vencidos = 0;
     let comProrrogacao = 0;
-    // Planilhas sem coluna de pagador devolvem o total agregado do documento
-    // para cada pagador: somar esse total uma única vez por conjunto de
-    // planilhas, nunca uma vez por pagador.
-    const agregadosJaContados = new Set<string>();
+    // Documentos compartilhados por movimentações do mesmo Grupo Financeiro
+    // contam uma única vez por pagador (item 3); planilhas sem coluna de
+    // pagador contam uma única vez por conjunto de planilhas.
+    const itensTotais: { xlsPaths: string[]; cnpjFiltro: string | null; semSeparacaoPorPagador: boolean; totalGeral: number }[] = [];
     for (const r of filteredRows) {
       const a = analises[r.rowKey];
-      if (a?.semSeparacaoPorPagador) {
-        const chave = [...r.xlsPaths].sort().join("|");
-        if (!agregadosJaContados.has(chave)) {
-          agregadosJaContados.add(chave);
-          totalPrevisto += a.totalGeral ?? 0;
-        }
-      } else {
-        totalPrevisto += a?.totalGeral ?? 0;
-      }
+      itensTotais.push({
+        xlsPaths: r.xlsPaths,
+        cnpjFiltro: r.filtroPagador?.cnpj ?? null,
+        semSeparacaoPorPagador: !!a?.semSeparacaoPorPagador,
+        totalGeral: a?.totalGeral ?? 0,
+      });
       const venc = parseLocalDate(r.data_vencimento);
       if (venc) {
         const dias = diffDias(venc, hoje);
@@ -617,6 +614,7 @@ export function PrevisaoFinanceira() {
       }
       if (r.possui_prorrogacao) comProrrogacao++;
     }
+    const totalPrevisto = somarTotalPrevisto(itensTotais);
     return {
       totalPrevisto,
       notasEmitidas: filteredRows.filter((r) => r.nota_emitida).length,

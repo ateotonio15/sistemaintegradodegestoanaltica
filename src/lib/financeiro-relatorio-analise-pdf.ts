@@ -164,7 +164,29 @@ export async function gerarRelatorioAnaliseFaturamento(dados: DadosRelatorio) {
     ["Sem ação (pendente/aguardando/fora do prazo)", String(semAcao), pct(semAcao, total)],
     ["Vidas somadas", vidasTotal.toLocaleString("pt-BR"), "—"],
   ];
-  if (comValores) resumo.push(["Valor total analisado", brl(valorTotal), "—"]);
+  if (comValores) {
+    resumo.push(["Valor total analisado", brl(valorTotal), "—"]);
+    const cons = dados.consolidado;
+    if (cons) {
+      // Nunca apresentar a soma como integralmente validada: decompõe.
+      resumo.push([
+        `Valor validado — ${cons.completas} análise(s) completa(s)`,
+        brl(cons.valorValidado),
+        "—",
+      ]);
+      resumo.push([
+        `Valor com limitação — ${cons.parciais} parcial(is), ${cons.legadas} legada(s)`,
+        brl(cons.valorComLimitacao),
+        "—",
+      ]);
+      if (cons.duplicadosIgnorados > 0)
+        resumo.push([
+          "Registros duplicados ignorados (mesmo arquivo)",
+          String(cons.duplicadosIgnorados),
+          "—",
+        ]);
+    }
+  }
 
   autoTable(doc, {
     ...tabelaBase,
@@ -396,7 +418,13 @@ export async function gerarRelatorioAnaliseFaturamento(dados: DadosRelatorio) {
           String(r.anexos_count ?? 0),
           r.prazo,
         ];
-        if (comValores) base.splice(12, 0, r.valor ? brl(r.valor) : "—");
+        if (comValores) {
+          // Selo de completude: legada/parcial marcadas com * (ver nota ao
+          // fim do relatório); completo e sem análise sem marca.
+          const selo =
+            r.valor_situacao === "parcial" || r.valor_situacao === "legado" ? " *" : "";
+          base.splice(12, 0, r.valor ? brl(r.valor) + selo : "—");
+        }
         return base;
       }),
       columnStyles: comValores
@@ -434,6 +462,22 @@ export async function gerarRelatorioAnaliseFaturamento(dados: DadosRelatorio) {
             13: { cellWidth: 68 },
           },
     });
+  }
+
+  // Nota de completude dos valores (itens 1 e 3 do pacote financeiro)
+  if (comValores && dados.consolidado) {
+    const pageCount = doc.getNumberOfPages();
+    doc.setPage(pageCount);
+    doc.setFontSize(7.5);
+    doc.setTextColor(90, 100, 110);
+    doc.text(
+      "* Valor com limitação: análise parcial (categoria com lançamentos sem valor) ou " +
+        "análise legada — completude não verificada. O valor validado cobre apenas as " +
+        "análises completas; a soma dos dois não é um total integralmente validado.",
+      40,
+      pageH - 34,
+      { maxWidth: pageW - 80 },
+    );
   }
 
   // Rodapé

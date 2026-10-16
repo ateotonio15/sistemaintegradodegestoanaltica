@@ -680,10 +680,17 @@ export async function analisarPdfFinanceiro(
 
 export interface AnalisePdfSimplificado {
   beneficiarios: number | null;
-  inclusoes: { quantidade: number | null; total: number };
-  exclusoes: { quantidade: number | null; total: number };
+  /**
+   * total = null  → valor NÃO encontrado no PDF (ausência estruturada);
+   * total = 0     → zero efetivamente identificado no documento;
+   * total = valor → valor extraído.
+   */
+  inclusoes: { quantidade: number | null; total: number | null };
+  exclusoes: { quantidade: number | null; total: number | null };
   valorLiquido: number | null;
   nfNumero: string | null;
+  /** true quando o PDF não pôde ser aberto/lido (falha de leitura). */
+  falhaLeitura: boolean;
   avisos: string[];
 }
 
@@ -706,10 +713,11 @@ export async function analisarPdfFinanceiroSimplificado(
   } catch (e: any) {
     return {
       beneficiarios: null,
-      inclusoes: { quantidade: null, total: 0 },
-      exclusoes: { quantidade: null, total: 0 },
+      inclusoes: { quantidade: null, total: null },
+      exclusoes: { quantidade: null, total: null },
       valorLiquido: null,
       nfNumero: null,
+      falhaLeitura: true,
       avisos: [`Falha ao abrir PDF: ${e?.message || e}`],
     };
   }
@@ -758,8 +766,9 @@ export async function analisarPdfFinanceiroSimplificado(
   }
 
   // Inclusões: "inclusoes:34.463,50" ou "inclusao 12x R$ 100,00"
+  // total null = não encontrado; 0 = zero explícito no documento.
   let incQtd: number | null = null;
-  let incTotal = 0;
+  let incTotal: number | null = null;
   const reInc = new RegExp(
     `inclus(?:ao|oes|ões|o|os|ido|idos|ida|idas)?\\s*[:\\-=]?\\s*(?:(\\d+)\\s*[xX×]\\s*)?(${NUM})`,
     "i",
@@ -778,13 +787,14 @@ export async function analisarPdfFinanceiroSimplificado(
   );
   for (const mRetroS of t.matchAll(reRetroS)) {
     const v = parseValor(mRetroS[1]);
-    if (!isNaN(v) && v > 0) incTotal += v;
+    if (!isNaN(v) && v > 0) incTotal = (incTotal ?? 0) + v;
   }
 
 
   // Exclusões: "exclusoes: (6.976,73)" → negativo
+  // total null = não encontrado; 0 = zero explícito no documento.
   let excQtd: number | null = null;
-  let excTotal = 0;
+  let excTotal: number | null = null;
   const reExc = new RegExp(
     `exclus(?:ao|oes|ões)?\\s*[:\\-=]?\\s*(?:(\\d+)\\s*[xX×]\\s*)?(${NUM})`,
     "i",
@@ -797,8 +807,8 @@ export async function analisarPdfFinanceiroSimplificado(
   }
 
   if (beneficiarios === null) avisos.push("Total de beneficiários não encontrado no PDF.");
-  if (incTotal === 0 && !mInc) avisos.push("Inclusões não encontradas no PDF.");
-  if (excTotal === 0 && !mExc) avisos.push("Exclusões não encontradas no PDF.");
+  if (incTotal === null) avisos.push("Inclusões não encontradas no PDF.");
+  if (excTotal === null) avisos.push("Exclusões não encontradas no PDF.");
 
   // Valor Líquido + NF (compartilhado com análise completa)
   let valorLiquido: number | null = null;
@@ -819,6 +829,7 @@ export async function analisarPdfFinanceiroSimplificado(
     exclusoes: { quantidade: excQtd, total: excTotal },
     valorLiquido,
     nfNumero,
+    falhaLeitura: false,
     avisos,
   };
 }
