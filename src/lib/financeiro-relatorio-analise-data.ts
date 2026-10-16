@@ -389,11 +389,32 @@ export async function carregarDadosRelatorioAnalise(
     return true;
   });
 
+  // Universo filtrado: linhas, resumo de valores e contagens consideram o
+  // mesmo conjunto. Se o filtro removeu a linha que recebeu o valor
+  // compartilhado do grupo, o valor é reatribuído à primeira linha visível
+  // da mesma chave — nunca some por causa do filtro.
+  if (filtros.incluirValores) {
+    const visivelPorChave = new Map<string, LinhaRelatorio>();
+    for (const l of filtradas) {
+      if (l._chave && !visivelPorChave.has(l._chave)) visivelPorChave.set(l._chave, l);
+    }
+    for (const [chave, agreg] of valorPorChave) {
+      const portador = visivelPorChave.get(chave);
+      if (!portador) continue; // chave inteira fora do filtro — fora do consolidado
+      if (portador.valor_situacao === "sem_analise") {
+        portador.valor = agreg.valor;
+        portador.valor_situacao = agreg.situacao;
+      }
+    }
+  }
+
   // Consolidado de completude: separa valor validado (cálculo centralizado
   // completo) de valor conhecido com limitação (parcial ou legado). Nunca
   // apresentar a soma dos dois como total integralmente validado.
+  // Conta apenas as chaves presentes no universo filtrado.
   let consolidado: DadosRelatorio["consolidado"] = null;
   if (filtros.incluirValores) {
+    const chavesVisiveis = new Set(filtradas.map((l) => l._chave).filter(Boolean) as string[]);
     const c = {
       completas: 0,
       parciais: 0,
@@ -402,7 +423,8 @@ export async function carregarDadosRelatorioAnalise(
       valorComLimitacao: 0,
       duplicadosIgnorados,
     };
-    for (const agreg of valorPorChave.values()) {
+    for (const [chave, agreg] of valorPorChave) {
+      if (!chavesVisiveis.has(chave)) continue;
       if (agreg.situacao === "completo") {
         c.completas++;
         c.valorValidado = Number((c.valorValidado + agreg.valor).toFixed(2));
