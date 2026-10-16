@@ -118,3 +118,70 @@ export function calcularTotalFaturamento(r: ResultadoComoObjeto): TotalFaturamen
 export function somarTotalFaturamento(r: ResultadoComoObjeto): number {
   return calcularTotalFaturamento(r).total;
 }
+
+// =====================================================================
+// Completude de registros de análise (relatório analítico — item 1)
+// =====================================================================
+
+export type SituacaoRegistroAnalise = "completo" | "parcial" | "legado";
+
+export interface ValorRegistroAnalise {
+  /** Valor extraído; em "legado" é o valor conhecido das colunas escalares. */
+  valor: number;
+  situacao: SituacaoRegistroAnalise;
+}
+
+/**
+ * Um resultado é compatível com o cálculo centralizado quando é um objeto
+ * com pelo menos uma categoria de faturamento cujo total é numérico
+ * (zero incluso — zero lido é valor válido). A presença de JSON sozinha
+ * não comprova que o parser antigo extraiu todas as categorias: resultados
+ * sem nenhuma categoria numérica são tratados como legados.
+ */
+function resultadoCompativel(r: unknown): r is ResultadoComoObjeto {
+  if (!r || typeof r !== "object" || Array.isArray(r)) return false;
+  return CATEGORIAS_TOTAL_FATURAMENTO.some((cat) => {
+    const c = (r as Record<string, any>)[cat];
+    return c && typeof c === "object" && typeof c.total === "number" && Number.isFinite(c.total);
+  });
+}
+
+/**
+ * Extrai o total de um registro de `financeiro_analises` usando o cálculo
+ * centralizado sobre `resultado_completo.resultados`, respeitando:
+ * - a estrutura real do JSON ({ resultados, comparacoes });
+ * - vários resultados no mesmo JSON (um por pagador) — cada um é somado
+ *   pela função central; retroativos nunca entram (subconjunto de inclusões);
+ * - resultados incompatíveis ou estrutura ausente → "legado": preserva o
+ *   valor conhecido das colunas escalares, sem afirmar completude.
+ *
+ * `fallbackColunas` é o valor já conhecido (soma das colunas valor_excel_*
+ * com fallback nas valor_pdf_*), usado apenas quando o JSON não permite o
+ * cálculo centralizado.
+ */
+export function extrairValorRegistroAnalise(
+  registro: { resultado_completo?: unknown },
+  fallbackColunas: number,
+): ValorRegistroAnalise {
+  const rc = registro.resultado_completo as
+    | { resultados?: unknown }
+    | null
+    | undefined;
+  const resultados = rc && Array.isArray(rc.resultados) ? rc.resultados : null;
+
+  if (resultados && resultados.length > 0 && resultados.every(resultadoCompativel)) {
+    let valor = 0;
+    let completo = true;
+    for (const r of resultados as ResultadoComoObjeto[]) {
+      const t = calcularTotalFaturamento(r);
+      valor += t.total;
+      if (!t.completo) completo = false;
+    }
+    return {
+      valor: Number(valor.toFixed(2)),
+      situacao: completo ? "completo" : "parcial",
+    };
+  }
+
+  return { valor: fallbackColunas, situacao: "legado" };
+}
