@@ -70,6 +70,8 @@ type AnaliseDado = {
   inclusoesTotal: number;
   exclusoesTotal: number; // negativo quando há exclusões (Moto Honda)
   totalGeral: number;
+  /** Planilha sem coluna de pagador: totalGeral é o agregado do documento (contar uma vez só). */
+  semSeparacaoPorPagador?: boolean;
   detalhe?: any;
   erro?: string;
 };
