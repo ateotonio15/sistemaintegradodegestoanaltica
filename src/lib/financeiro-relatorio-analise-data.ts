@@ -19,6 +19,8 @@ export interface RelatorioAnaliseFiltros {
   tiposMovimentacao: string[];
   /** Períodos de corte (01-05, 05-10...). Vazio = todos. */
   periodos: string[];
+  /** Chave de agregação de valor (competência|grupo/empresa) — uso interno. */
+  _chave?: string;
   /** Status financeiro calculado. Vazio = todos. */
   status: StatusFinanceiro[];
   /** Responsáveis / quem iniciou o faturamento. Vazio = todos. */
@@ -338,7 +340,6 @@ export async function carregarDadosRelatorioAnalise(
     }
 
     linhas.push({
-      _chave: chave,
       id: m.id,
       empresa_id: m.empresa_id,
       empresa_nome: emp.nome,
