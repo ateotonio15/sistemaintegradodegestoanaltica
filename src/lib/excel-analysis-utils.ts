@@ -670,7 +670,12 @@ export async function analisarExcelFinanceiroPorPagador(
     result.taxaAdesao = { quantidade: adesaoQtd, total: adesaoTotal };
   }
 
-
+  // F2: pediram um pagador específico, mas a planilha não tem coluna de
+  // CNPJ/Pagador. O resultado é o total agregado do documento — não pode
+  // ser atribuído a cada pagador; deve ser contado uma única vez.
+  if (temFiltro && !podeFiltrar) {
+    result.semSeparacaoPorPagador = true;
+  }
 
   return result;
 }
