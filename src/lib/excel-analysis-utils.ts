@@ -548,14 +548,18 @@ export async function analisarExcelFinanceiroPorPagador(
     // Aplicar filtro por pagador (CNPJ primeiro, nome como fallback)
     if (podeFiltrar) {
       let casou = false;
-      if (idxCnpj >= 0 && filtroCnpj) {
-        const cnpjLinha = normalizarCnpj(r[idxCnpj]);
-        if (cnpjLinha && cnpjLinha === filtroCnpj) casou = true;
-      }
-      if (!casou && idxPagador >= 0 && filtroNome) {
+      const cnpjLinha = idxCnpj >= 0 ? normalizarCnpj(r[idxCnpj]) : "";
+      const cnpjLinhaValido = cnpjLinha.length === 14 && !/0{6,}$/.test(cnpjLinha);
+      if (filtroCnpj && cnpjLinhaValido) {
+        // CNPJ válido na linha: só casa pelo CNPJ. Um CNPJ válido divergente
+        // NUNCA é aceito por semelhança de nome (evita misturar matriz/filial).
+        casou = cnpjLinha === filtroCnpj;
+      } else if (!casou && idxPagador >= 0 && filtroNome) {
+        // Fallback por nome apenas quando a linha não tem CNPJ válido.
         const nomeLinha = norm(r[idxPagador]);
         if (nomeLinha && (nomeLinha === filtroNome || nomeLinha.includes(filtroNome) || filtroNome.includes(nomeLinha))) {
           casou = true;
+          if (cnpjLinhaValido) cnpjsCasadosPorNome.add(cnpjLinha);
         }
       }
       if (!casou) continue;
