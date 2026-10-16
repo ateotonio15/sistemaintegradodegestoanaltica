@@ -542,7 +542,13 @@ export function PrevisaoFinanceira() {
             inclusoesTotal += res.inclusoes?.total || 0;
             exclusoesTotal += res.exclusoes?.total || 0;
             totalGeralAcc += somarTotalFaturamento(res as any);
-            detalhes.push(res);
+            // Um documento por planilha, com seu total e sua condição de
+            // separação — a consolidação é por documento, não pelo conjunto.
+            detalhes.push({
+              ...res,
+              __path: path,
+              __totalDoc: somarTotalFaturamento(res as any),
+            });
           }
           resultado[r.rowKey] = {
             loading: false,
