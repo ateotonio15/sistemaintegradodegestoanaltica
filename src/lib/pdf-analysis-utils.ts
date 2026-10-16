@@ -792,8 +792,9 @@ export async function analisarPdfFinanceiroSimplificado(
 
 
   // Exclusões: "exclusoes: (6.976,73)" → negativo
+  // total null = não encontrado; 0 = zero explícito no documento.
   let excQtd: number | null = null;
-  let excTotal = 0;
+  let excTotal: number | null = null;
   const reExc = new RegExp(
     `exclus(?:ao|oes|ões)?\\s*[:\\-=]?\\s*(?:(\\d+)\\s*[xX×]\\s*)?(${NUM})`,
     "i",
