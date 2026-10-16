@@ -338,6 +338,7 @@ export async function carregarDadosRelatorioAnalise(
     }
 
     linhas.push({
+      _chave: chave,
       id: m.id,
       empresa_id: m.empresa_id,
       empresa_nome: emp.nome,
