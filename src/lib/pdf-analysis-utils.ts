@@ -713,10 +713,11 @@ export async function analisarPdfFinanceiroSimplificado(
   } catch (e: any) {
     return {
       beneficiarios: null,
-      inclusoes: { quantidade: null, total: 0 },
-      exclusoes: { quantidade: null, total: 0 },
+      inclusoes: { quantidade: null, total: null },
+      exclusoes: { quantidade: null, total: null },
       valorLiquido: null,
       nfNumero: null,
+      falhaLeitura: true,
       avisos: [`Falha ao abrir PDF: ${e?.message || e}`],
     };
   }
