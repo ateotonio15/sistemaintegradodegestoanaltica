@@ -196,6 +196,66 @@ export function agregarValoresAnalises(
 }
 
 /**
+ * Reatribui valores de grupo no universo filtrado: se o filtro removeu a
+ * linha que recebeu o valor compartilhado da chave, o valor passa para a
+ * primeira linha visível da mesma chave. Chaves sem nenhuma linha visível
+ * ficam fora (filtro legítimo).
+ */
+export function reatribuirValoresFiltrados(
+  filtradas: LinhaRelatorio[],
+  valorPorChave: Map<string, ChaveValorAgregado>,
+): void {
+  const visivelPorChave = new Map<string, LinhaRelatorio>();
+  for (const l of filtradas) {
+    if (l._chave && !visivelPorChave.has(l._chave)) visivelPorChave.set(l._chave, l);
+  }
+  for (const [chave, agreg] of valorPorChave) {
+    const portador = visivelPorChave.get(chave);
+    if (!portador) continue;
+    if (portador.valor_situacao === "sem_analise") {
+      portador.valor = agreg.valor;
+      portador.valor_situacao = agreg.situacao;
+    }
+  }
+}
+
+/**
+ * Consolidado de completude do MESMO universo das linhas filtradas:
+ * separa valor validado (cálculo centralizado completo) de valor conhecido
+ * com limitação (parcial ou legado). Nunca somar os dois como se fosse um
+ * total integralmente validado.
+ */
+export function consolidarCompletude(
+  filtradas: LinhaRelatorio[],
+  valorPorChave: Map<string, ChaveValorAgregado>,
+  duplicadosIgnorados: number,
+): NonNullable<DadosRelatorio["consolidado"]> {
+  const chavesVisiveis = new Set(filtradas.map((l) => l._chave).filter(Boolean) as string[]);
+  const c = {
+    completas: 0,
+    parciais: 0,
+    legadas: 0,
+    valorValidado: 0,
+    valorComLimitacao: 0,
+    duplicadosIgnorados,
+  };
+  for (const [chave, agreg] of valorPorChave) {
+    if (!chavesVisiveis.has(chave)) continue;
+    if (agreg.situacao === "completo") {
+      c.completas++;
+      c.valorValidado = Number((c.valorValidado + agreg.valor).toFixed(2));
+    } else if (agreg.situacao === "parcial") {
+      c.parciais++;
+      c.valorComLimitacao = Number((c.valorComLimitacao + agreg.valor).toFixed(2));
+    } else {
+      c.legadas++;
+      c.valorComLimitacao = Number((c.valorComLimitacao + agreg.valor).toFixed(2));
+    }
+  }
+  return c;
+}
+
+/**
  * Monta o dataset do relatório analítico direto do backend, replicando
  * as regras da aba Faturamento (empresa ativa/faturável, status calculado,
  * anexos compartilhados por Grupo Financeiro e valores das análises).
