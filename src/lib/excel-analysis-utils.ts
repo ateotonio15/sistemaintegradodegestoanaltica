@@ -2160,6 +2160,7 @@ export async function analisarExcelFinanceiroPorCnpj(
     adesaoQtd: number;
     adesaoTotal: number;
     faixas: Map<string, FaixaEtariaResumo>;
+    avisoAmbiguidade?: boolean;
   };
 
   const grupos = new Map<string, Acc>();
@@ -2316,6 +2317,10 @@ export async function analisarExcelFinanceiroPorCnpj(
       });
 
       grupos.delete(key);
+    } else if (candidatos.length > 1) {
+      // Mais de um pagador com CNPJ válido e o mesmo nome: não mesclar —
+      // matriz e filial não podem ser unidas por correspondência de nome.
+      g.avisoAmbiguidade = true;
     }
   }
 
@@ -2332,6 +2337,11 @@ export async function analisarExcelFinanceiroPorCnpj(
     .map((g) => {
       const avisos: string[] = [];
       if (!g.cnpj) avisos.push("CNPJ não identificado nesta linha — usando apenas o nome.");
+      if (g.avisoAmbiguidade) {
+        avisos.push(
+          "Ambiguidade: mais de um pagador com CNPJ válido tem este nome. Linhas sem CNPJ ficaram separadas para não misturar matriz/filial — confira manualmente.",
+        );
+      }
       const bloco: AnalisePorCnpj = {
         cnpj: g.cnpj,
         nome: g.nome || "Sem nome",
