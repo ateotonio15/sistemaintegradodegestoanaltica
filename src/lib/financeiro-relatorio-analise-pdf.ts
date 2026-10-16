@@ -31,9 +31,15 @@ async function carregarLogo(): Promise<string | null> {
   try {
     const resp = await fetch(samelIcon.url);
     const blob = await resp.blob();
-    return await new Promise<string>((resolve, reject) => {
+    // Se o conteúdo não for um PNG válido (ex.: erro do CDN), segue sem logo
+    // em vez de quebrar a geração do PDF inteiro.
+    if (!blob.type.startsWith("image/png")) return null;
+    return await new Promise<string | null>((resolve, reject) => {
       const fr = new FileReader();
-      fr.onload = () => resolve(String(fr.result));
+      fr.onload = () => {
+        const url = String(fr.result);
+        resolve(url.startsWith("data:image/png") ? url : null);
+      };
       fr.onerror = reject;
       fr.readAsDataURL(blob);
     });
@@ -423,7 +429,9 @@ export async function gerarRelatorioAnaliseFaturamento(dados: DadosRelatorio) {
           // fim do relatório); completo e sem análise sem marca.
           const selo =
             r.valor_situacao === "parcial" || r.valor_situacao === "legado" ? " *" : "";
-          base.splice(12, 0, r.valor ? brl(r.valor) + selo : "—");
+          // "—" só quando NÃO há análise; zero válido (análise completa com
+          // total zero) aparece como R$ 0,00, distinguindo-se da ausência.
+          base.splice(12, 0, r.valor_situacao === "sem_analise" ? "—" : brl(r.valor) + selo);
         }
         return base;
       }),
