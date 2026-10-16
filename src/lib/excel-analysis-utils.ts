@@ -1232,7 +1232,15 @@ function parseCoparticipacaoResumoPorCnpj(
     }
     if (!empresaNome) continue;
 
-
+    // Se a própria linha da âncora já traz o valor (ex.: sub-linha
+    // "Co-participação | qtd | valor" de um bloco de CNPJ), usa esse valor e
+    // não varre as linhas abaixo — a varredura alcançaria o "TOTAL" do
+    // contrato e tomaria o total inteiro como coparticipação.
+    const valorNaAncora = toNumber(r[idxValor]);
+    if (!isNaN(valorNaAncora) && valorNaAncora !== 0) {
+      items.push({ nome: empresaNome, quantidade: 0, total: valorNaAncora });
+      continue;
+    }
 
     // Varre até 25 linhas abaixo procurando:
     // - linhas de plano com valor → soma
