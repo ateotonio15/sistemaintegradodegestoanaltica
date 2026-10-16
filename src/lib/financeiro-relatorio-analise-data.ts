@@ -361,7 +361,6 @@ export async function carregarDadosRelatorioAnalise(
       valor,
       valor_situacao: valorSituacao,
       grupo_id: grupoId,
-      _chave: chave,
       prazo: calcularPrazoFinanceiro({
         aguardando_nota_em: m.aguardando_nota_em,
         data_envio_nota: m.data_envio_nota,
