@@ -977,26 +977,24 @@ export function compararExcelComPdfSimplificado(
         ? { excel: totalBenefExcel, pdf: null, ok: false }
         : null;
 
-  // O parser simplificado do PDF registra total 0 quando a categoria não foi
-  // encontrada (ver `avisos`). Zero "não encontrado" não é zero confirmado:
-  // nesses casos a comparação fica INCONCLUSIVA (pdf: null, sem divergência),
-  // nunca apresentada como igualdade nem como divergência financeira.
-  const naoEncontrado = (categoria: string) =>
-    !!pdf && pdf.avisos.some((a) => a.includes(`'${categoria}' não encontrada`));
+  // Ausência estruturada (F2 do pacote): o parser simplificado devolve
+  // total = null quando a categoria não foi encontrada e 0 apenas quando o
+  // zero é explícito no documento. Não dependemos do texto do aviso.
+  // Valor não encontrado ou falha de leitura → comparação INCONCLUSIVA
+  // (pdf: null, sem divergência), nunca igualdade nem divergência.
+  const inconclusivo = !!pdf?.falhaLeitura;
 
-  const inclusoesNaoEncontradas = naoEncontrado("Inclusões");
   const inclusoes = pdf
-    ? inclusoesNaoEncontradas
+    ? inconclusivo || pdf.inclusoes.total === null
       ? { excel: excel.inclusoes.total, pdf: null, ok: false }
-      : mkCmp(excel.inclusoes.total, pdf.inclusoes.total > 0 ? pdf.inclusoes.total : null, "money")
+      : mkCmp(excel.inclusoes.total, pdf.inclusoes.total, "money")
     : null;
 
-  const exclusoesNaoEncontradas = naoEncontrado("Exclusões");
   const exclusoes =
     pdf && excel.exclusoes
-      ? exclusoesNaoEncontradas
+      ? inconclusivo || pdf.exclusoes.total === null
         ? { excel: excel.exclusoes.total, pdf: null, ok: false }
-        : mkCmp(excel.exclusoes.total, pdf.exclusoes.total !== 0 ? pdf.exclusoes.total : null, "money")
+        : mkCmp(excel.exclusoes.total, pdf.exclusoes.total, "money")
       : null;
 
   if (beneficiarios && !beneficiarios.ok) {
