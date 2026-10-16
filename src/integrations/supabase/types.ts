@@ -5139,6 +5139,7 @@ export type Database = {
           acao_id: string
           agua_corporal_pct: number | null
           altura_cm: number | null
+          bebida_alcoolica: boolean | null
           cargo: string | null
           circ_abdominal_cm: number | null
           circ_quadril_cm: number | null
@@ -5152,6 +5153,7 @@ export type Database = {
           empresa_id: string
           enviado_email_em: string | null
           freq_cardiaca: number | null
+          fumante: boolean | null
           glicemia_mg_dl: number | null
           gordura_corporal_kg: number | null
           gordura_pct: number | null
@@ -5165,10 +5167,12 @@ export type Database = {
           massa_muscular_kg: number | null
           massa_ossea_kg: number | null
           medicamentos: string | null
+          musculo_pct: number | null
           nome: string
           pad_mmhg: number | null
           pas_mmhg: number | null
           peso_kg: number | null
+          pratica_esportes: boolean | null
           rcq: number | null
           recomendacao: string | null
           risco_geral: string | null
@@ -5189,6 +5193,7 @@ export type Database = {
           acao_id: string
           agua_corporal_pct?: number | null
           altura_cm?: number | null
+          bebida_alcoolica?: boolean | null
           cargo?: string | null
           circ_abdominal_cm?: number | null
           circ_quadril_cm?: number | null
@@ -5202,6 +5207,7 @@ export type Database = {
           empresa_id: string
           enviado_email_em?: string | null
           freq_cardiaca?: number | null
+          fumante?: boolean | null
           glicemia_mg_dl?: number | null
           gordura_corporal_kg?: number | null
           gordura_pct?: number | null
@@ -5215,10 +5221,12 @@ export type Database = {
           massa_muscular_kg?: number | null
           massa_ossea_kg?: number | null
           medicamentos?: string | null
+          musculo_pct?: number | null
           nome: string
           pad_mmhg?: number | null
           pas_mmhg?: number | null
           peso_kg?: number | null
+          pratica_esportes?: boolean | null
           rcq?: number | null
           recomendacao?: string | null
           risco_geral?: string | null
@@ -5239,6 +5247,7 @@ export type Database = {
           acao_id?: string
           agua_corporal_pct?: number | null
           altura_cm?: number | null
+          bebida_alcoolica?: boolean | null
           cargo?: string | null
           circ_abdominal_cm?: number | null
           circ_quadril_cm?: number | null
@@ -5252,6 +5261,7 @@ export type Database = {
           empresa_id?: string
           enviado_email_em?: string | null
           freq_cardiaca?: number | null
+          fumante?: boolean | null
           glicemia_mg_dl?: number | null
           gordura_corporal_kg?: number | null
           gordura_pct?: number | null
@@ -5265,10 +5275,12 @@ export type Database = {
           massa_muscular_kg?: number | null
           massa_ossea_kg?: number | null
           medicamentos?: string | null
+          musculo_pct?: number | null
           nome?: string
           pad_mmhg?: number | null
           pas_mmhg?: number | null
           peso_kg?: number | null
+          pratica_esportes?: boolean | null
           rcq?: number | null
           recomendacao?: string | null
           risco_geral?: string | null

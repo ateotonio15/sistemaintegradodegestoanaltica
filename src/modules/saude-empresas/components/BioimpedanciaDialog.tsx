@@ -49,6 +49,7 @@ export function BioimpedanciaDialog({ open, onOpenChange, triagemBase, editing }
     circ_abdominal_cm: num(form.circ_abdominal_cm),
     circ_quadril_cm: num(form.circ_quadril_cm),
     gordura_pct: num(form.gordura_pct),
+    musculo_pct: num((form as any).musculo_pct),
     gordura_corporal_kg: num(form.gordura_corporal_kg),
     gordura_subcutanea_pct: num(form.gordura_subcutanea_pct),
     gordura_visceral: num(form.gordura_visceral),
@@ -94,58 +95,46 @@ export function BioimpedanciaDialog({ open, onOpenChange, triagemBase, editing }
         </DialogHeader>
 
         <Tabs defaultValue="ident">
-          <TabsList className="grid grid-cols-4 w-full">
+          <TabsList className="grid grid-cols-3 w-full">
             <TabsTrigger value="ident">Identificação</TabsTrigger>
-            <TabsTrigger value="antrop">Antropometria</TabsTrigger>
-            <TabsTrigger value="vitais">Vitais</TabsTrigger>
-            <TabsTrigger value="hist">Histórico</TabsTrigger>
+            <TabsTrigger value="antrop">Exame</TabsTrigger>
+            <TabsTrigger value="hist">Recomendação</TabsTrigger>
           </TabsList>
 
           <TabsContent value="ident" className="grid grid-cols-2 gap-3 pt-3">
             <div className="grid gap-1.5 col-span-2"><Label>Nome *</Label><Input {...field(form, set, "nome")} /></div>
+            <div className="grid gap-1.5"><Label>Setor</Label><Input {...field(form, set, "setor")} /></div>
+            <div className="grid gap-1.5"><Label>Telefone</Label><Input {...field(form, set, "telefone")} /></div>
             <div className="grid gap-1.5"><Label>CPF</Label><Input value={form.cpf ?? ""} onChange={(e) => set({ cpf: maskCpf(e.target.value) })} /></div>
             <div className="grid gap-1.5"><Label>Data de nascimento</Label><Input type="date" {...field(form, set, "data_nascimento")} /></div>
-            <div className="grid gap-1.5"><Label>Sexo</Label><Input {...field(form, set, "sexo")} placeholder="M / F / outro" /></div>
-            <div className="grid gap-1.5"><Label>E-mail</Label><Input type="email" {...field(form, set, "email")} /></div>
-            <div className="grid gap-1.5"><Label>Telefone</Label><Input {...field(form, set, "telefone")} /></div>
-            <div className="grid gap-1.5"><Label>Setor</Label><Input {...field(form, set, "setor")} /></div>
-            <div className="grid gap-1.5"><Label>Cargo</Label><Input {...field(form, set, "cargo")} /></div>
+            <div className="grid gap-1.5 col-span-2"><Label>E-mail</Label><Input type="email" {...field(form, set, "email")} /></div>
+            <div className="col-span-2 flex flex-wrap gap-6 pt-1">
+              {([["fumante", "Fumante"], ["bebida_alcoolica", "Bebida alcoólica"], ["pratica_esportes", "Pratica esportes"]] as const).map(([k, l]) => (
+                <div key={k} className="flex items-center gap-2">
+                  <Switch id={`b${k}`} checked={!!(form as any)[k]} onCheckedChange={(v) => set({ [k]: v } as any)} />
+                  <Label htmlFor={`b${k}`}>{l}</Label>
+                </div>
+              ))}
+            </div>
           </TabsContent>
 
           <TabsContent value="antrop" className="grid grid-cols-3 gap-3 pt-3">
             <div className="grid gap-1.5"><Label>Peso (kg)</Label><Input inputMode="decimal" {...field(form, set, "peso_kg")} /></div>
             <div className="grid gap-1.5"><Label>Altura (cm)</Label><Input inputMode="numeric" {...field(form, set, "altura_cm")} /></div>
-            <div className="grid gap-1.5"><Label>Circ. abdominal (cm)</Label><Input inputMode="decimal" {...field(form, set, "circ_abdominal_cm")} /></div>
-            <div className="grid gap-1.5"><Label>Circ. quadril (cm)</Label><Input inputMode="decimal" {...field(form, set, "circ_quadril_cm")} /></div>
-            <div className="grid gap-1.5"><Label>Gordura %</Label><Input inputMode="decimal" {...field(form, set, "gordura_pct")} /></div>
-            <div className="grid gap-1.5"><Label>Gordura corporal (kg)</Label><Input inputMode="decimal" {...field(form, set, "gordura_corporal_kg")} /></div>
-            <div className="grid gap-1.5"><Label>Gordura subcutânea %</Label><Input inputMode="decimal" {...field(form, set, "gordura_subcutanea_pct")} /></div>
-            <div className="grid gap-1.5"><Label>Gordura visceral</Label><Input inputMode="decimal" {...field(form, set, "gordura_visceral")} /></div>
-            <div className="grid gap-1.5"><Label>Massa muscular (kg)</Label><Input inputMode="decimal" {...field(form, set, "massa_muscular_kg")} /></div>
-            <div className="grid gap-1.5"><Label>Massa óssea (kg)</Label><Input inputMode="decimal" {...field(form, set, "massa_ossea_kg")} /></div>
-            <div className="grid gap-1.5"><Label>Água corporal %</Label><Input inputMode="decimal" {...field(form, set, "agua_corporal_pct")} /></div>
-            <div className="grid gap-1.5"><Label>TMB (kcal)</Label><Input inputMode="numeric" {...field(form, set, "tmb_kcal")} /></div>
-            <div className="grid gap-1.5"><Label>Idade metabólica</Label><Input inputMode="numeric" {...field(form, set, "idade_metabolica")} /></div>
-            <div className="grid gap-1.5"><Label>Score corporal</Label><Input inputMode="decimal" {...field(form, set, "score_corporal")} /></div>
-          </TabsContent>
-
-          <TabsContent value="vitais" className="grid grid-cols-3 gap-3 pt-3">
+            <div className="grid gap-1.5"><Label>IMC</Label><div className="h-9 flex items-center font-semibold">{(() => { const p = num(form.peso_kg), a = num(form.altura_cm); return p && a ? (p / ((a / 100) ** 2)).toFixed(1).replace(".", ",") : "—"; })()}</div></div>
+            <div className="grid gap-1.5"><Label>% Gordura corporal</Label><Input inputMode="decimal" {...field(form, set, "gordura_pct")} /></div>
+            <div className="grid gap-1.5"><Label>% Músculos</Label><Input inputMode="decimal" {...field(form, set, "musculo_pct" as any)} /></div>
+            <div className="grid gap-1.5"><Label>% Gordura visceral</Label><Input inputMode="decimal" {...field(form, set, "gordura_visceral")} /></div>
             <div className="grid gap-1.5"><Label>PAS (mmHg)</Label><Input inputMode="numeric" {...field(form, set, "pas_mmhg")} /></div>
             <div className="grid gap-1.5"><Label>PAD (mmHg)</Label><Input inputMode="numeric" {...field(form, set, "pad_mmhg")} /></div>
             <div className="grid gap-1.5"><Label>Classificação PA</Label><div className="h-9 flex items-center"><PaBadge pas={num(form.pas_mmhg)} pad={num(form.pad_mmhg)} /></div></div>
-            <div className="grid gap-1.5"><Label>FC (bpm)</Label><Input inputMode="numeric" {...field(form, set, "freq_cardiaca")} /></div>
-            <div className="grid gap-1.5"><Label>SatO₂ (%)</Label><Input inputMode="numeric" {...field(form, set, "sat_o2")} /></div>
-            <div className="grid gap-1.5"><Label>Temperatura (°C)</Label><Input inputMode="decimal" {...field(form, set, "temperatura_c")} /></div>
             <div className="grid gap-1.5"><Label>Glicemia (mg/dL)</Label><Input inputMode="decimal" {...field(form, set, "glicemia_mg_dl")} /></div>
-            <div className="grid gap-1.5 flex-row items-end gap-2"><Switch id="bjejum" checked={!!form.jejum} onCheckedChange={(v) => set({ jejum: v })} /><Label htmlFor="bjejum">Jejum</Label></div>
+            <div className="grid gap-1.5"><Label>SpO₂ (%)</Label><Input inputMode="numeric" {...field(form, set, "sat_o2")} /></div>
+            <div className="flex items-end gap-2 pb-2"><Switch id="bjejum" checked={!!form.jejum} onCheckedChange={(v) => set({ jejum: v })} /><Label htmlFor="bjejum">Jejum</Label></div>
           </TabsContent>
 
-          <TabsContent value="hist" className="grid grid-cols-2 gap-3 pt-3">
-            <div className="flex items-center gap-2"><Switch checked={!!form.tem_has} onCheckedChange={(v) => set({ tem_has: v })} id="bhas" /><Label htmlFor="bhas">HAS</Label></div>
-            <div className="flex items-center gap-2"><Switch checked={!!form.tem_dm} onCheckedChange={(v) => set({ tem_dm: v })} id="bdm" /><Label htmlFor="bdm">DM</Label></div>
-            <div className="flex items-center gap-2 col-span-2"><Switch checked={!!form.usa_medicacao} onCheckedChange={(v) => set({ usa_medicacao: v })} id="bmed" /><Label htmlFor="bmed">Faz uso de medicação</Label></div>
-            <div className="grid gap-1.5 col-span-2"><Label>Medicamentos</Label><Textarea rows={2} value={form.medicamentos ?? ""} onChange={(e) => set({ medicamentos: e.target.value })} /></div>
-            <div className="grid gap-1.5 col-span-2"><Label>Recomendação</Label><Textarea rows={3} value={form.recomendacao ?? ""} onChange={(e) => set({ recomendacao: e.target.value })} /></div>
+          <TabsContent value="hist" className="grid gap-3 pt-3">
+            <div className="grid gap-1.5"><Label>Recomendação</Label><Textarea rows={4} value={form.recomendacao ?? ""} onChange={(e) => set({ recomendacao: e.target.value })} /></div>
           </TabsContent>
         </Tabs>
 

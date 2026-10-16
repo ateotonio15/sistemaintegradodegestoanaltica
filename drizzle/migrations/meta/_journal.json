@@ -274,6 +274,13 @@
       "when": 1791995788270,
       "tag": "0038_sync_delete_reclamacao_plantao",
       "breakpoints": true
+    },
+    {
+      "idx": 39,
+      "version": "7",
+      "when": 1792165488468,
+      "tag": "0039_triagens_habitos_musculo",
+      "breakpoints": true
     }
   ]
 }
