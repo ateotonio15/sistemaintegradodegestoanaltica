@@ -34,11 +34,11 @@ async function carregarLogo(): Promise<string | null> {
     // Se o conteúdo não for um PNG válido (ex.: erro do CDN), segue sem logo
     // em vez de quebrar a geração do PDF inteiro.
     if (!blob.type.startsWith("image/png")) return null;
-    return await new Promise<string>((resolve, reject) => {
+    return await new Promise<string | null>((resolve, reject) => {
       const fr = new FileReader();
       fr.onload = () => {
         const url = String(fr.result);
-        resolve(url.startsWith("data:image/png") ? url : null as unknown as string);
+        resolve(url.startsWith("data:image/png") ? url : null);
       };
       fr.onerror = reject;
       fr.readAsDataURL(blob);
