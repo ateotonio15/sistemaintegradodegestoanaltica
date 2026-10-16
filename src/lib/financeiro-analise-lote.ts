@@ -114,7 +114,7 @@ function sumExcelTotal(r: AnaliseResultado): number {
  *   (inconclusivo) — ausência nunca produz um "total confirmado de zero";
  * - zero explícito em todos os componentes continua sendo zero válido.
  */
-function sumPdfTotal(c: ComparacaoResultado | ComparacaoSimplificada | null): number | null {
+export function sumPdfTotal(c: ComparacaoResultado | ComparacaoSimplificada | null): number | null {
   if (!c) return null;
   if ("beneficiarios" in c && !("enfermaria" in (c as any))) {
     // simplificada: inclusões/exclusões desconhecidas (pdf null) tornam o
