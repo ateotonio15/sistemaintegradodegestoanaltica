@@ -519,6 +519,7 @@ export function PrevisaoFinanceira() {
           let aptTotal = 0;
           let inclusoesTotal = 0;
           let exclusoesTotal = 0;
+          let semSeparacaoPorPagador = false;
           const detalhes: any[] = [];
           for (const path of r.xlsPaths) {
             const buf = await baixar(path);
@@ -528,6 +529,7 @@ export function PrevisaoFinanceira() {
                 ? { cnpj: r.filtroPagador.cnpj ?? "", nome: r.filtroPagador.nome ?? "" }
                 : undefined,
             );
+            if (res.semSeparacaoPorPagador) semSeparacaoPorPagador = true;
             enfBeneficiarios += res.enfermaria.beneficiarios;
             enfTotal += res.enfermaria.total;
             aptBeneficiarios += res.apartamento.beneficiarios;
@@ -545,6 +547,7 @@ export function PrevisaoFinanceira() {
             inclusoesTotal,
             exclusoesTotal,
             totalGeral: enfTotal + aptTotal + inclusoesTotal + exclusoesTotal,
+            semSeparacaoPorPagador,
             detalhe: detalhes,
           };
         } catch (e: any) {
@@ -586,8 +589,21 @@ export function PrevisaoFinanceira() {
     let venceHoje = 0;
     let vencidos = 0;
     let comProrrogacao = 0;
+    // Planilhas sem coluna de pagador devolvem o total agregado do documento
+    // para cada pagador: somar esse total uma única vez por conjunto de
+    // planilhas, nunca uma vez por pagador.
+    const agregadosJaContados = new Set<string>();
     for (const r of filteredRows) {
-      totalPrevisto += analises[r.rowKey]?.totalGeral ?? 0;
+      const a = analises[r.rowKey];
+      if (a?.semSeparacaoPorPagador) {
+        const chave = [...r.xlsPaths].sort().join("|");
+        if (!agregadosJaContados.has(chave)) {
+          agregadosJaContados.add(chave);
+          totalPrevisto += a.totalGeral ?? 0;
+        }
+      } else {
+        totalPrevisto += a?.totalGeral ?? 0;
+      }
       const venc = parseLocalDate(r.data_vencimento);
       if (venc) {
         const dias = diffDias(venc, hoje);
