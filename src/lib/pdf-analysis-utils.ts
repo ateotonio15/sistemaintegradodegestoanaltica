@@ -680,10 +680,17 @@ export async function analisarPdfFinanceiro(
 
 export interface AnalisePdfSimplificado {
   beneficiarios: number | null;
-  inclusoes: { quantidade: number | null; total: number };
-  exclusoes: { quantidade: number | null; total: number };
+  /**
+   * total = null  → valor NÃO encontrado no PDF (ausência estruturada);
+   * total = 0     → zero efetivamente identificado no documento;
+   * total = valor → valor extraído.
+   */
+  inclusoes: { quantidade: number | null; total: number | null };
+  exclusoes: { quantidade: number | null; total: number | null };
   valorLiquido: number | null;
   nfNumero: string | null;
+  /** true quando o PDF não pôde ser aberto/lido (falha de leitura). */
+  falhaLeitura: boolean;
   avisos: string[];
 }
 
