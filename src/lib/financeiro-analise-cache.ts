@@ -1,4 +1,5 @@
 import { supabase } from "@/integrations/supabase/client";
+import { VERSAO_RESULTADO_COMPLETO } from "@/lib/faturamento-totais";
 import type {
   AnaliseResultado,
   ComparacaoResultado,
@@ -275,10 +276,16 @@ export async function salvarAnalise(input: SalvarAnaliseInput): Promise<Financei
     qtd_excel_enfermaria,
     qtd_pdf_enfermaria,
     divergencias: divergencias as any,
-    resultado_completo: (input.resultadoCompletoExtra ?? {
-      resultados: [input.resultado],
-      comparacoes: input.comparacao ? [input.comparacao] : [],
-    }) as any,
+    resultado_completo: {
+      // meta.versao: evidência de cobertura da extração (formato atual,
+      // com todas as categorias). Registros antigos sem a marca são
+      // tratados como legados no relatório analítico.
+      meta: { versao: VERSAO_RESULTADO_COMPLETO },
+      ...(input.resultadoCompletoExtra ?? {
+        resultados: [input.resultado],
+        comparacoes: input.comparacao ? [input.comparacao] : [],
+      }),
+    } as any,
     mensagem_final: mensagemFinal(status, divergencias),
     analisado_por,
     analisado_por_nome,
