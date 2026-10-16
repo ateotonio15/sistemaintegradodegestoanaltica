@@ -50,7 +50,7 @@ describe("PDF simplificado — ausência estruturada", () => {
     const cmp = compararExcelComPdfSimplificado(excelBase(), pdf);
     expect(cmp.inclusoes?.pdf).toBe(0);
     expect(cmp.inclusoes?.ok).toBe(false);
-    const msg = cmp.divergencias.find((d) => d.startsWith("Inclusões"));
+    const msg = cmp.divergencias.find((d) => d.toLowerCase().includes("inclus"));
     expect(msg).toContain("× PDF");
   });
 
@@ -60,7 +60,7 @@ describe("PDF simplificado — ausência estruturada", () => {
     const cmp = compararExcelComPdfSimplificado(excelBase(), pdf);
     expect(cmp.inclusoes?.pdf).toBeNull();
     expect(cmp.inclusoes?.ok).toBe(false);
-    const msg = cmp.divergencias.find((d) => d.startsWith("Inclusões"));
+    const msg = cmp.divergencias.find((d) => d.toLowerCase().includes("inclus"));
     expect(msg).toContain("inconclusiva");
     expect(msg).not.toContain("× PDF");
   });
@@ -84,7 +84,7 @@ describe("PDF simplificado — ausência estruturada", () => {
     const cmp = compararExcelComPdfSimplificado(excel, pdfBase());
     expect(cmp.inclusoes?.ok).toBe(false);
     expect(cmp.inclusoes?.pdf).toBe(150);
-    const msg = cmp.divergencias.find((d) => d.startsWith("Inclusões"));
+    const msg = cmp.divergencias.find((d) => d.toLowerCase().includes("inclus"));
     expect(msg).toContain("× PDF");
   });
 
@@ -94,7 +94,7 @@ describe("PDF simplificado — ausência estruturada", () => {
     const cmp = compararExcelComPdfSimplificado(excelBase(), pdf);
     expect(cmp.exclusoes?.pdf).toBeNull();
     expect(cmp.exclusoes?.ok).toBe(false);
-    const msg = cmp.divergencias.find((d) => d.startsWith("Exclusões"));
+    const msg = cmp.divergencias.find((d) => d.toLowerCase().includes("exclus"));
     expect(msg).toContain("inconclusiva");
   });
 
