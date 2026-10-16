@@ -59,6 +59,20 @@ export interface DadosRelatorio {
   filtros: RelatorioAnaliseFiltros;
   /** Total de contratos antes dos filtros de status/dia/tipo/período. */
   totalBase: number;
+  /**
+   * Consolidado de completude dos valores (quando incluirValores).
+   * valorValidado: chaves com cálculo centralizado completo.
+   * valorComLimitacao: chaves parciais ou legadas — NÃO somar ao validado
+   * como se fosse integralmente validado.
+   */
+  consolidado: {
+    completas: number;
+    parciais: number;
+    legadas: number;
+    valorValidado: number;
+    valorComLimitacao: number;
+    duplicadosIgnorados: number;
+  } | null;
 }
 
 const CHUNK = 300;
@@ -251,23 +265,24 @@ export async function carregarDadosRelatorioAnalise(
     });
   }
 
-  // 5) Valores das análises (por competência + chave de grupo)
-  const valorPorChave = new Map<string, number>();
+  // 5) Valores das análises (por competência + chave de grupo), com
+  // dedup por hash do arquivo e selo de completude (itens 1 e 3).
+  let valorPorChave = new Map<string, ChaveValorAgregado>();
+  let duplicadosIgnorados = 0;
   if (filtros.incluirValores) {
     const analises = await fetchAll<any>((from, to) =>
       supabase
         .from("financeiro_analises")
         .select(
-          "id, empresa_id, mes_referencia, valor_excel_apartamento, valor_excel_enfermaria, valor_excel_inclusoes, valor_excel_exclusoes, valor_pdf_apartamento, valor_pdf_enfermaria, valor_pdf_inclusoes, valor_pdf_exclusoes",
+          "id, empresa_id, mes_referencia, hash_excel, resultado_completo, valor_excel_apartamento, valor_excel_enfermaria, valor_excel_inclusoes, valor_excel_exclusoes, valor_pdf_apartamento, valor_pdf_enfermaria, valor_pdf_inclusoes, valor_pdf_exclusoes",
         )
         .in("mes_referencia", comps)
         .order("id")
         .range(from, to),
     );
-    analises.forEach((a) => {
-      const chave = `${a.mes_referencia}|${empresaGrupo.get(a.empresa_id) ?? a.empresa_id}`;
-      valorPorChave.set(chave, (valorPorChave.get(chave) ?? 0) + valorAnalise(a));
-    });
+    const agreg = agregarValoresAnalises(analises, empresaGrupo);
+    valorPorChave = agreg.porChave;
+    duplicadosIgnorados = agreg.duplicadosIgnorados;
   }
 
   // 6) Montagem das linhas
