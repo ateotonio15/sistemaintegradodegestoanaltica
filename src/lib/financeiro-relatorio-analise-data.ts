@@ -344,6 +344,7 @@ export async function carregarDadosRelatorioAnalise(
       data_vencimento: m.data_vencimento ?? null,
       anexos_count: anexosMov.length,
       valor,
+      valor_situacao: valorSituacao,
       grupo_id: grupoId,
       prazo: calcularPrazoFinanceiro({
         aguardando_nota_em: m.aguardando_nota_em,
@@ -372,7 +373,35 @@ export async function carregarDadosRelatorioAnalise(
     return true;
   });
 
-  return { linhas: filtradas, filtros, totalBase };
+  // Consolidado de completude: separa valor validado (cálculo centralizado
+  // completo) de valor conhecido com limitação (parcial ou legado). Nunca
+  // apresentar a soma dos dois como total integralmente validado.
+  let consolidado: DadosRelatorio["consolidado"] = null;
+  if (filtros.incluirValores) {
+    const c = {
+      completas: 0,
+      parciais: 0,
+      legadas: 0,
+      valorValidado: 0,
+      valorComLimitacao: 0,
+      duplicadosIgnorados,
+    };
+    for (const agreg of valorPorChave.values()) {
+      if (agreg.situacao === "completo") {
+        c.completas++;
+        c.valorValidado = Number((c.valorValidado + agreg.valor).toFixed(2));
+      } else if (agreg.situacao === "parcial") {
+        c.parciais++;
+        c.valorComLimitacao = Number((c.valorComLimitacao + agreg.valor).toFixed(2));
+      } else {
+        c.legadas++;
+        c.valorComLimitacao = Number((c.valorComLimitacao + agreg.valor).toFixed(2));
+      }
+    }
+    consolidado = c;
+  }
+
+  return { linhas: filtradas, filtros, totalBase, consolidado };
 }
 
 /** Opções disponíveis (dias, tipos, períodos, responsáveis) para as competências. */
