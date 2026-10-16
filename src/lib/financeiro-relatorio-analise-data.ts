@@ -1,4 +1,5 @@
 import { supabase } from "@/integrations/supabase/client";
+import { extrairValorRegistroAnalise } from "@/lib/faturamento-totais";
 import {
   calcularStatusFinanceiro,
   calcularPrazoFinanceiro,
@@ -47,6 +48,8 @@ export interface LinhaRelatorio {
   data_vencimento: string | null;
   anexos_count: number;
   valor: number;
+  /** Completude do valor: cálculo centralizado (completo/parcial) ou legado. */
+  valor_situacao: "completo" | "parcial" | "legado" | "sem_analise";
   grupo_id: string | null;
   prazo: PrazoCategoria;
 }
