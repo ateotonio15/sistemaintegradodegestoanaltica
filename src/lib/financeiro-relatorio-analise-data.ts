@@ -86,14 +86,24 @@ async function fetchAll<T = any>(
 
 const num = (v: any) => (typeof v === "number" && !isNaN(v) ? v : 0);
 
-/** Soma da análise de um pagador (base Excel, com fallback no PDF). */
+const presente = (v: any) => typeof v === "number" && !isNaN(v);
+
+/**
+ * Soma da análise de um pagador (base Excel, com fallback no PDF).
+ * O Excel é a fonte quando foi lido — mesmo que o total seja zero (zero
+ * válido ≠ ausência). O PDF só é usado quando NÃO há nenhum valor de Excel
+ * gravado; nunca substitui silenciosamente um Excel que totaliza zero.
+ */
 export function valorAnalise(a: any): number {
-  const excel =
-    num(a.valor_excel_apartamento) +
-    num(a.valor_excel_enfermaria) +
-    num(a.valor_excel_inclusoes) +
-    num(a.valor_excel_exclusoes);
-  if (excel !== 0) return excel;
+  const camposExcel = [
+    a.valor_excel_apartamento,
+    a.valor_excel_enfermaria,
+    a.valor_excel_inclusoes,
+    a.valor_excel_exclusoes,
+  ];
+  if (camposExcel.some(presente)) {
+    return camposExcel.reduce((s, v) => s + num(v), 0);
+  }
   return (
     num(a.valor_pdf_apartamento) +
     num(a.valor_pdf_enfermaria) +

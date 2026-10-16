@@ -14,6 +14,7 @@ import { isPdfAnexo, isXlsAnexo, expandirAnexosPorGrupo, fetchEmpresaGrupoMap } 
 import { identificarContratoDoAnexo } from "@/lib/anexo-contrato-match";
 import { periodoDaDataCorte } from "@/lib/movimentacao-utils";
 import { sha256Hex, extrairDivergencias } from "@/lib/financeiro-analise-cache";
+import { somarTotalFaturamento } from "@/lib/faturamento-totais";
 import type {
   AnaliseResultado,
   ComparacaoResultado,
