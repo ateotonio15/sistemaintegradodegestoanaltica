@@ -829,6 +829,7 @@ export async function analisarPdfFinanceiroSimplificado(
     exclusoes: { quantidade: excQtd, total: excTotal },
     valorLiquido,
     nfNumero,
+    falhaLeitura: false,
     avisos,
   };
 }
