@@ -112,6 +112,57 @@ export function valorAnalise(a: any): number {
   );
 }
 
+export interface ChaveValorAgregado {
+  chave: string;
+  valor: number;
+  situacao: import("@/lib/faturamento-totais").SituacaoRegistroAnalise;
+}
+
+/**
+ * Agrega os registros de análise por chave (competência|grupo), com as
+ * regras do pacote:
+ * - Mesmo arquivo (hash_excel) analisado mais de uma vez na mesma chave
+ *   conta uma única vez (documento compartilhado/reanálise não duplica);
+ * - Documentos distintos (hashes diferentes) somam normalmente;
+ * - Registros sem hash contam individualmente (limite: reanálises antigas
+ *   sem hash podem duplicar — indicado no relatório como limitação);
+ * - O valor vem do cálculo centralizado sobre resultado_completo quando
+ *   compatível; caso contrário, das colunas escalares com selo "legado".
+ */
+export function agregarValoresAnalises(
+  analises: any[],
+  empresaGrupo: Map<string, string>,
+): { porChave: Map<string, ChaveValorAgregado>; duplicadosIgnorados: number } {
+  const porChave = new Map<string, ChaveValorAgregado>();
+  const hashVistoPorChave = new Map<string, Set<string>>();
+  let duplicadosIgnorados = 0;
+
+  for (const a of analises) {
+    const chave = `${a.mes_referencia}|${empresaGrupo.get(a.empresa_id) ?? a.empresa_id}`;
+    const hash = typeof a.hash_excel === "string" && a.hash_excel ? a.hash_excel : null;
+    if (hash) {
+      const vistos = hashVistoPorChave.get(chave) ?? new Set<string>();
+      if (vistos.has(hash)) {
+        duplicadosIgnorados++;
+        continue;
+      }
+      vistos.add(hash);
+      hashVistoPorChave.set(chave, vistos);
+    }
+    const extraido = extrairValorRegistroAnalise(a, valorAnalise(a));
+    const atual = porChave.get(chave);
+    if (!atual) {
+      porChave.set(chave, { chave, valor: extraido.valor, situacao: extraido.situacao });
+    } else {
+      atual.valor = Number((atual.valor + extraido.valor).toFixed(2));
+      // A pior situação prevalece: legado > parcial > completo.
+      const ordem = { completo: 0, parcial: 1, legado: 2 } as const;
+      if (ordem[extraido.situacao] > ordem[atual.situacao]) atual.situacao = extraido.situacao;
+    }
+  }
+  return { porChave, duplicadosIgnorados };
+}
+
 /**
  * Monta o dataset do relatório analítico direto do backend, replicando
  * as regras da aba Faturamento (empresa ativa/faturável, status calculado,
