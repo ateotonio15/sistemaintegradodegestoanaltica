@@ -3,6 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { expandirAnexosPorGrupo, fetchEmpresaGrupoMap } from "@/lib/financeiro-utils";
 import { somarTotalFaturamento } from "@/lib/faturamento-totais";
+import { somarTotalPrevisto } from "@/lib/previsao-total";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -613,6 +614,7 @@ export function PrevisaoFinanceira() {
       }
       if (r.possui_prorrogacao) comProrrogacao++;
     }
+    const totalPrevisto = somarTotalPrevisto(itensTotais);
     return {
       totalPrevisto,
       notasEmitidas: filteredRows.filter((r) => r.nota_emitida).length,
