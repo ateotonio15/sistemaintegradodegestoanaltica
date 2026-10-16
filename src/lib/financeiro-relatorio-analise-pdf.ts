@@ -464,6 +464,22 @@ export async function gerarRelatorioAnaliseFaturamento(dados: DadosRelatorio) {
     });
   }
 
+  // Nota de completude dos valores (itens 1 e 3 do pacote financeiro)
+  if (comValores && dados.consolidado) {
+    const pageCount = doc.getNumberOfPages();
+    doc.setPage(pageCount);
+    doc.setFontSize(7.5);
+    doc.setTextColor(90, 100, 110);
+    doc.text(
+      "* Valor com limitação: análise parcial (categoria com lançamentos sem valor) ou " +
+        "análise legada — completude não verificada. O valor validado cobre apenas as " +
+        "análises completas; a soma dos dois não é um total integralmente validado.",
+      40,
+      pageH - 34,
+      { maxWidth: pageW - 80 },
+    );
+  }
+
   // Rodapé
   const pages = doc.getNumberOfPages();
   for (let p = 1; p <= pages; p++) {
