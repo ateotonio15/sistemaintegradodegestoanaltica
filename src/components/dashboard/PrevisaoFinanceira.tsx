@@ -826,7 +826,18 @@ export function PrevisaoFinanceira() {
                               : "—"}
                         </td>
                         <td className="px-3 py-2 align-top text-right tabular-nums font-semibold text-success">
-                          {a?.loading ? "…" : a && a.totalGeral !== 0 ? BRL(a.totalGeral) : "—"}
+                          {a?.loading
+                            ? "…"
+                            : a?.semSeparacaoPorPagador
+                              ? (
+                                <div className="flex flex-col items-end gap-0.5">
+                                  {a.totalGeral !== 0 && <span>{BRL(a.totalGeral)}</span>}
+                                  <Badge variant="outline" className="text-[10px] py-0 px-1.5 w-fit border-amber-500/40 text-amber-600">
+                                    Não foi possível separar por pagador
+                                  </Badge>
+                                </div>
+                              )
+                              : a && a.totalGeral !== 0 ? BRL(a.totalGeral) : "—"}
                         </td>
                         <td className="px-3 py-2 align-top">
                           <div className="flex flex-col gap-0.5">
