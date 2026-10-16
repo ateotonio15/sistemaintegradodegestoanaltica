@@ -52,6 +52,8 @@ export interface LinhaRelatorio {
   valor_situacao: "completo" | "parcial" | "legado" | "sem_analise";
   grupo_id: string | null;
   prazo: PrazoCategoria;
+  /** Chave de agregação de valor (competência|grupo/empresa) — uso interno. */
+  _chave?: string;
 }
 
 export interface DadosRelatorio {
@@ -138,8 +140,14 @@ export interface ChaveValorAgregado {
 /**
  * Agrega os registros de análise por chave (competência|grupo), com as
  * regras do pacote:
- * - Mesmo arquivo (hash_excel) analisado mais de uma vez na mesma chave
- *   conta uma única vez (documento compartilhado/reanálise não duplica);
+ * - Deduplicação por (hash_excel + identidade do pagador): a REPETIÇÃO da
+ *   mesma análise (mesmo arquivo, mesmo pagador) conta uma única vez, mas
+ *   fatias distintas por pagador extraídas do mesmo arquivo somam — hash
+ *   igual com pagador diferente NÃO descarta fatia legítima;
+ * - Análise agregada (sem separação por pagador: pagador_nome/cnpj nulos ou
+ *   iguais ao da empresa) e fatia por pagador do mesmo arquivo contam uma
+ *   vez cada uma apenas se forem registros distintos de fato; a mesma
+ *   identidade com o mesmo hash é repetição e é descartada;
  * - Documentos distintos (hashes diferentes) somam normalmente;
  * - Registros sem hash contam individualmente (limite: reanálises antigas
  *   sem hash podem duplicar — indicado no relatório como limitação);
@@ -158,12 +166,19 @@ export function agregarValoresAnalises(
     const chave = `${a.mes_referencia}|${empresaGrupo.get(a.empresa_id) ?? a.empresa_id}`;
     const hash = typeof a.hash_excel === "string" && a.hash_excel ? a.hash_excel : null;
     if (hash) {
+      // Identidade inequívoca do pagador: CNPJ (só dígitos) tem prioridade;
+      // sem CNPJ, usa o nome normalizado. Dois pagadores distintos sem CNPJ
+      // nunca compartilham a mesma identidade apenas por ambos serem nulos.
+      const cnpj = typeof a.pagador_cnpj === "string" ? a.pagador_cnpj.replace(/\D/g, "") : "";
+      const nome = typeof a.pagador_nome === "string" ? a.pagador_nome.trim().toLowerCase() : "";
+      const identidade = cnpj ? `cnpj:${cnpj}` : nome ? `nome:${nome}` : "agregado";
+      const dedupKey = `${hash}::${identidade}`;
       const vistos = hashVistoPorChave.get(chave) ?? new Set<string>();
-      if (vistos.has(hash)) {
+      if (vistos.has(dedupKey)) {
         duplicadosIgnorados++;
         continue;
       }
-      vistos.add(hash);
+      vistos.add(dedupKey);
       hashVistoPorChave.set(chave, vistos);
     }
     const extraido = extrairValorRegistroAnalise(a, valorAnalise(a));
@@ -178,6 +193,66 @@ export function agregarValoresAnalises(
     }
   }
   return { porChave, duplicadosIgnorados };
+}
+
+/**
+ * Reatribui valores de grupo no universo filtrado: se o filtro removeu a
+ * linha que recebeu o valor compartilhado da chave, o valor passa para a
+ * primeira linha visível da mesma chave. Chaves sem nenhuma linha visível
+ * ficam fora (filtro legítimo).
+ */
+export function reatribuirValoresFiltrados(
+  filtradas: LinhaRelatorio[],
+  valorPorChave: Map<string, ChaveValorAgregado>,
+): void {
+  const visivelPorChave = new Map<string, LinhaRelatorio>();
+  for (const l of filtradas) {
+    if (l._chave && !visivelPorChave.has(l._chave)) visivelPorChave.set(l._chave, l);
+  }
+  for (const [chave, agreg] of valorPorChave) {
+    const portador = visivelPorChave.get(chave);
+    if (!portador) continue;
+    if (portador.valor_situacao === "sem_analise") {
+      portador.valor = agreg.valor;
+      portador.valor_situacao = agreg.situacao;
+    }
+  }
+}
+
+/**
+ * Consolidado de completude do MESMO universo das linhas filtradas:
+ * separa valor validado (cálculo centralizado completo) de valor conhecido
+ * com limitação (parcial ou legado). Nunca somar os dois como se fosse um
+ * total integralmente validado.
+ */
+export function consolidarCompletude(
+  filtradas: LinhaRelatorio[],
+  valorPorChave: Map<string, ChaveValorAgregado>,
+  duplicadosIgnorados: number,
+): NonNullable<DadosRelatorio["consolidado"]> {
+  const chavesVisiveis = new Set(filtradas.map((l) => l._chave).filter(Boolean) as string[]);
+  const c = {
+    completas: 0,
+    parciais: 0,
+    legadas: 0,
+    valorValidado: 0,
+    valorComLimitacao: 0,
+    duplicadosIgnorados,
+  };
+  for (const [chave, agreg] of valorPorChave) {
+    if (!chavesVisiveis.has(chave)) continue;
+    if (agreg.situacao === "completo") {
+      c.completas++;
+      c.valorValidado = Number((c.valorValidado + agreg.valor).toFixed(2));
+    } else if (agreg.situacao === "parcial") {
+      c.parciais++;
+      c.valorComLimitacao = Number((c.valorComLimitacao + agreg.valor).toFixed(2));
+    } else {
+      c.legadas++;
+      c.valorComLimitacao = Number((c.valorComLimitacao + agreg.valor).toFixed(2));
+    }
+  }
+  return c;
 }
 
 /**
@@ -274,7 +349,7 @@ export async function carregarDadosRelatorioAnalise(
       supabase
         .from("financeiro_analises")
         .select(
-          "id, empresa_id, mes_referencia, hash_excel, resultado_completo, valor_excel_apartamento, valor_excel_enfermaria, valor_excel_inclusoes, valor_excel_exclusoes, valor_pdf_apartamento, valor_pdf_enfermaria, valor_pdf_inclusoes, valor_pdf_exclusoes",
+          "id, empresa_id, mes_referencia, hash_excel, pagador_nome, pagador_cnpj, resultado_completo, valor_excel_apartamento, valor_excel_enfermaria, valor_excel_inclusoes, valor_excel_exclusoes, valor_pdf_apartamento, valor_pdf_enfermaria, valor_pdf_inclusoes, valor_pdf_exclusoes",
         )
         .in("mes_referencia", comps)
         .order("id")
@@ -373,35 +448,19 @@ export async function carregarDadosRelatorioAnalise(
     return true;
   });
 
-  // Consolidado de completude: separa valor validado (cálculo centralizado
-  // completo) de valor conhecido com limitação (parcial ou legado). Nunca
-  // apresentar a soma dos dois como total integralmente validado.
+  // Universo filtrado: linhas, resumo de valores e contagens consideram o
+  // mesmo conjunto. Se o filtro removeu a linha que recebeu o valor
+  // compartilhado do grupo, o valor é reatribuído à primeira linha visível
+  // da mesma chave — nunca some por causa do filtro.
   let consolidado: DadosRelatorio["consolidado"] = null;
   if (filtros.incluirValores) {
-    const c = {
-      completas: 0,
-      parciais: 0,
-      legadas: 0,
-      valorValidado: 0,
-      valorComLimitacao: 0,
-      duplicadosIgnorados,
-    };
-    for (const agreg of valorPorChave.values()) {
-      if (agreg.situacao === "completo") {
-        c.completas++;
-        c.valorValidado = Number((c.valorValidado + agreg.valor).toFixed(2));
-      } else if (agreg.situacao === "parcial") {
-        c.parciais++;
-        c.valorComLimitacao = Number((c.valorComLimitacao + agreg.valor).toFixed(2));
-      } else {
-        c.legadas++;
-        c.valorComLimitacao = Number((c.valorComLimitacao + agreg.valor).toFixed(2));
-      }
-    }
-    consolidado = c;
+    reatribuirValoresFiltrados(filtradas, valorPorChave);
+    consolidado = consolidarCompletude(filtradas, valorPorChave, duplicadosIgnorados);
   }
 
-  return { linhas: filtradas, filtros, totalBase, consolidado };
+  // _chave é interno: não expor no resultado.
+  const saida = filtradas.map(({ _chave, ...resto }) => resto as LinhaRelatorio);
+  return { linhas: saida, filtros, totalBase, consolidado };
 }
 
 /** Opções disponíveis (dias, tipos, períodos, responsáveis) para as competências. */

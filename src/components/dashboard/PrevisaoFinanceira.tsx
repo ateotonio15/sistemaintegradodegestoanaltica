@@ -542,7 +542,13 @@ export function PrevisaoFinanceira() {
             inclusoesTotal += res.inclusoes?.total || 0;
             exclusoesTotal += res.exclusoes?.total || 0;
             totalGeralAcc += somarTotalFaturamento(res as any);
-            detalhes.push(res);
+            // Um documento por planilha, com seu total e sua condição de
+            // separação — a consolidação é por documento, não pelo conjunto.
+            detalhes.push({
+              ...res,
+              __path: path,
+              __totalDoc: somarTotalFaturamento(res as any),
+            });
           }
           resultado[r.rowKey] = {
             loading: false,
@@ -597,14 +603,23 @@ export function PrevisaoFinanceira() {
     // Documentos compartilhados por movimentações do mesmo Grupo Financeiro
     // contam uma única vez por pagador (item 3); planilhas sem coluna de
     // pagador contam uma única vez por conjunto de planilhas.
-    const itensTotais: { xlsPaths: string[]; cnpjFiltro: string | null; semSeparacaoPorPagador: boolean; totalGeral: number }[] = [];
+    const itensTotais: import("@/lib/previsao-total").ItemTotalPrevisto[] = [];
     for (const r of filteredRows) {
       const a = analises[r.rowKey];
+      // Um documento por planilha: a condição "não separável" e o total são
+      // do documento, nunca do conjunto inteiro de arquivos da linha.
+      const documentos = r.xlsPaths.map((path, i) => {
+        const det = a?.detalhe?.[i] as any;
+        return {
+          path,
+          semSeparacao: !!det?.semSeparacaoPorPagador,
+          total: typeof det?.__totalDoc === "number" ? det.__totalDoc : 0,
+        };
+      });
       itensTotais.push({
-        xlsPaths: r.xlsPaths,
+        documentos,
         cnpjFiltro: r.filtroPagador?.cnpj ?? null,
-        semSeparacaoPorPagador: !!a?.semSeparacaoPorPagador,
-        totalGeral: a?.totalGeral ?? 0,
+        nomeFiltro: r.filtroPagador?.nome ?? null,
       });
       const venc = parseLocalDate(r.data_vencimento);
       if (venc) {
