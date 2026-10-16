@@ -175,7 +175,7 @@ export function AnaliseExcelRow({ colSpan, isLoading, resultados, comparacoes, o
                 const simplificada = isSimplificada(cmpRaw);
                 const cmp = !simplificada ? (cmpRaw as ComparacaoResultado | null) : null;
                 const cmpSimples = simplificada ? (cmpRaw as ComparacaoSimplificada) : null;
-                const divergenciasPreview = Array.from(
+                const todasMensagens = Array.from(
                   new Set([
                     ...(cmpRaw?.divergencias ?? []),
                     ...(!simplificada
@@ -186,6 +186,10 @@ export function AnaliseExcelRow({ colSpan, isLoading, resultados, comparacoes, o
                       : []),
                   ]),
                 );
+                // Inconclusivo (valor não encontrado / falha de leitura) não é divergência.
+                const inconclusivosPreview = todasMensagens.filter((d) => /inconclusiva/i.test(d));
+                const divergenciasPreview = todasMensagens.filter((d) => !/inconclusiva/i.test(d));
+
 
                 const linhas: Array<{
                   label: string;
@@ -647,8 +651,17 @@ export function AnaliseExcelRow({ colSpan, isLoading, resultados, comparacoes, o
                                   {x.c!.pdf === null ? "—" : x.money ? formatBRL(x.c!.pdf) : x.c!.pdf}
                                 </td>
                                 <td className="px-3 py-2 text-right">
-                                  {x.c!.ok ? <CheckCircle2 className="h-4 w-4 text-success inline" /> : <XCircle className="h-4 w-4 text-destructive inline" />}
+                                  {x.c!.ok ? (
+                                    <CheckCircle2 className="h-4 w-4 text-success inline" />
+                                  ) : x.c!.pdf === null ? (
+                                    <span className="inline-flex items-center gap-1 text-xs text-muted-foreground" title="Valor não encontrado no PDF — não é zero confirmado nem divergência">
+                                      <AlertTriangle className="h-3.5 w-3.5" /> Inconclusivo
+                                    </span>
+                                  ) : (
+                                    <XCircle className="h-4 w-4 text-destructive inline" />
+                                  )}
                                 </td>
+
                               </tr>
                             ))}
                           </tbody>
@@ -672,7 +685,23 @@ export function AnaliseExcelRow({ colSpan, isLoading, resultados, comparacoes, o
                       </Alert>
                     )}
 
-                    {cmpRaw && divergenciasPreview.length === 0 && cmpRaw.arquivoPdf && (
+                    {cmpRaw && inconclusivosPreview.length > 0 && (
+                      <Alert className="mt-3 border-border bg-muted/40 py-2">
+                        <AlertTriangle className="h-3.5 w-3.5 text-muted-foreground" />
+                        <AlertTitle className="text-xs font-semibold">
+                          Validação inconclusiva
+                        </AlertTitle>
+                        <AlertDescription>
+                          <ul className="list-disc ml-4 text-xs text-foreground/80 space-y-0.5 mt-1">
+                            {inconclusivosPreview.map((d, i) => (
+                              <li key={i}>{d}</li>
+                            ))}
+                          </ul>
+                        </AlertDescription>
+                      </Alert>
+                    )}
+
+                    {cmpRaw && divergenciasPreview.length === 0 && inconclusivosPreview.length === 0 && cmpRaw.arquivoPdf && (
                       <div className="mt-3 flex items-center gap-2 text-xs text-success">
                         <CheckCircle2 className="h-3.5 w-3.5" />
                         Todos os valores conferem com o PDF.

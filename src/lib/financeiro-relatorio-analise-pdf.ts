@@ -171,7 +171,7 @@ export async function gerarRelatorioAnaliseFaturamento(dados: DadosRelatorio) {
     ["Vidas somadas", vidasTotal.toLocaleString("pt-BR"), "—"],
   ];
   if (comValores) {
-    resumo.push(["Valor total analisado", brl(valorTotal), "—"]);
+    resumo.push(["Valor conhecido analisado — inclui valores com limitação", brl(valorTotal), "—"]);
     const cons = dados.consolidado;
     if (cons) {
       // Nunca apresentar a soma como integralmente validada: decompõe.
