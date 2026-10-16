@@ -807,8 +807,8 @@ export async function analisarPdfFinanceiroSimplificado(
   }
 
   if (beneficiarios === null) avisos.push("Total de beneficiários não encontrado no PDF.");
-  if (incTotal === 0 && !mInc) avisos.push("Inclusões não encontradas no PDF.");
-  if (excTotal === 0 && !mExc) avisos.push("Exclusões não encontradas no PDF.");
+  if (incTotal === null) avisos.push("Inclusões não encontradas no PDF.");
+  if (excTotal === null) avisos.push("Exclusões não encontradas no PDF.");
 
   // Valor Líquido + NF (compartilhado com análise completa)
   let valorLiquido: number | null = null;
