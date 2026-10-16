@@ -522,6 +522,9 @@ export async function analisarExcelFinanceiroPorPagador(
   }
 
   const podeFiltrar = temFiltro && (idxCnpj >= 0 || idxPagador >= 0);
+  // CNPJs válidos distintos aceitos apenas pelo fallback de nome — se houver
+  // mais de um, a correspondência é ambígua (risco de misturar pagadores).
+  const cnpjsCasadosPorNome = new Set<string>();
 
   const enfValores: number[] = [];
   const aptValores: number[] = [];
@@ -625,6 +628,11 @@ export async function analisarExcelFinanceiroPorPagador(
 
   if (podeFiltrar && linhasCasadas === 0) {
     avisos.push("Nenhuma linha encontrada para este pagador na planilha.");
+  }
+  if (cnpjsCasadosPorNome.size > 1) {
+    avisos.push(
+      `Ambiguidade na correspondência por nome: ${cnpjsCasadosPorNome.size} CNPJs diferentes com nomes parecidos foram aceitos. Confira se são o mesmo pagador (matriz/filial).`,
+    );
   }
 
   const buildCategoria = (vals: number[]): CategoriaResultado => {
