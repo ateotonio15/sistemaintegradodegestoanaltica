@@ -14,6 +14,7 @@ const excel: any = {
   apartamento: { beneficiarios: 0, mensalidade: 0, total: 0 },
   inclusoes: { quantidade: 2, total: 300 },
   exclusoes: { quantidade: 0, total: 0 },
+  avisos: [], faixasEtarias: [], coparticipacao: { total: 0, substipulantes: [] },
 };
 const pdfBase = { beneficiarios: 10, valorLiquido: 1300, nfNumero: "999", falhaLeitura: false, avisos: [], arquivo: "nf-ficticia.pdf" };
 const cmpAusente = compararExcelComPdfSimplificado(excel, { ...pdfBase, inclusoes: { quantidade: null, total: null }, exclusoes: { quantidade: null, total: 0 } } as any);
