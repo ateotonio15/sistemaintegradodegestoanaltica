@@ -146,6 +146,22 @@ function resultadoCompativel(r: unknown): r is ResultadoComoObjeto {
   });
 }
 
+/** Versão do formato de `resultado_completo` com evidência de cobertura. */
+export const VERSAO_RESULTADO_COMPLETO = 2;
+
+/**
+ * Evidência de cobertura da extração: o registro precisa ter sido gravado
+ * pelo formato versionado atual (meta.versao) E cada resultado precisa ser
+ * compatível com o cálculo centralizado. A mera presença de uma categoria
+ * numérica no JSON NÃO comprova que o parser antigo extraiu todas as
+ * categorias — registros sem a marca de versão são "legado", preservando
+ * o valor conhecido das colunas escalares.
+ */
+export function temEvidenciaCobertura(resultadoCompleto: unknown): boolean {
+  const rc = resultadoCompleto as { meta?: { versao?: unknown } } | null | undefined;
+  return !!rc && typeof rc === "object" && (rc.meta?.versao as number) >= VERSAO_RESULTADO_COMPLETO;
+}
+
 /**
  * Extrai o total de um registro de `financeiro_analises` usando o cálculo
  * centralizado sobre `resultado_completo.resultados`, respeitando:
@@ -164,12 +180,17 @@ export function extrairValorRegistroAnalise(
   fallbackColunas: number,
 ): ValorRegistroAnalise {
   const rc = registro.resultado_completo as
-    | { resultados?: unknown }
+    | { resultados?: unknown; meta?: { versao?: unknown } }
     | null
     | undefined;
   const resultados = rc && Array.isArray(rc.resultados) ? rc.resultados : null;
 
-  if (resultados && resultados.length > 0 && resultados.every(resultadoCompativel)) {
+  if (
+    resultados &&
+    resultados.length > 0 &&
+    resultados.every(resultadoCompativel) &&
+    temEvidenciaCobertura(rc)
+  ) {
     let valor = 0;
     let completo = true;
     for (const r of resultados as ResultadoComoObjeto[]) {
