@@ -266,7 +266,12 @@ describe("carregarDadosRelatorioAnalise — universo filtrado", () => {
           hash_excel: "h2",
           resultado_completo: {
             meta: { versao: 2 },
-            resultados: [{ inclusoes: { total: null, quantidade: 2 } }],
+            resultados: [
+              {
+                enfermaria: { total: 0, beneficiarios: 1 },
+                inclusoes: { total: null, quantidade: 2 },
+              },
+            ],
           },
         }),
         analiseRow({
