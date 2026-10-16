@@ -882,13 +882,15 @@ export function compararExcelComPdf(
   }
 
 
-  // Inclusões — só compara o total
+  // Inclusões — só compara o total. Entra também quando o Excel totaliza
+  // zero e o PDF tem valor: zero válido ≠ ausência, e a divergência deve
+  // aparecer em vez de ser silenciosamente ignorada.
   let inclusoes: { total: CampoValidacao } | null = null;
-  if (excel.inclusoes.quantidade > 0 || excel.inclusoes.total > 0) {
-    const pdfTotal = pdf ? pdf.inclusoes.total : null;
-    const c = campo(excel.inclusoes.total, pdfTotal && pdfTotal > 0 ? pdfTotal : null, "money");
+  const pdfIncTotal = pdf ? pdf.inclusoes.total : null;
+  if (excel.inclusoes.quantidade > 0 || excel.inclusoes.total !== 0 || (pdfIncTotal ?? 0) > 0) {
+    const c = campo(excel.inclusoes.total, pdfIncTotal && pdfIncTotal > 0 ? pdfIncTotal : null, "money");
     inclusoes = { total: c };
-    if (pdf && (!pdfTotal || pdfTotal <= 0))
+    if (pdf && (!pdfIncTotal || pdfIncTotal <= 0) && excel.inclusoes.total !== 0)
       divergencias.push("Valor de inclusões não encontrado no PDF.");
     else if (pdf && !c.ok)
       divergencias.push(
@@ -1966,13 +1968,27 @@ function completarInclusoesDoDetalhe(
     if (bloco.inclusoes.quantidade > 0 || bloco.inclusoes.total !== 0) return bloco;
     const porCnpj = bloco.cnpj ? encontrados.get(`cnpj:${bloco.cnpj}`) : undefined;
     const nomeBloco = normMatch(bloco.nome);
-    const porNome = encontrados.get(`nome:${nomeBloco}`) || Array.from(encontrados.entries()).find(
-      ([chave]) => chave.startsWith("nome:") && nomeBloco && (
-        chave.slice(5).includes(nomeBloco) || nomeBloco.includes(chave.slice(5))
-      ),
-    )?.[1];
+    // Fallback por nome: só quando é inequívoco (exatamente um candidato).
+    // Com mais de um candidato, registra ambiguidade e não completa — para
+    // não misturar matriz e filial por correspondência parcial de nome.
+    const candidatosNome = encontrados.has(`nome:${nomeBloco}`)
+      ? [[`nome:${nomeBloco}`, encontrados.get(`nome:${nomeBloco}`)!] as const]
+      : Array.from(encontrados.entries()).filter(
+          ([chave]) => chave.startsWith("nome:") && nomeBloco && (
+            chave.slice(5).includes(nomeBloco) || nomeBloco.includes(chave.slice(5))
+          ),
+        );
+    const porNome = candidatosNome.length === 1 ? candidatosNome[0][1] : undefined;
     const inclusoes = porCnpj || porNome;
-    if (!inclusoes) return bloco;
+    if (!inclusoes) {
+      if (!porCnpj && candidatosNome.length > 1) {
+        return {
+          ...bloco,
+          avisos: [...bloco.avisos, "Inclusões da relação detalhada não atribuídas: mais de um pagador com nome parecido (ambiguidade matriz/filial)."],
+        };
+      }
+      return bloco;
+    }
     return {
       ...bloco,
       inclusoes: { ...inclusoes },
