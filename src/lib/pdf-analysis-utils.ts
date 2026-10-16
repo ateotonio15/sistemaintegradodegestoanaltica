@@ -766,8 +766,9 @@ export async function analisarPdfFinanceiroSimplificado(
   }
 
   // Inclusões: "inclusoes:34.463,50" ou "inclusao 12x R$ 100,00"
+  // total null = não encontrado; 0 = zero explícito no documento.
   let incQtd: number | null = null;
-  let incTotal = 0;
+  let incTotal: number | null = null;
   const reInc = new RegExp(
     `inclus(?:ao|oes|ões|o|os|ido|idos|ida|idas)?\\s*[:\\-=]?\\s*(?:(\\d+)\\s*[xX×]\\s*)?(${NUM})`,
     "i",
