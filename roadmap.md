@@ -10,5 +10,5 @@
   - [x] Relatório: consolidado no mesmo universo filtrado; reatribuição do valor de grupo
   - [x] Completude: exige meta.versao no JSON; registro antigo com categoria numérica = legado
   - [x] PDF: sumPdfTotal preserva ausência/falha (null), nunca zero confirmado
-- [ ] Item 4 — Conferência visual com dados fictícios em ambiente comprovadamente isolado (bloqueado: o sandbox não tem base isolada; não criar registros na base compartilhada com a operação)
+- [~] Item 4 — Conferência visual executada com fixtures via interceptação de rede nas telas reais (backend não é isolado da operação — mocks, sem registros criados). Cenários 1,2,3,4,7,8 verificados no PDF exportado; 5 e 6 não verificados visualmente (cobertos por testes). Falha de apresentação corrigida: zero válido aparecia "—" na tabela detalhada; logo PNG inválido derrubava a geração do PDF.
 - [ ] Item 5 — Entrega: diff completo, matriz, limitações, roteiro manual
