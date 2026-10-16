@@ -197,15 +197,40 @@ describe("carregarDadosRelatorioAnalise — universo filtrado", () => {
       ],
     });
 
-    const dados = await carregarDadosRelatorioAnalise({
-      ...filtrosBase,
-      responsaveis: [], // sem filtro de responsável; filtramos por status? não — por empresa via responsável não existe
+    // Sans filtre : total reconcilié (3.000) et consolidé = somme des lignes.
+    const tous = await carregarDadosRelatorioAnalise(filtrosBase);
+    expect(tous.linhas.reduce((s, l) => s + l.valor, 0)).toBe(3000);
+    expect(tous.consolidado?.valorValidado).toBe(3000);
+    expect(tous.consolidado?.valorComLimitacao).toBe(0);
+
+    // En filtrant sur la seule entreprise A (via son responsable distinct) :
+    // lignes et resumo affichent 1.000.
+    reset({
+      empresas: [a, b],
+      financeiro_movimentacoes: [
+        mov(a.id, { faturamento_iniciado_por_nome: "Alice" }),
+        mov(b.id, { faturamento_iniciado_por_nome: "Bob" }),
+      ],
+      anexos_financeiro: [],
+      movimentacoes: [],
+      grupos_financeiros_contratos: [],
+      financeiro_analises: [
+        analiseRow({
+          empresa_id: a.id,
+          hash_excel: "h-a",
+          resultado_completo: { meta: { versao: 2 }, resultados: [resultado(1000)] },
+        }),
+        analiseRow({
+          empresa_id: b.id,
+          hash_excel: "h-b",
+          resultado_completo: { meta: { versao: 2 }, resultados: [resultado(2000)] },
+        }),
+      ],
     });
-    // Sem filtro: total reconcilia (3.000) e o consolidado bate com a soma das linhas.
-    const somaLinhas = dados.linhas.reduce((s, l) => s + l.valor, 0);
-    expect(somaLinhas).toBe(3000);
-    expect(dados.consolidado?.valorValidado).toBe(3000);
-    expect(dados.consolidado?.valorComLimitacao).toBe(0);
+    const seuleA = await carregarDadosRelatorioAnalise({ ...filtrosBase, responsaveis: ["Alice"] });
+    expect(seuleA.linhas).toHaveLength(1);
+    expect(seuleA.linhas[0].valor).toBe(1000);
+    expect(seuleA.consolidado?.valorValidado).toBe(1000);
   });
 
   it("grupo com duas movimentações compartilhando R$ 1.000: filtro que remove a portadora reatribui à visível, uma única vez", async () => {
