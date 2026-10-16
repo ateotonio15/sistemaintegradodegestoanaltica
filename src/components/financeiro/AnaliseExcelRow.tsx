@@ -685,7 +685,23 @@ export function AnaliseExcelRow({ colSpan, isLoading, resultados, comparacoes, o
                       </Alert>
                     )}
 
-                    {cmpRaw && divergenciasPreview.length === 0 && cmpRaw.arquivoPdf && (
+                    {cmpRaw && inconclusivosPreview.length > 0 && (
+                      <Alert className="mt-3 border-border bg-muted/40 py-2">
+                        <AlertTriangle className="h-3.5 w-3.5 text-muted-foreground" />
+                        <AlertTitle className="text-xs font-semibold">
+                          Validação inconclusiva
+                        </AlertTitle>
+                        <AlertDescription>
+                          <ul className="list-disc ml-4 text-xs text-foreground/80 space-y-0.5 mt-1">
+                            {inconclusivosPreview.map((d, i) => (
+                              <li key={i}>{d}</li>
+                            ))}
+                          </ul>
+                        </AlertDescription>
+                      </Alert>
+                    )}
+
+                    {cmpRaw && divergenciasPreview.length === 0 && inconclusivosPreview.length === 0 && cmpRaw.arquivoPdf && (
                       <div className="mt-3 flex items-center gap-2 text-xs text-success">
                         <CheckCircle2 className="h-3.5 w-3.5" />
                         Todos os valores conferem com o PDF.
