@@ -175,8 +175,79 @@ export function temEvidenciaCobertura(resultadoCompleto: unknown): boolean {
  * com fallback nas valor_pdf_*), usado apenas quando o JSON não permite o
  * cálculo centralizado.
  */
+/**
+ * Identifica qual resultado do JSON pertence ao pagador do registro.
+ * Cada resultado traz `cnpj` e `pagador`/`nomeExibicao`. Prioridade: CNPJ
+ * (só dígitos); sem CNPJ, nome normalizado. Retorna:
+ * - o resultado único que corresponde à identidade;
+ * - `null` quando o registro não tem identidade (análise agregada): nesse
+ *   caso o chamador soma todos os resultados;
+ * - `false` quando há identidade mas nenhuma correspondência inequívoca:
+ *   limitação explícita — não somar tudo, cair no valor conhecido (legado).
+ */
+function resultadoDoPagador(
+  resultados: ResultadoComoObjeto[],
+  pagadorCnpj: unknown,
+  pagadorNome: unknown,
+): ResultadoComoObjeto[] | null | false {
+  const cnpj = typeof pagadorCnpj === "string" ? pagadorCnpj.replace(/\D/g, "") : "";
+  const nome =
+    typeof pagadorNome === "string"
+      ? pagadorNome
+          .toLowerCase()
+          .normalize("NFD")
+          .replace(/[̀-ͯ]/g, "")
+          .trim()
+      : "";
+  if (!cnpj && !nome) return null; // agregado: soma tudo
+
+  const norm = (s: unknown) =>
+    typeof s === "string"
+      ? s
+          .toLowerCase()
+          .normalize("NFD")
+          .replace(/[̀-ͯ]/g, "")
+          .trim()
+      : "";
+  const porCnpj = cnpj
+    ? resultados.filter((r: any) => typeof r?.cnpj === "string" && r.cnpj.replace(/\D/g, "") === cnpj)
+    : [];
+  if (porCnpj.length === 1) return porCnpj;
+  if (porCnpj.length > 1) return false;
+  if (cnpj) return false; // tinha CNPJ e o JSON não o contém: não arriscar por nome
+
+  const porNome = nome
+    ? resultados.filter((r: any) => norm(r?.pagador) === nome || norm(r?.nomeExibicao) === nome)
+    : [];
+  if (porNome.length === 1) return porNome;
+  return false; // ambíguo ou ausente
+}
+
+/**
+ * Extrai o total de um registro de `financeiro_analises` usando o cálculo
+ * centralizado sobre `resultado_completo.resultados`, respeitando:
+ * - a estrutura real do JSON ({ resultados, comparacoes });
+ * - a identidade do pagador do registro: a persistência grava um registro
+ *   por pagador, e o PRIMEIRO carrega o JSON agregado com TODOS os
+ *   resultados. Somar todos os resultados de cada JSON duplicaria as
+ *   fatias dos demais pagadores (600 + 400 lidos como 1000 + 400 = 1400).
+ *   Com identidade, extrai-se apenas a fatia correspondente; sem
+ *   identidade (análise agregada), soma-se o JSON inteiro; identidade sem
+ *   correspondência inequívoca é limitação explícita → "legado";
+ * - retroativos nunca entram (subconjunto de inclusões);
+ * - resultados incompatíveis ou estrutura ausente → "legado": preserva o
+ *   valor conhecido das colunas escalares, sem afirmar completude.
+ *
+ * `fallbackColunas` é o valor já conhecido (soma das colunas valor_excel_*
+ * com fallback nas valor_pdf_*), usado apenas quando o JSON não permite o
+ * cálculo centralizado da fatia correta.
+ */
 export function extrairValorRegistroAnalise(
-  registro: { resultado_completo?: unknown },
+  registro: {
+    resultado_completo?: unknown;
+    pagador_cnpj?: string | null;
+    pagador_nome?: string | null;
+  },
   fallbackColunas: number,
 ): ValorRegistroAnalise {
   const rc = registro.resultado_completo as
@@ -191,9 +262,21 @@ export function extrairValorRegistroAnalise(
     resultados.every(resultadoCompativel) &&
     temEvidenciaCobertura(rc)
   ) {
+    const fatias = resultadoDoPagador(
+      resultados as ResultadoComoObjeto[],
+      registro.pagador_cnpj,
+      registro.pagador_nome,
+    );
+    if (fatias === false) {
+      // Identidade presente mas sem correspondência inequívoca no JSON:
+      // limitação explícita — preserva o valor conhecido, sem afirmar
+      // completude nem somar o agregado por cima da fatia.
+      return { valor: fallbackColunas, situacao: "legado" };
+    }
+    const alvo = fatias ?? (resultados as ResultadoComoObjeto[]);
     let valor = 0;
     let completo = true;
-    for (const r of resultados as ResultadoComoObjeto[]) {
+    for (const r of alvo) {
       const t = calcularTotalFaturamento(r);
       valor += t.total;
       if (!t.completo) completo = false;
