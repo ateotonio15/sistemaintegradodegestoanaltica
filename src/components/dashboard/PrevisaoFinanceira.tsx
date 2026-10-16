@@ -590,7 +590,6 @@ export function PrevisaoFinanceira() {
 
   // KPIs respeitam o período escolhido; antes disso permanecem zerados.
   const kpis = useMemo(() => {
-    let totalPrevisto = 0;
     let venceHoje = 0;
     let vencidos = 0;
     let comProrrogacao = 0;
