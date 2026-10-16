@@ -19,8 +19,6 @@ export interface RelatorioAnaliseFiltros {
   tiposMovimentacao: string[];
   /** Períodos de corte (01-05, 05-10...). Vazio = todos. */
   periodos: string[];
-  /** Chave de agregação de valor (competência|grupo/empresa) — uso interno. */
-  _chave?: string;
   /** Status financeiro calculado. Vazio = todos. */
   status: StatusFinanceiro[];
   /** Responsáveis / quem iniciou o faturamento. Vazio = todos. */
@@ -54,6 +52,8 @@ export interface LinhaRelatorio {
   valor_situacao: "completo" | "parcial" | "legado" | "sem_analise";
   grupo_id: string | null;
   prazo: PrazoCategoria;
+  /** Chave de agregação de valor (competência|grupo/empresa) — uso interno. */
+  _chave?: string;
 }
 
 export interface DadosRelatorio {
