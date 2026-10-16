@@ -189,7 +189,7 @@ export async function carregarDadosRelatorioAnalise(
   filtros: RelatorioAnaliseFiltros,
 ): Promise<DadosRelatorio> {
   const comps = filtros.competencias.filter(Boolean);
-  if (comps.length === 0) return { linhas: [], filtros, totalBase: 0 };
+  if (comps.length === 0) return { linhas: [], filtros, totalBase: 0, consolidado: null };
 
   // 1) Movimentações financeiras das competências
   const movs = await fetchAll<any>((from, to) =>
@@ -203,7 +203,7 @@ export async function carregarDadosRelatorioAnalise(
       .range(from, to),
   );
 
-  if (movs.length === 0) return { linhas: [], filtros, totalBase: 0 };
+  if (movs.length === 0) return { linhas: [], filtros, totalBase: 0, consolidado: null };
 
   const empresaIds = Array.from(new Set(movs.map((m) => m.empresa_id)));
 
