@@ -138,8 +138,14 @@ export interface ChaveValorAgregado {
 /**
  * Agrega os registros de análise por chave (competência|grupo), com as
  * regras do pacote:
- * - Mesmo arquivo (hash_excel) analisado mais de uma vez na mesma chave
- *   conta uma única vez (documento compartilhado/reanálise não duplica);
+ * - Deduplicação por (hash_excel + identidade do pagador): a REPETIÇÃO da
+ *   mesma análise (mesmo arquivo, mesmo pagador) conta uma única vez, mas
+ *   fatias distintas por pagador extraídas do mesmo arquivo somam — hash
+ *   igual com pagador diferente NÃO descarta fatia legítima;
+ * - Análise agregada (sem separação por pagador: pagador_nome/cnpj nulos ou
+ *   iguais ao da empresa) e fatia por pagador do mesmo arquivo contam uma
+ *   vez cada uma apenas se forem registros distintos de fato; a mesma
+ *   identidade com o mesmo hash é repetição e é descartada;
  * - Documentos distintos (hashes diferentes) somam normalmente;
  * - Registros sem hash contam individualmente (limite: reanálises antigas
  *   sem hash podem duplicar — indicado no relatório como limitação);
@@ -158,12 +164,19 @@ export function agregarValoresAnalises(
     const chave = `${a.mes_referencia}|${empresaGrupo.get(a.empresa_id) ?? a.empresa_id}`;
     const hash = typeof a.hash_excel === "string" && a.hash_excel ? a.hash_excel : null;
     if (hash) {
+      // Identidade inequívoca do pagador: CNPJ (só dígitos) tem prioridade;
+      // sem CNPJ, usa o nome normalizado. Dois pagadores distintos sem CNPJ
+      // nunca compartilham a mesma identidade apenas por ambos serem nulos.
+      const cnpj = typeof a.pagador_cnpj === "string" ? a.pagador_cnpj.replace(/\D/g, "") : "";
+      const nome = typeof a.pagador_nome === "string" ? a.pagador_nome.trim().toLowerCase() : "";
+      const identidade = cnpj ? `cnpj:${cnpj}` : nome ? `nome:${nome}` : "agregado";
+      const dedupKey = `${hash}::${identidade}`;
       const vistos = hashVistoPorChave.get(chave) ?? new Set<string>();
-      if (vistos.has(hash)) {
+      if (vistos.has(dedupKey)) {
         duplicadosIgnorados++;
         continue;
       }
-      vistos.add(hash);
+      vistos.add(dedupKey);
       hashVistoPorChave.set(chave, vistos);
     }
     const extraido = extrairValorRegistroAnalise(a, valorAnalise(a));
@@ -274,7 +287,7 @@ export async function carregarDadosRelatorioAnalise(
       supabase
         .from("financeiro_analises")
         .select(
-          "id, empresa_id, mes_referencia, hash_excel, resultado_completo, valor_excel_apartamento, valor_excel_enfermaria, valor_excel_inclusoes, valor_excel_exclusoes, valor_pdf_apartamento, valor_pdf_enfermaria, valor_pdf_inclusoes, valor_pdf_exclusoes",
+          "id, empresa_id, mes_referencia, hash_excel, pagador_nome, pagador_cnpj, resultado_completo, valor_excel_apartamento, valor_excel_enfermaria, valor_excel_inclusoes, valor_excel_exclusoes, valor_pdf_apartamento, valor_pdf_enfermaria, valor_pdf_inclusoes, valor_pdf_exclusoes",
         )
         .in("mes_referencia", comps)
         .order("id")
