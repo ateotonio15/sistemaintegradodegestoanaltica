@@ -7,7 +7,7 @@ import { calcularStatusFinanceiro } from "../lib/financeiro-utils";
 import { valorAnalise } from "../lib/financeiro-relatorio-analise-data";
 
 describe("AUD-1: zero do Excel vs valor ausente (valorAnalise)", () => {
-  it("Excel 100 + (-100) = 0 cai no fallback do PDF, sem sinalizar diferença", () => {
+  it("Excel 100 + (-100) = 0 é zero válido e NÃO cai no fallback do PDF (corrigido no pacote 1)", () => {
     const a = {
       valor_excel_apartamento: 100,
       valor_excel_enfermaria: 0,
@@ -18,9 +18,10 @@ describe("AUD-1: zero do Excel vs valor ausente (valorAnalise)", () => {
       valor_pdf_inclusoes: 0,
       valor_pdf_exclusoes: 0,
     };
-    // Esperado pela auditoria: 0 confirmado, com sinalização da divergência Excel≠PDF.
-    // Observado: retorna o valor do PDF (100), tratando zero legítimo como ausente.
-    expect(valorAnalise(a)).toBe(100);
+    // Corrigido (F13): o Excel foi lido, então o zero é válido e o PDF não
+    // substitui silenciosamente. A divergência Excel 0 × PDF 100 é tratada
+    // na comparação campo a campo (compararExcelComPdf).
+    expect(valorAnalise(a)).toBe(0);
   });
 
   it("Excel realmente ausente (null) usa o PDF — comportamento correto", () => {

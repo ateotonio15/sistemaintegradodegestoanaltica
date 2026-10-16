@@ -1,5 +1,9 @@
 # Architecture rules
 
+- Billing totals are computed only via `src/lib/faturamento-totais.ts` (single source of truth); retroactive amounts are a subset of inclusions and must never be added again, and zero from a parsed source is a valid value, never treated as missing.
+- Pagador matching never accepts a valid diverging CNPJ via name similarity; name fallback applies only when the row's CNPJ is missing/invalid, and ambiguous multi-CNPJ name matches must be flagged, not merged.
+
+
 - RH PowerPoint exports use a read-only six-slide builder from the dashboard snapshot; relative performance labels compare with the displayed global mean, and strategic recommendations remain explicitly proposed, avoiding new business thresholds or persisted data.
 
 - File billing summaries reuse the existing billing Excel parser in a read-only presentation component; never modify uploaded workbooks or persist preview results.

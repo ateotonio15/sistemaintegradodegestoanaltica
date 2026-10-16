@@ -14,6 +14,7 @@ import { isPdfAnexo, isXlsAnexo, expandirAnexosPorGrupo, fetchEmpresaGrupoMap } 
 import { identificarContratoDoAnexo } from "@/lib/anexo-contrato-match";
 import { periodoDaDataCorte } from "@/lib/movimentacao-utils";
 import { sha256Hex, extrairDivergencias } from "@/lib/financeiro-analise-cache";
+import { somarTotalFaturamento } from "@/lib/faturamento-totais";
 import type {
   AnaliseResultado,
   ComparacaoResultado,
@@ -101,13 +102,9 @@ function proximaAcao(s: StatusItem): string {
 }
 
 function sumExcelTotal(r: AnaliseResultado): number {
-  return (
-    (r.enfermaria?.total || 0) +
-    (r.apartamento?.total || 0) +
-    (r.inclusoes?.total || 0) +
-    (r.exclusoes?.total || 0) +
-    ((r as any).devolucoes?.total || 0)
-  );
+  // Cálculo centralizado (F1): inclui todas as categorias com sinais
+  // preservados; retroativos não entram (subconjunto de inclusões).
+  return somarTotalFaturamento(r as any);
 }
 
 function sumPdfTotal(c: ComparacaoResultado | ComparacaoSimplificada | null): number | null {

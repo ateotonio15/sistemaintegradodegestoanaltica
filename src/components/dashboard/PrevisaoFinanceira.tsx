@@ -70,6 +70,8 @@ type AnaliseDado = {
   inclusoesTotal: number;
   exclusoesTotal: number; // negativo quando há exclusões (Moto Honda)
   totalGeral: number;
+  /** Planilha sem coluna de pagador: totalGeral é o agregado do documento (contar uma vez só). */
+  semSeparacaoPorPagador?: boolean;
   detalhe?: any;
   erro?: string;
 };
@@ -519,6 +521,7 @@ export function PrevisaoFinanceira() {
           let aptTotal = 0;
           let inclusoesTotal = 0;
           let exclusoesTotal = 0;
+          let semSeparacaoPorPagador = false;
           const detalhes: any[] = [];
           for (const path of r.xlsPaths) {
             const buf = await baixar(path);
@@ -528,6 +531,7 @@ export function PrevisaoFinanceira() {
                 ? { cnpj: r.filtroPagador.cnpj ?? "", nome: r.filtroPagador.nome ?? "" }
                 : undefined,
             );
+            if (res.semSeparacaoPorPagador) semSeparacaoPorPagador = true;
             enfBeneficiarios += res.enfermaria.beneficiarios;
             enfTotal += res.enfermaria.total;
             aptBeneficiarios += res.apartamento.beneficiarios;
@@ -545,6 +549,7 @@ export function PrevisaoFinanceira() {
             inclusoesTotal,
             exclusoesTotal,
             totalGeral: enfTotal + aptTotal + inclusoesTotal + exclusoesTotal,
+            semSeparacaoPorPagador,
             detalhe: detalhes,
           };
         } catch (e: any) {
@@ -586,8 +591,21 @@ export function PrevisaoFinanceira() {
     let venceHoje = 0;
     let vencidos = 0;
     let comProrrogacao = 0;
+    // Planilhas sem coluna de pagador devolvem o total agregado do documento
+    // para cada pagador: somar esse total uma única vez por conjunto de
+    // planilhas, nunca uma vez por pagador.
+    const agregadosJaContados = new Set<string>();
     for (const r of filteredRows) {
-      totalPrevisto += analises[r.rowKey]?.totalGeral ?? 0;
+      const a = analises[r.rowKey];
+      if (a?.semSeparacaoPorPagador) {
+        const chave = [...r.xlsPaths].sort().join("|");
+        if (!agregadosJaContados.has(chave)) {
+          agregadosJaContados.add(chave);
+          totalPrevisto += a.totalGeral ?? 0;
+        }
+      } else {
+        totalPrevisto += a?.totalGeral ?? 0;
+      }
       const venc = parseLocalDate(r.data_vencimento);
       if (venc) {
         const dias = diffDias(venc, hoje);
@@ -810,7 +828,18 @@ export function PrevisaoFinanceira() {
                               : "—"}
                         </td>
                         <td className="px-3 py-2 align-top text-right tabular-nums font-semibold text-success">
-                          {a?.loading ? "…" : a && a.totalGeral !== 0 ? BRL(a.totalGeral) : "—"}
+                          {a?.loading
+                            ? "…"
+                            : a?.semSeparacaoPorPagador
+                              ? (
+                                <div className="flex flex-col items-end gap-0.5">
+                                  {a.totalGeral !== 0 && <span>{BRL(a.totalGeral)}</span>}
+                                  <Badge variant="outline" className="text-[10px] py-0 px-1.5 w-fit border-amber-500/40 text-amber-600">
+                                    Não foi possível separar por pagador
+                                  </Badge>
+                                </div>
+                              )
+                              : a && a.totalGeral !== 0 ? BRL(a.totalGeral) : "—"}
                         </td>
                         <td className="px-3 py-2 align-top">
                           <div className="flex flex-col gap-0.5">

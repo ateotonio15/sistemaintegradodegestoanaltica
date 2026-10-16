@@ -88,6 +88,12 @@ export interface AnaliseResultado {
   taxaAdesao?: InclusaoResultado;
   /** Detalhamento por faixa etária quando disponível na RESUMO. */
   faixasEtarias?: FaixaEtariaResumo[];
+  /**
+   * true quando foi pedido filtro por pagador mas a planilha não tem coluna
+   * de CNPJ/Pagador: o resultado é o total AGREGADO do documento, que não
+   * pode ser atribuído a cada pagador individualmente (contar uma vez só).
+   */
+  semSeparacaoPorPagador?: boolean;
   /** Coparticipação — Empresarial (pivot da aba RESUMO). */
   coparticipacao?: CoparticipacaoResultado;
   /** Complemento/proporcional cobrado separadamente (aba RESUMO). */
@@ -522,6 +528,9 @@ export async function analisarExcelFinanceiroPorPagador(
   }
 
   const podeFiltrar = temFiltro && (idxCnpj >= 0 || idxPagador >= 0);
+  // CNPJs válidos distintos aceitos apenas pelo fallback de nome — se houver
+  // mais de um, a correspondência é ambígua (risco de misturar pagadores).
+  const cnpjsCasadosPorNome = new Set<string>();
 
   const enfValores: number[] = [];
   const aptValores: number[] = [];
@@ -548,14 +557,18 @@ export async function analisarExcelFinanceiroPorPagador(
     // Aplicar filtro por pagador (CNPJ primeiro, nome como fallback)
     if (podeFiltrar) {
       let casou = false;
-      if (idxCnpj >= 0 && filtroCnpj) {
-        const cnpjLinha = normalizarCnpj(r[idxCnpj]);
-        if (cnpjLinha && cnpjLinha === filtroCnpj) casou = true;
-      }
-      if (!casou && idxPagador >= 0 && filtroNome) {
+      const cnpjLinha = idxCnpj >= 0 ? normalizarCnpj(r[idxCnpj]) : "";
+      const cnpjLinhaValido = cnpjLinha.length === 14 && !/0{6,}$/.test(cnpjLinha);
+      if (filtroCnpj && cnpjLinhaValido) {
+        // CNPJ válido na linha: só casa pelo CNPJ. Um CNPJ válido divergente
+        // NUNCA é aceito por semelhança de nome (evita misturar matriz/filial).
+        casou = cnpjLinha === filtroCnpj;
+      } else if (!casou && idxPagador >= 0 && filtroNome) {
+        // Fallback por nome apenas quando a linha não tem CNPJ válido.
         const nomeLinha = norm(r[idxPagador]);
         if (nomeLinha && (nomeLinha === filtroNome || nomeLinha.includes(filtroNome) || filtroNome.includes(nomeLinha))) {
           casou = true;
+          if (cnpjLinhaValido) cnpjsCasadosPorNome.add(cnpjLinha);
         }
       }
       if (!casou) continue;
@@ -622,6 +635,11 @@ export async function analisarExcelFinanceiroPorPagador(
   if (podeFiltrar && linhasCasadas === 0) {
     avisos.push("Nenhuma linha encontrada para este pagador na planilha.");
   }
+  if (cnpjsCasadosPorNome.size > 1) {
+    avisos.push(
+      `Ambiguidade na correspondência por nome: ${cnpjsCasadosPorNome.size} CNPJs diferentes com nomes parecidos foram aceitos. Confira se são o mesmo pagador (matriz/filial).`,
+    );
+  }
 
   const buildCategoria = (vals: number[]): CategoriaResultado => {
     const total = vals.reduce((s, v) => s + v, 0);
@@ -652,7 +670,12 @@ export async function analisarExcelFinanceiroPorPagador(
     result.taxaAdesao = { quantidade: adesaoQtd, total: adesaoTotal };
   }
 
-
+  // F2: pediram um pagador específico, mas a planilha não tem coluna de
+  // CNPJ/Pagador. O resultado é o total agregado do documento — não pode
+  // ser atribuído a cada pagador; deve ser contado uma única vez.
+  if (temFiltro && !podeFiltrar) {
+    result.semSeparacaoPorPagador = true;
+  }
 
   return result;
 }
@@ -859,17 +882,19 @@ export function compararExcelComPdf(
   }
 
 
-  // Inclusões — só compara o total
+  // Inclusões — só compara o total. Entra também quando o Excel totaliza
+  // zero e o PDF tem valor: zero válido ≠ ausência, e a divergência deve
+  // aparecer em vez de ser silenciosamente ignorada.
   let inclusoes: { total: CampoValidacao } | null = null;
-  if (excel.inclusoes.quantidade > 0 || excel.inclusoes.total > 0) {
-    const pdfTotal = pdf ? pdf.inclusoes.total : null;
-    const c = campo(excel.inclusoes.total, pdfTotal && pdfTotal > 0 ? pdfTotal : null, "money");
+  const pdfIncTotal = pdf ? pdf.inclusoes.total : null;
+  if (excel.inclusoes.quantidade > 0 || excel.inclusoes.total !== 0 || (pdfIncTotal ?? 0) > 0) {
+    const c = campo(excel.inclusoes.total, pdfIncTotal && pdfIncTotal > 0 ? pdfIncTotal : null, "money");
     inclusoes = { total: c };
-    if (pdf && (!pdfTotal || pdfTotal <= 0))
+    if (pdf && (!pdfIncTotal || pdfIncTotal <= 0) && excel.inclusoes.total !== 0)
       divergencias.push("Valor de inclusões não encontrado no PDF.");
     else if (pdf && !c.ok)
       divergencias.push(
-        `Valor de inclusões divergente (Excel ${formatBRL(excel.inclusoes.total)} × PDF ${formatBRL(pdfTotal!)}).`,
+        `Valor de inclusões divergente (Excel ${formatBRL(excel.inclusoes.total)} × PDF ${formatBRL(pdfIncTotal!)}).`,
       );
   }
 
@@ -1943,13 +1968,27 @@ function completarInclusoesDoDetalhe(
     if (bloco.inclusoes.quantidade > 0 || bloco.inclusoes.total !== 0) return bloco;
     const porCnpj = bloco.cnpj ? encontrados.get(`cnpj:${bloco.cnpj}`) : undefined;
     const nomeBloco = normMatch(bloco.nome);
-    const porNome = encontrados.get(`nome:${nomeBloco}`) || Array.from(encontrados.entries()).find(
-      ([chave]) => chave.startsWith("nome:") && nomeBloco && (
-        chave.slice(5).includes(nomeBloco) || nomeBloco.includes(chave.slice(5))
-      ),
-    )?.[1];
+    // Fallback por nome: só quando é inequívoco (exatamente um candidato).
+    // Com mais de um candidato, registra ambiguidade e não completa — para
+    // não misturar matriz e filial por correspondência parcial de nome.
+    const candidatosNome = encontrados.has(`nome:${nomeBloco}`)
+      ? [[`nome:${nomeBloco}`, encontrados.get(`nome:${nomeBloco}`)!] as const]
+      : Array.from(encontrados.entries()).filter(
+          ([chave]) => chave.startsWith("nome:") && nomeBloco && (
+            chave.slice(5).includes(nomeBloco) || nomeBloco.includes(chave.slice(5))
+          ),
+        );
+    const porNome = candidatosNome.length === 1 ? candidatosNome[0][1] : undefined;
     const inclusoes = porCnpj || porNome;
-    if (!inclusoes) return bloco;
+    if (!inclusoes) {
+      if (!porCnpj && candidatosNome.length > 1) {
+        return {
+          ...bloco,
+          avisos: [...bloco.avisos, "Inclusões da relação detalhada não atribuídas: mais de um pagador com nome parecido (ambiguidade matriz/filial)."],
+        };
+      }
+      return bloco;
+    }
     return {
       ...bloco,
       inclusoes: { ...inclusoes },
@@ -2121,6 +2160,7 @@ export async function analisarExcelFinanceiroPorCnpj(
     adesaoQtd: number;
     adesaoTotal: number;
     faixas: Map<string, FaixaEtariaResumo>;
+    avisoAmbiguidade?: boolean;
   };
 
   const grupos = new Map<string, Acc>();
@@ -2277,6 +2317,10 @@ export async function analisarExcelFinanceiroPorCnpj(
       });
 
       grupos.delete(key);
+    } else if (candidatos.length > 1) {
+      // Mais de um pagador com CNPJ válido e o mesmo nome: não mesclar —
+      // matriz e filial não podem ser unidas por correspondência de nome.
+      g.avisoAmbiguidade = true;
     }
   }
 
@@ -2293,6 +2337,11 @@ export async function analisarExcelFinanceiroPorCnpj(
     .map((g) => {
       const avisos: string[] = [];
       if (!g.cnpj) avisos.push("CNPJ não identificado nesta linha — usando apenas o nome.");
+      if (g.avisoAmbiguidade) {
+        avisos.push(
+          "Ambiguidade: mais de um pagador com CNPJ válido tem este nome. Linhas sem CNPJ ficaram separadas para não misturar matriz/filial — confira manualmente.",
+        );
+      }
       const bloco: AnalisePorCnpj = {
         cnpj: g.cnpj,
         nome: g.nome || "Sem nome",
