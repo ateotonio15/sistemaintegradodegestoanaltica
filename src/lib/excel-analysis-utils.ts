@@ -977,13 +977,26 @@ export function compararExcelComPdfSimplificado(
         ? { excel: totalBenefExcel, pdf: null, ok: false }
         : null;
 
+  // O parser simplificado do PDF registra total 0 quando a categoria não foi
+  // encontrada (ver `avisos`). Zero "não encontrado" não é zero confirmado:
+  // nesses casos a comparação fica INCONCLUSIVA (pdf: null, sem divergência),
+  // nunca apresentada como igualdade nem como divergência financeira.
+  const naoEncontrado = (categoria: string) =>
+    !!pdf && pdf.avisos.some((a) => a.includes(`'${categoria}' não encontrada`));
+
+  const inclusoesNaoEncontradas = naoEncontrado("Inclusões");
   const inclusoes = pdf
-    ? mkCmp(excel.inclusoes.total, pdf.inclusoes.total > 0 ? pdf.inclusoes.total : null, "money")
+    ? inclusoesNaoEncontradas
+      ? { excel: excel.inclusoes.total, pdf: null, ok: false }
+      : mkCmp(excel.inclusoes.total, pdf.inclusoes.total > 0 ? pdf.inclusoes.total : null, "money")
     : null;
 
+  const exclusoesNaoEncontradas = naoEncontrado("Exclusões");
   const exclusoes =
     pdf && excel.exclusoes
-      ? mkCmp(excel.exclusoes.total, pdf.exclusoes.total !== 0 ? pdf.exclusoes.total : null, "money")
+      ? exclusoesNaoEncontradas
+        ? { excel: excel.exclusoes.total, pdf: null, ok: false }
+        : mkCmp(excel.exclusoes.total, pdf.exclusoes.total !== 0 ? pdf.exclusoes.total : null, "money")
       : null;
 
   if (beneficiarios && !beneficiarios.ok) {
@@ -993,12 +1006,16 @@ export function compararExcelComPdfSimplificado(
   }
   if (inclusoes && !inclusoes.ok) {
     divergencias.push(
-      `Valor de inclusões (Excel ${formatBRL(inclusoes.excel)} × PDF ${inclusoes.pdf !== null ? formatBRL(inclusoes.pdf) : "—"}).`,
+      inclusoes.pdf === null
+        ? `Inclusões: validação inconclusiva — valor não encontrado no PDF (Excel ${formatBRL(inclusoes.excel)}); não é zero confirmado nem divergência.`
+        : `Valor de inclusões (Excel ${formatBRL(inclusoes.excel)} × PDF ${formatBRL(inclusoes.pdf)}).`,
     );
   }
   if (exclusoes && !exclusoes.ok) {
     divergencias.push(
-      `Valor de exclusões (Excel ${formatBRL(exclusoes.excel)} × PDF ${exclusoes.pdf !== null ? formatBRL(exclusoes.pdf) : "—"}).`,
+      exclusoes.pdf === null
+        ? `Exclusões: validação inconclusiva — valor não encontrado no PDF (Excel ${formatBRL(exclusoes.excel)}); não é zero confirmado nem divergência.`
+        : `Valor de exclusões (Excel ${formatBRL(exclusoes.excel)} × PDF ${formatBRL(exclusoes.pdf)}).`,
     );
   }
 
@@ -1190,6 +1207,7 @@ function parseCoparticipacaoResumoPorCnpj(
   rows: unknown[][],
   idxLabel: number,
   idxValor: number,
+  idxQtd: number = -1,
 ): { nome: string; quantidade: number; total: number }[] {
   const items: { nome: string; quantidade: number; total: number }[] = [];
   if (idxLabel < 0 || idxValor < 0) return items;
@@ -1232,7 +1250,20 @@ function parseCoparticipacaoResumoPorCnpj(
     }
     if (!empresaNome) continue;
 
-
+    // Se a própria linha da âncora já traz o valor (ex.: sub-linha
+    // "Co-participação | qtd | valor" de um bloco de CNPJ), usa esse valor e
+    // não varre as linhas abaixo — a varredura alcançaria o "TOTAL" do
+    // contrato e tomaria o total inteiro como coparticipação.
+    const valorNaAncora = toNumber(r[idxValor]);
+    if (!isNaN(valorNaAncora) && valorNaAncora !== 0) {
+      const qtdNaAncora = idxQtd >= 0 ? Math.round(toNumber(r[idxQtd])) : NaN;
+      items.push({
+        nome: empresaNome,
+        quantidade: isNaN(qtdNaAncora) ? 0 : qtdNaAncora,
+        total: valorNaAncora,
+      });
+      continue;
+    }
 
     // Varre até 25 linhas abaixo procurando:
     // - linhas de plano com valor → soma
@@ -1805,7 +1836,7 @@ function analisarResumoSheet(wb: ExcelJS.Workbook): AnalisePorCnpj[] | null {
   let coparticipItems = parseCoparticipacaoRows(rows);
   // Fallback SECULUS: bloco "CO-PARTICIPAÇÃO MMM/AA" logo abaixo de cada CNPJ.
   if (coparticipItems.length === 0) {
-    coparticipItems = parseCoparticipacaoResumoPorCnpj(rows, idxLabel, idxValor);
+    coparticipItems = parseCoparticipacaoResumoPorCnpj(rows, idxLabel, idxValor, idxQtd);
   }
   // Fallback pivot por Tipo de Cobrança (ex.: EPER — "Co-participação" como
   // sub-linha da empresa, sem CNPJ e sem rótulo "Empresarial").

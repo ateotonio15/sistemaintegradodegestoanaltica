@@ -2,6 +2,7 @@ import { Fragment, useEffect, useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { expandirAnexosPorGrupo, fetchEmpresaGrupoMap } from "@/lib/financeiro-utils";
+import { somarTotalFaturamento } from "@/lib/faturamento-totais";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -521,6 +522,7 @@ export function PrevisaoFinanceira() {
           let aptTotal = 0;
           let inclusoesTotal = 0;
           let exclusoesTotal = 0;
+          let totalGeralAcc = 0;
           let semSeparacaoPorPagador = false;
           const detalhes: any[] = [];
           for (const path of r.xlsPaths) {
@@ -538,6 +540,7 @@ export function PrevisaoFinanceira() {
             aptTotal += res.apartamento.total;
             inclusoesTotal += res.inclusoes?.total || 0;
             exclusoesTotal += res.exclusoes?.total || 0;
+            totalGeralAcc += somarTotalFaturamento(res as any);
             detalhes.push(res);
           }
           resultado[r.rowKey] = {
@@ -548,7 +551,7 @@ export function PrevisaoFinanceira() {
             aptTotal,
             inclusoesTotal,
             exclusoesTotal,
-            totalGeral: enfTotal + aptTotal + inclusoesTotal + exclusoesTotal,
+            totalGeral: totalGeralAcc,
             semSeparacaoPorPagador,
             detalhe: detalhes,
           };
