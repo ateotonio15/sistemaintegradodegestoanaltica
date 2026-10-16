@@ -429,7 +429,9 @@ export async function gerarRelatorioAnaliseFaturamento(dados: DadosRelatorio) {
           // fim do relatório); completo e sem análise sem marca.
           const selo =
             r.valor_situacao === "parcial" || r.valor_situacao === "legado" ? " *" : "";
-          base.splice(12, 0, r.valor ? brl(r.valor) + selo : "—");
+          // "—" só quando NÃO há análise; zero válido (análise completa com
+          // total zero) aparece como R$ 0,00, distinguindo-se da ausência.
+          base.splice(12, 0, r.valor_situacao === "sem_analise" ? "—" : brl(r.valor) + selo);
         }
         return base;
       }),
