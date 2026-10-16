@@ -88,6 +88,12 @@ export interface AnaliseResultado {
   taxaAdesao?: InclusaoResultado;
   /** Detalhamento por faixa etária quando disponível na RESUMO. */
   faixasEtarias?: FaixaEtariaResumo[];
+  /**
+   * true quando foi pedido filtro por pagador mas a planilha não tem coluna
+   * de CNPJ/Pagador: o resultado é o total AGREGADO do documento, que não
+   * pode ser atribuído a cada pagador individualmente (contar uma vez só).
+   */
+  semSeparacaoPorPagador?: boolean;
   /** Coparticipação — Empresarial (pivot da aba RESUMO). */
   coparticipacao?: CoparticipacaoResultado;
   /** Complemento/proporcional cobrado separadamente (aba RESUMO). */
