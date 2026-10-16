@@ -787,7 +787,7 @@ export async function analisarPdfFinanceiroSimplificado(
   );
   for (const mRetroS of t.matchAll(reRetroS)) {
     const v = parseValor(mRetroS[1]);
-    if (!isNaN(v) && v > 0) incTotal += v;
+    if (!isNaN(v) && v > 0) incTotal = (incTotal ?? 0) + v;
   }
 
 
