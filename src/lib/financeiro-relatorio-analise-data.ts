@@ -438,6 +438,24 @@ export async function carregarDadosRelatorioAnalise(
     consolidado = c;
   }
 
+  // _chave é interno: não expor no resultado.
+  const saida = filtradas.map(({ _chave, ...resto }) => resto as LinhaRelatorio);
+  return { linhas: saida, filtros, totalBase, consolidado };
+}
+      if (agreg.situacao === "completo") {
+        c.completas++;
+        c.valorValidado = Number((c.valorValidado + agreg.valor).toFixed(2));
+      } else if (agreg.situacao === "parcial") {
+        c.parciais++;
+        c.valorComLimitacao = Number((c.valorComLimitacao + agreg.valor).toFixed(2));
+      } else {
+        c.legadas++;
+        c.valorComLimitacao = Number((c.valorComLimitacao + agreg.valor).toFixed(2));
+      }
+    }
+    consolidado = c;
+  }
+
   return { linhas: filtradas, filtros, totalBase, consolidado };
 }
 
