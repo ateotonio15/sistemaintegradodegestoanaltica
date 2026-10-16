@@ -1006,12 +1006,16 @@ export function compararExcelComPdfSimplificado(
   }
   if (inclusoes && !inclusoes.ok) {
     divergencias.push(
-      `Valor de inclusões (Excel ${formatBRL(inclusoes.excel)} × PDF ${inclusoes.pdf !== null ? formatBRL(inclusoes.pdf) : "—"}).`,
+      inclusoes.pdf === null
+        ? `Inclusões: validação inconclusiva — valor não encontrado no PDF (Excel ${formatBRL(inclusoes.excel)}); não é zero confirmado nem divergência.`
+        : `Valor de inclusões (Excel ${formatBRL(inclusoes.excel)} × PDF ${formatBRL(inclusoes.pdf)}).`,
     );
   }
   if (exclusoes && !exclusoes.ok) {
     divergencias.push(
-      `Valor de exclusões (Excel ${formatBRL(exclusoes.excel)} × PDF ${exclusoes.pdf !== null ? formatBRL(exclusoes.pdf) : "—"}).`,
+      exclusoes.pdf === null
+        ? `Exclusões: validação inconclusiva — valor não encontrado no PDF (Excel ${formatBRL(exclusoes.excel)}); não é zero confirmado nem divergência.`
+        : `Valor de exclusões (Excel ${formatBRL(exclusoes.excel)} × PDF ${formatBRL(exclusoes.pdf)}).`,
     );
   }
 
