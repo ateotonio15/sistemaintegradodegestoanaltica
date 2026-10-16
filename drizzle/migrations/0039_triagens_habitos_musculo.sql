@@ -1,0 +1,1 @@
+ALTER TABLE public.triagens ADD COLUMN IF NOT EXISTS fumante boolean, ADD COLUMN IF NOT EXISTS bebida_alcoolica boolean, ADD COLUMN IF NOT EXISTS pratica_esportes boolean, ADD COLUMN IF NOT EXISTS musculo_pct numeric;
