@@ -606,11 +606,20 @@ export function PrevisaoFinanceira() {
     const itensTotais: { xlsPaths: string[]; cnpjFiltro: string | null; semSeparacaoPorPagador: boolean; totalGeral: number }[] = [];
     for (const r of filteredRows) {
       const a = analises[r.rowKey];
+      // Um documento por planilha: a condição "não separável" e o total são
+      // do documento, nunca do conjunto inteiro de arquivos da linha.
+      const documentos = r.xlsPaths.map((path, i) => {
+        const det = a?.detalhe?.[i] as any;
+        return {
+          path,
+          semSeparacao: !!det?.semSeparacaoPorPagador,
+          total: typeof det?.__totalDoc === "number" ? det.__totalDoc : 0,
+        };
+      });
       itensTotais.push({
-        xlsPaths: r.xlsPaths,
+        documentos,
         cnpjFiltro: r.filtroPagador?.cnpj ?? null,
-        semSeparacaoPorPagador: !!a?.semSeparacaoPorPagador,
-        totalGeral: a?.totalGeral ?? 0,
+        nomeFiltro: r.filtroPagador?.nome ?? null,
       });
       const venc = parseLocalDate(r.data_vencimento);
       if (venc) {
