@@ -603,7 +603,7 @@ export function PrevisaoFinanceira() {
     // Documentos compartilhados por movimentações do mesmo Grupo Financeiro
     // contam uma única vez por pagador (item 3); planilhas sem coluna de
     // pagador contam uma única vez por conjunto de planilhas.
-    const itensTotais: { xlsPaths: string[]; cnpjFiltro: string | null; semSeparacaoPorPagador: boolean; totalGeral: number }[] = [];
+    const itensTotais: import("@/lib/previsao-total").ItemTotalPrevisto[] = [];
     for (const r of filteredRows) {
       const a = analises[r.rowKey];
       // Um documento por planilha: a condição "não separável" e o total são
