@@ -1,5 +1,11 @@
 # Roadmap — Primeiro pacote financeiro
 
+## Registro de Reclamações — pedido atual
+- [ ] Persistir filtros durante navegação e operações.
+- [ ] Duplicar com data atual e resoluções reiniciadas; preservar CPF na edição.
+- [ ] Sugerir classificação via IA com histórico autorizado e confirmação humana.
+- [ ] Executar regressões e conferir os fluxos na tela sem dados de teste na operação.
+
 - [x] Item 1 — Relatório analítico: completude, selo "legado", consolidado separando validado × com limitação
 - [x] Item 2 — PDF: ausência/falha de leitura estruturada (totais anuláveis, falhaLeitura)
 - [x] Item 3 — Testes de integração de documentos compartilhados (Previsão + relatório)
