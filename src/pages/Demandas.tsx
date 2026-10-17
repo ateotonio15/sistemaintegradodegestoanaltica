@@ -7,6 +7,7 @@ import {
   ArrowLeft,
   Download,
   Edit2,
+  Copy,
   FileUp,
   Gauge,
   History,
@@ -38,6 +39,8 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { toast } from "sonner";
+import { useSessionState } from "@/hooks/useSessionState";
+import { duplicarDemanda } from "@/lib/demanda-form-utils";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
@@ -70,17 +73,18 @@ export default function Demandas() {
   const del = useDeleteDemanda();
 
   // Filtros
-  const [dataIni, setDataIni] = useState("");
-  const [dataFim, setDataFim] = useState("");
-  const [empresa, setEmpresa] = useState<string>("__all__");
-  const [setor, setSetor] = useState<string>("__all__");
-  const [executiva, setExecutiva] = useState<string>("__all__");
-  const [status, setStatus] = useState<StatusFilter>("todos");
-  const [busca, setBusca] = useState("");
+  const [dataIni, setDataIni] = useSessionState(`demandas:${user?.id ?? "pending"}:dataIni`, "");
+  const [dataFim, setDataFim] = useSessionState(`demandas:${user?.id ?? "pending"}:dataFim`, "");
+  const [empresa, setEmpresa] = useSessionState<string>(`demandas:${user?.id ?? "pending"}:empresa`, "__all__");
+  const [setor, setSetor] = useSessionState<string>(`demandas:${user?.id ?? "pending"}:setor`, "__all__");
+  const [executiva, setExecutiva] = useSessionState<string>(`demandas:${user?.id ?? "pending"}:executiva`, "__all__");
+  const [status, setStatus] = useSessionState<StatusFilter>(`demandas:${user?.id ?? "pending"}:status`, "todos");
+  const [busca, setBusca] = useSessionState(`demandas:${user?.id ?? "pending"}:busca`, "");
 
   // Dialogs
   const [openForm, setOpenForm] = useState(false);
   const [editing, setEditing] = useState<Demanda | null>(null);
+  const [duplicating, setDuplicating] = useState<Partial<Demanda> | undefined>();
   const [openImport, setOpenImport] = useState(false);
   const [openHist, setOpenHist] = useState(false);
   const [confirmDel, setConfirmDel] = useState<Demanda | null>(null);
@@ -88,10 +92,11 @@ export default function Demandas() {
     queryKey: ["demanda-no-plantao", confirmDel?.id],
     enabled: !!confirmDel?.id,
     queryFn: async () => {
+      if (!confirmDel) return false;
       const { count } = await supabase
         .from("plantoes_atendimentos")
         .select("id", { count: "exact", head: true })
-        .eq("demanda_id", confirmDel!.id);
+        .eq("demanda_id", confirmDel.id);
       return (count ?? 0) > 0;
     },
   });
@@ -101,6 +106,7 @@ export default function Demandas() {
     if (!idParam || demandas.length === 0) return;
     const d = demandas.find((x) => x.id === idParam);
     if (d) {
+      setDuplicating(undefined);
       setEditing(d);
       setOpenForm(true);
       const next = new URLSearchParams(params);
@@ -114,10 +120,11 @@ export default function Demandas() {
     queryKey: ["profile-display", user?.id],
     enabled: !!user?.id,
     queryFn: async () => {
+      if (!user) return null;
       const { data } = await supabase
         .from("profiles")
         .select("display_name")
-        .eq("user_id", user!.id)
+        .eq("user_id", user.id)
         .maybeSingle();
       return data;
     },
@@ -224,6 +231,9 @@ export default function Demandas() {
     setExecutiva("__all__");
     setStatus("todos");
     setBusca("");
+    const next = new URLSearchParams(params);
+    next.delete("reclamacao");
+    setParams(next, { replace: true });
   };
 
   const exportExcel = () => {
@@ -419,7 +429,7 @@ export default function Demandas() {
                 <th className="text-left py-2.5 px-3">Executiva</th>
                 <th className="text-left py-2.5 px-3">Status</th>
                 <th className="text-right py-2.5 px-3">Dias em aberto</th>
-                {!isDiretora && <th className="text-right py-2.5 px-3 w-24">Ações</th>}
+                {!isDiretora && <th className="text-right py-2.5 px-3 w-28">Ações</th>}
               </tr>
             </thead>
             <tbody>
@@ -487,11 +497,17 @@ export default function Demandas() {
                               disabled={!canEdit}
                               title={canEdit ? "Editar" : "Sem permissão"}
                               onClick={() => {
-                                setEditing(d);
+                                setDuplicating(undefined);
+      setEditing(d);
                                 setOpenForm(true);
                               }}
                             >
                               <Edit2 className="h-3.5 w-3.5" />
+                            </Button>
+                            <Button variant="ghost" size="icon" className="h-7 w-7" disabled={!canEdit}
+                              title="Duplicar reclamação" aria-label="Duplicar reclamação"
+                              onClick={() => { setEditing(null); setDuplicating(duplicarDemanda(d)); setOpenForm(true); }}>
+                              <Copy className="h-3.5 w-3.5" />
                             </Button>
                             <Button
                               variant="ghost"
@@ -515,7 +531,7 @@ export default function Demandas() {
         </div>
       </Card>
 
-      <DemandaFormDialog open={openForm} onOpenChange={setOpenForm} demanda={editing} />
+      <DemandaFormDialog open={openForm} onOpenChange={setOpenForm} demanda={editing} initialValues={duplicating} />
       <ImportarDemandasDialog open={openImport} onOpenChange={setOpenImport} />
       <HistoricoImportacoesDialog open={openHist} onOpenChange={setOpenHist} />
 

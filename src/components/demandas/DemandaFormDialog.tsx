@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   Dialog,
   DialogContent,
@@ -19,10 +19,12 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { toast } from "sonner";
-import { Loader2 } from "lucide-react";
+import { Loader2, WandSparkles } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useCreateDemanda, useUpdateDemanda } from "@/hooks/useDemandas";
+import { preservarCpf } from "@/lib/demanda-form-utils";
+import { sugerirReclamacao, type ClassificacaoIA } from "@/lib/reclamacao-ia";
 import type { Demanda } from "@/lib/demandas-utils";
 import { format } from "date-fns";
 import { fetchBeneficiarioByCpf } from "@/lib/beneficiario-lookup";
@@ -89,6 +91,31 @@ export default function DemandaFormDialog({ open, onOpenChange, demanda, initial
   const create = useCreateDemanda();
   const update = useUpdateDemanda();
   const isEdit = !!demanda?.id;
+  const [aiFields, setAiFields] = useState<ClassificacaoIA | null>(null);
+  const [aiLoading, setAiLoading] = useState(false);
+  const [confirmAI, setConfirmAI] = useState(false);
+  const aiController = useRef<AbortController | null>(null);
+  const formRef = useRef(form);
+  formRef.current = form;
+  useEffect(() => () => aiController.current?.abort(), []);
+  const classify = async () => {
+    const snapshot = formRef.current;
+    if (!snapshot.empresa || !snapshot.detalhamento?.trim()) return toast.error("Informe a empresa e o detalhamento");
+    const controller = new AbortController();
+    aiController.current = controller;
+    setAiLoading(true);
+    try {
+      const result = await sugerirReclamacao(snapshot.empresa, snapshot.detalhamento, controller.signal);
+      if (controller.signal.aborted) return;
+      if (formRef.current.empresa !== snapshot.empresa || formRef.current.detalhamento !== snapshot.detalhamento) {
+        toast.error("O texto ou a empresa mudou; solicite uma nova sugestão"); return;
+      }
+      setForm(p => ({ ...p, ...result }));
+      setAiFields(result);
+    } catch (e) {
+      if (!controller.signal.aborted) toast.error(e instanceof Error ? e.message : "Falha na IA");
+    } finally { setAiLoading(false); }
+  };
 
   const { data: executivas = [] } = useQuery({
     queryKey: ["executivas-list"],
@@ -120,6 +147,10 @@ export default function DemandaFormDialog({ open, onOpenChange, demanda, initial
   });
 
   useEffect(() => {
+    aiController.current?.abort();
+    setAiLoading(false);
+    setAiFields(null);
+    setConfirmAI(false);
     if (open) {
       setForm(demanda ? { ...demanda } : { ...empty(), ...(initialValues || {}) });
     }
@@ -156,7 +187,7 @@ export default function DemandaFormDialog({ open, onOpenChange, demanda, initial
   const set = <K extends keyof Demanda>(k: K, v: Demanda[K] | string | boolean) =>
     setForm((p) => ({ ...p, [k]: v as any }));
 
-  const onSubmit = async () => {
+  const onSubmit = async (confirmed = false) => {
     if (!form.data_reclamacao) {
       toast.error("Informe a data da reclamação");
       return;
@@ -184,6 +215,8 @@ export default function DemandaFormDialog({ open, onOpenChange, demanda, initial
       return toast.error("Informe a data de resolução (executiva)");
     }
 
+    if (aiFields && !confirmed) { setConfirmAI(true); return; }
+
     // Normalização final antes de persistir
     const reclamacaoCanon = normalizarReclamacao(form.reclamacao);
     const cirurgico = isReclamacaoCirurgica(reclamacaoCanon);
@@ -191,7 +224,7 @@ export default function DemandaFormDialog({ open, onOpenChange, demanda, initial
       ...form,
       reclamacao: reclamacaoCanon,
       // Campos cirúrgicos só persistem quando aplicável
-      cpf: cirurgico ? (form.cpf || null) : null,
+      cpf: preservarCpf(form),
       data_entrada: cirurgico ? (form.data_entrada || null) : null,
       nome_medico: cirurgico ? (form.nome_medico || null) : null,
       nome_procedimento: cirurgico ? (form.nome_procedimento || null) : null,
@@ -247,7 +280,7 @@ export default function DemandaFormDialog({ open, onOpenChange, demanda, initial
         </DialogHeader>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 py-2">
-          <Field label="Setor responsável *">
+          <Field label="Setor responsável *" automated={!!aiFields && aiFields.setor_responsavel === form.setor_responsavel}>
             <Select
               value={form.setor_responsavel || ""}
               onValueChange={(v) =>
@@ -269,7 +302,7 @@ export default function DemandaFormDialog({ open, onOpenChange, demanda, initial
               </SelectContent>
             </Select>
           </Field>
-          <Field label="Tipo de reclamação *">
+          <Field label="Tipo de reclamação *" automated={!!aiFields && aiFields.tipo_reclamacao === form.tipo_reclamacao}>
             <Select
               value={form.tipo_reclamacao || ""}
               onValueChange={(v) =>
@@ -293,7 +326,7 @@ export default function DemandaFormDialog({ open, onOpenChange, demanda, initial
               </SelectContent>
             </Select>
           </Field>
-          <Field label="Reclamação *">
+          <Field label="Reclamação *" automated={!!aiFields && aiFields.reclamacao === form.reclamacao}>
             {(() => {
               const opcoes = getReclamacoesDisponiveis(form.setor_responsavel, form.tipo_reclamacao);
               return (
@@ -383,14 +416,14 @@ export default function DemandaFormDialog({ open, onOpenChange, demanda, initial
                   setForm((prev) => ({
                     ...prev,
                     nome_cliente: src.NM_PESSOA_FISICA || prev.nome_cliente || "",
-                    cpf: isCpfValido(src.NR_CPF) ? maskCpf(src.NR_CPF!) : (prev.cpf || ""),
+                    cpf: isCpfValido(src.NR_CPF) ? maskCpf(src.NR_CPF || "") : (prev.cpf || ""),
                   }));
                 };
                 applyFrom(p);
                 // Segunda chamada com o CPF para obter dados atualizados
                 if (isCpfValido(p.NR_CPF)) {
                   try {
-                    const arr = await buscarPessoaFisica(p.NR_CPF!);
+                    const arr = await buscarPessoaFisica(p.NR_CPF || "");
                     if (arr.length > 0) applyFrom(arr[0]);
                   } catch (err: any) {
                     if (err?.name !== "AbortError") console.error(err);
@@ -424,6 +457,13 @@ export default function DemandaFormDialog({ open, onOpenChange, demanda, initial
 
 
           <Field label="Detalhamento" className="md:col-span-2">
+            <div className="flex justify-end">
+              <Button type="button" size="sm" variant="outline" onClick={classify} disabled={aiLoading || loading || !form.empresa || !form.detalhamento?.trim()}>
+                {aiLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <WandSparkles className="mr-2 h-4 w-4" />}
+                {aiLoading ? "Classificando..." : "Preencher com IA"}
+              </Button>
+              {aiLoading && <Button type="button" size="sm" variant="ghost" onClick={() => aiController.current?.abort()}>Parar</Button>}
+            </div>
             <Textarea
               rows={3}
               value={form.detalhamento || ""}
@@ -493,11 +533,25 @@ export default function DemandaFormDialog({ open, onOpenChange, demanda, initial
           <Button variant="outline" onClick={() => onOpenChange(false)} disabled={loading}>
             Cancelar
           </Button>
-          <Button onClick={onSubmit} disabled={loading}>
+          <Button onClick={() => onSubmit()} disabled={loading || aiLoading}>
             {loading ? "Salvando..." : isEdit ? "Salvar alterações" : "Criar demanda"}
           </Button>
         </DialogFooter>
       </DialogContent>
+      <Dialog open={confirmAI} onOpenChange={setConfirmAI}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader><DialogTitle>Confira se está tudo correto com a automação da IA</DialogTitle></DialogHeader>
+          <dl className="space-y-3 text-sm">
+            <div><dt className="text-muted-foreground">Setor responsável</dt><dd>{form.setor_responsavel}</dd></div>
+            <div><dt className="text-muted-foreground">Tipo de reclamação</dt><dd>{form.tipo_reclamacao}</dd></div>
+            <div><dt className="text-muted-foreground">Reclamação</dt><dd>{form.reclamacao}</dd></div>
+          </dl>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setConfirmAI(false)} disabled={loading}>Revisar</Button>
+            <Button onClick={() => onSubmit(true)} disabled={loading}>{loading ? "Salvando..." : "Confirmar e salvar"}</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </Dialog>
   );
 }
@@ -506,14 +560,16 @@ function Field({
   label,
   children,
   className,
+  automated,
 }: {
   label: string;
   children: React.ReactNode;
   className?: string;
+  automated?: boolean;
 }) {
   return (
     <div className={`flex flex-col gap-1.5 ${className || ""}`}>
-      <Label className="text-xs font-medium text-muted-foreground">{label}</Label>
+      <Label className="text-xs font-medium text-muted-foreground">{label}{automated && <span className="ml-2 inline-flex items-center gap-1 text-primary"><WandSparkles className="h-3 w-3" />IA</span>}</Label>
       {children}
     </div>
   );

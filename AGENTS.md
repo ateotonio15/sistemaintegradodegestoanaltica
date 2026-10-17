@@ -1,4 +1,6 @@
 # Architecture rules
+- Complaint filters use session-scoped state; duplication copies an allowlist without IDs or resolutions, and AI classification is read-only, RLS-scoped to the selected company, with human confirmation before saving.
+- The complaint AI function owns a mirrored classification catalog; keep it aligned with the client catalog so suggestions cannot bypass dependent dropdown options.
 
 - Billing totals are computed only via `src/lib/faturamento-totais.ts` (single source of truth); retroactive amounts are a subset of inclusions and must never be added again, and zero from a parsed source is a valid value, never treated as missing.
 - Pagador matching never accepts a valid diverging CNPJ via name similarity; name fallback applies only when the row's CNPJ is missing/invalid, and ambiguous multi-CNPJ name matches must be flagged, not merged.

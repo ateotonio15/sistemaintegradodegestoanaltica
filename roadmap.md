@@ -1,5 +1,11 @@
 # Roadmap — Primeiro pacote financeiro
 
+## Registro de Reclamações — pedido atual
+- [x] Persistir filtros durante navegação e operações.
+- [x] Duplicar com data atual e resoluções reiniciadas; preservar CPF na edição.
+- [x] Sugerir classificação via IA com histórico autorizado e confirmação humana.
+- [x] Executar regressões e conferir os fluxos na tela sem dados de teste na operação. IA real conferida com empresa fictícia sem histórico; gravações de cadastro/edição interceptadas, CPF preservado e confirmação anterior ao envio comprovada.
+
 - [x] Item 1 — Relatório analítico: completude, selo "legado", consolidado separando validado × com limitação
 - [x] Item 2 — PDF: ausência/falha de leitura estruturada (totais anuláveis, falhaLeitura)
 - [x] Item 3 — Testes de integração de documentos compartilhados (Previsão + relatório)
@@ -10,5 +16,5 @@
   - [x] Relatório: consolidado no mesmo universo filtrado; reatribuição do valor de grupo
   - [x] Completude: exige meta.versao no JSON; registro antigo com categoria numérica = legado
   - [x] PDF: sumPdfTotal preserva ausência/falha (null), nunca zero confirmado
-- [~] Item 4 — Conferência visual executada com fixtures via interceptação de rede nas telas reais (backend não é isolado da operação — mocks, sem registros criados). Cenários 1,2,3,4,7,8 verificados no PDF exportado; 5 e 6 não verificados visualmente (cobertos por testes). Falha de apresentação corrigida: zero válido aparecia "—" na tabela detalhada; logo PNG inválido derrubava a geração do PDF.
-- [ ] Item 5 — Entrega: diff completo, matriz, limitações, roteiro manual
+- [x] Item 4 — Conferência visual com mocks concluída em rodada anterior, incluindo cenários 5 e 6; sem gravações na operação. Integração com backend real não verificada.
+- [x] Item 5 — Capturas e diff dos cenários 5 e 6 entregues na rodada anterior.
