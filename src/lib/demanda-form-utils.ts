@@ -10,7 +10,7 @@ export function duplicarDemanda(d: Demanda, hoje = new Date()): Partial<Demanda>
     tipo_reclamacao: d.tipo_reclamacao, reclamacao: d.reclamacao,
     detalhamento: d.detalhamento, observacao: d.observacao,
     nome_medico: d.nome_medico, nome_procedimento: d.nome_procedimento,
-    data_entrada: null, encaminhado_setor: true,
+    data_entrada: d.data_entrada, encaminhado_setor: true,
     resolvido_setor: false, resolvido_executiva: false,
     data_resolucao_setor: null, data_resolucao_executiva: null,
   };
