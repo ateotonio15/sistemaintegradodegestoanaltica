@@ -2,12 +2,13 @@ import {
   createLovableAiGatewayRunIdFetch,
   getLovableAiGatewayRunId,
   getLovableAiGatewayResponseHeaders,
-} from "../../ai-apps-gateway-sdk/examples/run-id.ts";
+} from "./run-id.ts";
 
 export async function streamResponsesHTTP(
   request: Request,
   config: { baseURL: string; apiKey: string; model: string },
   input: string | Record<string, unknown>[],
+  schema?: Record<string, unknown>,
 ) {
   const gateway = createLovableAiGatewayRunIdFetch(getLovableAiGatewayRunId(request));
   const reasoning = config.model !== "openai/chat-latest";
@@ -21,6 +22,7 @@ export async function streamResponsesHTTP(
         input,
         stream: true,
         store: false,
+        ...(schema ? { text: { format: { type: "json_schema", name: "classificacao", strict: true, schema } } } : {}),
         ...(reasoning
           ? { reasoning: { effort: "medium", summary: "auto" }, include: ["reasoning.encrypted_content"] }
           : {}),
