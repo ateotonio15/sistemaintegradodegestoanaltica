@@ -99,7 +99,11 @@ export default function DemandaFormDialog({ open, onOpenChange, demanda, initial
   formRef.current = form;
   useEffect(() => () => aiController.current?.abort(), []);
   // Último texto classificado: evita rodar a IA ao abrir uma edição sem mudanças.
-  const lastClassified = useRef<string>(`${initialValues?.empresa ?? demanda?.empresa ?? ""}|${(initialValues?.detalhamento ?? demanda?.detalhamento ?? "").trim()}`);
+  const lastClassified = useRef<string>("");
+  // IA só roda em nova demanda, depois que a usuária digitar no Detalhamento,
+  // e para de sobrescrever assim que ela ajustar Setor/Tipo/Reclamação à mão.
+  const typedDetalhamento = useRef(false);
+  const manualClassificacao = useRef(false);
   const classify = async () => {
     const snapshot = formRef.current;
     if (!snapshot.empresa || !snapshot.detalhamento?.trim()) return;
@@ -110,7 +114,7 @@ export default function DemandaFormDialog({ open, onOpenChange, demanda, initial
     try {
       const result = await sugerirReclamacao(snapshot.empresa, snapshot.detalhamento, controller.signal);
       if (controller.signal.aborted) return;
-      if (formRef.current.empresa !== snapshot.empresa || formRef.current.detalhamento !== snapshot.detalhamento) return;
+      if (manualClassificacao.current || formRef.current.empresa !== snapshot.empresa || formRef.current.detalhamento !== snapshot.detalhamento) return;
       setForm(p => ({ ...p, ...result }));
       setAiFields(result);
     } catch (e) {
@@ -121,10 +125,10 @@ export default function DemandaFormDialog({ open, onOpenChange, demanda, initial
   useEffect(() => {
     const text = form.detalhamento?.trim() ?? "";
     const key = `${form.empresa ?? ""}|${text}`;
-    if (!open || !form.empresa || text.length < 10 || key === lastClassified.current) return;
+    if (!open || isEdit || !typedDetalhamento.current || manualClassificacao.current || !form.empresa || text.length < 10 || key === lastClassified.current) return;
     const t = setTimeout(() => { lastClassified.current = key; classify(); }, 1200);
     return () => clearTimeout(t);
-  }, [form.detalhamento, form.empresa, open]);
+  }, [form.detalhamento, form.empresa, open, isEdit]);
 
   const { data: executivas = [] } = useQuery({
     queryKey: ["executivas-list"],
@@ -160,6 +164,9 @@ export default function DemandaFormDialog({ open, onOpenChange, demanda, initial
     setAiLoading(false);
     setAiFields(null);
     setConfirmAI(false);
+    typedDetalhamento.current = false;
+    manualClassificacao.current = false;
+    lastClassified.current = "";
     if (open) {
       setForm(demanda ? { ...demanda } : { ...empty(), ...(initialValues || {}) });
     }
@@ -294,7 +301,7 @@ export default function DemandaFormDialog({ open, onOpenChange, demanda, initial
               value={form.setor_responsavel || ""}
               onValueChange={(v) =>
                 // correção manual não apaga os demais campos
-                setForm((p) => ({ ...p, setor_responsavel: v }))
+                { manualClassificacao.current = true; aiController.current?.abort(); setForm((p) => ({ ...p, setor_responsavel: v })); }
               }
             >
               <SelectTrigger><SelectValue placeholder="Selecione..." /></SelectTrigger>
@@ -311,7 +318,7 @@ export default function DemandaFormDialog({ open, onOpenChange, demanda, initial
               value={form.tipo_reclamacao || ""}
               onValueChange={(v) =>
                 // correção manual não apaga os demais campos
-                setForm((p) => ({ ...p, tipo_reclamacao: v }))
+                { manualClassificacao.current = true; aiController.current?.abort(); setForm((p) => ({ ...p, tipo_reclamacao: v })); }
               }
               disabled={!form.setor_responsavel}
             >
@@ -332,7 +339,7 @@ export default function DemandaFormDialog({ open, onOpenChange, demanda, initial
               return (
                 <Select
                   value={form.reclamacao || ""}
-                  onValueChange={(v) => set("reclamacao", normalizarReclamacao(v))}
+                  onValueChange={(v) => { manualClassificacao.current = true; aiController.current?.abort(); set("reclamacao", normalizarReclamacao(v)); }}
                   disabled={!form.tipo_reclamacao}
                 >
                   <SelectTrigger>
@@ -465,7 +472,7 @@ export default function DemandaFormDialog({ open, onOpenChange, demanda, initial
             <Textarea
               rows={3}
               value={form.detalhamento || ""}
-              onChange={(e) => set("detalhamento", e.target.value)}
+              onChange={(e) => { typedDetalhamento.current = true; set("detalhamento", e.target.value); }}
             />
           </Field>
 
