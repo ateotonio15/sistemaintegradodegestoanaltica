@@ -56,7 +56,7 @@ export default function PessoaFisicaAutocomplete({
       }
     }, 300);
     return () => clearTimeout(timer);
-  }, [value, suppress]);
+  }, [value, suppress, typed]);
 
   useEffect(() => {
     const onDoc = (e: MouseEvent) => {
@@ -79,7 +79,7 @@ export default function PessoaFisicaAutocomplete({
     <div className="relative" ref={containerRef}>
       <Input
         value={value}
-        onChange={(e) => onChange(e.target.value)}
+        onChange={(e) => { setTyped(true); onChange(e.target.value); }}
         onFocus={() => results.length > 0 && setOpen(true)}
         onKeyDown={(e) => {
           if (e.key === "Escape") setOpen(false);
