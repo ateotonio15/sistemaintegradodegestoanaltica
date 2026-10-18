@@ -98,24 +98,33 @@ export default function DemandaFormDialog({ open, onOpenChange, demanda, initial
   const formRef = useRef(form);
   formRef.current = form;
   useEffect(() => () => aiController.current?.abort(), []);
+  // Último texto classificado: evita rodar a IA ao abrir uma edição sem mudanças.
+  const lastClassified = useRef<string>(`${initialValues?.empresa ?? demanda?.empresa ?? ""}|${(initialValues?.detalhamento ?? demanda?.detalhamento ?? "").trim()}`);
   const classify = async () => {
     const snapshot = formRef.current;
-    if (!snapshot.empresa || !snapshot.detalhamento?.trim()) return toast.error("Informe a empresa e o detalhamento");
+    if (!snapshot.empresa || !snapshot.detalhamento?.trim()) return;
+    aiController.current?.abort();
     const controller = new AbortController();
     aiController.current = controller;
     setAiLoading(true);
     try {
       const result = await sugerirReclamacao(snapshot.empresa, snapshot.detalhamento, controller.signal);
       if (controller.signal.aborted) return;
-      if (formRef.current.empresa !== snapshot.empresa || formRef.current.detalhamento !== snapshot.detalhamento) {
-        toast.error("O texto ou a empresa mudou; solicite uma nova sugestão"); return;
-      }
+      if (formRef.current.empresa !== snapshot.empresa || formRef.current.detalhamento !== snapshot.detalhamento) return;
       setForm(p => ({ ...p, ...result }));
       setAiFields(result);
     } catch (e) {
-      if (!controller.signal.aborted) toast.error(e instanceof Error ? e.message : "Falha na IA");
-    } finally { setAiLoading(false); }
+      if (!controller.signal.aborted) console.warn("IA reclamação:", e);
+    } finally { if (aiController.current === controller) setAiLoading(false); }
   };
+  // Disparo automático com debounce de 1,2 s após parar de digitar.
+  useEffect(() => {
+    const text = form.detalhamento?.trim() ?? "";
+    const key = `${form.empresa ?? ""}|${text}`;
+    if (!open || !form.empresa || text.length < 10 || key === lastClassified.current) return;
+    const t = setTimeout(() => { lastClassified.current = key; classify(); }, 1200);
+    return () => clearTimeout(t);
+  }, [form.detalhamento, form.empresa, open]);
 
   const { data: executivas = [] } = useQuery({
     queryKey: ["executivas-list"],
@@ -284,13 +293,8 @@ export default function DemandaFormDialog({ open, onOpenChange, demanda, initial
             <Select
               value={form.setor_responsavel || ""}
               onValueChange={(v) =>
-                setForm((p) => ({
-                  ...p,
-                  setor_responsavel: v,
-                  // cascata: troca de setor limpa tipo e reclamação
-                  tipo_reclamacao: "",
-                  reclamacao: "",
-                }))
+                // correção manual não apaga os demais campos
+                setForm((p) => ({ ...p, setor_responsavel: v }))
               }
             >
               <SelectTrigger><SelectValue placeholder="Selecione..." /></SelectTrigger>
@@ -306,12 +310,8 @@ export default function DemandaFormDialog({ open, onOpenChange, demanda, initial
             <Select
               value={form.tipo_reclamacao || ""}
               onValueChange={(v) =>
-                setForm((p) => ({
-                  ...p,
-                  tipo_reclamacao: v,
-                  // cascata: troca de tipo limpa reclamação
-                  reclamacao: "",
-                }))
+                // correção manual não apaga os demais campos
+                setForm((p) => ({ ...p, tipo_reclamacao: v }))
               }
               disabled={!form.setor_responsavel}
             >
@@ -457,13 +457,11 @@ export default function DemandaFormDialog({ open, onOpenChange, demanda, initial
 
 
           <Field label="Detalhamento" className="md:col-span-2">
-            <div className="flex justify-end">
-              <Button type="button" size="sm" variant="outline" onClick={classify} disabled={aiLoading || loading || !form.empresa || !form.detalhamento?.trim()}>
-                {aiLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <WandSparkles className="mr-2 h-4 w-4" />}
-                {aiLoading ? "Classificando..." : "Preencher com IA"}
-              </Button>
-              {aiLoading && <Button type="button" size="sm" variant="ghost" onClick={() => aiController.current?.abort()}>Parar</Button>}
-            </div>
+            {aiLoading && (
+              <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                <Loader2 className="h-3 w-3 animate-spin" /><WandSparkles className="h-3 w-3" /> IA classificando…
+              </div>
+            )}
             <Textarea
               rows={3}
               value={form.detalhamento || ""}

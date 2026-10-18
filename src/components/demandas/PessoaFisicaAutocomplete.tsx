@@ -24,11 +24,13 @@ export default function PessoaFisicaAutocomplete({
   const [loading, setLoading] = useState(false);
   const [open, setOpen] = useState(false);
   const [suppress, setSuppress] = useState(false);
+  // Só busca depois que a usuária digitar no campo (nome já salvo não abre a lista).
+  const [typed, setTyped] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
   const abortRef = useRef<AbortController | null>(null);
 
   useEffect(() => {
-    if (suppress) return;
+    if (suppress || !typed) return;
     const term = value.trim();
     if (term.length < 3) {
       setResults([]);
@@ -54,7 +56,7 @@ export default function PessoaFisicaAutocomplete({
       }
     }, 300);
     return () => clearTimeout(timer);
-  }, [value, suppress]);
+  }, [value, suppress, typed]);
 
   useEffect(() => {
     const onDoc = (e: MouseEvent) => {
@@ -77,7 +79,7 @@ export default function PessoaFisicaAutocomplete({
     <div className="relative" ref={containerRef}>
       <Input
         value={value}
-        onChange={(e) => onChange(e.target.value)}
+        onChange={(e) => { setTyped(true); onChange(e.target.value); }}
         onFocus={() => results.length > 0 && setOpen(true)}
         onKeyDown={(e) => {
           if (e.key === "Escape") setOpen(false);
