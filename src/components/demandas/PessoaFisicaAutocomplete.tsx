@@ -24,11 +24,13 @@ export default function PessoaFisicaAutocomplete({
   const [loading, setLoading] = useState(false);
   const [open, setOpen] = useState(false);
   const [suppress, setSuppress] = useState(false);
+  // Só busca depois que a usuária digitar no campo (nome já salvo não abre a lista).
+  const [typed, setTyped] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
   const abortRef = useRef<AbortController | null>(null);
 
   useEffect(() => {
-    if (suppress) return;
+    if (suppress || !typed) return;
     const term = value.trim();
     if (term.length < 3) {
       setResults([]);
