@@ -590,6 +590,13 @@ export function UploadArquivoDialog({ open, onOpenChange, defaultEmpresaId, defa
             toast.success("Total e resumo adicionados à Observação.");
           }
         }}
+        onPular={() => {
+          toast.info(
+            isAporte
+              ? "Preencha o valor total do aporte manualmente."
+              : "Preencha o valor manualmente na Observação.",
+          );
+        }}
       />
     </Dialog>
   );
