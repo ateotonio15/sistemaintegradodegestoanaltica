@@ -95,6 +95,7 @@ export function sanitizarNomeArquivo(nome: string): string {
 export function montarNomeArquivoNfse(
   tomador: string | null,
   nfNumero: string | null,
+  tomadorCnpj?: string | null,
 ): string | null {
   if (!tomador || !nfNumero) return null;
   const tresPalavras = tomador
@@ -103,7 +104,12 @@ export function montarNomeArquivoNfse(
     .slice(0, 3)
     .join(" ");
   if (!tresPalavras) return null;
-  const base = sanitizarNomeArquivo(`NF ${tresPalavras} ${nfNumero}`);
+  // Usa somente o CNPJ lido do tomador da nota, nunca o de outro contrato.
+  const nomeNormalizado = tomador.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toUpperCase();
+  const diferenciarPorCnpj = /\bAPOEMA\b|\bMAR\s*RIO\b/.test(nomeNormalizado);
+  const cnpj = (tomadorCnpj ?? "").replace(/\D/g, "");
+  const sufixo = diferenciarPorCnpj && cnpj.length === 14 ? ` - ${cnpj.slice(-2)}` : "";
+  const base = sanitizarNomeArquivo(`NF ${tresPalavras} ${nfNumero}${sufixo}`);
   if (!base) return null;
   return `${base}.pdf`;
 }
