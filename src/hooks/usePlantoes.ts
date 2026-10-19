@@ -58,6 +58,7 @@ export function usePlantaoEmpresas() {
       const { data, error } = await supabase
         .from("plantoes_empresas")
         .select("*")
+        .eq("ativo", true)
         .order("nome");
       if (error) throw error;
       return data as PlantaoEmpresa[];
@@ -176,16 +177,36 @@ export function usePlantaoMutations() {
 
   const upsertEmpresa = useMutation({
     mutationFn: async (e: Partial<PlantaoEmpresa> & { nome: string }) => {
+      // Normaliza o nome: sem espaços nas pontas. Evita cartões duplicados da mesma empresa.
+      const nome = e.nome.trim();
       if (e.id) {
         const { error } = await supabase.from("plantoes_empresas").update({
-          nome: e.nome,
+          nome,
           ativo: e.ativo ?? true,
           observacao: e.observacao ?? null,
         }).eq("id", e.id);
         if (error) throw error;
       } else {
+        // Reaproveita cadastro existente com o mesmo nome (ignorando espaços/caixa)
+        // em vez de criar um segundo cartão para a mesma empresa.
+        const { data: candidatos } = await supabase
+          .from("plantoes_empresas")
+          .select("id, nome")
+          .ilike("nome", `%${nome}%`)
+          .limit(50);
+        const norm = (s: string) => s.trim().replace(/\s+/g, " ").toLowerCase();
+        const existenteId = (candidatos ?? []).find((c) => norm(c.nome) === norm(nome))?.id;
+        if (existenteId) {
+          const { error } = await supabase.from("plantoes_empresas").update({
+            nome,
+            ativo: e.ativo ?? true,
+            observacao: e.observacao ?? null,
+          }).eq("id", existenteId);
+          if (error) throw error;
+          return;
+        }
         const { error } = await supabase.from("plantoes_empresas").insert({
-          nome: e.nome,
+          nome,
           ativo: e.ativo ?? true,
           observacao: e.observacao ?? null,
         });
