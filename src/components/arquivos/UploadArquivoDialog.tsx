@@ -22,7 +22,8 @@ import {
 } from "@/components/ui/select";
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
-import { Upload, X, FileUp, AlertTriangle, CheckCircle2 } from "lucide-react";
+import { Upload, X, FileUp, AlertTriangle, CheckCircle2, Calculator } from "lucide-react";
+import { CalculadoraRetroativaDialog, type CalcItem } from "@/components/financeiro/CalculadoraRetroativaDialog";
 import { toast } from "sonner";
 import { useAuth } from "@/hooks/useAuth";
 import { formatBytes, sha256Hex, validarArquivo } from "@/lib/arquivos-utils";
@@ -114,6 +115,8 @@ export function UploadArquivoDialog({ open, onOpenChange, defaultEmpresaId, defa
   const [observacao, setObservacao] = useState<string>("");
   const [arquivos, setArquivos] = useState<FileItem[]>([]);
   const [enviando, setEnviando] = useState(false);
+  const [calcOpen, setCalcOpen] = useState(false);
+  const [calcItens, setCalcItens] = useState<CalcItem[]>([]);
 
   useEffect(() => {
     if (open) {
@@ -127,6 +130,8 @@ export function UploadArquivoDialog({ open, onOpenChange, defaultEmpresaId, defa
       setObservacao("");
       setArquivos([]);
       setEnviando(false);
+      setCalcItens([]);
+      setCalcOpen(false);
     }
   }, [open, defaultEmpresaId, defaultCompetencia]);
 
@@ -410,6 +415,18 @@ export function UploadArquivoDialog({ open, onOpenChange, defaultEmpresaId, defa
                 <SelectItem value="Aporte">Aporte</SelectItem>
               </SelectContent>
             </Select>
+            {(categoria === "Retroativo" || isAporte) && (
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                className="mt-1 w-fit gap-1.5"
+                onClick={() => setCalcOpen(true)}
+              >
+                <Calculator className="h-3.5 w-3.5" />
+                Abrir calculadora de cobrança
+              </Button>
+            )}
             <p className="text-xs text-muted-foreground">
               Selecione "Implantação" para anexos de implementação de empresas novas.
             </p>
@@ -555,6 +572,25 @@ export function UploadArquivoDialog({ open, onOpenChange, defaultEmpresaId, defa
           </Button>
         </DialogFooter>
       </DialogContent>
+
+      <CalculadoraRetroativaDialog
+        open={calcOpen}
+        onOpenChange={setCalcOpen}
+        itensIniciais={calcItens}
+        onItensChange={setCalcItens}
+        onAplicar={(totalCentavos, resumo) => {
+          const totalStr = (totalCentavos / 100).toLocaleString("pt-BR", {
+            minimumFractionDigits: 2,
+          });
+          if (isAporte) {
+            setAporteValor(totalStr);
+            toast.success("Valor total do aporte preenchido pela calculadora.");
+          } else {
+            setObservacao((prev) => (prev ? `${prev}\n` : "") + `${resumo} — Total: R$ ${totalStr}`);
+            toast.success("Total e resumo adicionados à Observação.");
+          }
+        }}
+      />
     </Dialog>
   );
 }
