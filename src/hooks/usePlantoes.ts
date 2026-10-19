@@ -188,12 +188,13 @@ export function usePlantaoMutations() {
       } else {
         // Reaproveita cadastro existente com o mesmo nome (ignorando espaços/caixa)
         // em vez de criar um segundo cartão para a mesma empresa.
-        const { data: existente } = await supabase
+        const { data: candidatos } = await supabase
           .from("plantoes_empresas")
-          .select("id")
-          .ilike("nome", nome)
-          .limit(1);
-        const existenteId = (existente ?? []).find(Boolean)?.id;
+          .select("id, nome")
+          .ilike("nome", `%${nome}%`)
+          .limit(50);
+        const norm = (s: string) => s.trim().replace(/\s+/g, " ").toLowerCase();
+        const existenteId = (candidatos ?? []).find((c) => norm(c.nome) === norm(nome))?.id;
         if (existenteId) {
           const { error } = await supabase.from("plantoes_empresas").update({
             nome,
