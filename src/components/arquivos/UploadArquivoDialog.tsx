@@ -586,7 +586,7 @@ export function UploadArquivoDialog({ open, onOpenChange, defaultEmpresaId, defa
             setAporteValor(totalStr);
             toast.success("Valor total do aporte preenchido pela calculadora.");
           } else {
-            setObservacao((prev) => (prev ? `${prev}\n` : "") + `${resumo} — Total: ${totalStr}`);
+            setObservacao((prev) => (prev ? `${prev}\n` : "") + `${resumo} — Total: R$ ${totalStr}`);
             toast.success("Total e resumo adicionados à Observação.");
           }
         }}
