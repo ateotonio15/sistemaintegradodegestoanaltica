@@ -621,7 +621,7 @@ export function EditarMovimentacaoDialog({ open, onOpenChange, movimentacao, emp
                     "Não foi possível identificar automaticamente o tomador da NFS-e. Informe manualmente.",
                   );
                 }
-                const proposto = montarNomeArquivoNfse(meta.tomadorNome, meta.nfNumero);
+                const proposto = montarNomeArquivoNfse(meta.tomadorNome, meta.nfNumero, meta.tomadorCnpj);
                 if (proposto) {
                   nomeFinal = gerarNomeUnico(proposto, nomesExistentes);
                   toast.success(
