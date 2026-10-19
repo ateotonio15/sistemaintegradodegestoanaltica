@@ -572,6 +572,25 @@ export function UploadArquivoDialog({ open, onOpenChange, defaultEmpresaId, defa
           </Button>
         </DialogFooter>
       </DialogContent>
+
+      <CalculadoraRetroativaDialog
+        open={calcOpen}
+        onOpenChange={setCalcOpen}
+        itensIniciais={calcItens}
+        onItensChange={setCalcItens}
+        onAplicar={(totalCentavos, resumo) => {
+          const totalStr = (totalCentavos / 100).toLocaleString("pt-BR", {
+            minimumFractionDigits: 2,
+          });
+          if (isAporte) {
+            setAporteValor(totalStr);
+            toast.success("Valor total do aporte preenchido pela calculadora.");
+          } else {
+            setObservacao((prev) => (prev ? `${prev}\n` : "") + `${resumo} — Total: ${totalStr}`));
+            toast.success("Total e resumo adicionados à Observação.");
+          }
+        }}
+      />
     </Dialog>
   );
 }
