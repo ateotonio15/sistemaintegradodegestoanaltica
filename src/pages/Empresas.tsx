@@ -1187,6 +1187,14 @@ export default function Empresas() {
                         <Input value={form.nome} onChange={(e) => setForm({ ...form, nome: e.target.value })} required className="rounded-lg" />
                       </div>
                       <div className="space-y-2">
+                        <Label className="text-sm font-medium">Razão Social</Label>
+                        <Input value={form.razao_social ?? ""} onChange={(e) => setForm({ ...form, razao_social: e.target.value })} className="rounded-lg" />
+                      </div>
+                      <div className="space-y-2">
+                        <Label className="text-sm font-medium">Nome Fantasia</Label>
+                        <Input value={form.nome_fantasia ?? ""} onChange={(e) => setForm({ ...form, nome_fantasia: e.target.value })} placeholder="Nome fantasia não informado" className="rounded-lg" />
+                      </div>
+                      <div className="space-y-2">
                         <Label className="text-sm font-medium">CNPJ</Label>
                         <Input value={form.cnpj ?? ""} onChange={(e) => setForm({ ...form, cnpj: e.target.value })} className="rounded-lg" />
                         <ConsultarCnpj key={editingId ?? "novo"} cnpj={form.cnpj ?? ""} onAplicar={aplicarDadosCnpj} />
