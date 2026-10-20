@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { normalizarCnpjConsulta, mapearDadosCnpj, camposFormularioCnpj, enderecosComDadosCnpj } from "@/lib/consulta-cnpj";
+import { normalizarCnpjConsulta, mapearDadosCnpj, camposFormularioCnpj, enderecosComDadosCnpj, rotuloSituacaoCnpj, formatarDataSituacaoCnpj } from "@/lib/consulta-cnpj";
 import { carregarEnderecos, novoEndereco, prepararEnderecos } from "@/lib/empresa-enderecos";
 describe("Consulta pública de CNPJ", () => {
   it("remove pontos, barras e hífens antes da consulta", () => {
@@ -30,6 +30,7 @@ describe("Consulta pública de CNPJ", () => {
   it("não inventa contatos ausentes nem apaga campos atuais", () => {
     const resultado = dados({ ddd1: "92", telefone1: null, email: null });
     expect(resultado.telefone).toBe("");
+    expect(resultado.situacaoDesde).toBe("");
     const atual = { nome: "Anterior", telefone_empresa: "9233334444", email_empresa: "anterior@empresa.com" };
     expect({ ...atual, ...camposFormularioCnpj(resultado, true) }).toEqual({ ...atual, nome: "EMPRESA EXEMPLO LTDA", razao_social: "EMPRESA EXEMPLO LTDA" });
   });
