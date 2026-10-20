@@ -288,6 +288,13 @@
       "when": 1792515803583,
       "tag": "0040_empresa_enderecos_estruturados",
       "breakpoints": true
+    },
+    {
+      "idx": 41,
+      "version": "7",
+      "when": 1792516344198,
+      "tag": "0041_proteger_endereco_principal",
+      "breakpoints": true
     }
   ]
 }

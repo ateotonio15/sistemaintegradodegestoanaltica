@@ -5,6 +5,21 @@ export type EnderecoEmpresa = {
   bairro: string; cidade: string; uf: string; referencia: string; observacao: string;
 };
 export type EnderecosEmpresa = { principal: EnderecoEmpresa; secundarios: EnderecoEmpresa[] };
+export type AlvoEndereco = "principal" | "novo" | number;
+export function temEndereco(e: EnderecoEmpresa): boolean {
+  return [e.endereco_livre, e.logradouro, e.numero, e.complemento, e.bairro, e.cidade, e.uf, e.cep, e.referencia, e.observacao].some(v => !!v?.trim());
+}
+export function alterarEndereco(data: EnderecosEmpresa, alvo: AlvoEndereco, draft: EnderecoEmpresa): EnderecosEmpresa {
+  if (alvo === "principal") {
+    if (temEndereco(data.principal) && !temEndereco(draft)) throw new Error("O endereço principal não pode ser apagado. Informe o novo endereço.");
+    return { ...data, principal: { ...draft, tipo: "Principal" } };
+  }
+  if (alvo === "novo") return { ...data, secundarios: [...data.secundarios, { ...draft }] };
+  return { ...data, secundarios: data.secundarios.map((e, i) => i === alvo ? { ...draft } : e) };
+}
+export function removerEnderecoSecundario(data: EnderecosEmpresa, index: number): EnderecosEmpresa {
+  return { ...data, secundarios: data.secundarios.filter((_, i) => i !== index) };
+}
 export function novoEndereco(tipo = "Principal"): EnderecoEmpresa {
   return { tipo, descricao_tipo: "", endereco_livre: "", cep: "", logradouro: "", numero: "", complemento: "", bairro: "", cidade: "", uf: "", referencia: "", observacao: "" };
 }
