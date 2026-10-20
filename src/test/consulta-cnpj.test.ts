@@ -31,7 +31,13 @@ describe("Consulta pública de CNPJ", () => {
     const resultado = dados({ ddd1: "92", telefone1: null, email: null });
     expect(resultado.telefone).toBe("");
     const atual = { nome: "Anterior", telefone_empresa: "9233334444", email_empresa: "anterior@empresa.com" };
-    expect({ ...atual, ...camposFormularioCnpj(resultado, true) }).toEqual({ ...atual, nome: "EMPRESA EXEMPLO LTDA" });
+    expect({ ...atual, ...camposFormularioCnpj(resultado, true) }).toEqual({ ...atual, nome: "EMPRESA EXEMPLO LTDA", razao_social: "EMPRESA EXEMPLO LTDA" });
+  });
+  it("preenche Razão Social e Nome Fantasia quando a API informa", () => {
+    expect(camposFormularioCnpj(dados({ nome_fantasia: "EXEMPLO" }), true)).toEqual({ nome: "EMPRESA EXEMPLO LTDA", razao_social: "EMPRESA EXEMPLO LTDA", nome_fantasia: "EXEMPLO" });
+  });
+  it("não inventa nome fantasia ausente e deixa o campo para preenchimento manual", () => {
+    expect(camposFormularioCnpj(dados({}), true)).toEqual({ nome: "EMPRESA EXEMPLO LTDA", razao_social: "EMPRESA EXEMPLO LTDA" });
   });
   it("preserva a restrição de identificação no formulário Executivo", () => {
     expect(camposFormularioCnpj(dados({ telefone1: "33334444", email: "contato@empresa.com" }), false)).toEqual({ telefone_empresa: "33334444", email_empresa: "contato@empresa.com" });
