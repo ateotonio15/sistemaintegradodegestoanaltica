@@ -1,4 +1,4 @@
-import { useState, useRef, useMemo, useEffect } from "react";
+import { useState, useRef, useMemo, useEffect, useCallback } from "react";
 import { useSearchParams } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -1199,9 +1199,12 @@ export default function Empresas() {
                         <Input value={form.nome_fantasia ?? ""} onChange={(e) => setForm({ ...form, nome_fantasia: e.target.value })} placeholder="Nome fantasia não informado" className="rounded-lg" />
                       </div>
                       <div className="space-y-2">
-                        <Label className="text-sm font-medium">CNPJ</Label>
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <Label className="text-sm font-medium">CNPJ</Label>
+                          <SeloSituacaoCnpj situacao={situacaoConsultaCnpj} />
+                        </div>
                         <Input value={form.cnpj ?? ""} onChange={(e) => setForm({ ...form, cnpj: e.target.value })} className="rounded-lg" />
-                        <ConsultarCnpj key={editingId ?? "novo"} cnpj={form.cnpj ?? ""} onAplicar={aplicarDadosCnpj} />
+                        <ConsultarCnpj key={editingId ?? "novo"} cnpj={form.cnpj ?? ""} onAplicar={aplicarDadosCnpj} onDados={registrarSituacaoCnpj} />
                       </div>
                       <div className="space-y-2">
                         <Label className="text-sm font-medium">Código do Contrato *</Label>
