@@ -302,6 +302,13 @@
       "when": 1792517919399,
       "tag": "0042_empresas_razao_social_fantasia",
       "breakpoints": true
+    },
+    {
+      "idx": 43,
+      "version": "7",
+      "when": 1792520260268,
+      "tag": "0043_empresa_cnpj_situacao",
+      "breakpoints": true
     }
   ]
 }

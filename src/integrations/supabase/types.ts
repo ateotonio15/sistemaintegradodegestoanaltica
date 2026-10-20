@@ -1955,6 +1955,44 @@ export type Database = {
           },
         ]
       }
+      empresa_cnpj_situacao: {
+        Row: {
+          cnpj: string
+          consultado_em: string
+          empresa_id: string
+          endereco: Json | null
+          erro: string | null
+          situacao: string
+          situacao_desde: string
+        }
+        Insert: {
+          cnpj: string
+          consultado_em?: string
+          empresa_id: string
+          endereco?: Json | null
+          erro?: string | null
+          situacao?: string
+          situacao_desde?: string
+        }
+        Update: {
+          cnpj?: string
+          consultado_em?: string
+          empresa_id?: string
+          endereco?: Json | null
+          erro?: string | null
+          situacao?: string
+          situacao_desde?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "empresa_cnpj_situacao_empresa_id_fkey"
+            columns: ["empresa_id"]
+            isOneToOne: true
+            referencedRelation: "empresas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       empresa_implantacao_historico: {
         Row: {
           created_at: string
