@@ -18,9 +18,11 @@ export function mapearDadosCnpj(data: unknown): DadosCnpj | null {
 }
 
 // Draft-only patches: do not introduce fields absent from the company form.
+// Never invents nome_fantasia: absent from the source stays absent from the form.
 export function camposFormularioCnpj(dados: DadosCnpj, permiteNome: boolean) {
   return {
-    ...(permiteNome && dados.nome ? { nome: dados.nome } : {}),
+    ...(permiteNome && dados.nome ? { nome: dados.nome, razao_social: dados.nome } : {}),
+    ...(permiteNome && dados.fantasia ? { nome_fantasia: dados.fantasia } : {}),
     ...(dados.telefone ? { telefone_empresa: dados.telefone } : {}),
     ...(dados.email ? { email_empresa: dados.email } : {}),
   };

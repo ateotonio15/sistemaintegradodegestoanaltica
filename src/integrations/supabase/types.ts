@@ -2183,6 +2183,7 @@ export type Database = {
           nao_faturado_financeiro: boolean
           nao_reajustado: boolean
           nome: string
+          nome_fantasia: string | null
           observacao_padrao_financeiro: string | null
           observacoes: string | null
           operadora_plano: string | null
@@ -2197,6 +2198,7 @@ export type Database = {
           primeiro_fechamento_em: string | null
           primeiro_processamento_financeiro_em: string | null
           prioridade_maxima_id: string | null
+          razao_social: string | null
           regra_prorrogacao: string | null
           responsavel_contrato: string | null
           responsavel_user_id: string | null
@@ -2249,6 +2251,7 @@ export type Database = {
           nao_faturado_financeiro?: boolean
           nao_reajustado?: boolean
           nome: string
+          nome_fantasia?: string | null
           observacao_padrao_financeiro?: string | null
           observacoes?: string | null
           operadora_plano?: string | null
@@ -2263,6 +2266,7 @@ export type Database = {
           primeiro_fechamento_em?: string | null
           primeiro_processamento_financeiro_em?: string | null
           prioridade_maxima_id?: string | null
+          razao_social?: string | null
           regra_prorrogacao?: string | null
           responsavel_contrato?: string | null
           responsavel_user_id?: string | null
@@ -2315,6 +2319,7 @@ export type Database = {
           nao_faturado_financeiro?: boolean
           nao_reajustado?: boolean
           nome?: string
+          nome_fantasia?: string | null
           observacao_padrao_financeiro?: string | null
           observacoes?: string | null
           operadora_plano?: string | null
@@ -2329,6 +2334,7 @@ export type Database = {
           primeiro_fechamento_em?: string | null
           primeiro_processamento_financeiro_em?: string | null
           prioridade_maxima_id?: string | null
+          razao_social?: string | null
           regra_prorrogacao?: string | null
           responsavel_contrato?: string | null
           responsavel_user_id?: string | null

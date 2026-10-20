@@ -5,8 +5,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import { supabase } from "@/integrations/supabase/client";
 import { DadosCnpj, ERRO_CONSULTA_CNPJ, mapearDadosCnpj, normalizarCnpjConsulta } from "@/lib/consulta-cnpj";
 
-function CampoConsulta({ label, valor }: { label: string; valor: string }) {
-  return <div className="min-w-0"><dt className="text-xs text-muted-foreground">{label}</dt><dd className="break-words text-sm font-medium">{valor || "Não informado"}</dd></div>;
+function CampoConsulta({ label, valor, vazio }: { label: string; valor: string; vazio?: string }) {
+  return <div className="min-w-0"><dt className="text-xs text-muted-foreground">{label}</dt><dd className="break-words text-sm font-medium">{valor || vazio || "Não informado"}</dd></div>;
 }
 
 export function ConsultarCnpj({ cnpj, onAplicar }: { cnpj: string; onAplicar: (dados: DadosCnpj) => void }) {
@@ -46,7 +46,7 @@ export function ConsultarCnpj({ cnpj, onAplicar }: { cnpj: string; onAplicar: (d
         {dados && <div className="space-y-5">
           <dl className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <CampoConsulta label="Razão Social" valor={dados.nome} />
-            <CampoConsulta label="Nome Fantasia" valor={dados.fantasia} />
+            <CampoConsulta label="Nome Fantasia" valor={dados.fantasia} vazio="Nome fantasia não informado" />
             <CampoConsulta label="CNPJ" valor={dados.cnpj || cnpj} />
             <CampoConsulta label="Situação Cadastral" valor={dados.situacao} />
           </dl>

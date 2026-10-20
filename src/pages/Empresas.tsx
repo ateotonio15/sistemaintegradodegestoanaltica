@@ -72,6 +72,8 @@ function DetailRow({ label, value }: { label: string; value: React.ReactNode }) 
 
 const emptyForm: TablesInsert<"empresas"> & { responsavel_user_id?: string | null; executiva_user_id?: string | null } = {
   nome: "",
+  razao_social: "",
+  nome_fantasia: "",
   cnpj: "",
   codigo_contrato: "",
   responsavel_contrato: "",
@@ -670,6 +672,8 @@ export default function Empresas() {
     setEditingId(e.id);
     setForm({
       nome: e.nome,
+      razao_social: (e as any).razao_social ?? "",
+      nome_fantasia: (e as any).nome_fantasia ?? "",
       cnpj: e.cnpj ?? "",
       codigo_contrato: e.codigo_contrato ?? "",
       responsavel_contrato: e.responsavel_contrato ?? "",
@@ -1181,6 +1185,14 @@ export default function Empresas() {
                       <div className="space-y-2">
                         <Label className="text-sm font-medium">Nome *</Label>
                         <Input value={form.nome} onChange={(e) => setForm({ ...form, nome: e.target.value })} required className="rounded-lg" />
+                      </div>
+                      <div className="space-y-2">
+                        <Label className="text-sm font-medium">Razão Social</Label>
+                        <Input value={form.razao_social ?? ""} onChange={(e) => setForm({ ...form, razao_social: e.target.value })} className="rounded-lg" />
+                      </div>
+                      <div className="space-y-2">
+                        <Label className="text-sm font-medium">Nome Fantasia</Label>
+                        <Input value={form.nome_fantasia ?? ""} onChange={(e) => setForm({ ...form, nome_fantasia: e.target.value })} placeholder="Nome fantasia não informado" className="rounded-lg" />
                       </div>
                       <div className="space-y-2">
                         <Label className="text-sm font-medium">CNPJ</Label>
