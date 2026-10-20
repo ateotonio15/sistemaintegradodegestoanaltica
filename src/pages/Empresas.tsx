@@ -45,6 +45,8 @@ import { usePrioridadeMaxima } from "@/hooks/usePrioridadeMaxima";
 import { Star, History as HistoryIcon, Lock, Unlock } from "lucide-react";
 import { useGrupoFinanceiro } from "@/hooks/useGrupoFinanceiro";
 import { ResponsavelLockDialog } from "@/components/empresas/ResponsavelLockDialog";
+import { EmpresaEnderecosFields } from "@/components/empresas/EmpresaEnderecosFields";
+import { carregarEnderecos, prepararEnderecos } from "@/lib/empresa-enderecos";
 
 type Empresa = Tables<"empresas">;
 
@@ -122,6 +124,7 @@ export default function Empresas() {
   
   const [draftEmpresaId, setDraftEmpresaId] = useState<string | null>(null);
   const [form, setForm] = useState(emptyForm);
+  const [enderecos, setEnderecos] = useState(() => carregarEnderecos("", null));
   const [dataImplantacao, setDataImplantacao] = useState("");
   const [dataVencimentoFatura, setDataVencimentoFatura] = useState<number | "">("");
   const [dataEmissaoFatura, setDataEmissaoFatura] = useState<number | "">("");
@@ -404,6 +407,7 @@ export default function Empresas() {
           telefone_empresa: values.telefone_empresa,
           email_empresa: values.email_empresa,
           endereco: (values as any).endereco,
+          ...prepararEnderecos(enderecos),
         };
         if (isExecutivo) {
           restrictedPayload.executiva_user_id = (values as any).executiva_user_id;
@@ -433,7 +437,7 @@ export default function Empresas() {
       }
 
 
-      const payload: any = { ...values };
+      const payload: any = { ...values, ...prepararEnderecos(enderecos) };
 
       if (payload.tipo_contrato === "ADMINISTRADORA") {
         payload.tipo_movimentacao = "Diária";
@@ -647,12 +651,14 @@ export default function Empresas() {
 
   const resetForm = () => {
     setNaoReajGrupo(false);
+    setEnderecos(carregarEnderecos("", null));
     setForm(emptyForm);
     setEditingId(null);
   };
 
   const openEdit = (e: Empresa) => {
     setNaoReajGrupo(false);
+    setEnderecos(carregarEnderecos(e.endereco, e.enderecos));
     setEditingId(e.id);
     setForm({
       nome: e.nome,
@@ -1371,9 +1377,8 @@ export default function Empresas() {
                             <Label className="text-sm font-medium">Contato da Empresa</Label>
                             <Input value={(form as any).contato_empresa ?? ""} onChange={(e) => setForm({ ...form, contato_empresa: e.target.value } as any)} placeholder="Nome do contato" className="rounded-lg" />
                           </div>
-                          <div className="space-y-2 animate-fade-in">
-                            <Label className="text-sm font-medium">Endereço</Label>
-                            <Input value={(form as any).endereco ?? ""} onChange={(e) => setForm({ ...form, endereco: e.target.value } as any)} placeholder="Endereço da empresa" className="rounded-lg" />
+                          <div className="space-y-2 animate-fade-in sm:col-span-2">
+                            <EmpresaEnderecosFields value={enderecos} onChange={setEnderecos} />
                           </div>
                           <div className="space-y-2 animate-fade-in">
                             <Label className="text-sm font-medium">Prazo (Entrada sem carência)</Label>
@@ -1851,8 +1856,7 @@ export default function Empresas() {
                       <Input value={(form as any).contato_empresa ?? ""} onChange={(e) => setForm({ ...form, contato_empresa: e.target.value } as any)} placeholder="Nome do contato" className="rounded-lg" />
                     </div>
                     <div className="space-y-2">
-                      <Label className="text-sm font-medium">Endereço</Label>
-                      <Input value={(form as any).endereco ?? ""} onChange={(e) => setForm({ ...form, endereco: e.target.value } as any)} placeholder="Endereço da empresa" className="rounded-lg" />
+                      <EmpresaEnderecosFields value={enderecos} onChange={setEnderecos} />
                     </div>
                     <div className="space-y-2">
                       <Label className="text-sm font-medium">Telefone da Empresa</Label>
