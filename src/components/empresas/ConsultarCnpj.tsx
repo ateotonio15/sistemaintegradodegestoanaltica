@@ -26,6 +26,20 @@ export function SeloSituacaoCnpj({ situacao, titulo }: { situacao: string; titul
   );
 }
 
+function SituacaoCnpj({ dados }: { dados: DadosCnpj }) {
+  const desde = formatarDataSituacaoCnpj(dados.situacaoDesde);
+  return <div className="min-w-0 space-y-1">
+    <dt className="text-xs text-muted-foreground">Situação Cadastral do CNPJ</dt>
+    <dd>
+      {dados.situacao
+        ? <SeloSituacaoCnpj situacao={dados.situacao} />
+        : <span className="text-sm font-medium">Não informado</span>}
+    </dd>
+    {desde && <dd className="text-xs text-muted-foreground">Situação desde: {desde}</dd>}
+    <dd className="text-xs text-muted-foreground">Não altera o status da empresa no sistema.</dd>
+  </div>;
+}
+
 function CampoConsulta({ label, valor, vazio }: { label: string; valor: string; vazio?: string }) {
   return <div className="min-w-0"><dt className="text-xs text-muted-foreground">{label}</dt><dd className="break-words text-sm font-medium">{valor || vazio || "Não informado"}</dd></div>;
 }
