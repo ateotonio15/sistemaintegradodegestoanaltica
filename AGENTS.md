@@ -1,5 +1,5 @@
 # Architecture rules
-- Company addresses use an optional structured object with one principal and secondary array on the company row, inheriting company RLS; retain the legacy address text for existing readers and preserve it without parsing.
+- Company addresses use an optional structured object with one principal and secondary array on the company row, inheriting existing company RLS and edit permissions; retain legacy text for existing readers, isolate individual draft edits, protect the principal against silent clearing on client and server, and reuse a read-only collapsed detail view for consultation.
 - Reajuste display resolves saved age bands through a read-only presentation helper; summaries use the lowest-age band per modality and history lists all stored bands, avoiding changes to billing calculations or persisted totals.
 - Complaint filters use session-scoped state; duplication copies an allowlist without IDs or resolutions, and AI classification is read-only, RLS-scoped to the selected company, with human confirmation before saving.
 - The complaint AI function owns a mirrored classification catalog; keep it aligned with the client catalog so suggestions cannot bypass dependent dropdown options.
