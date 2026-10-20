@@ -2105,7 +2105,12 @@ export default function Empresas() {
                           <TableCell className="text-muted-foreground font-mono text-xs">
                             <span className="inline-flex items-center gap-1.5">
                               {e.cnpj || "—"}
-                              {e.cnpj && <SituacaoCnpjLista cnpj={e.cnpj} />}
+                              {e.cnpj && (() => {
+                                const registro = situacaoPorEmpresa.get(e.id);
+                                if (registro?.situacao) return <SeloSituacaoCnpj situacao={registro.situacao} />;
+                                if (registro?.erro) return <span className="text-[10px] text-destructive" title={registro.erro}>erro na consulta</span>;
+                                return <SituacaoCnpjLista cnpj={e.cnpj} />;
+                              })()}
                             </span>
                           </TableCell>
                           <TableCell className="text-right font-medium tabular-nums">{((e as any).vidas ?? 0).toLocaleString("pt-BR")}</TableCell>
