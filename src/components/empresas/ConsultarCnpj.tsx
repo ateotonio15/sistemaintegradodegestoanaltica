@@ -12,19 +12,18 @@ const TONS_SITUACAO: Record<TomSituacaoCnpj, string> = {
   neutro: "bg-muted text-muted-foreground border-border",
 };
 
-function SituacaoCnpj({ dados }: { dados: DadosCnpj }) {
-  const situacao = rotuloSituacaoCnpj(dados.situacao);
-  const desde = formatarDataSituacaoCnpj(dados.situacaoDesde);
-  return <div className="min-w-0 space-y-1">
-    <dt className="text-xs text-muted-foreground">Situação Cadastral do CNPJ</dt>
-    <dd>
-      {situacao
-        ? <span className={`inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold ${TONS_SITUACAO[situacao.tom]}`}>{situacao.rotulo}</span>
-        : <span className="text-sm font-medium">Não informado</span>}
-    </dd>
-    {desde && <dd className="text-xs text-muted-foreground">Situação desde: {desde}</dd>}
-    <dd className="text-xs text-muted-foreground">Não altera o status da empresa no sistema.</dd>
-  </div>;
+// Display-only badge: the CNPJ registry status never replaces the company's internal status.
+export function SeloSituacaoCnpj({ situacao, titulo }: { situacao: string; titulo?: string }) {
+  const informacao = rotuloSituacaoCnpj(situacao);
+  if (!informacao) return null;
+  return (
+    <span
+      className={`inline-flex items-center whitespace-nowrap rounded-full border px-2 py-0.5 text-[10px] font-semibold ${TONS_SITUACAO[informacao.tom]}`}
+      title={titulo || "Situação Cadastral do CNPJ · Não altera o status da empresa no sistema."}
+    >
+      {informacao.rotulo}
+    </span>
+  );
 }
 
 function CampoConsulta({ label, valor, vazio }: { label: string; valor: string; vazio?: string }) {
