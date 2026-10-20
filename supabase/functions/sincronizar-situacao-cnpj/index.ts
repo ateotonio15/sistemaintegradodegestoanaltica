@@ -43,26 +43,32 @@ Deno.serve(async (req) => {
     for (const empresa of lote) {
       const cnpj = (empresa.cnpj ?? "").replace(/\D/g, "");
       const registro: Record<string, unknown> = { empresa_id: empresa.id, cnpj, consultado_em: new Date().toISOString(), erro: null, situacao: "", situacao_desde: "", endereco: null };
+      let transitorio = false;
       try {
         const response = await fetch(`https://publica.cnpj.ws/cnpj/${cnpj}`, { signal: AbortSignal.timeout(15000), headers: { Accept: "application/json" } });
         if (response.status === 404) {
           registro.erro = "Empresa não encontrada para este CNPJ.";
         } else if (!response.ok) {
-          registro.erro = "Consulta indisponível no momento.";
+          // Falha transitória (ex.: limite da API pública): não grava, tenta de novo no próximo ciclo.
+          console.log(`cnpj ${cnpj}: HTTP ${response.status}`);
+          transitorio = true;
         } else {
           const result = await response.json();
           const est = result?.estabelecimento;
           if (!est || typeof result?.razao_social !== "string") {
-            registro.erro = "Consulta indisponível no momento.";
+            console.log(`cnpj ${cnpj}: formato inesperado`);
+            transitorio = true;
           } else {
             registro.situacao = typeof est.situacao_cadastral === "string" ? est.situacao_cadastral : "";
             registro.situacao_desde = typeof est.data_situacao_cadastral === "string" ? est.data_situacao_cadastral : "";
             registro.endereco = { cep: est.cep ?? "", cidade: est.cidade?.nome ?? "", uf: est.estado?.sigla ?? "" };
           }
         }
-      } catch {
-        registro.erro = "Consulta indisponível no momento.";
+      } catch (e) {
+        console.log(`cnpj ${cnpj}: exceção ${e}`);
+        transitorio = true;
       }
+      if (transitorio) continue;
       const { error: erroUpsert } = await db.from("empresa_cnpj_situacao").upsert(registro, { onConflict: "empresa_id" });
       if (!erroUpsert) processados++;
     }
