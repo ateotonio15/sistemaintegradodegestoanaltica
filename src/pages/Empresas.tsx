@@ -47,7 +47,7 @@ import { useGrupoFinanceiro } from "@/hooks/useGrupoFinanceiro";
 import { ResponsavelLockDialog } from "@/components/empresas/ResponsavelLockDialog";
 import { EmpresaEnderecosFields, EmpresaEnderecosConsulta } from "@/components/empresas/EmpresaEnderecosFields";
 import { carregarEnderecos, prepararEnderecos } from "@/lib/empresa-enderecos";
-import { ConsultarCnpj } from "@/components/empresas/ConsultarCnpj";
+import { ConsultarCnpj, SeloSituacaoCnpj } from "@/components/empresas/ConsultarCnpj";
 import { DadosCnpj, camposFormularioCnpj, enderecosComDadosCnpj } from "@/lib/consulta-cnpj";
 
 type Empresa = Tables<"empresas">;
