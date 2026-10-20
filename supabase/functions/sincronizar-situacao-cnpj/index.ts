@@ -14,14 +14,16 @@ Deno.serve(async (req) => {
   try {
     const url = Deno.env.get("SUPABASE_URL")!;
     const anon = Deno.env.get("SUPABASE_ANON_KEY")!;
-    const token = (req.headers.get("Authorization") || "").replace(/^Bearer\s+/i, "");
-    if (!token) return json({ ok: false, error: "Unauthorized" }, 401);
-    // Aceita chamada do agendamento (chave pública) ou de usuário logado.
-    if (token !== anon) {
+    const db = createClient(url, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
+    // Aceita o token interno do agendamento (guardado no banco) ou um usuário logado.
+    const { data: configToken } = await db.from("config_sync").select("valor").eq("chave", "sync_cnpj_token").maybeSingle();
+    const tokenAgendamento = req.headers.get("x-sync-token") ?? "";
+    if (!configToken?.valor || tokenAgendamento !== configToken.valor) {
+      const token = (req.headers.get("Authorization") || "").replace(/^Bearer\s+/i, "");
+      if (!token) return json({ ok: false, error: "Unauthorized" }, 401);
       const { data, error } = await createClient(url, anon, { global: { headers: { Authorization: `Bearer ${token}` } } }).auth.getUser();
       if (error || !data?.user) return json({ ok: false, error: "Unauthorized" }, 401);
     }
-    const db = createClient(url, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
 
     const { data: empresas, error: erroEmpresas } = await db.from("empresas").select("id,cnpj");
     if (erroEmpresas) return json({ ok: false, error: erroEmpresas.message }, 500);
