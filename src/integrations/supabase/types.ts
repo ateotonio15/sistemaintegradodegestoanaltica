@@ -2171,6 +2171,7 @@ export type Database = {
           email_empresa: string | null
           email_financeiro_cliente: string | null
           endereco: string | null
+          enderecos: Json | null
           envio_boleto_com_nota: boolean
           executiva_user_id: string | null
           exige_po_pc: boolean
@@ -2236,6 +2237,7 @@ export type Database = {
           email_empresa?: string | null
           email_financeiro_cliente?: string | null
           endereco?: string | null
+          enderecos?: Json | null
           envio_boleto_com_nota?: boolean
           executiva_user_id?: string | null
           exige_po_pc?: boolean
@@ -2301,6 +2303,7 @@ export type Database = {
           email_empresa?: string | null
           email_financeiro_cliente?: string | null
           endereco?: string | null
+          enderecos?: Json | null
           envio_boleto_com_nota?: boolean
           executiva_user_id?: string | null
           exige_po_pc?: boolean

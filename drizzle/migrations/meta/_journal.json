@@ -281,6 +281,13 @@
       "when": 1792165488468,
       "tag": "0039_triagens_habitos_musculo",
       "breakpoints": true
+    },
+    {
+      "idx": 40,
+      "version": "7",
+      "when": 1792515803583,
+      "tag": "0040_empresa_enderecos_estruturados",
+      "breakpoints": true
     }
   ]
 }
