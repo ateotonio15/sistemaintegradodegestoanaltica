@@ -48,6 +48,7 @@ import { ResponsavelLockDialog } from "@/components/empresas/ResponsavelLockDial
 import { EmpresaEnderecosFields, EmpresaEnderecosConsulta } from "@/components/empresas/EmpresaEnderecosFields";
 import { carregarEnderecos, prepararEnderecos } from "@/lib/empresa-enderecos";
 import { ConsultarCnpj, SeloSituacaoCnpj, SituacaoCnpjLista } from "@/components/empresas/ConsultarCnpj";
+import { divergenciaCnpj, SituacaoCnpjRegistro } from "@/lib/consulta-cnpj";
 import { DadosCnpj, camposFormularioCnpj, enderecosComDadosCnpj } from "@/lib/consulta-cnpj";
 
 type Empresa = Tables<"empresas">;
@@ -131,6 +132,7 @@ export default function Empresas() {
   // Situação do CNPJ vinda da consulta pública — apenas informativa, nunca grava.
   const [situacaoConsultaCnpj, setSituacaoConsultaCnpj] = useState("");
   const registrarSituacaoCnpj = useCallback((dados: DadosCnpj | null) => setSituacaoConsultaCnpj(dados?.situacao ?? ""), []);
+  const [filtroDivergenciaCnpj, setFiltroDivergenciaCnpj] = useState(false);
   const [enderecos, setEnderecos] = useState(() => carregarEnderecos("", null));
   const [dataImplantacao, setDataImplantacao] = useState("");
   const [dataVencimentoFatura, setDataVencimentoFatura] = useState<number | "">("");
@@ -811,6 +813,17 @@ export default function Empresas() {
     return Array.from(set).sort((a, b) => a.localeCompare(b, "pt-BR"));
   }, [empresas]);
 
+  // Resultados da sincronização automática da situação do CNPJ (display-only).
+  const { data: situacoesCnpj = [] } = useQuery({
+    queryKey: ["empresa-cnpj-situacao"],
+    queryFn: async () => {
+      const { data } = await supabase.from("empresa_cnpj_situacao").select("*");
+      return (data ?? []) as SituacaoCnpjRegistro[];
+    },
+    refetchInterval: 60000,
+  });
+  const situacaoPorEmpresa = useMemo(() => new Map(situacoesCnpj.map((s) => [s.empresa_id, s])), [situacoesCnpj]);
+
   const filtered = useMemo(() => {
     const q = search.toLowerCase();
     let list = empresas;
@@ -833,6 +846,7 @@ export default function Empresas() {
         if (filtroPrioridade === "concluidas") return !(e as any).prioridade_maxima_id;
         return true;
       })
+      .filter((e) => !filtroDivergenciaCnpj || divergenciaCnpj(situacaoPorEmpresa.get(e.id), carregarEnderecos(e.endereco, (e as any).enderecos).principal) !== null)
       .filter((e) =>
         e.nome.toLowerCase().includes(q) ||
         (e.codigo_contrato ?? "").toLowerCase().includes(q) ||
@@ -843,7 +857,7 @@ export default function Empresas() {
         const pb = (b as any).prioridade_maxima_id ? 1 : 0;
         return pb - pa;
       });
-  }, [empresas, search, showInativas, isExecutivo, user, respFilter, corretoraFilter, executivaFilter, filtroPrioridade, filtroSuspensao]);
+  }, [empresas, search, showInativas, isExecutivo, user, respFilter, corretoraFilter, executivaFilter, filtroPrioridade, filtroSuspensao, filtroDivergenciaCnpj, situacaoPorEmpresa]);
 
   async function exportarInativasExcel() {
     const inativas = empresas
@@ -1970,6 +1984,15 @@ export default function Empresas() {
               <SelectItem value="concluidas">Concluídas</SelectItem>
             </SelectContent>
           </Select>
+          <Button
+            variant={filtroDivergenciaCnpj ? "default" : "outline"}
+            size="sm"
+            onClick={() => setFiltroDivergenciaCnpj((v) => !v)}
+            className="rounded-lg"
+            title="Mostra somente contratos com situação do CNPJ diferente de ativa, erro de consulta ou endereço divergente"
+          >
+            Divergências CNPJ
+          </Button>
           {(respFilter !== "all" || corretoraFilter !== "all" || executivaFilter !== "all") && (
             <Button variant="ghost" size="sm" onClick={() => { setRespFilter("all"); setCorretoraFilter("all"); setExecutivaFilter("all"); }} className="rounded-lg">
               Limpar filtros
@@ -2082,7 +2105,12 @@ export default function Empresas() {
                           <TableCell className="text-muted-foreground font-mono text-xs">
                             <span className="inline-flex items-center gap-1.5">
                               {e.cnpj || "—"}
-                              {e.cnpj && <SituacaoCnpjLista cnpj={e.cnpj} />}
+                              {e.cnpj && (() => {
+                                const registro = situacaoPorEmpresa.get(e.id);
+                                if (registro?.situacao) return <SeloSituacaoCnpj situacao={registro.situacao} />;
+                                if (registro?.erro) return <span className="text-[10px] text-destructive" title={registro.erro}>erro na consulta</span>;
+                                return <SituacaoCnpjLista cnpj={e.cnpj} />;
+                              })()}
                             </span>
                           </TableCell>
                           <TableCell className="text-right font-medium tabular-nums">{((e as any).vidas ?? 0).toLocaleString("pt-BR")}</TableCell>

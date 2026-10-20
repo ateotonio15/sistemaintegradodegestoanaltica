@@ -1097,6 +1097,21 @@ export type Database = {
           },
         ]
       }
+      config_sync: {
+        Row: {
+          chave: string
+          valor: string
+        }
+        Insert: {
+          chave: string
+          valor: string
+        }
+        Update: {
+          chave?: string
+          valor?: string
+        }
+        Relationships: []
+      }
       contrato_processo_movimentacoes: {
         Row: {
           acao: string
@@ -1951,6 +1966,44 @@ export type Database = {
             columns: ["importacao_id"]
             isOneToOne: false
             referencedRelation: "importacoes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      empresa_cnpj_situacao: {
+        Row: {
+          cnpj: string
+          consultado_em: string
+          empresa_id: string
+          endereco: Json | null
+          erro: string | null
+          situacao: string
+          situacao_desde: string
+        }
+        Insert: {
+          cnpj: string
+          consultado_em?: string
+          empresa_id: string
+          endereco?: Json | null
+          erro?: string | null
+          situacao?: string
+          situacao_desde?: string
+        }
+        Update: {
+          cnpj?: string
+          consultado_em?: string
+          empresa_id?: string
+          endereco?: Json | null
+          erro?: string | null
+          situacao?: string
+          situacao_desde?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "empresa_cnpj_situacao_empresa_id_fkey"
+            columns: ["empresa_id"]
+            isOneToOne: true
+            referencedRelation: "empresas"
             referencedColumns: ["id"]
           },
         ]
