@@ -21,8 +21,8 @@ Deno.serve(async (req) => {
     if (!response.ok) return json({ error: indisponivel }, 503);
     const result = await response.json();
     if (!result?.estabelecimento || typeof result.razao_social !== "string") return json({ error: indisponivel }, 503);
-    // Only public identification/address fields; no writes or company permission changes.
+    // Only public identification/address/contact fields; no writes or company permission changes.
     const e = result.estabelecimento;
-    return json({ razao_social: result.razao_social, estabelecimento: { cnpj: e.cnpj, nome_fantasia: e.nome_fantasia, tipo_logradouro: e.tipo_logradouro, logradouro: e.logradouro, numero: e.numero, complemento: e.complemento, bairro: e.bairro, cep: e.cep, cidade: { nome: e.cidade?.nome }, estado: { sigla: e.estado?.sigla } } });
+    return json({ razao_social: result.razao_social, estabelecimento: { cnpj: e.cnpj, nome_fantasia: e.nome_fantasia, situacao_cadastral: e.situacao_cadastral, ddd1: e.ddd1, telefone1: e.telefone1, email: e.email, tipo_logradouro: e.tipo_logradouro, logradouro: e.logradouro, numero: e.numero, complemento: e.complemento, bairro: e.bairro, cep: e.cep, cidade: { nome: e.cidade?.nome }, estado: { sigla: e.estado?.sigla } } });
   } catch { return json({ error: indisponivel }, 503); }
 });

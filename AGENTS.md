@@ -1,5 +1,5 @@
 # Architecture rules
-- Public CNPJ lookup runs through an authenticated read-only edge proxy with a fixed upstream URL; results stay in a separate consultation dialog and never mutate company form state or persist records, preserving existing edit permissions.
+- Public CNPJ lookup runs through an authenticated read-only edge proxy with a fixed upstream URL; a review dialog applies nonempty results to existing permitted draft fields only after explicit confirmation, preserving secondary addresses and requiring the existing save flow for persistence.
 - Company addresses use an optional structured object with one principal and secondary array on the company row, inheriting existing company RLS and edit permissions; retain legacy text for existing readers, isolate individual draft edits, protect the principal against silent clearing on client and server, and reuse a read-only collapsed detail view for consultation.
 - Reajuste display resolves saved age bands through a read-only presentation helper; summaries use the lowest-age band per modality and history lists all stored bands, avoiding changes to billing calculations or persisted totals.
 - Complaint filters use session-scoped state; duplication copies an allowlist without IDs or resolutions, and AI classification is read-only, RLS-scoped to the selected company, with human confirmation before saving.
