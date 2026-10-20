@@ -48,6 +48,7 @@ import { ResponsavelLockDialog } from "@/components/empresas/ResponsavelLockDial
 import { EmpresaEnderecosFields, EmpresaEnderecosConsulta } from "@/components/empresas/EmpresaEnderecosFields";
 import { carregarEnderecos, prepararEnderecos } from "@/lib/empresa-enderecos";
 import { ConsultarCnpj, SeloSituacaoCnpj, SituacaoCnpjLista } from "@/components/empresas/ConsultarCnpj";
+import { divergenciaCnpj, SituacaoCnpjRegistro } from "@/lib/consulta-cnpj";
 import { DadosCnpj, camposFormularioCnpj, enderecosComDadosCnpj } from "@/lib/consulta-cnpj";
 
 type Empresa = Tables<"empresas">;
@@ -131,6 +132,7 @@ export default function Empresas() {
   // Situação do CNPJ vinda da consulta pública — apenas informativa, nunca grava.
   const [situacaoConsultaCnpj, setSituacaoConsultaCnpj] = useState("");
   const registrarSituacaoCnpj = useCallback((dados: DadosCnpj | null) => setSituacaoConsultaCnpj(dados?.situacao ?? ""), []);
+  const [filtroDivergenciaCnpj, setFiltroDivergenciaCnpj] = useState(false);
   const [enderecos, setEnderecos] = useState(() => carregarEnderecos("", null));
   const [dataImplantacao, setDataImplantacao] = useState("");
   const [dataVencimentoFatura, setDataVencimentoFatura] = useState<number | "">("");
