@@ -1,6 +1,7 @@
 # Roadmap — Primeiro pacote financeiro
 
 ## Endereços em Editar Informações
+- [ ] Compactar a visualização com resumos, editor individual e lista recolhível; conferir sem gravações na operação.
 - [x] Preservar endereço principal e incluir secundários estruturados no formulário existente.
 - [x] Quatro testes aprovados; formulário conferido com sessão real e salvar/reabrir simulados, preservando endereço antigo e dois secundários. Nenhum endereço fictício gravado na operação; persistência real não testada para evitar alterações nos cadastros.
 
