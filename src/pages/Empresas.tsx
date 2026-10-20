@@ -857,7 +857,7 @@ export default function Empresas() {
         const pb = (b as any).prioridade_maxima_id ? 1 : 0;
         return pb - pa;
       });
-  }, [empresas, search, showInativas, isExecutivo, user, respFilter, corretoraFilter, executivaFilter, filtroPrioridade, filtroSuspensao]);
+  }, [empresas, search, showInativas, isExecutivo, user, respFilter, corretoraFilter, executivaFilter, filtroPrioridade, filtroSuspensao, filtroDivergenciaCnpj, situacaoPorEmpresa]);
 
   async function exportarInativasExcel() {
     const inativas = empresas
@@ -1984,6 +1984,15 @@ export default function Empresas() {
               <SelectItem value="concluidas">Concluídas</SelectItem>
             </SelectContent>
           </Select>
+          <Button
+            variant={filtroDivergenciaCnpj ? "default" : "outline"}
+            size="sm"
+            onClick={() => setFiltroDivergenciaCnpj((v) => !v)}
+            className="rounded-lg"
+            title="Mostra somente contratos com situação do CNPJ diferente de ativa, erro de consulta ou endereço divergente"
+          >
+            Divergências CNPJ
+          </Button>
           {(respFilter !== "all" || corretoraFilter !== "all" || executivaFilter !== "all") && (
             <Button variant="ghost" size="sm" onClick={() => { setRespFilter("all"); setCorretoraFilter("all"); setExecutivaFilter("all"); }} className="rounded-lg">
               Limpar filtros
