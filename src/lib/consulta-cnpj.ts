@@ -32,6 +32,43 @@ export function formatarDataSituacaoCnpj(iso: string): string {
   return match ? `${match[3]}/${match[2]}/${match[1]}` : "";
 }
 
+// Resultado da sincronização automática (tabela empresa_cnpj_situacao). Display-only.
+export type SituacaoCnpjRegistro = {
+  empresa_id: string;
+  cnpj: string;
+  situacao: string;
+  situacao_desde: string;
+  endereco: { cep?: string; cidade?: string; uf?: string } | null;
+  erro: string | null;
+  consultado_em: string;
+};
+
+const normTexto = (s: string) => s.toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "").trim();
+
+// Compara o endereço retornado pela consulta com o endereço principal cadastrado.
+// Só acusa divergência quando há dados suficientes dos dois lados.
+export function enderecoDivergente(enderecoConsulta: SituacaoCnpjRegistro["endereco"], principal: EnderecoEmpresa | null | undefined): boolean {
+  if (!enderecoConsulta || !principal) return false;
+  const cepA = (enderecoConsulta.cep ?? "").replace(/\D/g, "");
+  const cepB = (principal.cep ?? "").replace(/\D/g, "");
+  if (cepA && cepB) return cepA !== cepB;
+  const cidadeA = normTexto(enderecoConsulta.cidade ?? ""), cidadeB = normTexto(principal.cidade ?? "");
+  if (!cidadeA || !cidadeB) return false;
+  const ufA = normTexto(enderecoConsulta.uf ?? ""), ufB = normTexto(principal.uf ?? "");
+  return cidadeA !== cidadeB || (!!ufA && !!ufB && ufA !== ufB);
+}
+
+// Motivo de divergência para o filtro "Divergências CNPJ"; null = sem divergência.
+export function divergenciaCnpj(registro: SituacaoCnpjRegistro | null | undefined, principal: EnderecoEmpresa | null | undefined): string | null {
+  if (!registro) return null;
+  if (registro.erro) return registro.erro;
+  const info = rotuloSituacaoCnpj(registro.situacao);
+  if (info && info.tom !== "verde") return `Situação do CNPJ: ${info.rotulo}`;
+  if (!info) return "Situação do CNPJ não informada";
+  if (enderecoDivergente(registro.endereco, principal)) return "Endereço divergente do cadastro";
+  return null;
+}
+
 // Draft-only patches: do not introduce fields absent from the company form.
 // Never invents nome_fantasia: absent from the source stays absent from the form.
 export function camposFormularioCnpj(dados: DadosCnpj, permiteNome: boolean) {
