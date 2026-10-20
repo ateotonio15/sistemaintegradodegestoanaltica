@@ -1,8 +1,8 @@
 # Roadmap — Primeiro pacote financeiro
 
 ## Endereços em Editar Informações
-- [ ] Preservar endereço principal e incluir secundários estruturados no formulário existente.
-- [ ] Testar preservação, principal único, secundários e fluxo de salvar/reabrir.
+- [x] Preservar endereço principal e incluir secundários estruturados no formulário existente.
+- [x] Quatro testes aprovados; formulário conferido com sessão real e salvar/reabrir simulados, preservando endereço antigo e dois secundários. Nenhum endereço fictício gravado na operação; persistência real não testada para evitar alterações nos cadastros.
 
 ## Reajustes por faixa etária
 - [x] Exibir a primeira faixa nos valores de reajuste e disponibilizar todas as faixas no histórico.
