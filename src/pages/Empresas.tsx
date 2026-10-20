@@ -72,6 +72,8 @@ function DetailRow({ label, value }: { label: string; value: React.ReactNode }) 
 
 const emptyForm: TablesInsert<"empresas"> & { responsavel_user_id?: string | null; executiva_user_id?: string | null } = {
   nome: "",
+  razao_social: "",
+  nome_fantasia: "",
   cnpj: "",
   codigo_contrato: "",
   responsavel_contrato: "",
@@ -670,6 +672,8 @@ export default function Empresas() {
     setEditingId(e.id);
     setForm({
       nome: e.nome,
+      razao_social: (e as any).razao_social ?? "",
+      nome_fantasia: (e as any).nome_fantasia ?? "",
       cnpj: e.cnpj ?? "",
       codigo_contrato: e.codigo_contrato ?? "",
       responsavel_contrato: e.responsavel_contrato ?? "",
