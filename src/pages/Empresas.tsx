@@ -813,6 +813,17 @@ export default function Empresas() {
     return Array.from(set).sort((a, b) => a.localeCompare(b, "pt-BR"));
   }, [empresas]);
 
+  // Resultados da sincronização automática da situação do CNPJ (display-only).
+  const { data: situacoesCnpj = [] } = useQuery({
+    queryKey: ["empresa-cnpj-situacao"],
+    queryFn: async () => {
+      const { data } = await supabase.from("empresa_cnpj_situacao").select("*");
+      return (data ?? []) as SituacaoCnpjRegistro[];
+    },
+    refetchInterval: 60000,
+  });
+  const situacaoPorEmpresa = useMemo(() => new Map(situacoesCnpj.map((s) => [s.empresa_id, s])), [situacoesCnpj]);
+
   const filtered = useMemo(() => {
     const q = search.toLowerCase();
     let list = empresas;
@@ -835,6 +846,7 @@ export default function Empresas() {
         if (filtroPrioridade === "concluidas") return !(e as any).prioridade_maxima_id;
         return true;
       })
+      .filter((e) => !filtroDivergenciaCnpj || divergenciaCnpj(situacaoPorEmpresa.get(e.id), carregarEnderecos(e.endereco, (e as any).enderecos).principal) !== null)
       .filter((e) =>
         e.nome.toLowerCase().includes(q) ||
         (e.codigo_contrato ?? "").toLowerCase().includes(q) ||
