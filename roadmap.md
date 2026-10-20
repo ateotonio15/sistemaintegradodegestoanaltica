@@ -1,5 +1,9 @@
 # Roadmap — Primeiro pacote financeiro
 
+## Reajustes por faixa etária
+- [ ] Exibir a primeira faixa nos valores de reajuste e disponibilizar todas as faixas no histórico.
+- [ ] Verificar testes e conferir o histórico com dados reais, sem alterar registros.
+
 ## Plantão LSL — 20/10/2026
 - [x] Reunir os históricos duplicados da LSL no cartão de outubro, sem apagar registros ou alterar permissões.
 - [x] Conferir o plantão de 20/10 na tela com a sessão disponível: 32 plantões e 397 atendimentos preservados.
