@@ -59,4 +59,21 @@ describe("Consulta pública de CNPJ", () => {
     const atual = carregarEnderecos("Endereço anterior", null);
     expect(enderecosComDadosCnpj(atual, dados({ cep: null, logradouro: null }))).toEqual(atual);
   });
+  it("mapeia a data da situação cadastral da fonte", () => {
+    expect(dados({ situacao_cadastral: "Ativa", data_situacao_cadastral: "2018-03-15" })).toMatchObject({ situacao: "Ativa", situacaoDesde: "2018-03-15" });
+  });
+  it("identifica a situação do CNPJ sempre com a palavra CNPJ e a cor correta", () => {
+    expect(rotuloSituacaoCnpj("Ativa")).toEqual({ rotulo: "CNPJ ATIVA", tom: "verde" });
+    expect(rotuloSituacaoCnpj("Suspensa")).toEqual({ rotulo: "CNPJ SUSPENSA", tom: "amarelo" });
+    expect(rotuloSituacaoCnpj("Baixada")).toEqual({ rotulo: "CNPJ BAIXADA", tom: "vermelho" });
+    expect(rotuloSituacaoCnpj("Inapta")).toEqual({ rotulo: "CNPJ INAPTA", tom: "vermelho" });
+    expect(rotuloSituacaoCnpj("Nula")).toEqual({ rotulo: "CNPJ NULA", tom: "vermelho" });
+    expect(rotuloSituacaoCnpj("Outra situação")).toEqual({ rotulo: "CNPJ OUTRA SITUAÇÃO", tom: "neutro" });
+    expect(rotuloSituacaoCnpj("")).toBeNull();
+  });
+  it("formata a data da situação no padrão brasileiro sem deslocar o dia", () => {
+    expect(formatarDataSituacaoCnpj("2018-03-15")).toBe("15/03/2018");
+    expect(formatarDataSituacaoCnpj("")).toBe("");
+    expect(formatarDataSituacaoCnpj("15/03/2018")).toBe("");
+  });
 });
