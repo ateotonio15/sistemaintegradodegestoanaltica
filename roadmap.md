@@ -36,3 +36,8 @@
   - [x] PDF: sumPdfTotal preserva ausência/falha (null), nunca zero confirmado
 - [x] Item 4 — Conferência visual com mocks concluída em rodada anterior, incluindo cenários 5 e 6; sem gravações na operação. Integração com backend real não verificada.
 - [x] Item 5 — Capturas e diff dos cenários 5 e 6 entregues na rodada anterior.
+
+## Consulta CNPJ — identificação da situação (20/10/2026)
+- [x] Rótulo "Situação Cadastral do CNPJ" com selo colorido (CNPJ ATIVA verde, SUSPENSA âmbar, BAIXADA/INAPTA/NULA vermelho) e "Situação desde" em DD/MM/AAAA.
+- [x] Aviso "Não altera o status da empresa no sistema."; situação do CNPJ nunca preenche o status interno (camposFormularioCnpj não mapeia situação).
+- [x] Função consultar-cnpj passa a retornar data_situacao_cadastral; 14 testes; conferência visual com resposta fictícia, sem gravações.
