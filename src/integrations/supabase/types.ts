@@ -1097,6 +1097,21 @@ export type Database = {
           },
         ]
       }
+      config_sync: {
+        Row: {
+          chave: string
+          valor: string
+        }
+        Insert: {
+          chave: string
+          valor: string
+        }
+        Update: {
+          chave?: string
+          valor?: string
+        }
+        Relationships: []
+      }
       contrato_processo_movimentacoes: {
         Row: {
           acao: string

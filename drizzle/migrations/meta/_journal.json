@@ -309,6 +309,13 @@
       "when": 1792520260268,
       "tag": "0043_empresa_cnpj_situacao",
       "breakpoints": true
+    },
+    {
+      "idx": 44,
+      "version": "7",
+      "when": 1792520441707,
+      "tag": "0044_config_sync_token",
+      "breakpoints": true
     }
   ]
 }
