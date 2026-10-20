@@ -45,7 +45,7 @@ import { usePrioridadeMaxima } from "@/hooks/usePrioridadeMaxima";
 import { Star, History as HistoryIcon, Lock, Unlock } from "lucide-react";
 import { useGrupoFinanceiro } from "@/hooks/useGrupoFinanceiro";
 import { ResponsavelLockDialog } from "@/components/empresas/ResponsavelLockDialog";
-import { EmpresaEnderecosFields } from "@/components/empresas/EmpresaEnderecosFields";
+import { EmpresaEnderecosFields, EmpresaEnderecosConsulta } from "@/components/empresas/EmpresaEnderecosFields";
 import { carregarEnderecos, prepararEnderecos } from "@/lib/empresa-enderecos";
 
 type Empresa = Tables<"empresas">;
@@ -2381,7 +2381,7 @@ export default function Empresas() {
                       <DetailRow label="E-mail" value={detailEmpresa.email_empresa} />
                       <DetailRow label="Telefone" value={(detailEmpresa as any).telefone_empresa} />
                       <DetailRow label="Contato" value={(detailEmpresa as any).contato_empresa} />
-                      <DetailRow label="Endereço" value={(detailEmpresa as any).endereco} />
+                      <EmpresaEnderecosConsulta key={detailEmpresa.id} value={carregarEnderecos(detailEmpresa.endereco, detailEmpresa.enderecos)} />
                     </dl>
                   </section>
 
