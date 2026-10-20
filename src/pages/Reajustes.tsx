@@ -23,6 +23,7 @@ import {
   labelStatusReajusteFluxo, corStatusReajusteFluxo, getMesReajuste, nomeMes,
 } from "@/lib/reajuste-utils";
 import { formatDateBR } from "@/lib/date-utils";
+import { valoresModalidadeReajuste } from "@/lib/reajuste-apresentacao";
 import { exportReajustesExcel, exportReajustesPDF } from "@/lib/reajustes-export";
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription,
@@ -171,7 +172,7 @@ export default function Reajustes() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("reajuste_faixas" as any)
-        .select("reajuste_id,modalidade,idade_inicial,idade_final,valor_atual_centavos,percentual,valor_reajustado_centavos");
+        .select("reajuste_id,modalidade,idade_inicial,idade_final,valor_atual_centavos,percentual,valor_reajustado_centavos,valor_retroativo_centavos,valor_final_centavos");
       if (error) throw error;
       return data as any[];
     },
@@ -502,20 +503,23 @@ export default function Reajustes() {
                     const statusFluxo = reajuste?.status_reajuste as string | undefined;
                     const isPendenteConfirm = reajuste && statusFluxo === "pendente_confirmacao";
                     const isSolicitado = reajuste && statusFluxo === "solicitado";
-                    const temValores = reajuste && !isSolicitado && (reajuste.valor_antigo_centavos || 0) > 0;
+                    const fxSalvas = reajuste ? faixasPorReajuste[reajuste.id] || [] : [];
+                    const enfResumo = valoresModalidadeReajuste(reajuste || {}, "enfermaria", fxSalvas);
+                    const aptResumo = valoresModalidadeReajuste(reajuste || {}, "apartamento", fxSalvas);
+                    const temValores = reajuste && !isSolicitado && ((reajuste.valor_antigo_centavos || 0) > 0 || enfResumo.primeira || aptResumo.primeira);
                     const mesReaj = getMesReajuste(empresa.data_implantacao);
                     const temRetro = (reajuste?.meses_retroativos || 0) > 0;
                     const isExpanded = expandedIds.has(empresa.id);
-                    const pct = temValores ? Number(reajuste.percentual) : 0;
+                    const pct = reajuste && !isSolicitado ? Number(reajuste.percentual) : 0;
                     // Resumo da tabela: prioriza ENFERMARIA. Se empresa só possui apartamento, usa apartamento. Fallback legado: totais.
-                    const enfAtual = reajuste?.valor_antigo_enfermaria_centavos || 0;
-                    const enfReaj = reajuste?.valor_reajustado_enfermaria_centavos || 0;
-                    const enfRetroV = reajuste?.valor_retroativo_enfermaria_centavos || 0;
-                    const enfFinalV = reajuste?.valor_final_enfermaria_centavos || 0;
-                    const aptAtual = reajuste?.valor_antigo_apartamento_centavos || 0;
-                    const aptReaj = reajuste?.valor_reajustado_apartamento_centavos || 0;
-                    const aptRetroV = reajuste?.valor_retroativo_apartamento_centavos || 0;
-                    const aptFinalV = reajuste?.valor_final_apartamento_centavos || 0;
+                    const enfAtual = enfResumo.antigo ?? 0;
+                    const enfReaj = enfResumo.reajustado ?? 0;
+                    const enfRetroV = enfResumo.retro ?? 0;
+                    const enfFinalV = enfResumo.final ?? 0;
+                    const aptAtual = aptResumo.antigo ?? 0;
+                    const aptReaj = aptResumo.reajustado ?? 0;
+                    const aptRetroV = aptResumo.retro ?? 0;
+                    const aptFinalV = aptResumo.final ?? 0;
                     const possuiEnfFlag = (reajuste as any)?.possui_enfermaria;
                     const possuiAptFlag = (reajuste as any)?.possui_apartamento;
                     const usarEnf = enfAtual > 0 || enfFinalV > 0 || possuiEnfFlag === true;
@@ -533,7 +537,7 @@ export default function Reajustes() {
                       const mod = usarEnf ? "enfermaria" : usarApt ? "apartamento" : (fx.some((f: any) => f.modalidade === "enfermaria") ? "enfermaria" : "apartamento");
                       const lista = fx.filter((f: any) => f.modalidade === mod);
                       if (!lista.length) return null;
-                      return lista.find((f: any) => (Number(f.valor_atual_centavos) || 0) > 0) || lista[0];
+                      return lista[0];
                     })();
                     return (
                     <>
@@ -555,7 +559,7 @@ export default function Reajustes() {
                         {temValores ? (
                           <div className="flex items-center gap-2">
                             <span>{formatCentavosBRL(resumoAtual)}</span>
-                            {resumoLabel && <Badge variant="outline" className="text-[10px] px-1 py-0">{resumoLabel}</Badge>}
+                            {resumoLabel && <Badge variant="outline" className="text-[10px] px-1 py-0">{resumoLabel}{primeiraFaixaDb ? ` · 1ª Faixa ${primeiraFaixaDb.idade_inicial}–${primeiraFaixaDb.idade_final >= 999 ? "+" : primeiraFaixaDb.idade_final}` : ""}</Badge>}
                           </div>
                          ) : (() => {
                            const impl = implantacaoPorEmpresa[empresa.id] || {};
@@ -767,20 +771,22 @@ export default function Reajustes() {
                               <div className={`grid grid-cols-1 ${colsClass} gap-4 p-4`}>
                                 {mostraEnf && (
                                   <DetalheCard
-                                    titulo="Modalidade Enfermaria"
+                                    titulo={enfResumo.primeira ? "Modalidade Enfermaria · 1ª Faixa" : "Modalidade Enfermaria"}
                                     Icone={BedDouble}
                                     tipo="enfermaria"
                                     percentual={pct}
                                     {...enfDados}
+                                    {...(enfResumo.porFaixa ? { valorAtual: enfResumo.antigo, valorReajustado: enfResumo.reajustado, retroativo: enfResumo.retro, valorFinal: enfResumo.final } : {})}
                                   />
                                 )}
                                 {mostraApt && (
                                   <DetalheCard
-                                    titulo="Modalidade Apartamento"
+                                    titulo={aptResumo.primeira ? "Modalidade Apartamento · 1ª Faixa" : "Modalidade Apartamento"}
                                     Icone={Hotel}
                                     tipo="apartamento"
                                     percentual={pct}
                                     {...aptDados}
+                                    {...(aptResumo.porFaixa ? { valorAtual: aptResumo.antigo, valorReajustado: aptResumo.reajustado, retroativo: aptResumo.retro, valorFinal: aptResumo.final } : {})}
                                   />
                                 )}
                               </div>

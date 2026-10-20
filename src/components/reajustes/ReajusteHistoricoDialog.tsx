@@ -12,6 +12,10 @@ import { corStatusReajusteFluxo, labelStatusReajusteFluxo } from "@/lib/reajuste
 import { CheckCircle2, XCircle, Send, FileEdit, Sparkles, DollarSign, ChevronDown } from "lucide-react";
 import { useEffect, useState } from "react";
 import { buscarClassesPlano } from "@/lib/valoresOperadora";
+import { Button } from "@/components/ui/button";
+import { valoresModalidadeReajuste, type FaixaReajusteSalva } from "@/lib/reajuste-apresentacao";
+import { labelFaixa } from "@/lib/reajuste-utils";
+import { ReajusteFaixasHistorico } from "./ReajusteFaixasHistorico";
 
 interface Props {
   open: boolean;
@@ -51,7 +55,8 @@ export function ReajusteHistoricoDialog({ open, onOpenChange, empresaId, empresa
   const { data: codigoContrato } = useQuery({
     queryKey: ["reajustes-historico-codigo", empresaId],
     queryFn: async () => {
-      const { data } = await supabase.from("empresas").select("codigo_contrato").eq("id", empresaId!).maybeSingle();
+      if (!empresaId) return null;
+      const { data } = await supabase.from("empresas").select("codigo_contrato").eq("id", empresaId).maybeSingle();
       return (data?.codigo_contrato as string | null) ?? null;
     },
     enabled: open && !!empresaId,
@@ -61,9 +66,10 @@ export function ReajusteHistoricoDialog({ open, onOpenChange, empresaId, empresa
     queryKey: ["reajustes-historico-classes", codigoContrato, anosReajuste],
     queryFn: async () => {
       const out: Record<string, { enfermaria?: string; apartamento?: string }> = {};
+      if (!codigoContrato) return out;
       try {
         for (const r of reajustes as any[]) {
-          const c = await buscarClassesPlano(codigoContrato!, Number(r.ano));
+          const c = await buscarClassesPlano(codigoContrato, Number(r.ano));
           if (c) out[String(r.ano)] = c;
         }
       } catch {
@@ -99,6 +105,18 @@ export function ReajusteHistoricoDialog({ open, onOpenChange, empresaId, empresa
 
   const ids = reajustes.map((r: any) => r.id);
 
+  const { data: faixas = [], isLoading: carregandoFaixas, isError: erroFaixas } = useQuery({
+    queryKey: ["reajustes-historico-faixas", empresaId, ids.join(",")],
+    queryFn: async () => {
+      if (!ids.length) return [];
+      const { data, error } = await supabase.from("reajuste_faixas").select("*").in("reajuste_id", ids).order("idade_inicial");
+      if (error) throw error;
+      return (data ?? []) as FaixaReajusteSalva[];
+    },
+    enabled: open && !!empresaId && ids.length > 0,
+    refetchOnMount: "always",
+  });
+
   const { data: eventos = [], isLoading } = useQuery({
     queryKey: ["reajustes-historico-eventos", empresaId, ids.join(",")],
     queryFn: async () => {
@@ -115,7 +133,7 @@ export function ReajusteHistoricoDialog({ open, onOpenChange, empresaId, empresa
   });
 
   const fmtBRL = (c?: number | null) =>
-    `R$ ${((Number(c) || 0) / 100).toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+    c == null ? "—" : `R$ ${((Number(c) || 0) / 100).toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
   const fmtDate = (d?: string | null) => (d ? new Date(d).toLocaleDateString("pt-BR") : "—");
   const fmtDateTime = (d?: string | null) => (d ? new Date(d).toLocaleString("pt-BR") : "—");
   const meses = ["", "Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho", "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"];
@@ -133,25 +151,21 @@ export function ReajusteHistoricoDialog({ open, onOpenChange, empresaId, empresa
             <Accordion type="single" collapsible value={anoAberto ?? undefined} onValueChange={(v) => setAnoAberto(v || null)}>
               {reajustes.map((r: any) => {
                 const evs = eventos.filter((e) => e.reajuste_id === r.id);
-                const produtos: Array<{ nome: string; antigo: number; reajustado: number; retro: number; final: number; pct: number }> = [];
+                const faixasAno = faixas.filter((f) => f.reajuste_id === r.id);
+                const enf = valoresModalidadeReajuste(r, "enfermaria", faixasAno);
+                const apt = valoresModalidadeReajuste(r, "apartamento", faixasAno);
+                const porFaixa = enf.porFaixa || apt.porFaixa;
+                const produtos: Array<{ nome: string; antigo: number | null; reajustado: number | null; retro: number | null; final: number | null; pct: number }> = [];
                 if (r.possui_enfermaria) {
                   produtos.push({
                     nome: classesPorAno[String(r.ano)]?.enfermaria ? `${classesPorAno[String(r.ano)]?.enfermaria} · Enfermaria` : "Enfermaria",
-                    antigo: r.valor_antigo_enfermaria_centavos || 0,
-                    reajustado: r.valor_reajustado_enfermaria_centavos || 0,
-                    retro: r.valor_retroativo_enfermaria_centavos || 0,
-                    final: r.valor_final_enfermaria_centavos || 0,
-                    pct: Number(r.percentual || 0),
+                    ...enf,
                   });
                 }
                 if (r.possui_apartamento) {
                   produtos.push({
                     nome: classesPorAno[String(r.ano)]?.apartamento ? `${classesPorAno[String(r.ano)]?.apartamento} · Apartamento` : "Apartamento",
-                    antigo: r.valor_antigo_apartamento_centavos || 0,
-                    reajustado: r.valor_reajustado_apartamento_centavos || 0,
-                    retro: r.valor_retroativo_apartamento_centavos || 0,
-                    final: r.valor_final_apartamento_centavos || 0,
-                    pct: Number(r.percentual || 0),
+                    ...apt,
                   });
                 }
                 if (produtos.length === 0) {
@@ -164,8 +178,8 @@ export function ReajusteHistoricoDialog({ open, onOpenChange, empresaId, empresa
                     pct: Number(r.percentual || 0),
                   });
                 }
-                const totalFinal = produtos.reduce((acc, p) => acc + p.final, 0);
-                const totalRetro = produtos.reduce((acc, p) => acc + p.retro, 0);
+                const totalFinal = porFaixa ? produtos[0].final : produtos.reduce((acc, p) => acc + (p.final ?? 0), 0);
+                const totalRetro = porFaixa ? produtos[0].retro : produtos.reduce((acc, p) => acc + (p.retro ?? 0), 0);
 
                 return (
                   <AccordionItem key={r.id} value={String(r.id)} className="border-b-0 mb-2 rounded-xl border bg-card overflow-hidden">
@@ -223,6 +237,17 @@ export function ReajusteHistoricoDialog({ open, onOpenChange, empresaId, empresa
                       </div>
 
                       {/* Produto e valores */}
+                      {porFaixa && (
+                        <div className="mb-2 flex flex-wrap gap-2">
+                          {[enf, apt].filter((p) => p.primeira).map((p) => (
+                            <Badge key={p.primeira?.modalidade} variant="outline">
+                              {p.primeira?.modalidade === "enfermaria" ? "Enfermaria" : "Apartamento"} · 1ª Faixa {p.primeira ? labelFaixa(p.primeira.idade_inicial, p.primeira.idade_final) : ""}
+                            </Badge>
+                          ))}
+                          {carregandoFaixas && <span className="text-xs text-muted-foreground">Carregando faixas...</span>}
+                          {erroFaixas && <span className="text-xs text-destructive">Não foi possível carregar as faixas.</span>}
+                        </div>
+                      )}
                       {produtos.length === 1 ? (
                         (() => {
                           const p = produtos[0];
@@ -243,7 +268,7 @@ export function ReajusteHistoricoDialog({ open, onOpenChange, empresaId, empresa
                               </div>
                               <div>
                                 <div className="text-[10px] uppercase tracking-wide text-muted-foreground">Retroativo</div>
-                                <div className={`text-sm tabular-nums ${p.retro > 0 ? "font-semibold text-amber-600 dark:text-amber-400" : ""}`}>{fmtBRL(p.retro)}</div>
+                                <div className={`text-sm tabular-nums ${(p.retro ?? 0) > 0 ? "font-semibold text-amber-600 dark:text-amber-400" : ""}`}>{fmtBRL(p.retro)}</div>
                               </div>
                               <div>
                                 <div className="text-[10px] uppercase tracking-wide text-muted-foreground">Valor final</div>
@@ -272,7 +297,7 @@ export function ReajusteHistoricoDialog({ open, onOpenChange, empresaId, empresa
                                   <td className="px-2 py-1.5 text-right">{fmtBRL(p.antigo)}</td>
                                   <td className="px-2 py-1.5 text-right">{fmtBRL(p.reajustado)}</td>
                                   <td className="px-2 py-1.5 text-right text-muted-foreground">{p.pct.toFixed(2).replace(".", ",")}%</td>
-                                  <td className={`px-2 py-1.5 text-right ${p.retro > 0 ? "font-semibold text-amber-600 dark:text-amber-400" : ""}`}>{fmtBRL(p.retro)}</td>
+                                  <td className={`px-2 py-1.5 text-right ${(p.retro ?? 0) > 0 ? "font-semibold text-amber-600 dark:text-amber-400" : ""}`}>{fmtBRL(p.retro)}</td>
                                   <td className="px-2 py-1.5 text-right font-semibold text-primary">{fmtBRL(p.final)}</td>
                                 </tr>
                               ))}
@@ -282,19 +307,22 @@ export function ReajusteHistoricoDialog({ open, onOpenChange, empresaId, empresa
                       )}
 
                       {/* Detalhes técnicos (ocultos por padrão) */}
+                      {faixasAno.length > 0 && <ReajusteFaixasHistorico faixas={faixasAno} />}
                       {(() => {
                         const idStr = String(r.id);
                         const aberto = detalhesAbertos.has(idStr);
                         return (
                           <div className="mb-3">
-                            <button
+                            <Button
+                              variant="ghost"
+                              size="sm"
                               type="button"
                               onClick={() => toggleDetalhes(idStr)}
                               className="inline-flex items-center gap-1 text-xs font-medium text-primary hover:underline"
                             >
                               <ChevronDown className={`h-3.5 w-3.5 transition-transform ${aberto ? "rotate-180" : ""}`} />
                               {aberto ? "Ocultar detalhes" : "Ver mais detalhes"}
-                            </button>
+                            </Button>
                             {aberto && (
                               <div className="grid grid-cols-2 md:grid-cols-4 gap-x-4 gap-y-2 text-xs mt-2 rounded-md border bg-muted/20 p-3">
                                 <div>
