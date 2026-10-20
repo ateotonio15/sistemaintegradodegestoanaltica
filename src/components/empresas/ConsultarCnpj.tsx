@@ -44,12 +44,14 @@ function CampoConsulta({ label, valor, vazio }: { label: string; valor: string; 
   return <div className="min-w-0"><dt className="text-xs text-muted-foreground">{label}</dt><dd className="break-words text-sm font-medium">{valor || vazio || "Não informado"}</dd></div>;
 }
 
-export function ConsultarCnpj({ cnpj, onAplicar }: { cnpj: string; onAplicar: (dados: DadosCnpj) => void }) {
+export function ConsultarCnpj({ cnpj, onAplicar, onDados }: { cnpj: string; onAplicar: (dados: DadosCnpj) => void; onDados?: (dados: DadosCnpj | null) => void }) {
   const [carregando, setCarregando] = useState(false);
   const [erro, setErro] = useState("");
   const [dados, setDados] = useState<DadosCnpj | null>(null);
   const tentativa = useRef(0);
-  useEffect(() => { tentativa.current++; setErro(""); setDados(null); setCarregando(false); return () => { tentativa.current++; }; }, [cnpj]);
+  const notificarDados = useRef(onDados);
+  notificarDados.current = onDados;
+  useEffect(() => { tentativa.current++; setErro(""); setDados(null); setCarregando(false); notificarDados.current?.(null); return () => { tentativa.current++; }; }, [cnpj]);
   const buscar = async () => {
     const normalizado = normalizarCnpjConsulta(cnpj);
     if (!normalizado) { setErro("CNPJ inválido."); return; }
