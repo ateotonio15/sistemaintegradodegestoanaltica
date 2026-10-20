@@ -1,8 +1,8 @@
 # Roadmap — Primeiro pacote financeiro
 
 ## Reajustes por faixa etária
-- [ ] Exibir a primeira faixa nos valores de reajuste e disponibilizar todas as faixas no histórico.
-- [ ] Verificar testes e conferir o histórico com dados reais, sem alterar registros.
+- [x] Exibir a primeira faixa nos valores de reajuste e disponibilizar todas as faixas no histórico.
+- [x] Cinco testes aprovados e histórico real do contrato 2444 conferido: primeira faixa Enfermaria R$ 219,24, Apartamento R$ 306,94 e todas as faixas abertas, sem alterar registros.
 
 ## Plantão LSL — 20/10/2026
 - [x] Reunir os históricos duplicados da LSL no cartão de outubro, sem apagar registros ou alterar permissões.
