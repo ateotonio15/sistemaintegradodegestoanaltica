@@ -1,7 +1,7 @@
 # Roadmap — Primeiro pacote financeiro
 
 ## Endereços em Editar Informações
-- [ ] Acrescentar consulta pública pelo CNPJ com validação, carregamento e erros, sem gravação automática ou alteração dos cadastros; testar consulta e preenchimento manual preservado.
+- [x] Acrescentar consulta pública CNPJ.ws junto ao CNPJ no formulário existente e no formulário restrito (CNPJ somente leitura), sem modificar permissões, campos ou endereços. Consulta real autenticada retornou dados; invalidade, carregamento, sucesso, não encontrado e indisponibilidade conferidos com respostas simuladas. Nenhuma gravação; consulta só exibe os dados, mantendo preenchimento manual. Doze testes aprovados (consulta e endereços). Limite da API pública: três consultas por minuto por IP; indisponibilidade mantém cadastro manual.
 - [x] Finalizar endereços: permissões atuais verificadas (Executivo já autorizado para endereços; Visualização somente leitura), principal protegido no formulário e no servidor, confirmação Cancelar/Excluir e consulta compacta fora do formulário. Oito testes aprovados; salvar e consultar conferidos com escrita simulada, sem dados fictícios na operação. Não há histórico geral de alterações de campos da empresa para reutilizar; históricos de implantação e prioridade mantidos. Teste com contas específicas de Executivo/Visualização não executado.
 - [x] Compactar a visualização com resumos, editor individual e lista recolhível. Conferidos adicionar, editar, cancelar, recolher/expandir e excluir com confirmação, sem salvar dados fictícios; quatro testes aprovados.
 - [x] Preservar endereço principal e incluir secundários estruturados no formulário existente.
