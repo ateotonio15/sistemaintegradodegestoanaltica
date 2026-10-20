@@ -1879,7 +1879,7 @@ export default function Empresas() {
                 <DialogHeader><DialogTitle>{isEnfermeira ? "Editar Contato" : "Editar Informações"}</DialogTitle></DialogHeader>
                 <form onSubmit={(e) => { e.preventDefault(); upsert.mutate(form); }} className="space-y-5">
                   <div className="grid gap-4">
-                    <div className="space-y-2"><Label className="text-sm font-medium">CNPJ</Label><Input value={form.cnpj ?? ""} readOnly /><ConsultarCnpj key={editingId ?? "restrito"} cnpj={form.cnpj ?? ""} onAplicar={aplicarDadosCnpj} /></div>
+                    <div className="space-y-2"><div className="flex items-center gap-2 flex-wrap"><Label className="text-sm font-medium">CNPJ</Label><SeloSituacaoCnpj situacao={situacaoConsultaCnpj} /></div><Input value={form.cnpj ?? ""} readOnly /><ConsultarCnpj key={editingId ?? "restrito"} cnpj={form.cnpj ?? ""} onAplicar={aplicarDadosCnpj} onDados={registrarSituacaoCnpj} /></div>
                     <div className="space-y-2">
                       <Label className="text-sm font-medium">Contato da Empresa</Label>
                       <Input value={(form as any).contato_empresa ?? ""} onChange={(e) => setForm({ ...form, contato_empresa: e.target.value } as any)} placeholder="Nome do contato" className="rounded-lg" />
