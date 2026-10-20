@@ -1,6 +1,7 @@
 # Roadmap — Primeiro pacote financeiro
 
 ## Endereços em Editar Informações
+- [ ] Finalizar permissões de endereços, proteção do principal, confirmação de exclusão e consulta compacta fora do formulário; verificar histórico existente e testar.
 - [x] Compactar a visualização com resumos, editor individual e lista recolhível. Conferidos adicionar, editar, cancelar, recolher/expandir e excluir com confirmação, sem salvar dados fictícios; quatro testes aprovados.
 - [x] Preservar endereço principal e incluir secundários estruturados no formulário existente.
 - [x] Quatro testes aprovados; formulário conferido com sessão real e salvar/reabrir simulados, preservando endereço antigo e dois secundários. Nenhum endereço fictício gravado na operação; persistência real não testada para evitar alterações nos cadastros.
