@@ -26,6 +26,45 @@ export function SeloSituacaoCnpj({ situacao, titulo }: { situacao: string; titul
   );
 }
 
+// Cache em memória: evita repetir a consulta pública para o mesmo CNPJ na sessão.
+const cacheSituacaoLista = new Map<string, string>();
+
+// Consulta sob demanda na lista de empresas: só busca quando o usuário clica,
+// porque a consulta pública tem limite de requisições. Display-only, nunca grava.
+export function SituacaoCnpjLista({ cnpj }: { cnpj: string }) {
+  const normalizado = normalizarCnpjConsulta(cnpj);
+  const [situacao, setSituacao] = useState(() => (normalizado ? cacheSituacaoLista.get(normalizado) ?? "" : ""));
+  const [carregando, setCarregando] = useState(false);
+  const [erro, setErro] = useState("");
+  if (!normalizado) return null;
+  const consultar = async () => {
+    if (carregando || situacao) return;
+    setCarregando(true); setErro("");
+    try {
+      const { data, error } = await supabase.functions.invoke("consultar-cnpj", { body: { cnpj: normalizado } });
+      if (error) { setErro(ERRO_CONSULTA_CNPJ); return; }
+      const resultado = mapearDadosCnpj(data);
+      if (!resultado) { setErro(ERRO_CONSULTA_CNPJ); return; }
+      cacheSituacaoLista.set(normalizado, resultado.situacao);
+      setSituacao(resultado.situacao);
+    } catch { setErro(ERRO_CONSULTA_CNPJ); }
+    finally { setCarregando(false); }
+  };
+  if (situacao) return <SeloSituacaoCnpj situacao={situacao} />;
+  if (erro) return <span className="text-[10px] text-muted-foreground" title={erro}>situação indisponível</span>;
+  return (
+    <button
+      type="button"
+      onClick={consultar}
+      disabled={carregando}
+      title="Consultar situação do CNPJ"
+      className="inline-flex items-center justify-center rounded-full border border-border p-1 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground disabled:opacity-50"
+    >
+      {carregando ? <Loader2 className="h-3 w-3 animate-spin" /> : <Search className="h-3 w-3" />}
+    </button>
+  );
+}
+
 function SituacaoCnpj({ dados }: { dados: DadosCnpj }) {
   const desde = formatarDataSituacaoCnpj(dados.situacaoDesde);
   return <div className="min-w-0 space-y-1">

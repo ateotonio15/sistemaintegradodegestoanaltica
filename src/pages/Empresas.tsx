@@ -2079,7 +2079,12 @@ export default function Empresas() {
                           <TableCell className="text-muted-foreground">{e.codigo_contrato || "—"}</TableCell>
                           <TableCell>{getResponsavelName(e)}</TableCell>
                           <TableCell>{getExecutivaName(e)}</TableCell>
-                          <TableCell className="text-muted-foreground font-mono text-xs">{e.cnpj || "—"}</TableCell>
+                          <TableCell className="text-muted-foreground font-mono text-xs">
+                            <span className="inline-flex items-center gap-1.5">
+                              {e.cnpj || "—"}
+                              {e.cnpj && <SituacaoCnpjLista cnpj={e.cnpj} />}
+                            </span>
+                          </TableCell>
                           <TableCell className="text-right font-medium tabular-nums">{((e as any).vidas ?? 0).toLocaleString("pt-BR")}</TableCell>
                           <TableCell className="text-muted-foreground">{e.operadora_plano || "—"}</TableCell>
                           <TableCell>
