@@ -1,5 +1,9 @@
 # Roadmap — Primeiro pacote financeiro
 
+## Endereços em Editar Informações
+- [x] Preservar endereço principal e incluir secundários estruturados no formulário existente.
+- [x] Quatro testes aprovados; formulário conferido com sessão real e salvar/reabrir simulados, preservando endereço antigo e dois secundários. Nenhum endereço fictício gravado na operação; persistência real não testada para evitar alterações nos cadastros.
+
 ## Reajustes por faixa etária
 - [x] Exibir a primeira faixa nos valores de reajuste e disponibilizar todas as faixas no histórico.
 - [x] Cinco testes aprovados e histórico real do contrato 2444 conferido: primeira faixa Enfermaria R$ 219,24, Apartamento R$ 306,94 e todas as faixas abertas, sem alterar registros.
