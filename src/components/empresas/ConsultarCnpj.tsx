@@ -12,14 +12,27 @@ const TONS_SITUACAO: Record<TomSituacaoCnpj, string> = {
   neutro: "bg-muted text-muted-foreground border-border",
 };
 
+// Display-only badge: the CNPJ registry status never replaces the company's internal status.
+export function SeloSituacaoCnpj({ situacao, titulo }: { situacao: string; titulo?: string }) {
+  const informacao = rotuloSituacaoCnpj(situacao);
+  if (!informacao) return null;
+  return (
+    <span
+      className={`inline-flex items-center whitespace-nowrap rounded-full border px-2 py-0.5 text-[10px] font-semibold ${TONS_SITUACAO[informacao.tom]}`}
+      title={titulo || "Situação Cadastral do CNPJ · Não altera o status da empresa no sistema."}
+    >
+      {informacao.rotulo}
+    </span>
+  );
+}
+
 function SituacaoCnpj({ dados }: { dados: DadosCnpj }) {
-  const situacao = rotuloSituacaoCnpj(dados.situacao);
   const desde = formatarDataSituacaoCnpj(dados.situacaoDesde);
   return <div className="min-w-0 space-y-1">
     <dt className="text-xs text-muted-foreground">Situação Cadastral do CNPJ</dt>
     <dd>
-      {situacao
-        ? <span className={`inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold ${TONS_SITUACAO[situacao.tom]}`}>{situacao.rotulo}</span>
+      {dados.situacao
+        ? <SeloSituacaoCnpj situacao={dados.situacao} />
         : <span className="text-sm font-medium">Não informado</span>}
     </dd>
     {desde && <dd className="text-xs text-muted-foreground">Situação desde: {desde}</dd>}
@@ -31,12 +44,14 @@ function CampoConsulta({ label, valor, vazio }: { label: string; valor: string; 
   return <div className="min-w-0"><dt className="text-xs text-muted-foreground">{label}</dt><dd className="break-words text-sm font-medium">{valor || vazio || "Não informado"}</dd></div>;
 }
 
-export function ConsultarCnpj({ cnpj, onAplicar }: { cnpj: string; onAplicar: (dados: DadosCnpj) => void }) {
+export function ConsultarCnpj({ cnpj, onAplicar, onDados }: { cnpj: string; onAplicar: (dados: DadosCnpj) => void; onDados?: (dados: DadosCnpj | null) => void }) {
   const [carregando, setCarregando] = useState(false);
   const [erro, setErro] = useState("");
   const [dados, setDados] = useState<DadosCnpj | null>(null);
   const tentativa = useRef(0);
-  useEffect(() => { tentativa.current++; setErro(""); setDados(null); setCarregando(false); return () => { tentativa.current++; }; }, [cnpj]);
+  const notificarDados = useRef(onDados);
+  notificarDados.current = onDados;
+  useEffect(() => { tentativa.current++; setErro(""); setDados(null); setCarregando(false); notificarDados.current?.(null); return () => { tentativa.current++; }; }, [cnpj]);
   const buscar = async () => {
     const normalizado = normalizarCnpjConsulta(cnpj);
     if (!normalizado) { setErro("CNPJ inválido."); return; }
@@ -56,6 +71,7 @@ export function ConsultarCnpj({ cnpj, onAplicar }: { cnpj: string; onAplicar: (d
       const resultado = mapearDadosCnpj(data);
       if (!resultado) { setErro(ERRO_CONSULTA_CNPJ); return; }
       setDados(resultado);
+      notificarDados.current?.(resultado);
     } catch { if (id === tentativa.current) setErro(ERRO_CONSULTA_CNPJ); }
     finally { if (id === tentativa.current) setCarregando(false); }
   };

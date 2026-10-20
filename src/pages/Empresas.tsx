@@ -1,4 +1,4 @@
-import { useState, useRef, useMemo, useEffect } from "react";
+import { useState, useRef, useMemo, useEffect, useCallback } from "react";
 import { useSearchParams } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -47,7 +47,7 @@ import { useGrupoFinanceiro } from "@/hooks/useGrupoFinanceiro";
 import { ResponsavelLockDialog } from "@/components/empresas/ResponsavelLockDialog";
 import { EmpresaEnderecosFields, EmpresaEnderecosConsulta } from "@/components/empresas/EmpresaEnderecosFields";
 import { carregarEnderecos, prepararEnderecos } from "@/lib/empresa-enderecos";
-import { ConsultarCnpj } from "@/components/empresas/ConsultarCnpj";
+import { ConsultarCnpj, SeloSituacaoCnpj } from "@/components/empresas/ConsultarCnpj";
 import { DadosCnpj, camposFormularioCnpj, enderecosComDadosCnpj } from "@/lib/consulta-cnpj";
 
 type Empresa = Tables<"empresas">;
@@ -128,6 +128,9 @@ export default function Empresas() {
   
   const [draftEmpresaId, setDraftEmpresaId] = useState<string | null>(null);
   const [form, setForm] = useState(emptyForm);
+  // Situação do CNPJ vinda da consulta pública — apenas informativa, nunca grava.
+  const [situacaoConsultaCnpj, setSituacaoConsultaCnpj] = useState("");
+  const registrarSituacaoCnpj = useCallback((dados: DadosCnpj | null) => setSituacaoConsultaCnpj(dados?.situacao ?? ""), []);
   const [enderecos, setEnderecos] = useState(() => carregarEnderecos("", null));
   const [dataImplantacao, setDataImplantacao] = useState("");
   const [dataVencimentoFatura, setDataVencimentoFatura] = useState<number | "">("");
@@ -663,6 +666,7 @@ export default function Empresas() {
     setNaoReajGrupo(false);
     setEnderecos(carregarEnderecos("", null));
     setForm(emptyForm);
+    setSituacaoConsultaCnpj("");
     setEditingId(null);
   };
 
@@ -1195,9 +1199,12 @@ export default function Empresas() {
                         <Input value={form.nome_fantasia ?? ""} onChange={(e) => setForm({ ...form, nome_fantasia: e.target.value })} placeholder="Nome fantasia não informado" className="rounded-lg" />
                       </div>
                       <div className="space-y-2">
-                        <Label className="text-sm font-medium">CNPJ</Label>
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <Label className="text-sm font-medium">CNPJ</Label>
+                          <SeloSituacaoCnpj situacao={situacaoConsultaCnpj} />
+                        </div>
                         <Input value={form.cnpj ?? ""} onChange={(e) => setForm({ ...form, cnpj: e.target.value })} className="rounded-lg" />
-                        <ConsultarCnpj key={editingId ?? "novo"} cnpj={form.cnpj ?? ""} onAplicar={aplicarDadosCnpj} />
+                        <ConsultarCnpj key={editingId ?? "novo"} cnpj={form.cnpj ?? ""} onAplicar={aplicarDadosCnpj} onDados={registrarSituacaoCnpj} />
                       </div>
                       <div className="space-y-2">
                         <Label className="text-sm font-medium">Código do Contrato *</Label>
@@ -1872,7 +1879,7 @@ export default function Empresas() {
                 <DialogHeader><DialogTitle>{isEnfermeira ? "Editar Contato" : "Editar Informações"}</DialogTitle></DialogHeader>
                 <form onSubmit={(e) => { e.preventDefault(); upsert.mutate(form); }} className="space-y-5">
                   <div className="grid gap-4">
-                    <div className="space-y-2"><Label className="text-sm font-medium">CNPJ</Label><Input value={form.cnpj ?? ""} readOnly /><ConsultarCnpj key={editingId ?? "restrito"} cnpj={form.cnpj ?? ""} onAplicar={aplicarDadosCnpj} /></div>
+                    <div className="space-y-2"><div className="flex items-center gap-2 flex-wrap"><Label className="text-sm font-medium">CNPJ</Label><SeloSituacaoCnpj situacao={situacaoConsultaCnpj} /></div><Input value={form.cnpj ?? ""} readOnly /><ConsultarCnpj key={editingId ?? "restrito"} cnpj={form.cnpj ?? ""} onAplicar={aplicarDadosCnpj} onDados={registrarSituacaoCnpj} /></div>
                     <div className="space-y-2">
                       <Label className="text-sm font-medium">Contato da Empresa</Label>
                       <Input value={(form as any).contato_empresa ?? ""} onChange={(e) => setForm({ ...form, contato_empresa: e.target.value } as any)} placeholder="Nome do contato" className="rounded-lg" />
