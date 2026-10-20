@@ -1,5 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { normalizarCnpjConsulta, mapearDadosCnpj, camposFormularioCnpj, enderecosComDadosCnpj, rotuloSituacaoCnpj, formatarDataSituacaoCnpj } from "@/lib/consulta-cnpj";
+import { enderecoDivergente, divergenciaCnpj } from "@/lib/consulta-cnpj";
 import { carregarEnderecos, novoEndereco, prepararEnderecos } from "@/lib/empresa-enderecos";
 describe("Consulta pública de CNPJ", () => {
   it("remove pontos, barras e hífens antes da consulta", () => {
@@ -75,5 +76,43 @@ describe("Consulta pública de CNPJ", () => {
     expect(formatarDataSituacaoCnpj("2018-03-15")).toBe("15/03/2018");
     expect(formatarDataSituacaoCnpj("")).toBe("");
     expect(formatarDataSituacaoCnpj("15/03/2018")).toBe("");
+  });
+});
+describe("enderecoDivergente", () => {
+  const principal = { ...novoEndereco(), cep: "69000-000", cidade: "Manaus", uf: "AM" };
+  it("acusa divergência quando o CEP difere", () => {
+    expect(enderecoDivergente({ cep: "69010-000", cidade: "Manaus", uf: "AM" }, principal)).toBe(true);
+  });
+  it("não acusa quando o CEP é igual", () => {
+    expect(enderecoDivergente({ cep: "69000000", cidade: "Manaus", uf: "AM" }, principal)).toBe(false);
+  });
+  it("sem CEP dos dois lados, compara cidade e UF", () => {
+    const semCep = { ...principal, cep: "" };
+    expect(enderecoDivergente({ cep: "", cidade: "São Paulo", uf: "SP" }, semCep)).toBe(true);
+    expect(enderecoDivergente({ cep: "", cidade: "manaus", uf: "AM" }, semCep)).toBe(false);
+  });
+  it("não acusa sem dados suficientes", () => {
+    expect(enderecoDivergente(null, principal)).toBe(false);
+    expect(enderecoDivergente({ cep: "", cidade: "", uf: "" }, principal)).toBe(false);
+  });
+});
+
+describe("divergenciaCnpj", () => {
+  const principal = { ...novoEndereco(), cep: "69000-000", cidade: "Manaus", uf: "AM" };
+  const base = { empresa_id: "1", cnpj: "123", situacao_desde: "", endereco: null, erro: null, consultado_em: "" };
+  it("sem registro não há divergência", () => {
+    expect(divergenciaCnpj(null, principal)).toBeNull();
+  });
+  it("erro de consulta é divergência", () => {
+    expect(divergenciaCnpj({ ...base, situacao: "", erro: "Empresa não encontrada para este CNPJ." }, principal)).toContain("não encontrada");
+  });
+  it("situação não ativa é divergência", () => {
+    expect(divergenciaCnpj({ ...base, situacao: "Baixada" }, principal)).toContain("CNPJ BAIXADA");
+  });
+  it("situação ativa sem divergência de endereço passa", () => {
+    expect(divergenciaCnpj({ ...base, situacao: "Ativa", endereco: { cep: "69000-000", cidade: "Manaus", uf: "AM" } }, principal)).toBeNull();
+  });
+  it("endereço divergente é divergência mesmo com CNPJ ativo", () => {
+    expect(divergenciaCnpj({ ...base, situacao: "Ativa", endereco: { cep: "69010-000", cidade: "Manaus", uf: "AM" } }, principal)).toBe("Endereço divergente do cadastro");
   });
 });
