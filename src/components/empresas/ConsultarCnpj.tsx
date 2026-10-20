@@ -4,9 +4,12 @@ import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { supabase } from "@/integrations/supabase/client";
 import { DadosCnpj, ERRO_CONSULTA_CNPJ, mapearDadosCnpj, normalizarCnpjConsulta } from "@/lib/consulta-cnpj";
-import { ResumoEndereco } from "@/components/empresas/EmpresaEnderecosFields";
 
-export function ConsultarCnpj({ cnpj }: { cnpj: string }) {
+function CampoConsulta({ label, valor }: { label: string; valor: string }) {
+  return <div className="min-w-0"><dt className="text-xs text-muted-foreground">{label}</dt><dd className="break-words text-sm font-medium">{valor || "Não informado"}</dd></div>;
+}
+
+export function ConsultarCnpj({ cnpj, onAplicar }: { cnpj: string; onAplicar: (dados: DadosCnpj) => void }) {
   const [carregando, setCarregando] = useState(false);
   const [erro, setErro] = useState("");
   const [dados, setDados] = useState<DadosCnpj | null>(null);
@@ -37,6 +40,39 @@ export function ConsultarCnpj({ cnpj }: { cnpj: string }) {
   return <div className="space-y-2">
     <Button type="button" size="sm" variant="outline" disabled={carregando} onClick={buscar} className="max-w-full h-auto min-h-9 whitespace-normal text-left">{carregando ? <Loader2 className="mr-2 h-4 w-4 shrink-0 animate-spin" /> : <Search className="mr-2 h-4 w-4 shrink-0" />}{carregando ? "Consultando CNPJ..." : "Buscar dados da empresa"}</Button>
     {erro && <p role="alert" className="text-sm text-destructive">{erro}</p>}
-    <Dialog open={!!dados} onOpenChange={open => { if (!open) setDados(null); }}><DialogContent className="sm:max-w-lg max-h-[85vh] overflow-y-auto"><DialogHeader><DialogTitle>Dados da empresa</DialogTitle><DialogDescription>Consulta pública CNPJ.ws. Nenhum dado do cadastro foi alterado ou salvo.</DialogDescription></DialogHeader>{dados && <dl className="space-y-4 break-words"><div><dt className="text-xs text-muted-foreground">CNPJ</dt><dd>{cnpj}</dd></div><div><dt className="text-xs text-muted-foreground">Razão social</dt><dd className="font-medium">{dados.nome}</dd></div>{dados.fantasia && <div><dt className="text-xs text-muted-foreground">Nome fantasia</dt><dd>{dados.fantasia}</dd></div>}<div><dt className="text-xs text-muted-foreground mb-1">Endereço</dt><dd><ResumoEndereco endereco={dados.endereco} /></dd></div></dl>}<div className="flex justify-end"><Button type="button" variant="outline" onClick={() => setDados(null)}>Fechar</Button></div></DialogContent></Dialog>
+    <Dialog open={!!dados} onOpenChange={open => { if (!open) setDados(null); }}>
+      <DialogContent className="sm:max-w-lg max-h-[85vh] overflow-y-auto">
+        <DialogHeader><DialogTitle>DADOS ENCONTRADOS</DialogTitle><DialogDescription>Consulta pública CNPJ.ws</DialogDescription></DialogHeader>
+        {dados && <div className="space-y-5">
+          <dl className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <CampoConsulta label="Razão Social" valor={dados.nome} />
+            <CampoConsulta label="Nome Fantasia" valor={dados.fantasia} />
+            <CampoConsulta label="CNPJ" valor={dados.cnpj || cnpj} />
+            <CampoConsulta label="Situação Cadastral" valor={dados.situacao} />
+          </dl>
+          <section className="border-t pt-4 space-y-3">
+            <h3 className="text-sm font-semibold">ENDEREÇO ENCONTRADO</h3>
+            <dl className="grid grid-cols-2 gap-3">
+              <CampoConsulta label="CEP" valor={dados.endereco.cep} />
+              <CampoConsulta label="Tipo de Logradouro" valor={dados.tipoLogradouro} />
+              <CampoConsulta label="Logradouro" valor={dados.logradouro} />
+              <CampoConsulta label="Número" valor={dados.endereco.numero} />
+              <CampoConsulta label="Complemento" valor={dados.endereco.complemento} />
+              <CampoConsulta label="Bairro" valor={dados.endereco.bairro} />
+              <CampoConsulta label="Cidade" valor={dados.endereco.cidade} />
+              <CampoConsulta label="UF" valor={dados.endereco.uf} />
+            </dl>
+          </section>
+          <section className="border-t pt-4 space-y-3">
+            <h3 className="text-sm font-semibold">CONTATO</h3>
+            <dl className="grid grid-cols-1 sm:grid-cols-2 gap-3"><CampoConsulta label="Telefone" valor={dados.telefone} /><CampoConsulta label="E-mail" valor={dados.email} /></dl>
+          </section>
+        </div>}
+        <div className="flex flex-wrap justify-end gap-2 border-t pt-4">
+          <Button type="button" variant="outline" onClick={() => setDados(null)}>Cancelar</Button>
+          <Button type="button" onClick={() => { if (!dados) return; onAplicar(dados); setDados(null); }}>Usar estes dados</Button>
+        </div>
+      </DialogContent>
+    </Dialog>
   </div>;
 }
