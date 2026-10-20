@@ -22,7 +22,7 @@ export type TomSituacaoCnpj = "verde" | "amarelo" | "vermelho" | "neutro";
 export function rotuloSituacaoCnpj(situacao: string): { rotulo: string; tom: TomSituacaoCnpj } | null {
   const valor = situacao.trim();
   if (!valor) return null;
-  const chave = valor.normalize("NFD").replace(/[̀-ͯ]/g, "").toUpperCase();
+  const chave = valor.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toUpperCase();
   const tons: Record<string, TomSituacaoCnpj> = { ATIVA: "verde", SUSPENSA: "amarelo", BAIXADA: "vermelho", INAPTA: "vermelho", NULA: "vermelho" };
   return { rotulo: `CNPJ ${chave}`, tom: tons[chave] ?? "neutro" };
 }
