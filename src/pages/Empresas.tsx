@@ -128,6 +128,9 @@ export default function Empresas() {
   
   const [draftEmpresaId, setDraftEmpresaId] = useState<string | null>(null);
   const [form, setForm] = useState(emptyForm);
+  // Situação do CNPJ vinda da consulta pública — apenas informativa, nunca grava.
+  const [situacaoConsultaCnpj, setSituacaoConsultaCnpj] = useState("");
+  const registrarSituacaoCnpj = useCallback((dados: DadosCnpj | null) => setSituacaoConsultaCnpj(dados?.situacao ?? ""), []);
   const [enderecos, setEnderecos] = useState(() => carregarEnderecos("", null));
   const [dataImplantacao, setDataImplantacao] = useState("");
   const [dataVencimentoFatura, setDataVencimentoFatura] = useState<number | "">("");
@@ -663,6 +666,7 @@ export default function Empresas() {
     setNaoReajGrupo(false);
     setEnderecos(carregarEnderecos("", null));
     setForm(emptyForm);
+    setSituacaoConsultaCnpj("");
     setEditingId(null);
   };
 
