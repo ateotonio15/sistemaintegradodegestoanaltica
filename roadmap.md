@@ -41,3 +41,9 @@
 - [x] Rótulo "Situação Cadastral do CNPJ" com selo colorido (CNPJ ATIVA verde, SUSPENSA âmbar, BAIXADA/INAPTA/NULA vermelho) e "Situação desde" em DD/MM/AAAA.
 - [x] Aviso "Não altera o status da empresa no sistema."; situação do CNPJ nunca preenche o status interno (camposFormularioCnpj não mapeia situação).
 - [x] Função consultar-cnpj passa a retornar data_situacao_cadastral; 14 testes; conferência visual com resposta fictícia, sem gravações.
+
+## Selo de situação do CNPJ na lista de empresas (20/10/2026)
+- Botão de consulta (lupa) ao lado de cada CNPJ na lista de Empresas; ao clicar, mostra o selo colorido (ex.: "CNPJ ATIVA") inline.
+- Consulta sob demanda (limite da API pública) com cache em memória por CNPJ na sessão; display-only, nunca grava.
+- Componente `SituacaoCnpjLista` em `src/components/empresas/ConsultarCnpj.tsx`; célula CNPJ em `Empresas.tsx`.
+- Verificado: tsgo limpo, 16 testes, Playwright com consulta real (selo "CNPJ ATIVA" na lista).
