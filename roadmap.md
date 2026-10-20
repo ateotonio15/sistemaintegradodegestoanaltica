@@ -47,3 +47,9 @@
 - Consulta sob demanda (limite da API pública) com cache em memória por CNPJ na sessão; display-only, nunca grava.
 - Componente `SituacaoCnpjLista` em `src/components/empresas/ConsultarCnpj.tsx`; célula CNPJ em `Empresas.tsx`.
 - Verificado: tsgo limpo, 16 testes, Playwright com consulta real (selo "CNPJ ATIVA" na lista).
+
+## Verificação automática da situação do CNPJ (20/10/2026)
+- Sincronização automática via cron a cada minuto (função `sincronizar-situacao-cnpj`, lotes de 3, limite da API pública); resultados em `empresa_cnpj_situacao`, reconferência a cada 24h; falhas transitórias não gravam e são tentadas no ciclo seguinte.
+- Lista de Empresas mostra o selo automaticamente ao lado do CNPJ já consultado; lupa manual continua para os pendentes.
+- Filtro "Divergências CNPJ": situação diferente de ativa, erro de consulta ou endereço divergente do principal cadastrado (`divergenciaCnpj` em `src/lib/consulta-cnpj.ts`).
+- Verificado: 23 testes, tsgo limpo, Playwright (selos automáticos + filtro), sincronização gravando "Ativa" no banco.
