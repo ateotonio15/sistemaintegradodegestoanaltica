@@ -71,6 +71,7 @@ export function ConsultarCnpj({ cnpj, onAplicar, onDados }: { cnpj: string; onAp
       const resultado = mapearDadosCnpj(data);
       if (!resultado) { setErro(ERRO_CONSULTA_CNPJ); return; }
       setDados(resultado);
+      notificarDados.current?.(resultado);
     } catch { if (id === tentativa.current) setErro(ERRO_CONSULTA_CNPJ); }
     finally { if (id === tentativa.current) setCarregando(false); }
   };
