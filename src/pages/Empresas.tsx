@@ -47,6 +47,7 @@ import { useGrupoFinanceiro } from "@/hooks/useGrupoFinanceiro";
 import { ResponsavelLockDialog } from "@/components/empresas/ResponsavelLockDialog";
 import { EmpresaEnderecosFields, EmpresaEnderecosConsulta } from "@/components/empresas/EmpresaEnderecosFields";
 import { carregarEnderecos, prepararEnderecos } from "@/lib/empresa-enderecos";
+import { ConsultarCnpj } from "@/components/empresas/ConsultarCnpj";
 
 type Empresa = Tables<"empresas">;
 
@@ -1177,6 +1178,7 @@ export default function Empresas() {
                       <div className="space-y-2">
                         <Label className="text-sm font-medium">CNPJ</Label>
                         <Input value={form.cnpj ?? ""} onChange={(e) => setForm({ ...form, cnpj: e.target.value })} className="rounded-lg" />
+                        <ConsultarCnpj key={editingId ?? "novo"} cnpj={form.cnpj ?? ""} />
                       </div>
                       <div className="space-y-2">
                         <Label className="text-sm font-medium">Código do Contrato *</Label>
@@ -1851,6 +1853,7 @@ export default function Empresas() {
                 <DialogHeader><DialogTitle>{isEnfermeira ? "Editar Contato" : "Editar Informações"}</DialogTitle></DialogHeader>
                 <form onSubmit={(e) => { e.preventDefault(); upsert.mutate(form); }} className="space-y-5">
                   <div className="grid gap-4">
+                    <div className="space-y-2"><Label className="text-sm font-medium">CNPJ</Label><Input value={form.cnpj ?? ""} readOnly /><ConsultarCnpj key={editingId ?? "restrito"} cnpj={form.cnpj ?? ""} /></div>
                     <div className="space-y-2">
                       <Label className="text-sm font-medium">Contato da Empresa</Label>
                       <Input value={(form as any).contato_empresa ?? ""} onChange={(e) => setForm({ ...form, contato_empresa: e.target.value } as any)} placeholder="Nome do contato" className="rounded-lg" />
