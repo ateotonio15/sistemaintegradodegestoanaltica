@@ -22,9 +22,10 @@ export type TomSituacaoCnpj = "verde" | "amarelo" | "vermelho" | "neutro";
 export function rotuloSituacaoCnpj(situacao: string): { rotulo: string; tom: TomSituacaoCnpj } | null {
   const valor = situacao.trim();
   if (!valor) return null;
-  const chave = valor.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toUpperCase();
+  const rotulo = valor.toUpperCase();
+  const chave = rotulo.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
   const tons: Record<string, TomSituacaoCnpj> = { ATIVA: "verde", SUSPENSA: "amarelo", BAIXADA: "vermelho", INAPTA: "vermelho", NULA: "vermelho" };
-  return { rotulo: `CNPJ ${chave}`, tom: tons[chave] ?? "neutro" };
+  return { rotulo: `CNPJ ${rotulo}`, tom: tons[chave] ?? "neutro" };
 }
 export function formatarDataSituacaoCnpj(iso: string): string {
   const match = /^(\d{4})-(\d{2})-(\d{2})/.exec(iso.trim());
