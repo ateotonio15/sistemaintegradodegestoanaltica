@@ -43,7 +43,7 @@ export type SituacaoCnpjRegistro = {
   consultado_em: string;
 };
 
-const normTexto = (s: string) => s.toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "").trim();
+const normTexto = (s: string) => s.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim();
 
 // Compara o endereço retornado pela consulta com o endereço principal cadastrado.
 // Só acusa divergência quando há dados suficientes dos dois lados.
