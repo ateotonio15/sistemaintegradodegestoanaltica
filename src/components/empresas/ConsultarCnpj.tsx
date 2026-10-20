@@ -3,7 +3,29 @@ import { Search, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { supabase } from "@/integrations/supabase/client";
-import { DadosCnpj, ERRO_CONSULTA_CNPJ, mapearDadosCnpj, normalizarCnpjConsulta } from "@/lib/consulta-cnpj";
+import { DadosCnpj, ERRO_CONSULTA_CNPJ, formatarDataSituacaoCnpj, mapearDadosCnpj, normalizarCnpjConsulta, rotuloSituacaoCnpj, TomSituacaoCnpj } from "@/lib/consulta-cnpj";
+
+const TONS_SITUACAO: Record<TomSituacaoCnpj, string> = {
+  verde: "bg-emerald-500/15 text-emerald-700 border-emerald-500/30",
+  amarelo: "bg-amber-500/15 text-amber-700 border-amber-500/30",
+  vermelho: "bg-destructive/15 text-destructive border-destructive/30",
+  neutro: "bg-muted text-muted-foreground border-border",
+};
+
+function SituacaoCnpj({ dados }: { dados: DadosCnpj }) {
+  const situacao = rotuloSituacaoCnpj(dados.situacao);
+  const desde = formatarDataSituacaoCnpj(dados.situacaoDesde);
+  return <div className="min-w-0 space-y-1">
+    <dt className="text-xs text-muted-foreground">Situação Cadastral do CNPJ</dt>
+    <dd>
+      {situacao
+        ? <span className={`inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold ${TONS_SITUACAO[situacao.tom]}`}>{situacao.rotulo}</span>
+        : <span className="text-sm font-medium">Não informado</span>}
+    </dd>
+    {desde && <dd className="text-xs text-muted-foreground">Situação desde: {desde}</dd>}
+    <dd className="text-xs text-muted-foreground">Não altera o status da empresa no sistema.</dd>
+  </div>;
+}
 
 function CampoConsulta({ label, valor, vazio }: { label: string; valor: string; vazio?: string }) {
   return <div className="min-w-0"><dt className="text-xs text-muted-foreground">{label}</dt><dd className="break-words text-sm font-medium">{valor || vazio || "Não informado"}</dd></div>;
@@ -48,7 +70,7 @@ export function ConsultarCnpj({ cnpj, onAplicar }: { cnpj: string; onAplicar: (d
             <CampoConsulta label="Razão Social" valor={dados.nome} />
             <CampoConsulta label="Nome Fantasia" valor={dados.fantasia} vazio="Nome fantasia não informado" />
             <CampoConsulta label="CNPJ" valor={dados.cnpj || cnpj} />
-            <CampoConsulta label="Situação Cadastral" valor={dados.situacao} />
+            <SituacaoCnpj dados={dados} />
           </dl>
           <section className="border-t pt-4 space-y-3">
             <h3 className="text-sm font-semibold">ENDEREÇO ENCONTRADO</h3>
