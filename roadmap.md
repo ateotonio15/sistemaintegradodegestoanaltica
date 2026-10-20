@@ -1,5 +1,10 @@
 # Roadmap — Primeiro pacote financeiro
 
+## Plantão LSL — 20/10/2026
+- [x] Reunir os históricos duplicados da LSL no cartão de outubro, sem apagar registros ou alterar permissões.
+- [x] Conferir o plantão de 20/10 na tela com a sessão disponível: 32 plantões e 397 atendimentos preservados.
+- [ ] Testar com a conta de Ana: bloqueado por falta de permissão para abrir uma sessão dessa usuária; requer login dela no preview.
+
 ## Registro de Reclamações — pedido atual
 - [x] Persistir filtros durante navegação e operações.
 - [x] Duplicar com data atual e resoluções reiniciadas; preservar CPF na edição.
