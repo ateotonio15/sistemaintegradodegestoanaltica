@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { regexRetroativoNf } from "@/lib/pdf-analysis-utils";
+import { regexRetroativoNf } from "@/lib/retroativo-nf";
 
 const soma = (t: string) =>
   [...t.matchAll(regexRetroativoNf())].reduce(
