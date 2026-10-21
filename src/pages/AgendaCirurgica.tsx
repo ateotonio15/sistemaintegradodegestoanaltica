@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "react-router-dom";
 import * as XLSX from "xlsx";
-import { ArrowLeft, Download, RefreshCw, Search, Stethoscope } from "lucide-react";
+import { ArrowLeft, Download, KeyRound, RefreshCw, Search, Stethoscope } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -11,7 +11,11 @@ import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { AgendamentoCirurgico, FiltrosAgenda, detalharAgendamento, isoParaBr, listarAgendamentos } from "@/lib/agendaCirurgicaApi";
+import {
+  AgendamentoCirurgico, FiltrosAgenda,
+  detalharAgendamento, detalharAgendamentoDireto, isoParaBr,
+  lerChaveDireta, listarAgendamentos, listarAgendamentosDireto, salvarChaveDireta,
+} from "@/lib/agendaCirurgicaApi";
 
 const pad = (n: number) => String(n).padStart(2, "0");
 const hoje = () => { const d = new Date(); return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`; };
@@ -20,22 +24,29 @@ function Campo({ l, v }: { l: string; v?: string | number | null }) {
   return <div><div className="text-xs text-muted-foreground">{l}</div><div className="text-sm">{v === undefined || v === null || v === "" ? "—" : v}</div></div>;
 }
 
+type ModoAcesso = "servidor" | "direto";
+
 export default function AgendaCirurgica() {
   const { user } = useAuth();
   const [form, setForm] = useState({ ini: hoje(), fim: hoje(), nm_paciente: "", nm_empresa: "", ie_status_agenda: "", cd_agenda: "", cd_medico: "", cd_convenio: "" });
   const [filtros, setFiltros] = useState<FiltrosAgenda>({ dt_inicio: isoParaBr(hoje()), dt_fim: isoParaBr(hoje()), page: 1, limit: 50 });
   const [sel, setSel] = useState<AgendamentoCirurgico | null>(null);
   const [exportando, setExportando] = useState(false);
+  const [modo, setModo] = useState<ModoAcesso>("servidor");
+  const [chave, setChave] = useState<string>(() => lerChaveDireta());
+
+  const direto = modo === "direto";
+  const prontoDireto = !direto || !!chave.trim();
 
   const { data, isLoading, isFetching, error, refetch } = useQuery({
-    queryKey: ["agenda-cirurgica", filtros],
-    queryFn: () => listarAgendamentos(filtros),
-    enabled: !!user, retry: false,
+    queryKey: ["agenda-cirurgica", modo, filtros],
+    queryFn: () => (direto ? listarAgendamentosDireto(filtros, chave.trim()) : listarAgendamentos(filtros)),
+    enabled: !!user && prontoDireto, retry: false,
   });
   const det = useQuery({
-    queryKey: ["agenda-cirurgica-det", sel?.nr_sequencia],
-    queryFn: () => detalharAgendamento(sel!.nr_sequencia),
-    enabled: !!sel, retry: false,
+    queryKey: ["agenda-cirurgica-det", modo, sel?.nr_sequencia],
+    queryFn: () => (direto ? detalharAgendamentoDireto(sel!.nr_sequencia, chave.trim()) : detalharAgendamento(sel!.nr_sequencia)),
+    enabled: !!sel && prontoDireto, retry: false,
   });
   const item: AgendamentoCirurgico | null = sel ? ((det.data?.dados ?? det.data) as any)?.nr_sequencia ? (det.data?.dados ?? det.data) : sel : null;
 
@@ -44,6 +55,12 @@ export default function AgendaCirurgica() {
     ie_status_agenda: form.ie_status_agenda, cd_agenda: form.cd_agenda, cd_medico: form.cd_medico, cd_convenio: form.cd_convenio, page: 1, limit: 50,
   });
   const set = (k: keyof typeof form) => (e: React.ChangeEvent<HTMLInputElement>) => setForm((f) => ({ ...f, [k]: e.target.value }));
+
+  const trocarModo = (m: ModoAcesso) => { setModo(m); setSel(null); };
+  const atualizarChave = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setChave(e.target.value);
+    salvarChaveDireta(e.target.value.trim());
+  };
 
   const exportar = async () => {
     setExportando(true);
