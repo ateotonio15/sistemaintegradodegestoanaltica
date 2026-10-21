@@ -102,6 +102,26 @@ export default function AgendaCirurgica() {
         </div>
       </div>
 
+      <Card className="p-4 space-y-3">
+        <div className="flex items-center gap-2 flex-wrap">
+          <span className="text-xs text-muted-foreground">Modo de acesso:</span>
+          <Button size="sm" variant={modo === "servidor" ? "default" : "outline"} onClick={() => trocarModo("servidor")}>Servidor (nuvem)</Button>
+          <Button size="sm" variant={modo === "direto" ? "default" : "outline"} onClick={() => trocarModo("direto")}>Direto (rede interna/VPN)</Button>
+          {direto && <Badge variant="secondary">Chamada direta do navegador</Badge>}
+        </div>
+        {direto && (
+          <div className="rounded-md border border-border bg-muted/40 p-3 space-y-2">
+            <div className="flex items-center gap-2 text-sm font-medium"><KeyRound className="h-4 w-4 text-primary" />Chave da API (x-api-key)</div>
+            <Input type="password" value={chave} onChange={atualizarChave} placeholder="Cole aqui a chave fornecida pela TI da Samel" autoComplete="off" />
+            <p className="text-xs text-muted-foreground">
+              Neste modo o navegador chama a API da Samel diretamente — funciona apenas na rede interna da Samel ou com a VPN ligada.
+              A chave fica guardada somente nesta sessão do navegador e não vai para o código nem para o banco.
+            </p>
+            {!chave.trim() && <p className="text-xs text-destructive">Informe a chave para habilitar a busca.</p>}
+          </div>
+        )}
+      </Card>
+
       <Card className="p-4">
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
           <div><label className="text-xs text-muted-foreground">Data início</label><Input type="date" value={form.ini} onChange={set("ini")} /></div>
