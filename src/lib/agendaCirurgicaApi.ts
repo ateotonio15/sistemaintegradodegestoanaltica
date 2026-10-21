@@ -147,6 +147,17 @@ function montarQueryListagem(f: FiltrosAgenda): string {
   return p.toString();
 }
 
+export const listarProcedimentosPendentesDireto = async (filtros: FiltrosPendentes, chave: string) => {
+  const p = new URLSearchParams({
+    dt_inicio: filtros.dt_inicio, dt_final: filtros.dt_final,
+    cd_cgc: filtros.cd_cgc || "0", cd_procedimento: filtros.cd_procedimento || "0",
+  });
+  const base = normalizarBaseAgenda(lerServidorAgenda().url) || SERVIDORES_AGENDA.producao;
+  const r = await chamarDireto<RelatorioPendentesResponse & { sucesso?: boolean; mensagem?: string }>(`${base}/relatorio/procedimentos-pendentes-empresa?${p}`, chave);
+  if (r && r.sucesso === false) throw new Error(r.mensagem ?? "A API não retornou os pendentes.");
+  return r;
+};
+
 export const listarAgendamentosDireto = (filtros: FiltrosAgenda, chave: string) =>
   chamarDireto<RespostaAgenda>(`${baseDireta()}/agendamentos?${montarQueryListagem(filtros)}`, chave);
 

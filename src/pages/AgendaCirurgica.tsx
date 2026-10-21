@@ -110,10 +110,6 @@ export default function AgendaCirurgica() {
         </div>}
       </div>
 
-      <Tabs value={aba} onValueChange={v => {setSel(null);setParams(p => { const next = new URLSearchParams(p); next.set("aba",v);return next; });}}>
-      <TabsList className="h-auto flex-wrap justify-start"><TabsTrigger value="agenda">Agendamentos</TabsTrigger><TabsTrigger value="pendentes" className="whitespace-normal text-left">Procedimentos Pendentes por Empresa</TabsTrigger></TabsList>
-      <TabsContent value="pendentes"><RelatorioPendentesEmpresa /></TabsContent>
-      <TabsContent value="agenda" className="space-y-4">
       <Card className="p-4 space-y-3">
         <div className="flex items-center gap-2 flex-wrap">
           <span className="text-xs text-muted-foreground">Modo de acesso:</span>
@@ -134,12 +130,18 @@ export default function AgendaCirurgica() {
             <Input type="password" value={chave} onChange={atualizarChave} placeholder="Cole aqui a chave fornecida pela TI da Samel" autoComplete="off" />
             <p className="text-xs text-muted-foreground">
               Neste modo o navegador chama a API da Samel diretamente — funciona apenas na rede interna da Samel ou com a VPN ligada.
-              A chave fica guardada somente nesta sessão do navegador e não vai para o código nem para o banco.
+              A chave fica guardada somente nesta sessão do navegador e não vai para o código nem para o banco. Vale para as duas abas.
             </p>
             {!chave.trim() && <p className="text-xs text-destructive">Informe a chave para habilitar a busca.</p>}
           </div>
         )}
       </Card>
+
+      <Tabs value={aba} onValueChange={v => {setSel(null);setParams(p => { const next = new URLSearchParams(p); next.set("aba",v);return next; });}}>
+      <TabsList className="h-auto flex-wrap justify-start"><TabsTrigger value="agenda">Agendamentos</TabsTrigger><TabsTrigger value="pendentes" className="whitespace-normal text-left">Procedimentos Pendentes por Empresa</TabsTrigger></TabsList>
+      <TabsContent value="pendentes"><RelatorioPendentesEmpresa direto={direto} chave={chave.trim()} servidorUrl={servidor.url} /></TabsContent>
+      <TabsContent value="agenda" className="space-y-4">
+
 
       <Card className="p-4">
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
