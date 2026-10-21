@@ -109,7 +109,8 @@ function sumExcelTotal(r: AnaliseResultado): number {
 
 /**
  * Total do PDF preservando ausência e falha de leitura (item 6):
- * - componente `null` = valor não encontrado no PDF (desconhecido), NÃO zero;
+ * - categoria explicitamente `null` = não aplicável; valor `pdf: null`
+ *   em categoria presente = desconhecido, NÃO zero;
  * - se qualquer componente relevante for desconhecido, o total é null
  *   (inconclusivo) — ausência nunca produz um "total confirmado de zero";
  * - zero explícito em todos os componentes continua sendo zero válido.
@@ -120,18 +121,20 @@ export function sumPdfTotal(c: ComparacaoResultado | ComparacaoSimplificada | nu
     // simplificada: inclusões/exclusões desconhecidas (pdf null) tornam o
     // total inconclusivo; zero explícito permanece zero.
     const s = c as ComparacaoSimplificada;
-    const partes = [s.inclusoes?.pdf ?? null, s.exclusoes?.pdf ?? null];
+    const partes = [s.inclusoes, s.exclusoes].filter(p => p !== null).map(p => p?.pdf ?? null);
+    if (!partes.length) return null;
     if (partes.some((p) => p === null)) return null;
-    return Number(((partes[0] as number) + (partes[1] as number)).toFixed(2));
+    return Number((partes as number[]).reduce((a, b) => a + b, 0).toFixed(2));
   }
   const cr = c as ComparacaoResultado;
   const partes = [
-    cr.enfermaria?.total?.pdf ?? null,
-    cr.apartamento?.total?.pdf ?? null,
-    cr.inclusoes?.total?.pdf ?? null,
-    (cr as any).exclusoes?.total?.pdf ?? null,
-    (cr as any).devolucoes?.total?.pdf ?? null,
-  ];
+    cr.enfermaria,
+    cr.apartamento,
+    cr.inclusoes,
+    cr.exclusoes,
+    cr.devolucoes,
+  ].filter(p => p !== null).map(p => p?.total?.pdf ?? null);
+  if (!partes.length) return null;
   if (partes.some((p) => p === null)) return null;
   const soma = (partes as number[]).reduce((acc, v) => acc + v, 0);
   return Number(soma.toFixed(2));

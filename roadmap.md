@@ -1,5 +1,12 @@
 # Roadmap — Primeiro pacote financeiro
 
+## Revisão dos quatro apontamentos de monitoramento
+- [x] Restaurar limpeza de ID do rascunho, implantação, dias de fatura e desbloqueio do responsável; dois cadastros consecutivos com IDs distintos conferidos com gravações interceptadas, cancelar/reabrir limpa datas.
+- [x] Permissões de reajustes: evidência antiga; consulta das políticas atuais confirma INSERT para admin/diretora e Cadastro/Administradoras vinculados; Visualização só lê. Nenhuma ampliação nem migração; origem dos logs de 01/10 não identifica usuário/empresa.
+- [x] Troca de setor limpa tipo/reclamação; troca de tipo limpa reclamação; combinação incompatível bloqueada no envio. Fluxo conferido na sessão atual sem gravações.
+- [x] Total PDF ignora apenas categoria explicitamente não aplicável, incluindo simplificada; valores desconhecidos/omitidos e ausência total continuam inconclusivos.
+- [x] 59 testes aprovados e tela sem erros; gravação real de empresas e execução financeira real não realizadas para não alterar dados da operação.
+
 ## Agenda Cirúrgica — relatório pendentes
 - [x] Adicionar abas, relatório, filtros, indicadores, exportações e impressão.
 - [x] Consultar relatório com a chave existente exclusivamente no ENV do servidor; não expor via VITE. Modo direto manual anterior preservado apenas nos agendamentos; não usado no novo relatório.

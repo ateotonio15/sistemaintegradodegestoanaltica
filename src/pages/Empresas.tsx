@@ -670,6 +670,11 @@ export default function Empresas() {
     setForm(emptyForm);
     setSituacaoConsultaCnpj("");
     setEditingId(null);
+    setDraftEmpresaId(null);
+    setDataImplantacao("");
+    setDataVencimentoFatura("");
+    setDataEmissaoFatura("");
+    setRespUnlocked(false);
   };
 
   const openEdit = (e: Empresa) => {

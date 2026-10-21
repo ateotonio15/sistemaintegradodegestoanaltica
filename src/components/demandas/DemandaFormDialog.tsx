@@ -23,7 +23,7 @@ import { Loader2, WandSparkles } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useCreateDemanda, useUpdateDemanda } from "@/hooks/useDemandas";
-import { preservarCpf } from "@/lib/demanda-form-utils";
+import { preservarCpf, atualizarClassificacaoManual, classificacaoCompativel } from "@/lib/demanda-form-utils";
 import { sugerirReclamacao, type ClassificacaoIA } from "@/lib/reclamacao-ia";
 import type { Demanda } from "@/lib/demandas-utils";
 import { format } from "date-fns";
@@ -215,6 +215,7 @@ export default function DemandaFormDialog({ open, onOpenChange, demanda, initial
     if (!form.setor_responsavel) return toast.error("Selecione o setor responsável");
     if (!form.tipo_reclamacao) return toast.error("Selecione o tipo de reclamação");
     if (!form.reclamacao) return toast.error("Selecione a reclamação");
+    if (!classificacaoCompativel(form)) return toast.error("Selecione uma reclamação compatível com o setor e o tipo informados");
     if (!form.empresa) return toast.error("Selecione a empresa");
 
     if (isSurgical(form.reclamacao)) {
@@ -300,8 +301,7 @@ export default function DemandaFormDialog({ open, onOpenChange, demanda, initial
             <Select
               value={form.setor_responsavel || ""}
               onValueChange={(v) =>
-                // correção manual não apaga os demais campos
-                { manualClassificacao.current = true; aiController.current?.abort(); setForm((p) => ({ ...p, setor_responsavel: v })); }
+                { manualClassificacao.current = true; aiController.current?.abort(); setForm((p) => atualizarClassificacaoManual(p, "setor_responsavel", v)); }
               }
             >
               <SelectTrigger><SelectValue placeholder="Selecione..." /></SelectTrigger>
@@ -317,8 +317,7 @@ export default function DemandaFormDialog({ open, onOpenChange, demanda, initial
             <Select
               value={form.tipo_reclamacao || ""}
               onValueChange={(v) =>
-                // correção manual não apaga os demais campos
-                { manualClassificacao.current = true; aiController.current?.abort(); setForm((p) => ({ ...p, tipo_reclamacao: v })); }
+                { manualClassificacao.current = true; aiController.current?.abort(); setForm((p) => atualizarClassificacaoManual(p, "tipo_reclamacao", v)); }
               }
               disabled={!form.setor_responsavel}
             >
