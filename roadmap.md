@@ -1,5 +1,11 @@
 # Roadmap — Primeiro pacote financeiro
 
+## Agenda Cirúrgica — relatório pendentes
+- [x] Adicionar abas, relatório, filtros, indicadores, exportações e impressão.
+- [x] Consultar relatório com a chave existente exclusivamente no ENV do servidor; não expor via VITE. Modo direto manual anterior preservado apenas nos agendamentos; não usado no novo relatório.
+- [x] Sete testes aprovados; sessão real da solicitante, abas, filtro de risco, busca e CSV conferidos com resposta simulada sem gravações.
+- [ ] Validar resultados reais, impressão e exportação com dados da Samel: consulta autenticada não respondeu após 30s; bloqueado pela conectividade da nuvem com a rede interna, depende da TI Samel.
+
 ## Endereços em Editar Informações
 - [x] Ampliar confirmação da consulta CNPJ com identificação, endereço e contato; aplicar somente após confirmação, preservando ausentes, secundários e permissões. Dezessete testes aprovados; consulta real autenticada conferida e Cancelar/Usar estes dados testados com resposta fictícia, sem gravações na operação. Nome Fantasia não existe no formulário atual e fica somente na consulta; Executivo preserva a restrição do nome. Campos de endereço e contato continuam editáveis; salvar permanece separado.
 - [x] Adicionar campos "Razão Social" e "Nome Fantasia" abaixo do "Nome" no formulário de empresas (colunas novas na tabela), preenchidos pela consulta de CNPJ; API sem nome fantasia nunca inventa valor, exibe "Nome fantasia não informado" na consulta e como dica no campo, que continua editável. Onze testes aprovados; formulário e aplicação conferidos com resposta fictícia no navegador, sem gravações na operação.

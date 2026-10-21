@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { Link } from "react-router-dom";
+import { Link, useSearchParams } from "react-router-dom";
 import * as XLSX from "xlsx";
 import { ArrowLeft, Download, KeyRound, RefreshCw, Search, Server, Stethoscope } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
@@ -12,6 +12,8 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { SelecionarServidorAgenda } from "@/components/agenda/SelecionarServidorAgenda";
+import { RelatorioPendentesEmpresa } from "@/components/agenda/RelatorioPendentesEmpresa";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import {
   AgendamentoCirurgico, ConfigServidorAgenda, FiltrosAgenda,
   detalharAgendamento, detalharAgendamentoDireto, isoParaBr, lerServidorAgenda,
@@ -29,6 +31,8 @@ type ModoAcesso = "servidor" | "direto";
 
 export default function AgendaCirurgica() {
   const { user } = useAuth();
+  const [params, setParams] = useSearchParams();
+  const aba = params.get("aba") === "pendentes" ? "pendentes" : "agenda";
   const [form, setForm] = useState({ ini: hoje(), fim: hoje(), nm_paciente: "", nm_empresa: "", ie_status_agenda: "", cd_agenda: "", cd_medico: "", cd_convenio: "" });
   const [filtros, setFiltros] = useState<FiltrosAgenda>({ dt_inicio: isoParaBr(hoje()), dt_fim: isoParaBr(hoje()), page: 1, limit: 50 });
   const [sel, setSel] = useState<AgendamentoCirurgico | null>(null);
@@ -45,11 +49,11 @@ export default function AgendaCirurgica() {
   const { data, isLoading, isFetching, error, refetch } = useQuery({
     queryKey: ["agenda-cirurgica", chaveModo, filtros],
     queryFn: () => (direto ? listarAgendamentosDireto(filtros, chave.trim()) : listarAgendamentos(filtros)),
-    enabled: !!user && prontoDireto, retry: false,
+    enabled: !!user && prontoDireto && aba === "agenda", retry: false,
   });
   const det = useQuery({
     queryKey: ["agenda-cirurgica-det", chaveModo, sel?.nr_sequencia],
-    queryFn: () => (direto ? detalharAgendamentoDireto(sel!.nr_sequencia, chave.trim()) : detalharAgendamento(sel!.nr_sequencia)),
+    queryFn: () => { if (!sel) throw new Error("Selecione um agendamento."); return direto ? detalharAgendamentoDireto(sel.nr_sequencia, chave.trim()) : detalharAgendamento(sel.nr_sequencia); },
     enabled: !!sel && prontoDireto, retry: false,
   });
   const item: AgendamentoCirurgico | null = sel ? ((det.data?.dados ?? det.data) as any)?.nr_sequencia ? (det.data?.dados ?? det.data) : sel : null;
@@ -100,12 +104,16 @@ export default function AgendaCirurgica() {
           <Stethoscope className="h-6 w-6 text-primary" />
           <div><h1 className="text-xl font-semibold">Agenda Cirúrgica</h1><p className="text-sm text-muted-foreground">Agendamentos cirúrgicos Samel</p></div>
         </div>
-        <div className="flex gap-2">
+        {aba === "agenda" && <div className="flex gap-2">
           <Button variant="outline" size="sm" onClick={() => refetch()} disabled={isFetching}><RefreshCw className={`h-4 w-4 mr-1 ${isFetching ? "animate-spin" : ""}`} />Atualizar</Button>
           <Button size="sm" onClick={exportar} disabled={exportando || !data?.total}><Download className="h-4 w-4 mr-1" />{exportando ? "Exportando..." : "Exportar Excel"}</Button>
-        </div>
+        </div>}
       </div>
 
+      <Tabs value={aba} onValueChange={v => {setSel(null);setParams(p => { const next = new URLSearchParams(p); next.set("aba",v);return next; });}}>
+      <TabsList className="h-auto flex-wrap justify-start"><TabsTrigger value="agenda">Agendamentos</TabsTrigger><TabsTrigger value="pendentes" className="whitespace-normal text-left">Procedimentos Pendentes por Empresa</TabsTrigger></TabsList>
+      <TabsContent value="pendentes"><RelatorioPendentesEmpresa /></TabsContent>
+      <TabsContent value="agenda" className="space-y-4">
       <Card className="p-4 space-y-3">
         <div className="flex items-center gap-2 flex-wrap">
           <span className="text-xs text-muted-foreground">Modo de acesso:</span>
@@ -217,6 +225,8 @@ export default function AgendaCirurgica() {
           )}
         </DialogContent>
       </Dialog>
+      </TabsContent>
+      </Tabs>
     </div>
   );
 }
