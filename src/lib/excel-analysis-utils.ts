@@ -890,8 +890,17 @@ export function compararExcelComPdf(
   if (excel.inclusoes.quantidade > 0 || excel.inclusoes.total !== 0 || (pdfIncTotal ?? 0) > 0) {
     const c = campo(excel.inclusoes.total, pdfIncTotal && pdfIncTotal > 0 ? pdfIncTotal : null, "money");
     inclusoes = { total: c };
-    if (pdf && (!pdfIncTotal || pdfIncTotal <= 0) && excel.inclusoes.total !== 0)
-      divergencias.push("Valor de inclusões não encontrado no PDF.");
+    if (pdf && (!pdfIncTotal || pdfIncTotal <= 0) && excel.inclusoes.total !== 0) {
+      // Retroativos fazem parte do agregado de inclusões; quando o Excel só
+      // tem retroativo, a mensagem deve falar em retroativo, não inclusão.
+      const retroTotal = excel.retroativas?.total ?? 0;
+      const soRetro = retroTotal > 0 && Math.abs(excel.inclusoes.total - retroTotal) < 0.01;
+      divergencias.push(
+        soRetro
+          ? "Valor de cobrança retroativa não encontrado no PDF."
+          : "Valor de inclusões não encontrado no PDF.",
+      );
+    }
     else if (pdf && !c.ok)
       divergencias.push(
         `Valor de inclusões divergente (Excel ${formatBRL(excel.inclusoes.total)} × PDF ${formatBRL(pdfIncTotal!)}).`,
