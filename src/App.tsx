@@ -74,6 +74,7 @@ import MeuPainel from "./pages/MeuPainel";
 import EmpresasAcesso from "./pages/EmpresasAcesso";
 import AnaliseContrato from "./pages/AnaliseContrato";
 import ProducaoGuias from "./pages/ProducaoGuias";
+import AgendaCirurgica from "./pages/AgendaCirurgica";
 import DependentesUEA from "./pages/DependentesUEA";
 import { useMinhaPermissaoUea } from "@/hooks/useUeaPermissoes";
 
@@ -270,6 +271,7 @@ const AppRoutes = () => (
 
       <Route element={<RoleGate allow={["admin", "diretora", "diretora_saude", "coordenadora", "executivo", "enfermeira", "tec_enfermagem"]} />}>
         <Route path="/producao-guias" element={<ProducaoGuias />} />
+        <Route path="/agenda-cirurgica" element={<AgendaCirurgica />} />
       </Route>
 
       <Route path="/honda-exclusoes" element={<HondaExclusoes />} />
