@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "react-router-dom";
 import * as XLSX from "xlsx";
-import { ArrowLeft, Download, RefreshCw, Search, Stethoscope } from "lucide-react";
+import { ArrowLeft, Download, KeyRound, RefreshCw, Search, Stethoscope } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -11,7 +11,11 @@ import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { AgendamentoCirurgico, FiltrosAgenda, detalharAgendamento, isoParaBr, listarAgendamentos } from "@/lib/agendaCirurgicaApi";
+import {
+  AgendamentoCirurgico, FiltrosAgenda,
+  detalharAgendamento, detalharAgendamentoDireto, isoParaBr,
+  lerChaveDireta, listarAgendamentos, listarAgendamentosDireto, salvarChaveDireta,
+} from "@/lib/agendaCirurgicaApi";
 
 const pad = (n: number) => String(n).padStart(2, "0");
 const hoje = () => { const d = new Date(); return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`; };
@@ -20,22 +24,29 @@ function Campo({ l, v }: { l: string; v?: string | number | null }) {
   return <div><div className="text-xs text-muted-foreground">{l}</div><div className="text-sm">{v === undefined || v === null || v === "" ? "—" : v}</div></div>;
 }
 
+type ModoAcesso = "servidor" | "direto";
+
 export default function AgendaCirurgica() {
   const { user } = useAuth();
   const [form, setForm] = useState({ ini: hoje(), fim: hoje(), nm_paciente: "", nm_empresa: "", ie_status_agenda: "", cd_agenda: "", cd_medico: "", cd_convenio: "" });
   const [filtros, setFiltros] = useState<FiltrosAgenda>({ dt_inicio: isoParaBr(hoje()), dt_fim: isoParaBr(hoje()), page: 1, limit: 50 });
   const [sel, setSel] = useState<AgendamentoCirurgico | null>(null);
   const [exportando, setExportando] = useState(false);
+  const [modo, setModo] = useState<ModoAcesso>("servidor");
+  const [chave, setChave] = useState<string>(() => lerChaveDireta());
+
+  const direto = modo === "direto";
+  const prontoDireto = !direto || !!chave.trim();
 
   const { data, isLoading, isFetching, error, refetch } = useQuery({
-    queryKey: ["agenda-cirurgica", filtros],
-    queryFn: () => listarAgendamentos(filtros),
-    enabled: !!user, retry: false,
+    queryKey: ["agenda-cirurgica", modo, filtros],
+    queryFn: () => (direto ? listarAgendamentosDireto(filtros, chave.trim()) : listarAgendamentos(filtros)),
+    enabled: !!user && prontoDireto, retry: false,
   });
   const det = useQuery({
-    queryKey: ["agenda-cirurgica-det", sel?.nr_sequencia],
-    queryFn: () => detalharAgendamento(sel!.nr_sequencia),
-    enabled: !!sel, retry: false,
+    queryKey: ["agenda-cirurgica-det", modo, sel?.nr_sequencia],
+    queryFn: () => (direto ? detalharAgendamentoDireto(sel!.nr_sequencia, chave.trim()) : detalharAgendamento(sel!.nr_sequencia)),
+    enabled: !!sel && prontoDireto, retry: false,
   });
   const item: AgendamentoCirurgico | null = sel ? ((det.data?.dados ?? det.data) as any)?.nr_sequencia ? (det.data?.dados ?? det.data) : sel : null;
 
@@ -45,13 +56,21 @@ export default function AgendaCirurgica() {
   });
   const set = (k: keyof typeof form) => (e: React.ChangeEvent<HTMLInputElement>) => setForm((f) => ({ ...f, [k]: e.target.value }));
 
+  const trocarModo = (m: ModoAcesso) => { setModo(m); setSel(null); };
+  const atualizarChave = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setChave(e.target.value);
+    salvarChaveDireta(e.target.value.trim());
+  };
+
   const exportar = async () => {
     setExportando(true);
     try {
       const todos: AgendamentoCirurgico[] = [];
       let p = 1, tp = 1;
       do {
-        const r = await listarAgendamentos({ ...filtros, page: p, limit: 500 });
+        const r = direto
+          ? await listarAgendamentosDireto({ ...filtros, page: p, limit: 500 }, chave.trim())
+          : await listarAgendamentos({ ...filtros, page: p, limit: 500 });
         todos.push(...(r.dados ?? [])); tp = r.total_paginas ?? 1; p++;
       } while (p <= tp && p <= 40);
       const rows = todos.map((a) => ({
@@ -82,6 +101,26 @@ export default function AgendaCirurgica() {
           <Button size="sm" onClick={exportar} disabled={exportando || !data?.total}><Download className="h-4 w-4 mr-1" />{exportando ? "Exportando..." : "Exportar Excel"}</Button>
         </div>
       </div>
+
+      <Card className="p-4 space-y-3">
+        <div className="flex items-center gap-2 flex-wrap">
+          <span className="text-xs text-muted-foreground">Modo de acesso:</span>
+          <Button size="sm" variant={modo === "servidor" ? "default" : "outline"} onClick={() => trocarModo("servidor")}>Servidor (nuvem)</Button>
+          <Button size="sm" variant={modo === "direto" ? "default" : "outline"} onClick={() => trocarModo("direto")}>Direto (rede interna/VPN)</Button>
+          {direto && <Badge variant="secondary">Chamada direta do navegador</Badge>}
+        </div>
+        {direto && (
+          <div className="rounded-md border border-border bg-muted/40 p-3 space-y-2">
+            <div className="flex items-center gap-2 text-sm font-medium"><KeyRound className="h-4 w-4 text-primary" />Chave da API (x-api-key)</div>
+            <Input type="password" value={chave} onChange={atualizarChave} placeholder="Cole aqui a chave fornecida pela TI da Samel" autoComplete="off" />
+            <p className="text-xs text-muted-foreground">
+              Neste modo o navegador chama a API da Samel diretamente — funciona apenas na rede interna da Samel ou com a VPN ligada.
+              A chave fica guardada somente nesta sessão do navegador e não vai para o código nem para o banco.
+            </p>
+            {!chave.trim() && <p className="text-xs text-destructive">Informe a chave para habilitar a busca.</p>}
+          </div>
+        )}
+      </Card>
 
       <Card className="p-4">
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3">

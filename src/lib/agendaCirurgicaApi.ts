@@ -43,3 +43,65 @@ export const healthAgenda = () => chamar<any>({ acao: "health" });
 
 /** AAAA-MM-DD → DD/MM/AAAA */
 export const isoParaBr = (s: string) => (s ? s.split("-").reverse().join("/") : "");
+
+// ---------------------------------------------------------------------------
+// Modo DIRETO: o navegador chama a API da Samel sem passar pelo nosso servidor.
+// Só funciona dentro da rede interna da Samel ou com a VPN ligada.
+// A chave é informada na tela e guardada apenas na sessão do navegador
+// (sessionStorage) — nunca no código nem no banco.
+// ---------------------------------------------------------------------------
+
+export const AGENDA_API_BASE_DIRETO = "https://api-agenda-cirurgica.samel.com.br/api/integracao";
+const CHAVE_SESSAO = "agenda_cirurgica_api_key";
+
+export const lerChaveDireta = (): string => {
+  try { return sessionStorage.getItem(CHAVE_SESSAO) ?? ""; } catch { return ""; }
+};
+export const salvarChaveDireta = (chave: string) => {
+  try {
+    if (chave) sessionStorage.setItem(CHAVE_SESSAO, chave);
+    else sessionStorage.removeItem(CHAVE_SESSAO);
+  } catch { /* ignore */ }
+};
+
+async function chamarDireto<T>(url: string, chave: string): Promise<T> {
+  let r: Response;
+  try {
+    r = await fetch(url, { headers: { Accept: "application/json", "x-api-key": chave } });
+  } catch {
+    throw new Error(
+      "Sem resposta da API. Confirme se você está na rede interna da Samel ou com a VPN ligada. " +
+      "Se estiver, a API pode estar bloqueando chamadas do navegador (CORS) — nesse caso avise a TI da Samel."
+    );
+  }
+  const texto = await r.text();
+  let corpo: any = null;
+  try { corpo = texto ? JSON.parse(texto) : null; } catch { /* resposta não-JSON */ }
+  if (!r.ok) {
+    const msg = corpo?.mensagem ?? corpo?.message ?? `A API respondeu com erro ${r.status}.`;
+    throw new Error(r.status === 401 || r.status === 403 ? `${msg} Verifique a chave informada.` : msg);
+  }
+  return corpo as T;
+}
+
+function montarQueryListagem(f: FiltrosAgenda): string {
+  const p = new URLSearchParams();
+  const add = (k: string, v?: string) => { if (v && v.trim()) p.set(k, v.trim()); };
+  add("dt_inicio", f.dt_inicio); add("dt_fim", f.dt_fim);
+  add("cd_agenda", f.cd_agenda?.replace(/\s/g, "")); add("cd_medico", f.cd_medico);
+  add("cd_convenio", f.cd_convenio); add("cd_estabelecimento", f.cd_estabelecimento);
+  add("nm_paciente", f.nm_paciente); add("nm_empresa", f.nm_empresa);
+  add("ie_status_agenda", f.ie_status_agenda);
+  p.set("page", String(Math.max(1, f.page ?? 1)));
+  p.set("limit", String(Math.min(500, Math.max(1, f.limit ?? 50))));
+  return p.toString();
+}
+
+export const listarAgendamentosDireto = (filtros: FiltrosAgenda, chave: string) =>
+  chamarDireto<RespostaAgenda>(`${AGENDA_API_BASE_DIRETO}/agendamentos?${montarQueryListagem(filtros)}`, chave);
+
+export const detalharAgendamentoDireto = (nr: number | string, chave: string) =>
+  chamarDireto<any>(`${AGENDA_API_BASE_DIRETO}/agendamentos/${nr}`, chave);
+
+export const healthAgendaDireto = () =>
+  chamarDireto<any>(`${AGENDA_API_BASE_DIRETO}/health`, lerChaveDireta());
