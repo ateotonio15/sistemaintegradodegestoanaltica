@@ -17,12 +17,13 @@ Deno.serve(async (req) => {
     new Response(JSON.stringify(b), { status, headers: { ...corsHeaders, "Content-Type": "application/json" } });
   try {
     const authHeader = req.headers.get("Authorization");
-    if (!authHeader) return json({ sucesso: false, mensagem: "Não autorizado" }, 401);
+    const semSessao = { sucesso: false, mensagem: "Sua sessão expirou. Saia e entre novamente no sistema para consultar a agenda." };
+    if (!authHeader) return json(semSessao);
     const userClient = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_ANON_KEY")!, {
       global: { headers: { Authorization: authHeader } },
     });
     const { data: u, error } = await userClient.auth.getUser();
-    if (error || !u?.user) return json({ sucesso: false, mensagem: "Não autorizado" }, 401);
+    if (error || !u?.user) return json(semSessao);
 
     const body = await req.json().catch(() => ({}));
     const acao = String(body?.acao ?? "listar");
@@ -77,7 +78,16 @@ Deno.serve(async (req) => {
       return json({ sucesso: false, mensagem: "A API da agenda cirúrgica não respondeu. Ela só é acessível na rede interna da Samel ou via VPN — use o modo \"Direto (rede interna/VPN)\" na tela." });
     }
     const text = await r.text();
-    return new Response(text, { status: r.status, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    if (!r.ok) {
+      // Erro da API Samel (ex.: chave recusada) vira falha controlada, sem quebrar a tela.
+      let m = "";
+      try { const j = JSON.parse(text); m = j?.mensagem ?? j?.message ?? ""; } catch { /* não-JSON */ }
+      const base = r.status === 401 || r.status === 403
+        ? "A API da agenda cirúrgica recusou a chave configurada no servidor."
+        : `A API da agenda cirúrgica respondeu com erro ${r.status}.`;
+      return json({ sucesso: false, mensagem: m ? `${base} (${m})` : base });
+    }
+    return new Response(text, { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } });
   } catch (e) {
     const msg = (e as Error).message;
     return json({ sucesso: false, mensagem: msg.startsWith("Parâmetro") ? msg : "Falha ao consultar a agenda cirúrgica." }, msg.startsWith("Parâmetro") ? 400 : 200);
