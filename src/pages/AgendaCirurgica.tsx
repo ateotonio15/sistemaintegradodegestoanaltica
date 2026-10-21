@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "react-router-dom";
 import * as XLSX from "xlsx";
-import { ArrowLeft, Download, KeyRound, RefreshCw, Search, Server, Stethoscope } from "lucide-react";
+import { AlertCircle, ArrowLeft, Download, RefreshCw, Search, Server, Stethoscope } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -13,9 +13,10 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { SelecionarServidorAgenda } from "@/components/agenda/SelecionarServidorAgenda";
 import {
-  AgendamentoCirurgico, ConfigServidorAgenda, FiltrosAgenda,
+  AgendamentoCirurgico, ConfigServidorAgenda, FiltrosAgenda, ModoAcesso,
   detalharAgendamento, detalharAgendamentoDireto, isoParaBr, lerServidorAgenda,
-  lerChaveDireta, listarAgendamentos, listarAgendamentosDireto, salvarChaveDireta,
+  lerChaveDireta, listarAgendamentos, listarAgendamentosDireto,
+  lerModoAgenda, salvarModoAgenda,
 } from "@/lib/agendaCirurgicaApi";
 
 const pad = (n: number) => String(n).padStart(2, "0");
@@ -25,16 +26,14 @@ function Campo({ l, v }: { l: string; v?: string | number | null }) {
   return <div><div className="text-xs text-muted-foreground">{l}</div><div className="text-sm">{v === undefined || v === null || v === "" ? "—" : v}</div></div>;
 }
 
-type ModoAcesso = "servidor" | "direto";
-
 export default function AgendaCirurgica() {
   const { user } = useAuth();
   const [form, setForm] = useState({ ini: hoje(), fim: hoje(), nm_paciente: "", nm_empresa: "", ie_status_agenda: "", cd_agenda: "", cd_medico: "", cd_convenio: "" });
   const [filtros, setFiltros] = useState<FiltrosAgenda>({ dt_inicio: isoParaBr(hoje()), dt_fim: isoParaBr(hoje()), page: 1, limit: 50 });
   const [sel, setSel] = useState<AgendamentoCirurgico | null>(null);
   const [exportando, setExportando] = useState(false);
-  const [modo, setModo] = useState<ModoAcesso>("servidor");
-  const [chave, setChave] = useState<string>(() => lerChaveDireta());
+  const [modo, setModo] = useState<ModoAcesso>(() => lerModoAgenda());
+  const [chave] = useState<string>(() => lerChaveDireta());
   const [servidor, setServidor] = useState<ConfigServidorAgenda>(() => lerServidorAgenda());
   const [selServidor, setSelServidor] = useState(false);
 
@@ -60,10 +59,10 @@ export default function AgendaCirurgica() {
   });
   const set = (k: keyof typeof form) => (e: React.ChangeEvent<HTMLInputElement>) => setForm((f) => ({ ...f, [k]: e.target.value }));
 
-  const trocarModo = (m: ModoAcesso) => { setModo(m); setSel(null); };
-  const atualizarChave = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setChave(e.target.value);
-    salvarChaveDireta(e.target.value.trim());
+  const trocarModo = (m: ModoAcesso) => {
+    setModo(m);
+    salvarModoAgenda(m);
+    setSel(null);
   };
 
   const exportar = async () => {
@@ -120,15 +119,10 @@ export default function AgendaCirurgica() {
         </div>
         <SelecionarServidorAgenda open={selServidor} onOpenChange={setSelServidor} atual={servidor}
           onSalvar={(c) => { setServidor(c); setSel(null); }} />
-        {direto && (
-          <div className="rounded-md border border-border bg-muted/40 p-3 space-y-2">
-            <div className="flex items-center gap-2 text-sm font-medium"><KeyRound className="h-4 w-4 text-primary" />Chave da API (x-api-key)</div>
-            <Input type="password" value={chave} onChange={atualizarChave} placeholder="Cole aqui a chave fornecida pela TI da Samel" autoComplete="off" />
-            <p className="text-xs text-muted-foreground">
-              Neste modo o navegador chama a API da Samel diretamente — funciona apenas na rede interna da Samel ou com a VPN ligada.
-              A chave fica guardada somente nesta sessão do navegador e não vai para o código nem para o banco.
-            </p>
-            {!chave.trim() && <p className="text-xs text-destructive">Informe a chave para habilitar a busca.</p>}
+        {direto && !chave.trim() && (
+          <div className="rounded-md border border-destructive/30 bg-destructive/10 p-3 text-xs text-destructive flex items-center gap-2">
+            <AlertCircle className="h-4 w-4 shrink-0" />
+            <span>A chave da API Samel não foi informada no arquivo <code>.env</code> (<code>VITE_AGENDA_CIRURGICA_API_KEY</code>).</span>
           </div>
         )}
       </Card>

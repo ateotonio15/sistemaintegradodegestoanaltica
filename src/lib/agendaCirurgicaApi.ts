@@ -51,8 +51,8 @@ export const isoParaBr = (s: string) => (s ? s.split("-").reverse().join("/") : 
 // ---------------------------------------------------------------------------
 // Modo DIRETO: o navegador chama a API da Samel sem passar pelo nosso servidor.
 // Só funciona dentro da rede interna da Samel ou com a VPN ligada.
-// A chave é informada na tela e guardada apenas na sessão do navegador
-// (sessionStorage) — nunca no código nem no banco.
+// A chave pode ser configurada no .env (VITE_AGENDA_CIRURGICA_API_KEY) ou
+// informada na tela (salva no localStorage do navegador para não pedir toda hora).
 // ---------------------------------------------------------------------------
 
 export type ServidorAgenda = "producao" | "localhost" | "personalizada";
@@ -61,7 +61,10 @@ export const SERVIDORES_AGENDA: Record<Exclude<ServidorAgenda, "personalizada">,
   localhost: "http://localhost:5000/api",
 };
 const SERVIDOR_KEY = "agenda_cirurgica_servidor";
-const CHAVE_SESSAO = "agenda_cirurgica_api_key";
+const CHAVE_STORAGE = "agenda_cirurgica_api_key";
+const MODO_STORAGE = "agenda_cirurgica_modo";
+
+export type ModoAcesso = "servidor" | "direto";
 
 export interface ConfigServidorAgenda { tipo: ServidorAgenda; url: string }
 
@@ -79,14 +82,60 @@ export const salvarServidorAgenda = (c: ConfigServidorAgenda) => {
 };
 const baseDireta = () => `${normalizarBaseAgenda(lerServidorAgenda().url) || SERVIDORES_AGENDA.producao}/integracao`;
 
-export const lerChaveDireta = (): string => {
-  try { return sessionStorage.getItem(CHAVE_SESSAO) ?? ""; } catch { return ""; }
+/** Retorna a chave configurada na variável de ambiente Vite, se existir */
+export const obterChaveEnv = (): string => {
+  try {
+    return (import.meta.env.VITE_AGENDA_CIRURGICA_API_KEY as string | undefined)?.trim() ?? "";
+  } catch {
+    return "";
+  }
 };
+
+/** Indica se há uma chave definida via .env */
+export const temChaveEnv = (): boolean => !!obterChaveEnv();
+
+/**
+ * Lê a chave da API.
+ * Prioridades:
+ * 1. Chave configurada via .env (VITE_AGENDA_CIRURGICA_API_KEY)
+ * 2. Chave salva no localStorage (permanente por navegador)
+ * 3. Chave na sessionStorage (sessão atual)
+ */
+export const lerChaveDireta = (): string => {
+  const envKey = obterChaveEnv();
+  if (envKey) return envKey;
+  try {
+    const local = localStorage.getItem(CHAVE_STORAGE)?.trim();
+    if (local) return local;
+    const sess = sessionStorage.getItem(CHAVE_STORAGE)?.trim();
+    if (sess) return sess;
+  } catch { /* ignore */ }
+  return "";
+};
+
 export const salvarChaveDireta = (chave: string) => {
   try {
-    if (chave) sessionStorage.setItem(CHAVE_SESSAO, chave);
-    else sessionStorage.removeItem(CHAVE_SESSAO);
+    const limpa = chave.trim();
+    if (limpa) {
+      localStorage.setItem(CHAVE_STORAGE, limpa);
+      sessionStorage.setItem(CHAVE_STORAGE, limpa);
+    } else {
+      localStorage.removeItem(CHAVE_STORAGE);
+      sessionStorage.removeItem(CHAVE_STORAGE);
+    }
   } catch { /* ignore */ }
+};
+
+export const lerModoAgenda = (): ModoAcesso => {
+  try {
+    const m = localStorage.getItem(MODO_STORAGE);
+    if (m === "direto" || m === "servidor") return m;
+  } catch { /* ignore */ }
+  return "direto";
+};
+
+export const salvarModoAgenda = (modo: ModoAcesso) => {
+  try { localStorage.setItem(MODO_STORAGE, modo); } catch { /* ignore */ }
 };
 
 async function chamarDireto<T>(url: string, chave: string): Promise<T> {
