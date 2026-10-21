@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "react-router-dom";
 import * as XLSX from "xlsx";
-import { ArrowLeft, Download, KeyRound, RefreshCw, Search, Stethoscope } from "lucide-react";
+import { ArrowLeft, Download, KeyRound, RefreshCw, Search, Server, Stethoscope } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -11,9 +11,10 @@ import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { SelecionarServidorAgenda } from "@/components/agenda/SelecionarServidorAgenda";
 import {
-  AgendamentoCirurgico, FiltrosAgenda,
-  detalharAgendamento, detalharAgendamentoDireto, isoParaBr,
+  AgendamentoCirurgico, ConfigServidorAgenda, FiltrosAgenda,
+  detalharAgendamento, detalharAgendamentoDireto, isoParaBr, lerServidorAgenda,
   lerChaveDireta, listarAgendamentos, listarAgendamentosDireto, salvarChaveDireta,
 } from "@/lib/agendaCirurgicaApi";
 
@@ -34,17 +35,20 @@ export default function AgendaCirurgica() {
   const [exportando, setExportando] = useState(false);
   const [modo, setModo] = useState<ModoAcesso>("servidor");
   const [chave, setChave] = useState<string>(() => lerChaveDireta());
+  const [servidor, setServidor] = useState<ConfigServidorAgenda>(() => lerServidorAgenda());
+  const [selServidor, setSelServidor] = useState(false);
 
   const direto = modo === "direto";
   const prontoDireto = !direto || !!chave.trim();
+  const chaveModo = direto ? `direto:${servidor.url}` : "servidor";
 
   const { data, isLoading, isFetching, error, refetch } = useQuery({
-    queryKey: ["agenda-cirurgica", modo, filtros],
+    queryKey: ["agenda-cirurgica", chaveModo, filtros],
     queryFn: () => (direto ? listarAgendamentosDireto(filtros, chave.trim()) : listarAgendamentos(filtros)),
     enabled: !!user && prontoDireto, retry: false,
   });
   const det = useQuery({
-    queryKey: ["agenda-cirurgica-det", modo, sel?.nr_sequencia],
+    queryKey: ["agenda-cirurgica-det", chaveModo, sel?.nr_sequencia],
     queryFn: () => (direto ? detalharAgendamentoDireto(sel!.nr_sequencia, chave.trim()) : detalharAgendamento(sel!.nr_sequencia)),
     enabled: !!sel && prontoDireto, retry: false,
   });
@@ -107,8 +111,15 @@ export default function AgendaCirurgica() {
           <span className="text-xs text-muted-foreground">Modo de acesso:</span>
           <Button size="sm" variant={modo === "servidor" ? "default" : "outline"} onClick={() => trocarModo("servidor")}>Servidor (nuvem)</Button>
           <Button size="sm" variant={modo === "direto" ? "default" : "outline"} onClick={() => trocarModo("direto")}>Direto (rede interna/VPN)</Button>
-          {direto && <Badge variant="secondary">Chamada direta do navegador</Badge>}
+          {direto && (
+            <>
+              <Badge variant="secondary">{servidor.tipo === "producao" ? "Produção" : servidor.tipo === "localhost" ? "Localhost" : "Personalizada"}: {servidor.url}</Badge>
+              <Button size="sm" variant="outline" onClick={() => setSelServidor(true)}><Server className="h-4 w-4 mr-1" />Selecionar servidor da API</Button>
+            </>
+          )}
         </div>
+        <SelecionarServidorAgenda open={selServidor} onOpenChange={setSelServidor} atual={servidor}
+          onSalvar={(c) => { setServidor(c); setSel(null); }} />
         {direto && (
           <div className="rounded-md border border-border bg-muted/40 p-3 space-y-2">
             <div className="flex items-center gap-2 text-sm font-medium"><KeyRound className="h-4 w-4 text-primary" />Chave da API (x-api-key)</div>
