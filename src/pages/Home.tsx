@@ -195,6 +195,21 @@ const INTELIGENCIA_SECTIONS: InteligenciaSection[] = [
     ],
   },
   {
+    title: "Agenda Cirúrgica",
+    description: "Agendamentos cirúrgicos Samel",
+    icon: ClipboardList,
+    allow: ["diretora", "diretora_saude", "coordenadora", "executivo", "enfermeira", "tec_enfermagem"],
+    items: [
+      {
+        slug: "agenda-cirurgica",
+        label: "Agenda Cirúrgica",
+        description: "Consulta de agendamentos, pacientes, equipe e procedimentos",
+        icon: ClipboardList,
+        to: "/agenda-cirurgica",
+      },
+    ],
+  },
+  {
     title: "Mailing de Brindes",
     description: "Cestas natalinas e brindes corporativos",
     icon: Gift,
