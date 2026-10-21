@@ -55,8 +55,29 @@ export const isoParaBr = (s: string) => (s ? s.split("-").reverse().join("/") : 
 // (sessionStorage) — nunca no código nem no banco.
 // ---------------------------------------------------------------------------
 
-export const AGENDA_API_BASE_DIRETO = "https://api-agenda-cirurgica.samel.com.br/api/integracao";
+export type ServidorAgenda = "producao" | "localhost" | "personalizada";
+export const SERVIDORES_AGENDA: Record<Exclude<ServidorAgenda, "personalizada">, string> = {
+  producao: "https://api-agenda-cirurgica.samel.com.br/api",
+  localhost: "http://localhost:5000/api",
+};
+const SERVIDOR_KEY = "agenda_cirurgica_servidor";
 const CHAVE_SESSAO = "agenda_cirurgica_api_key";
+
+export interface ConfigServidorAgenda { tipo: ServidorAgenda; url: string }
+
+export const normalizarBaseAgenda = (url: string): string => url.trim().replace(/\/+$/, "").replace(/\/integracao$/, "");
+
+export const lerServidorAgenda = (): ConfigServidorAgenda => {
+  try {
+    const c = JSON.parse(localStorage.getItem(SERVIDOR_KEY) ?? "null");
+    if (c && (c.tipo === "producao" || c.tipo === "localhost" || c.tipo === "personalizada") && typeof c.url === "string") return c;
+  } catch { /* ignore */ }
+  return { tipo: "producao", url: SERVIDORES_AGENDA.producao };
+};
+export const salvarServidorAgenda = (c: ConfigServidorAgenda) => {
+  try { localStorage.setItem(SERVIDOR_KEY, JSON.stringify({ tipo: c.tipo, url: normalizarBaseAgenda(c.url) })); } catch { /* ignore */ }
+};
+const baseDireta = () => `${normalizarBaseAgenda(lerServidorAgenda().url) || SERVIDORES_AGENDA.producao}/integracao`;
 
 export const lerChaveDireta = (): string => {
   try { return sessionStorage.getItem(CHAVE_SESSAO) ?? ""; } catch { return ""; }
@@ -102,10 +123,10 @@ function montarQueryListagem(f: FiltrosAgenda): string {
 }
 
 export const listarAgendamentosDireto = (filtros: FiltrosAgenda, chave: string) =>
-  chamarDireto<RespostaAgenda>(`${AGENDA_API_BASE_DIRETO}/agendamentos?${montarQueryListagem(filtros)}`, chave);
+  chamarDireto<RespostaAgenda>(`${baseDireta()}/agendamentos?${montarQueryListagem(filtros)}`, chave);
 
 export const detalharAgendamentoDireto = (nr: number | string, chave: string) =>
-  chamarDireto<any>(`${AGENDA_API_BASE_DIRETO}/agendamentos/${nr}`, chave);
+  chamarDireto<any>(`${baseDireta()}/agendamentos/${encodeURIComponent(String(nr))}`, chave);
 
 export const healthAgendaDireto = () =>
-  chamarDireto<any>(`${AGENDA_API_BASE_DIRETO}/health`, lerChaveDireta());
+  chamarDireto<any>(`${baseDireta()}/health`, lerChaveDireta());
