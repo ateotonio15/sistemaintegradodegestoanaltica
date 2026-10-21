@@ -34,6 +34,10 @@ async function chamar<T>(body: Record<string, unknown>): Promise<T> {
     try { const j = await (error as any).context?.json?.(); if (j?.mensagem || j?.message) msg = j.mensagem ?? j.message; } catch { /* ignore */ }
     throw new Error(msg);
   }
+  // Falhas controladas do proxy (ex.: API inalcançável) chegam com HTTP 200 e sucesso=false.
+  if (data && typeof data === "object" && (data as any).sucesso === false) {
+    throw new Error((data as any).mensagem ?? "Não foi possível consultar a agenda cirúrgica.");
+  }
   return data as T;
 }
 
