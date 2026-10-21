@@ -68,11 +68,18 @@ Deno.serve(async (req) => {
 
     const ctrl = new AbortController();
     const t = setTimeout(() => ctrl.abort(), 30000);
-    const r = await fetch(url, { headers, signal: ctrl.signal }).finally(() => clearTimeout(t));
+    let r: Response;
+    try {
+      r = await fetch(url, { headers, signal: ctrl.signal }).finally(() => clearTimeout(t));
+    } catch {
+      // API inalcançável a partir da nuvem (rede interna Samel/VPN): responde 200
+      // controlado para o cliente exibir a mensagem sem tratamento de erro HTTP.
+      return json({ sucesso: false, mensagem: "A API da agenda cirúrgica não respondeu. Ela só é acessível na rede interna da Samel ou via VPN — use o modo \"Direto (rede interna/VPN)\" na tela." });
+    }
     const text = await r.text();
     return new Response(text, { status: r.status, headers: { ...corsHeaders, "Content-Type": "application/json" } });
   } catch (e) {
     const msg = (e as Error).message;
-    return json({ sucesso: false, mensagem: msg.startsWith("Parâmetro") ? msg : "Falha ao consultar a agenda cirúrgica." }, msg.startsWith("Parâmetro") ? 400 : 502);
+    return json({ sucesso: false, mensagem: msg.startsWith("Parâmetro") ? msg : "Falha ao consultar a agenda cirúrgica." }, msg.startsWith("Parâmetro") ? 400 : 200);
   }
 });
