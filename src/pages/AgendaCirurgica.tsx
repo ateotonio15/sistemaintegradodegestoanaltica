@@ -68,7 +68,9 @@ export default function AgendaCirurgica() {
       const todos: AgendamentoCirurgico[] = [];
       let p = 1, tp = 1;
       do {
-        const r = await listarAgendamentos({ ...filtros, page: p, limit: 500 });
+        const r = direto
+          ? await listarAgendamentosDireto({ ...filtros, page: p, limit: 500 }, chave.trim())
+          : await listarAgendamentos({ ...filtros, page: p, limit: 500 });
         todos.push(...(r.dados ?? [])); tp = r.total_paginas ?? 1; p++;
       } while (p <= tp && p <= 40);
       const rows = todos.map((a) => ({
