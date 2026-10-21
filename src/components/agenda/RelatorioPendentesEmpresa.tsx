@@ -11,14 +11,14 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
-import { isoParaBr, listarProcedimentosPendentes } from "@/lib/agendaCirurgicaApi";
+import { isoParaBr, listarProcedimentosPendentes, listarProcedimentosPendentesDireto } from "@/lib/agendaCirurgicaApi";
 import { celulaCsvSegura, correspondeStatus, formatarCnpjAgenda, formatarDataAgenda, linhasPendentes, metricasPendentes, StatusPendente, tomDias } from "@/lib/agenda-pendentes";
 import { printRelatorioPendentes } from "./RelatorioPendentesReport";
 
 const inicial = () => { const d = new Date(); const hoje = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`; return { ini: hoje, fim: hoje, procedimento: "" }; };
 const cores = { danger: "text-destructive border-destructive/30 bg-destructive/10", warning: "text-warning border-warning/30 bg-warning/10", success: "text-success border-success/30 bg-success/10" };
 
-export function RelatorioPendentesEmpresa() {
+export function RelatorioPendentesEmpresa({ direto = false, chave = "", servidorUrl = "" }: { direto?: boolean; chave?: string; servidorUrl?: string }) {
   const { user } = useAuth();
   const [form, setForm] = useState(inicial);
   const [aplicado, setAplicado] = useState(inicial);
@@ -26,7 +26,14 @@ export function RelatorioPendentesEmpresa() {
   const [status, setStatus] = useState<StatusPendente>("todos");
   const [busca, setBusca] = useState("");
   const [pagina, setPagina] = useState(1);
-  const q = useQuery({ queryKey: ["agenda-pendentes", aplicado], queryFn: () => listarProcedimentosPendentes({ dt_inicio: isoParaBr(aplicado.ini), dt_final: isoParaBr(aplicado.fim), cd_cgc: "0", cd_procedimento: aplicado.procedimento || "0" }), enabled: !!user, retry: false });
+  const q = useQuery({
+    queryKey: ["agenda-pendentes", direto ? `direto:${servidorUrl}` : "servidor", aplicado],
+    queryFn: () => {
+      const f = { dt_inicio: isoParaBr(aplicado.ini), dt_final: isoParaBr(aplicado.fim), cd_cgc: "0", cd_procedimento: aplicado.procedimento || "0" };
+      return direto ? listarProcedimentosPendentesDireto(f, chave) : listarProcedimentosPendentes(f);
+    },
+    enabled: !!user && (!direto || !!chave), retry: false,
+  });
   const dados = q.data?.dados ?? [];
   const empresas = useMemo(() => [...new Set(dados.map(d => d.empresa).filter(Boolean))].sort((a,b) => a.localeCompare(b)), [dados]);
   const visiveis = dados.filter(d => (empresa === "todas" || d.empresa === empresa) && correspondeStatus(d.dias_para_execucao, status) && d.nm_paciente?.toLocaleLowerCase("pt-BR").includes(busca.toLocaleLowerCase("pt-BR")));
