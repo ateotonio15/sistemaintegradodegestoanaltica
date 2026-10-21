@@ -1,5 +1,12 @@
 # Roadmap — Primeiro pacote financeiro
 
+## Revisão dos quatro apontamentos de monitoramento
+- [ ] Conferir e corrigir limpeza do novo cadastro de empresas.
+- [ ] Conferir permissões atuais de criação/importação de reajustes, sem ampliar acesso indevidamente.
+- [ ] Conferir e corrigir classificações dependentes das reclamações.
+- [ ] Conferir e corrigir totais PDF de categorias não aplicáveis; preservar valores desconhecidos.
+- [ ] Executar regressões e conferir os fluxos possíveis sem gravar dados fictícios.
+
 ## Agenda Cirúrgica — relatório pendentes
 - [x] Adicionar abas, relatório, filtros, indicadores, exportações e impressão.
 - [x] Consultar relatório com a chave existente exclusivamente no ENV do servidor; não expor via VITE. Modo direto manual anterior preservado apenas nos agendamentos; não usado no novo relatório.
