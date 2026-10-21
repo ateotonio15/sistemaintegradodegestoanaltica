@@ -92,7 +92,9 @@ Deno.serve(async (req) => {
     } catch {
       // API inalcançável a partir da nuvem (rede interna Samel/VPN): responde 200
       // controlado para o cliente exibir a mensagem sem tratamento de erro HTTP.
-      return json({ sucesso: false, mensagem: "A API da agenda cirúrgica não respondeu. Ela só é acessível na rede interna da Samel ou via VPN — use o modo \"Direto (rede interna/VPN)\" na tela." });
+      return json({ sucesso: false, mensagem: acao === "pendentes"
+        ? "A API não respondeu ao servidor na nuvem. Para consultar este relatório com a chave protegida, a TI da Samel precisa liberar o acesso da nuvem à API ou disponibilizar um intermediário seguro na rede interna."
+        : "A API da agenda cirúrgica não respondeu. Ela só é acessível na rede interna da Samel ou via VPN — use o modo \"Direto (rede interna/VPN)\" na tela." });
     }
     const text = await r.text();
     if (!r.ok) {
