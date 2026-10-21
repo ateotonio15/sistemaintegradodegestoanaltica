@@ -5,6 +5,10 @@ import workerSrc from "pdfjs-dist/build/pdf.worker.min.mjs?url";
 
 (pdfjsLib as any).GlobalWorkerOptions.workerSrc = workerSrc;
 
+
+import { regexRetroativoNf } from "./retroativo-nf";
+export { regexRetroativoNf };
+
 export interface PdfCategoria {
   beneficiarios: number | null;
   mensalidade: number | null;
@@ -367,10 +371,7 @@ export async function analisarPdfFinanceiro(
   // "Cobrança Retroativa: 388,52" — algumas NFS-e listam separadamente do
   // valor de "Inclusão". O Excel soma as duas em "Inclusões", então fazemos
   // o mesmo aqui para evitar divergências falsas.
-  const reRetro = new RegExp(
-    `(?:^|[\\s/;|])cobran[çc]a\\s*retroativ[ao]s?\\s*[:\\-=]?\\s*r?\\$?\\s*(${NUM})`,
-    "gi",
-  );
+  const reRetro = regexRetroativoNf();
   for (const mRetro of t.matchAll(reRetro)) {
     const v = parseValor(mRetro[1]);
     if (!isNaN(v) && v > 0) {
@@ -781,10 +782,7 @@ export async function analisarPdfFinanceiroSimplificado(
   }
 
   // Soma "Cobrança Retroativa" às inclusões (Excel agrega as duas).
-  const reRetroS = new RegExp(
-    `(?:^|[\\s/;|])cobran[çc]a\\s*retroativ[ao]s?\\s*[:\\-=]?\\s*r?\\$?\\s*(${NUM})`,
-    "gi",
-  );
+  const reRetroS = regexRetroativoNf();
   for (const mRetroS of t.matchAll(reRetroS)) {
     const v = parseValor(mRetroS[1]);
     if (!isNaN(v) && v > 0) incTotal = (incTotal ?? 0) + v;
