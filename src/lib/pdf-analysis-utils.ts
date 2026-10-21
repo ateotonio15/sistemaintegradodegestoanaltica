@@ -5,6 +5,22 @@ import workerSrc from "pdfjs-dist/build/pdf.worker.min.mjs?url";
 
 (pdfjsLib as any).GlobalWorkerOptions.workerSrc = workerSrc;
 
+
+/**
+ * Linhas de cobrança retroativa na NFS-e (texto já normalizado, sem acentos).
+ * Aceita "Cobrança retroativa: 388,52", "Retroativo agosto: 436,74",
+ * "Retroativo - Setembro/26 R$ 436,74", "Retroação 08/2026 = 436,74".
+ * O valor precisa ter centavos (",dd") para não capturar ano ou quantidade.
+ */
+export function regexRetroativoNf(): RegExp {
+  const MES = String.raw`(?:jan|fev|mar|abr|mai|jun|jul|ago|set|out|nov|dez)[a-z]*\.?(?:\s*(?:\/|-|de)?\s*\d{2,4}(?![\d,]))?`;
+  const COMP = String.raw`\d{1,2}\s*\/\s*\d{2,4}(?![\d,])`;
+  return new RegExp(
+    String.raw`(?:^|[\s/;|(])(?:cobranca\s*)?retroa(?:tiv[ao]s?|cao)(?:\s+(?:a|de|ref\.?|referente(?:\s+a)?))?(?:\s*[-:]?\s*(?:${MES}|${COMP}))?\s*(?:\(\s*\d+\s*[a-z]*\s*\))?\s*[:\-=]?\s*(?:r\s*\$)?\s*(\d[\d.]*,\d{2})`,
+    "gi",
+  );
+}
+
 export interface PdfCategoria {
   beneficiarios: number | null;
   mensalidade: number | null;
@@ -367,10 +383,7 @@ export async function analisarPdfFinanceiro(
   // "Cobrança Retroativa: 388,52" — algumas NFS-e listam separadamente do
   // valor de "Inclusão". O Excel soma as duas em "Inclusões", então fazemos
   // o mesmo aqui para evitar divergências falsas.
-  const reRetro = new RegExp(
-    `(?:^|[\\s/;|])cobran[çc]a\\s*retroativ[ao]s?\\s*[:\\-=]?\\s*r?\\$?\\s*(${NUM})`,
-    "gi",
-  );
+  const reRetro = regexRetroativoNf();
   for (const mRetro of t.matchAll(reRetro)) {
     const v = parseValor(mRetro[1]);
     if (!isNaN(v) && v > 0) {
@@ -781,10 +794,7 @@ export async function analisarPdfFinanceiroSimplificado(
   }
 
   // Soma "Cobrança Retroativa" às inclusões (Excel agrega as duas).
-  const reRetroS = new RegExp(
-    `(?:^|[\\s/;|])cobran[çc]a\\s*retroativ[ao]s?\\s*[:\\-=]?\\s*r?\\$?\\s*(${NUM})`,
-    "gi",
-  );
+  const reRetroS = regexRetroativoNf();
   for (const mRetroS of t.matchAll(reRetroS)) {
     const v = parseValor(mRetroS[1]);
     if (!isNaN(v) && v > 0) incTotal = (incTotal ?? 0) + v;
