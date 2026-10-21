@@ -30,7 +30,24 @@ Deno.serve(async (req) => {
     const headers: Record<string, string> = { Accept: "application/json" };
     let url: string;
 
-    if (acao === "health") {
+    if (acao === "pendentes") {
+      const key = Deno.env.get("AGENDA_CIRURGICA_API_KEY");
+      if (!key) return json({ sucesso: false, mensagem: "Chave da API não configurada." });
+      headers["x-api-key"] = key;
+      const f = body?.filtros ?? {};
+      const p = new URLSearchParams();
+      for (const campo of ["dt_inicio", "dt_final"]) {
+        const valor = String(f[campo] ?? "");
+        if (!DATA_BR.test(valor)) return json({ sucesso: false, mensagem: `Parâmetro inválido: ${campo}` }, 400);
+        p.set(campo, valor);
+      }
+      for (const campo of ["cd_cgc", "cd_procedimento"]) {
+        const valor = String(f[campo] || "0");
+        if (!NUM.test(valor) || valor.length > 14) return json({ sucesso: false, mensagem: `Parâmetro inválido: ${campo}` }, 400);
+        p.set(campo, valor);
+      }
+      url = `https://api-agenda-cirurgica.samel.com.br/api/relatorio/procedimentos-pendentes-empresa?${p}`;
+    } else if (acao === "health") {
       url = `${BASE}/health`;
     } else {
       const key = Deno.env.get("AGENDA_CIRURGICA_API_KEY");

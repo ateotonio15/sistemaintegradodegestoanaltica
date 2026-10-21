@@ -45,6 +45,31 @@ export const listarAgendamentos = (filtros: FiltrosAgenda) => chamar<RespostaAge
 export const detalharAgendamento = (nr: number | string) => chamar<any>({ acao: "detalhe", nr_sequencia: String(nr) });
 export const healthAgenda = () => chamar<any>({ acao: "health" });
 
+export interface PendenteProcedimentoItem {
+  cd_pessoa_fisica: string;
+  nm_paciente: string;
+  cd_procedimento: number;
+  ds_procedimento: string;
+  nr_atendimento: number | null;
+  dt_agenda: string;
+  dt_agendamento: string;
+  ie_autorizacao: string;
+  ie_status_agenda: string;
+  dias_para_execucao: number;
+  empresa: string;
+  cd_cgc_estipulante: string | null;
+}
+export interface FiltrosPendentes { dt_inicio: string; dt_final: string; cd_cgc?: string; cd_procedimento?: string }
+export interface RelatorioPendentesResponse {
+  sucesso: boolean;
+  dados: PendenteProcedimentoItem[];
+  total: number;
+  media_dias_geral: string;
+  filtros: { dt_inicio: string; dt_final: string; cd_cgc: string; cd_procedimento: string };
+}
+export const listarProcedimentosPendentes = (filtros: FiltrosPendentes) =>
+  chamar<RelatorioPendentesResponse>({ acao: "pendentes", filtros });
+
 /** AAAA-MM-DD → DD/MM/AAAA */
 export const isoParaBr = (s: string) => (s ? s.split("-").reverse().join("/") : "");
 
