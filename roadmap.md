@@ -8,6 +8,8 @@
 - [x] 59 testes aprovados e tela sem erros; gravação real de empresas e execução financeira real não realizadas para não alterar dados da operação.
 
 ## Agenda Cirúrgica — relatório pendentes
+- [x] Pedido de 21/10: acesso direto como padrão nas duas abas; chave manual na sessão preservada, sem expor credencial privada via VITE.
+- [ ] Acesso sem campo de chave: depende de intermediário autenticado da TI Samel ou liberação do acesso da nuvem; não embutir segredo no navegador.
 - [x] Adicionar abas, relatório, filtros, indicadores, exportações e impressão.
 - [x] Consultar relatório com a chave existente exclusivamente no ENV do servidor; não expor via VITE. Modo direto manual anterior preservado apenas nos agendamentos; não usado no novo relatório.
 - [x] Sete testes aprovados; sessão real da solicitante, abas, filtro de risco, busca e CSV conferidos com resposta simulada sem gravações.
