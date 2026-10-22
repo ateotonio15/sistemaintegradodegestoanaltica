@@ -37,7 +37,7 @@ export default function AgendaCirurgica() {
   const [filtros, setFiltros] = useState<FiltrosAgenda>({ dt_inicio: isoParaBr(hoje()), dt_fim: isoParaBr(hoje()), page: 1, limit: 50 });
   const [sel, setSel] = useState<AgendamentoCirurgico | null>(null);
   const [exportando, setExportando] = useState(false);
-  const [modo, setModo] = useState<ModoAcesso>("servidor");
+  const [modo, setModo] = useState<ModoAcesso>("direto");
   const [chave, setChave] = useState<string>(() => lerChaveDireta());
   const [servidor, setServidor] = useState<ConfigServidorAgenda>(() => lerServidorAgenda());
   const [selServidor, setSelServidor] = useState(false);
