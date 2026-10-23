@@ -1,7 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import AppLayout from "@/components/AppLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -56,7 +55,7 @@ export default function RecebidosCentral() {
   }, [itens]);
 
   return (
-    <AppLayout>
+    <>
       <div className="space-y-4">
         <div className="flex flex-wrap items-center justify-between gap-2">
           <div>
@@ -104,6 +103,6 @@ export default function RecebidosCentral() {
           </CardContent>
         </Card>
       </div>
-    </AppLayout>
+    </>
   );
 }
