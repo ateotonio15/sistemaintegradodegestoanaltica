@@ -79,3 +79,13 @@
 - [ ] Conectar o projeto ao Git pelo usuário em Configurações do projeto → Git. O Lovable sempre cria um repositório privado novo e não vincula um existente. Bloqueado: exige permissão de proprietário/admin do espaço de trabalho; a tela mostrou "No connections available".
 - [ ] Depois de conectado: levar o histórico do repositório atual (github.com/ateotonio15/sistemaintegradodegestoanaltica) para dentro do repositório novo por merge, preservando o trabalho da Central de NFS-e e as alterações da agenda.
 - [x] Conferir antes de conectar: `.env` do projeto contém apenas dados públicos do backend; chave da Samel não está no arquivo nem no código do navegador.
+
+## Revisão Central → SIGA (23/10) e teste Lopes
+- [x] Valor fiscal bruto obrigatório e conciliado com descritivo e faturamento.
+- [x] Retroativos na seleção de validação; cache por chave forte; sugestão não resolve ambiguidade.
+- [x] Homologação separada da produção na deduplicação; reenvio devolve canônico.
+- [x] Fila com próxima tentativa e reserva; consultas filtradas/paginadas; barreira final completa no banco.
+- [x] Verificação automática do pacote do validador. 24 testes do servidor + 15 de regras aprovados.
+- [ ] Correções do lado da Central (resposta HTTP, envio pelo servidor a partir do XML): fora deste projeto.
+- [ ] Conferir identidade fiscal (chave, número, prestador) do PDF com os metadados: depende de leitura padronizada desses campos na nota.
+- [ ] Homologação com a Distribuidora Lopes: depende de nota emitida e movimentação em “Faturado”, enviada pela Central.
