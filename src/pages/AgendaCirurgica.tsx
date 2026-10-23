@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Link, useSearchParams } from "react-router-dom";
 import * as XLSX from "xlsx";
-import { ArrowLeft, Download, KeyRound, RefreshCw, Search, Server, Stethoscope } from "lucide-react";
+import { ArrowLeft, Download, FileText, KeyRound, RefreshCw, Search, Server, Stethoscope } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -15,7 +15,7 @@ import { SelecionarServidorAgenda } from "@/components/agenda/SelecionarServidor
 import { RelatorioPendentesEmpresa } from "@/components/agenda/RelatorioPendentesEmpresa";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import {
-  AgendamentoCirurgico, ConfigServidorAgenda, FiltrosAgenda,
+  AgendamentoCirurgico, ConfigServidorAgenda, FiltrosAgenda, ModoAcesso, lerModoAgenda, salvarModoAgenda,
   detalharAgendamento, detalharAgendamentoDireto, isoParaBr, lerServidorAgenda,
   lerChaveDireta, listarAgendamentos, listarAgendamentosDireto, salvarChaveDireta,
 } from "@/lib/agendaCirurgicaApi";
@@ -27,8 +27,6 @@ function Campo({ l, v }: { l: string; v?: string | number | null }) {
   return <div><div className="text-xs text-muted-foreground">{l}</div><div className="text-sm">{v === undefined || v === null || v === "" ? "—" : v}</div></div>;
 }
 
-type ModoAcesso = "servidor" | "direto";
-
 export default function AgendaCirurgica() {
   const { user } = useAuth();
   const [params, setParams] = useSearchParams();
@@ -37,7 +35,7 @@ export default function AgendaCirurgica() {
   const [filtros, setFiltros] = useState<FiltrosAgenda>({ dt_inicio: isoParaBr(hoje()), dt_fim: isoParaBr(hoje()), page: 1, limit: 50 });
   const [sel, setSel] = useState<AgendamentoCirurgico | null>(null);
   const [exportando, setExportando] = useState(false);
-  const [modo, setModo] = useState<ModoAcesso>("direto");
+  const [modo, setModo] = useState<ModoAcesso>(() => lerModoAgenda());
   const [chave, setChave] = useState<string>(() => lerChaveDireta());
   const [servidor, setServidor] = useState<ConfigServidorAgenda>(() => lerServidorAgenda());
   const [selServidor, setSelServidor] = useState(false);
@@ -64,7 +62,7 @@ export default function AgendaCirurgica() {
   });
   const set = (k: keyof typeof form) => (e: React.ChangeEvent<HTMLInputElement>) => setForm((f) => ({ ...f, [k]: e.target.value }));
 
-  const trocarModo = (m: ModoAcesso) => { setModo(m); setSel(null); };
+  const trocarModo = (m: ModoAcesso) => { setModo(m); salvarModoAgenda(m); setSel(null); };
   const atualizarChave = (e: React.ChangeEvent<HTMLInputElement>) => {
     setChave(e.target.value);
     salvarChaveDireta(e.target.value.trim());
@@ -138,7 +136,7 @@ export default function AgendaCirurgica() {
       </Card>
 
       <Tabs value={aba} onValueChange={v => {setSel(null);setParams(p => { const next = new URLSearchParams(p); next.set("aba",v);return next; });}}>
-      <TabsList className="h-auto flex-wrap justify-start"><TabsTrigger value="agenda">Agendamentos</TabsTrigger><TabsTrigger value="pendentes" className="whitespace-normal text-left">Procedimentos Pendentes por Empresa</TabsTrigger></TabsList>
+      <TabsList className="h-auto flex-wrap justify-start"><TabsTrigger value="agenda" className="gap-2"><Stethoscope className="h-4 w-4" />Agendamentos</TabsTrigger><TabsTrigger value="pendentes" className="gap-2 whitespace-normal text-left"><FileText className="h-4 w-4 shrink-0" />Procedimentos Pendentes por Empresa</TabsTrigger></TabsList>
       <TabsContent value="pendentes"><RelatorioPendentesEmpresa direto={direto} chave={chave.trim()} servidorUrl={servidor.url} /></TabsContent>
       <TabsContent value="agenda" className="space-y-4">
 

@@ -87,6 +87,22 @@ export const SERVIDORES_AGENDA: Record<Exclude<ServidorAgenda, "personalizada">,
 };
 const SERVIDOR_KEY = "agenda_cirurgica_servidor";
 const CHAVE_SESSAO = "agenda_cirurgica_api_key";
+const MODO_STORAGE = "agenda_cirurgica_modo";
+
+export type ModoAcesso = "servidor" | "direto";
+
+/** Lembra o modo de acesso escolhido (não guarda nenhuma chave). */
+export const lerModoAgenda = (): ModoAcesso => {
+  try {
+    const m = localStorage.getItem(MODO_STORAGE);
+    if (m === "direto" || m === "servidor") return m;
+  } catch { /* ignore */ }
+  return "direto";
+};
+
+export const salvarModoAgenda = (modo: ModoAcesso) => {
+  try { localStorage.setItem(MODO_STORAGE, modo); } catch { /* ignore */ }
+};
 
 export interface ConfigServidorAgenda { tipo: ServidorAgenda; url: string }
 
