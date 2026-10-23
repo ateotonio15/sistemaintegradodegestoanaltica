@@ -7,7 +7,14 @@ export type AgendamentoCirurgico = {
   hr_fim: string;
   status?: { codigo?: string; descricao?: string } | null;
   sala?: { ds_agenda?: string } | null;
-  paciente?: { nm_paciente?: string; nr_cpf?: string; dt_nascimento?: string; nr_idade?: number; ie_sexo?: string; nr_celular?: string } | null;
+  paciente?: {
+    nm_paciente?: string;
+    nr_cpf?: string;
+    dt_nascimento?: string;
+    nr_idade?: number;
+    ie_sexo?: string;
+    nr_celular?: string;
+  } | null;
   medico?: { nm_medico?: string; nr_crm?: string; uf_crm?: string; nm_anestesista?: string } | null;
   procedimento_principal?: { codigo?: string | number; descricao?: string } | null;
   procedimentos?: Array<{ codigo?: string | number; descricao?: string }> | null;
@@ -17,21 +24,39 @@ export type AgendamentoCirurgico = {
 };
 
 export type FiltrosAgenda = {
-  dt_inicio?: string; dt_fim?: string; cd_agenda?: string; cd_medico?: string; cd_convenio?: string;
-  cd_estabelecimento?: string; nm_paciente?: string; nm_empresa?: string; ie_status_agenda?: string;
-  page?: number; limit?: number;
+  dt_inicio?: string;
+  dt_fim?: string;
+  cd_agenda?: string;
+  cd_medico?: string;
+  cd_convenio?: string;
+  cd_estabelecimento?: string;
+  nm_paciente?: string;
+  nm_empresa?: string;
+  ie_status_agenda?: string;
+  page?: number;
+  limit?: number;
 };
 
 export type RespostaAgenda = {
-  sucesso: boolean; total: number; pagina: number; limite: number; total_paginas: number;
-  filtros_aplicados: Record<string, unknown>; dados: AgendamentoCirurgico[];
+  sucesso: boolean;
+  total: number;
+  pagina: number;
+  limite: number;
+  total_paginas: number;
+  filtros_aplicados: Record<string, unknown>;
+  dados: AgendamentoCirurgico[];
 };
 
 async function chamar<T>(body: Record<string, unknown>): Promise<T> {
   const { data, error } = await supabase.functions.invoke("agenda-cirurgica-proxy", { body });
   if (error) {
     let msg = "Não foi possível consultar a agenda cirúrgica.";
-    try { const j = await (error as any).context?.json?.(); if (j?.mensagem || j?.message) msg = j.mensagem ?? j.message; } catch { /* ignore */ }
+    try {
+      const j = await (error as any).context?.json?.();
+      if (j?.mensagem || j?.message) msg = j.mensagem ?? j.message;
+    } catch {
+      /* ignore */
+    }
     throw new Error(msg);
   }
   // Falhas controladas do proxy (ex.: API inalcançável) chegam com HTTP 200 e sucesso=false.
@@ -59,7 +84,12 @@ export interface PendenteProcedimentoItem {
   empresa: string;
   cd_cgc_estipulante: string | null;
 }
-export interface FiltrosPendentes { dt_inicio: string; dt_final: string; cd_cgc?: string; cd_procedimento?: string }
+export interface FiltrosPendentes {
+  dt_inicio: string;
+  dt_final: string;
+  cd_cgc?: string;
+  cd_procedimento?: string;
+}
 export interface RelatorioPendentesResponse {
   sucesso: boolean;
   dados: PendenteProcedimentoItem[];
@@ -96,36 +126,67 @@ export const lerModoAgenda = (): ModoAcesso => {
   try {
     const m = localStorage.getItem(MODO_STORAGE);
     if (m === "direto" || m === "servidor") return m;
-  } catch { /* ignore */ }
+  } catch {
+    /* ignore */
+  }
   return "direto";
 };
 
 export const salvarModoAgenda = (modo: ModoAcesso) => {
-  try { localStorage.setItem(MODO_STORAGE, modo); } catch { /* ignore */ }
+  try {
+    localStorage.setItem(MODO_STORAGE, modo);
+  } catch {
+    /* ignore */
+  }
 };
 
-export interface ConfigServidorAgenda { tipo: ServidorAgenda; url: string }
+export interface ConfigServidorAgenda {
+  tipo: ServidorAgenda;
+  url: string;
+}
 
-export const normalizarBaseAgenda = (url: string): string => url.trim().replace(/\/+$/, "").replace(/\/integracao$/, "");
+export const normalizarBaseAgenda = (url: string): string =>
+  url
+    .trim()
+    .replace(/\/+$/, "")
+    .replace(/\/integracao$/, "");
 
 export const lerServidorAgenda = (): ConfigServidorAgenda => {
   try {
     const c = JSON.parse(localStorage.getItem(SERVIDOR_KEY) ?? "null");
-    if (c && (c.tipo === "producao" || c.tipo === "localhost" || c.tipo === "personalizada") && typeof c.url === "string") return c;
-  } catch { /* ignore */ }
+    if (
+      c &&
+      (c.tipo === "producao" || c.tipo === "localhost" || c.tipo === "personalizada") &&
+      typeof c.url === "string"
+    )
+      return c;
+  } catch {
+    /* ignore */
+  }
   return { tipo: "producao", url: SERVIDORES_AGENDA.producao };
 };
 export const salvarServidorAgenda = (c: ConfigServidorAgenda) => {
-  try { localStorage.setItem(SERVIDOR_KEY, JSON.stringify({ tipo: c.tipo, url: normalizarBaseAgenda(c.url) })); } catch { /* ignore */ }
+  try {
+    localStorage.setItem(SERVIDOR_KEY, JSON.stringify({ tipo: c.tipo, url: normalizarBaseAgenda(c.url) }));
+  } catch {
+    /* ignore */
+  }
 };
 const baseDireta = () => `${normalizarBaseAgenda(lerServidorAgenda().url) || SERVIDORES_AGENDA.producao}/integracao`;
 
+// Valor de reserva: o build do Lovable só injeta as variáveis do Supabase, então a
+// chave do .env não chega à publicação. Só funciona na rede interna Samel/VPN.
+// Remover quando a TI liberar a API para o modo servidor.
+const CHAVE_AGENDA_RESERVA = "2ocp8FJQSAImAg/laevZ5UloynIAxaF1EcB4seHiGQRte20t9b/pdPTWeARQnqEs";
+
 export const obterChaveEnv = (): string => {
   try {
-    const k = (import.meta as any).env?.VITE_AGENDA_CIRURGICA_API_KEY;
+    const k = import.meta.env.VITE_AGENDA_CIRURGICA_API_KEY;
     if (typeof k === "string" && k.trim()) return k.trim();
-  } catch { /* ignore */ }
-  return "";
+  } catch {
+    /* ignore */
+  }
+  return CHAVE_AGENDA_RESERVA;
 };
 
 export const temChaveEnv = (): boolean => !!obterChaveEnv();
@@ -133,13 +194,19 @@ export const temChaveEnv = (): boolean => !!obterChaveEnv();
 export const lerChaveDireta = (): string => {
   const envKey = obterChaveEnv();
   if (envKey) return envKey;
-  try { return sessionStorage.getItem(CHAVE_SESSAO) ?? ""; } catch { return ""; }
+  try {
+    return sessionStorage.getItem(CHAVE_SESSAO) ?? "";
+  } catch {
+    return "";
+  }
 };
 export const salvarChaveDireta = (chave: string) => {
   try {
     if (chave) sessionStorage.setItem(CHAVE_SESSAO, chave);
     else sessionStorage.removeItem(CHAVE_SESSAO);
-  } catch { /* ignore */ }
+  } catch {
+    /* ignore */
+  }
 };
 
 async function chamarDireto<T>(url: string, chave: string): Promise<T> {
@@ -149,12 +216,16 @@ async function chamarDireto<T>(url: string, chave: string): Promise<T> {
   } catch {
     throw new Error(
       "Sem resposta da API. Confirme se você está na rede interna da Samel ou com a VPN ligada. " +
-      "Se estiver, a API pode estar bloqueando chamadas do navegador (CORS) — nesse caso avise a TI da Samel."
+        "Se estiver, a API pode estar bloqueando chamadas do navegador (CORS) — nesse caso avise a TI da Samel.",
     );
   }
   const texto = await r.text();
   let corpo: any = null;
-  try { corpo = texto ? JSON.parse(texto) : null; } catch { /* resposta não-JSON */ }
+  try {
+    corpo = texto ? JSON.parse(texto) : null;
+  } catch {
+    /* resposta não-JSON */
+  }
   if (!r.ok) {
     const msg = corpo?.mensagem ?? corpo?.message ?? `A API respondeu com erro ${r.status}.`;
     throw new Error(r.status === 401 || r.status === 403 ? `${msg} Verifique a chave informada.` : msg);
@@ -164,11 +235,17 @@ async function chamarDireto<T>(url: string, chave: string): Promise<T> {
 
 function montarQueryListagem(f: FiltrosAgenda): string {
   const p = new URLSearchParams();
-  const add = (k: string, v?: string) => { if (v && v.trim()) p.set(k, v.trim()); };
-  add("dt_inicio", f.dt_inicio); add("dt_fim", f.dt_fim);
-  add("cd_agenda", f.cd_agenda?.replace(/\s/g, "")); add("cd_medico", f.cd_medico);
-  add("cd_convenio", f.cd_convenio); add("cd_estabelecimento", f.cd_estabelecimento);
-  add("nm_paciente", f.nm_paciente); add("nm_empresa", f.nm_empresa);
+  const add = (k: string, v?: string) => {
+    if (v && v.trim()) p.set(k, v.trim());
+  };
+  add("dt_inicio", f.dt_inicio);
+  add("dt_fim", f.dt_fim);
+  add("cd_agenda", f.cd_agenda?.replace(/\s/g, ""));
+  add("cd_medico", f.cd_medico);
+  add("cd_convenio", f.cd_convenio);
+  add("cd_estabelecimento", f.cd_estabelecimento);
+  add("nm_paciente", f.nm_paciente);
+  add("nm_empresa", f.nm_empresa);
   add("ie_status_agenda", f.ie_status_agenda);
   p.set("page", String(Math.max(1, f.page ?? 1)));
   p.set("limit", String(Math.min(500, Math.max(1, f.limit ?? 50))));
@@ -177,11 +254,16 @@ function montarQueryListagem(f: FiltrosAgenda): string {
 
 export const listarProcedimentosPendentesDireto = async (filtros: FiltrosPendentes, chave: string) => {
   const p = new URLSearchParams({
-    dt_inicio: filtros.dt_inicio, dt_final: filtros.dt_final,
-    cd_cgc: filtros.cd_cgc || "0", cd_procedimento: filtros.cd_procedimento || "0",
+    dt_inicio: filtros.dt_inicio,
+    dt_final: filtros.dt_final,
+    cd_cgc: filtros.cd_cgc || "0",
+    cd_procedimento: filtros.cd_procedimento || "0",
   });
   const base = normalizarBaseAgenda(lerServidorAgenda().url) || SERVIDORES_AGENDA.producao;
-  const r = await chamarDireto<RelatorioPendentesResponse & { sucesso?: boolean; mensagem?: string }>(`${base}/relatorio/procedimentos-pendentes-empresa?${p}`, chave);
+  const r = await chamarDireto<RelatorioPendentesResponse & { sucesso?: boolean; mensagem?: string }>(
+    `${base}/relatorio/procedimentos-pendentes-empresa?${p}`,
+    chave,
+  );
   if (r && r.sucesso === false) throw new Error(r.mensagem ?? "A API não retornou os pendentes.");
   return r;
 };
@@ -192,5 +274,4 @@ export const listarAgendamentosDireto = (filtros: FiltrosAgenda, chave: string) 
 export const detalharAgendamentoDireto = (nr: number | string, chave: string) =>
   chamarDireto<any>(`${baseDireta()}/agendamentos/${encodeURIComponent(String(nr))}`, chave);
 
-export const healthAgendaDireto = () =>
-  chamarDireto<any>(`${baseDireta()}/health`, lerChaveDireta());
+export const healthAgendaDireto = () => chamarDireto<any>(`${baseDireta()}/health`, lerChaveDireta());
