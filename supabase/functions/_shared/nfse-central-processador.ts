@@ -7,7 +7,7 @@
 import { avaliarValidacao, type ResultadoDestino } from "./nfse-central-regras.ts";
 import { validarArquivosCentral } from "./siga-validador.generated.js";
 
-export const VALIDADOR_VERSAO = "v8-adesao-contexto";
+export const VALIDADOR_VERSAO = "v9-contexto-movimentacao";
 export const PENDENTES = [
   "recebido_pendente", "aguardando_faturado", "aguardando_faturamento_anexado",
   "destino_ambiguo", "aguardando_validacao", "validacao_inconclusiva", "divergencia", "aprovado_aguardando_liberacao",
@@ -127,8 +127,14 @@ export async function processarRecebimento(rec: Recebimento, ad: Adaptador): Pro
       contexto_documento: arq.contextoDocumento ?? null,
       comparacao: arq.comparacao, motivos: v.motivos, tomador_pdf: arq.tomadorPdf, arquivos: arq.arquivos, ambiguidade: arq.comparacao ? null : arq.motivo,
       // Contexto vem da movimentação escolhida (CNPJ + "Faturado"); competência e período não são lidos da nota nem dos arquivos.
-      contexto: { cnpj_tomador: rec.cnpj_tomador, competencia: mov.mes_referencia ?? null, periodo: mov.periodo ?? null },
-      conferido: { identidade_fiscal: true, cnpj_tomador: true, status_faturado: true, valores: v.diferencaCentavos === 0 && !!arq.comparacao, competencia: false, periodo: false },
+      // Campos preservados separadamente; nenhum é deduzido de outro.
+      contexto: {
+        cnpj_tomador: rec.cnpj_tomador, competencia: mov.mes_referencia ?? null, periodo: mov.periodo ?? null,
+        referencia_servico: arq.contextoDocumento?.competenciaDescricao ?? null,
+        competencia_fiscal: (rec as any).competencia ?? null, emitida_em: rec.emitida_em,
+        origem: "unica_movimentacao_faturado_cnpj_completo",
+      },
+      conferido: { identidade_fiscal: true, cnpj_tomador: true, status_faturado: true, valores: v.diferencaCentavos === 0 && !!arq.comparacao, competencia: false, periodo: false, referencia_servico: false },
     },
     validador_versao: VALIDADOR_VERSAO, validado_em: new Date().toISOString(),
   };

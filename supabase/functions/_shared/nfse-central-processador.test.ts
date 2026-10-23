@@ -48,18 +48,25 @@ Deno.test("adesão não é contada novamente em inclusões", async () => {
   assertEquals(f.vinculos.length, 0);
 });
 
-Deno.test("novembro no documento e outubro 15-20 no movimento impede aprovação", async () => {
+Deno.test("destino único: novembro no documento e outubro 15-20 na movimentação é aprovado sem deslocar competência", async () => {
   const f = fake({ pdf: pdfAdesaoFicticio(undefined, "Novembro/2026"), xls: await planilhaAdesaoFicticia(), auto: true });
   f.ad.resolverDestino = async () => ({ estado: "aguardando_validacao", motivo: null, destino: { ...MOV, mes_referencia: "2026-10", periodo: "15-20" } });
   const r = await processarRecebimento(rec({ homologacao: true }), f.ad);
-  assertEquals(r.estado, "validacao_inconclusiva");
-  assert((r.motivo ?? "").includes("2026-11"));
+  assertEquals(r.estado, "aprovado_aguardando_liberacao");
   const s = f.salvos.at(-1);
   assert(s);
   assertEquals(valores(s), [3120494, 3120494, 0]);
+  const ctx = (s.validacao as any).contexto;
+  assertEquals(ctx.competencia, "2026-10");
+  assertEquals(ctx.periodo, "15-20");
+  assertEquals(ctx.referencia_servico, "2026-11");
   assertEquals((s.validacao as any).conferido.competencia, false);
-  assertEquals((s.validacao as any).conferido.periodo, false);
   assertEquals(f.vinculos.length, 0);
+});
+Deno.test("meses diferentes não aprovam se o valor diverge em um centavo", async () => {
+  const f = fake({ pdf: pdfAdesaoFicticio("Taxa de Adesão= 1.024,40 /", "Novembro/2026"), xls: await planilhaAdesaoFicticia(), auto: true });
+  f.ad.resolverDestino = async () => ({ estado: "aguardando_validacao", motivo: null, destino: { ...MOV, mes_referencia: "2026-10", periodo: "15-20" } });
+  assertEquals((await processarRecebimento(rec({ homologacao: true }), f.ad)).estado, "divergencia");
 });
 const rec = (extra: Partial<Recebimento> = {}): Recebimento => ({
   id: "rec-1", estado: "aguardando_validacao", cnpj_tomador: CNPJ_FICTICIO, emitida_em: "2026-10-22T09:00:00-04:00",

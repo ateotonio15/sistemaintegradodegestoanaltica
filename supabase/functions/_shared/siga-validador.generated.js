@@ -2974,7 +2974,7 @@ async function validarArquivosCentral(i) {
   const leituraOk = valorPdf != null && valorServico != null && !!pdf.tomadorCnpj;
   const competenciaDescricao = pdf.competenciaDescricao ?? null;
   const competenciaMovimentacao = i.contexto?.competencia ?? null;
-  const impedimento = competenciaDescricao && i.contexto && competenciaDescricao !== competenciaMovimentacao ? `Per\xEDodo descrito no PDF ${competenciaDescricao} difere da compet\xEAncia da movimenta\xE7\xE3o ${competenciaMovimentacao ?? "n\xE3o informada"} (${i.contexto.periodo ?? "per\xEDodo n\xE3o informado"}). Financeiro deve comprovar a correspond\xEAncia com os documentos; nenhuma regra de deslocamento foi aplicada.` : null;
+  const impedimento = null;
   return {
     contextoDocumento: { competenciaDescricao, competenciaMovimentacao, impedimento },
     leituraOk,

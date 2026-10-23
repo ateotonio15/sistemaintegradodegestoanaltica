@@ -68,6 +68,25 @@ describe("Central NFS-e — destino", () => {
     const r = resolverDestino({ cnpjTomador: CNPJ, empresas, pagadores: [], movs: [{ id: "m1", empresa_id: "e1" }], anexos: [xls("m1")] });
     expect(r.destino?.id).toBe("m1");
   });
+  it("destino único em Faturado com competência anterior ao mês dos documentos", () => {
+    const r = resolverDestino({ cnpjTomador: CNPJ, empresas, pagadores: [],
+      movs: [{ id: "m10", empresa_id: "e1", mes_referencia: "2026-10", periodo: "15-20" }, { id: "m11", empresa_id: "e1", mes_referencia: "2026-11", periodo: "15-20" }],
+      anexos: [xls("m10")] });
+    expect(r.estado).toBe("aguardando_validacao");
+    expect(r.destino?.mes_referencia).toBe("2026-10");
+    expect(r.destino?.periodo).toBe("15-20");
+  });
+  it("dois elegíveis ficam ambíguos mesmo com sugestão da Central", () => {
+    const r = resolverDestino({ cnpjTomador: CNPJ, empresas, pagadores: [], sugerida: "m1",
+      movs: [{ id: "m1", empresa_id: "e1", mes_referencia: "2026-10" }, { id: "m2", empresa_id: "e1", mes_referencia: "2026-11" }], anexos: [xls("m1"), xls("m2")] });
+    expect(r.estado).toBe("destino_ambiguo");
+    expect(r.destino).toBeUndefined();
+  });
+  it("sem Faturado fica pendente com motivo", () => {
+    const r = resolverDestino({ cnpjTomador: CNPJ, empresas, pagadores: [], movs: [{ id: "m1", empresa_id: "e1", data_envio_nota: "2026-10-01" }], anexos: [xls("m1")] });
+    expect(r.estado).toBe("aguardando_faturado");
+    expect(r.motivo).toBeTruthy();
+  });
 });
 
 describe("Central NFS-e — grupos, reenvios e concorrência", () => {
