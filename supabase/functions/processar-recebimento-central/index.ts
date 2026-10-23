@@ -25,6 +25,13 @@ export function adaptadorBanco(db: any): Adaptador {
       return data ?? "";
     },
     tipoAnalise: async (id) => (await db.from("financeiro_movimentacoes").select("tipo_analise").eq("id", id).maybeSingle()).data?.tipo_analise ?? null,
+    outrasVersoes: async (rec) => {
+      const { count, error } = await db.from("nfse_recebimentos").select("id", { count: "exact", head: true })
+        .eq("origem", "central_nfse").eq("cnpj_prestador", rec.cnpj_prestador).eq("chave_acesso", rec.chave_acesso)
+        .eq("homologacao", rec.homologacao).neq("id", rec.id).neq("pdf_sha256", rec.pdf_sha256).neq("estado", "ja_recebido");
+      if (error) throw new Error("Falha ao consultar versões da nota");
+      return count ?? 0;
+    },
     cnpjPagador: async (empresaId, cnpj) => {
       const [{ data: e }, { data: p }] = await Promise.all([
         db.from("empresas").select("cnpj").eq("id", empresaId).maybeSingle(),

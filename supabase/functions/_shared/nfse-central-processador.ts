@@ -7,7 +7,7 @@
 import { avaliarValidacao, type ResultadoDestino } from "./nfse-central-regras.ts";
 import { validarArquivosCentral } from "./siga-validador.generated.js";
 
-export const VALIDADOR_VERSAO = "v6-valor-fiscal";
+export const VALIDADOR_VERSAO = "v7-identidade-fiscal";
 export const PENDENTES = [
   "recebido_pendente", "aguardando_faturado", "aguardando_faturamento_anexado",
   "destino_ambiguo", "aguardando_validacao", "validacao_inconclusiva", "divergencia", "aprovado_aguardando_liberacao",
@@ -18,6 +18,7 @@ export interface Recebimento {
   movimentacao_sugerida_id: string | null; movimentacao_destino_id: string | null;
   faturamento_revisao: string | null; chave_validacao?: string | null; homologacao: boolean; pdf_sha256: string;
   nome_arquivo: string | null; pdf_tamanho_bytes: number;
+  chave_acesso?: string | null; numero_nfse?: string | null; cnpj_prestador?: string | null;
 }
 export interface AnexoArmazenado { id: string; mime_type: string | null; nome_arquivo: string | null; storage_path: string; bucket: string | null; origem: string | null }
 
@@ -26,6 +27,8 @@ export interface Adaptador {
   anexosDaMov(movId: string): Promise<AnexoArmazenado[]>;
   revisaoAtual(movId: string): Promise<string>;
   tipoAnalise(movId: string): Promise<string | null>;
+  /** Outras versões (PDF diferente) da mesma nota no mesmo modo. */
+  outrasVersoes(rec: Recebimento): Promise<number>;
   cnpjPagador(empresaId: string, cnpjTomador: string): Promise<string | null>;
   baixar(bucket: string, path: string): Promise<ArrayBuffer | null>;
   autoAnexarReais(): Promise<boolean>;
@@ -90,10 +93,22 @@ export async function processarRecebimento(rec: Recebimento, ad: Adaptador): Pro
   try {
     arq = await validarArquivosCentral({
       pdf, cnpjTomador: rec.cnpj_tomador, tipoAnalise: tipo,
+      identidade: { chaveAcesso: rec.chave_acesso ?? null, numeroNfse: rec.numero_nfse ?? null, cnpjPrestador: rec.cnpj_prestador ?? null, cnpjTomador: rec.cnpj_tomador, emitidaEm: rec.emitida_em },
       planilhas: planilhas.map((p, i) => ({ id: p.id, nome: p.nome_arquivo ?? p.id, dados: xlss[i]! })),
     });
   } catch { return falhar("validacao_inconclusiva", "PDF ou planilha ilegível."); }
 
+  // Identidade fiscal do conteúdo: ausente/ilegível → inconclusivo; divergente → divergência.
+  const idf = arq.identidade;
+  if (!idf || !idf.ok) {
+    const estado = idf?.estado === "divergencia" ? "divergencia" : "validacao_inconclusiva";
+    const motivo = ["Identidade fiscal do PDF não comprovada.", ...(idf?.motivos ?? ["Conferência não executada."])].join(" ");
+    await ad.salvar(rec.id, { estado, motivo, movimentacao_destino_id: mov.id, status_observado: "Faturado", faturamento_revisao: revisao, chave_validacao: chave,
+      proxima_tentativa_em: proxima(), validador_versao: VALIDADOR_VERSAO, validado_em: new Date().toISOString(),
+      valor_excel_centavos: null, valor_pdf_centavos: null, diferenca_centavos: null,
+      validacao: { identidade: idf, arquivos: arq.arquivos, conferido: { identidade_fiscal: false, competencia: false, periodo: false } } });
+    return { estado, motivo };
+  }
   const v = avaliarValidacao({
     cnpjTomador: rec.cnpj_tomador, cnpjPagador: await ad.cnpjPagador(mov.empresa_id, rec.cnpj_tomador),
     emitidaEm: rec.emitida_em, faturado: true, leituraOk: arq.leituraOk,
@@ -107,10 +122,11 @@ export async function processarRecebimento(rec: Recebimento, ad: Adaptador): Pro
     validacao: {
       valor_descritivo_centavos: arq.valorPdf != null ? Math.round(arq.valorPdf * 100) : null,
       valor_servico_centavos: arq.valorServico != null ? Math.round(arq.valorServico * 100) : null,
+      identidade: idf,
       comparacao: arq.comparacao, motivos: v.motivos, tomador_pdf: arq.tomadorPdf, arquivos: arq.arquivos, ambiguidade: arq.comparacao ? null : arq.motivo,
       // Contexto vem da movimentação escolhida (CNPJ + "Faturado"); competência e período não são lidos da nota nem dos arquivos.
       contexto: { cnpj_tomador: rec.cnpj_tomador, competencia: mov.mes_referencia ?? null, periodo: mov.periodo ?? null },
-      conferido: { cnpj_tomador: true, status_faturado: true, valores: v.diferencaCentavos === 0 && !!arq.comparacao, competencia: false, periodo: false },
+      conferido: { identidade_fiscal: true, cnpj_tomador: true, status_faturado: true, valores: v.diferencaCentavos === 0 && !!arq.comparacao, competencia: false, periodo: false },
     },
     validador_versao: VALIDADOR_VERSAO, validado_em: new Date().toISOString(),
   };
@@ -121,6 +137,11 @@ export async function processarRecebimento(rec: Recebimento, ad: Adaptador): Pro
     const m = "Faturamento alterado durante a análise; será reavaliado.";
     await ad.salvar(rec.id, { ...base, faturamento_revisao: null, chave_validacao: null, proxima_tentativa_em: new Date().toISOString(), estado: "aguardando_validacao", motivo: m });
     return { estado: "aguardando_validacao", motivo: m };
+  }
+  if ((await ad.outrasVersoes(rec)) > 0) {
+    const m = "Aprovado, mas existe outra versão de PDF para esta nota; a versão anterior é preservada e nenhuma é anexada sem revisão humana.";
+    await ad.salvar(rec.id, { ...base, estado: "revisao_versao_pdf", motivo: m });
+    return { estado: "revisao_versao_pdf", motivo: m };
   }
   if (rec.homologacao || !(await ad.autoAnexarReais())) {
     const m = rec.homologacao ? "Aprovado em homologação; não é anexado." : "Aprovado. Anexação automática desligada até a homologação.";

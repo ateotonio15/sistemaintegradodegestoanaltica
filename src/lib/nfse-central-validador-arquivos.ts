@@ -13,7 +13,9 @@
  * Qualquer outro caso fica "Validação inconclusiva" com a ambiguidade descrita.
  */
 import { analisarExcelFinanceiroPorCnpj, compararExcelComPdf, type AnalisePorCnpj } from "./excel-analysis-utils";
-import { analisarPdfFinanceiro } from "./pdf-analysis-utils";
+import { analisarPdfFinanceiro, extrairTextoPdf } from "./pdf-analysis-utils";
+import { conferirIdentidadeFiscal, type IdentidadeEsperada, type IdentidadeFiscal } from "./nfse-identidade-fiscal";
+export { conferirIdentidadeFiscal };
 import { somarTotalFaturamento } from "./faturamento-totais";
 import { sumPdfTotal } from "./pdf-total";
 
@@ -31,6 +33,8 @@ export interface ResultadoArquivosCentral {
   comparacao: ReturnType<typeof compararExcelComPdf> | null;
   tomadorPdf: string | null;
   arquivos: ArquivoComposicao[];
+  /** Identidade fiscal lida do próprio PDF (null quando não solicitada). */
+  identidade: IdentidadeFiscal | null;
 }
 
 const c = (v: unknown) => Math.round((Number(v) || 0) * 100);
@@ -145,10 +149,16 @@ export async function comporFaturamento(planilhas: PlanilhaEntrada[], cnpjTomado
 }
 
 export async function validarArquivosCentral(i: {
-  pdf: ArrayBuffer; planilhas: PlanilhaEntrada[]; cnpjTomador: string; tipoAnalise?: string | null;
+  pdf: ArrayBuffer; planilhas: PlanilhaEntrada[]; cnpjTomador: string; tipoAnalise?: string | null; identidade?: IdentidadeEsperada;
 }): Promise<ResultadoArquivosCentral> {
+  let identidade: IdentidadeFiscal | null = null;
+  if (i.identidade) {
+    let texto = "";
+    try { texto = await extrairTextoPdf(i.pdf); } catch { texto = ""; }
+    identidade = conferirIdentidadeFiscal(texto, i.identidade);
+  }
   const { bloco, arquivos, ambiguidade } = await comporFaturamento(i.planilhas, i.cnpjTomador);
-  const vazio = (motivo: string): ResultadoArquivosCentral => ({ leituraOk: false, motivo, valorExcel: null, valorPdf: null, valorServico: null, comparacao: null, tomadorPdf: null, arquivos });
+  const vazio = (motivo: string): ResultadoArquivosCentral => ({ leituraOk: false, motivo, valorExcel: null, valorPdf: null, valorServico: null, comparacao: null, tomadorPdf: null, arquivos, identidade });
   if (!bloco) return vazio(ambiguidade ?? "Composição indeterminada.");
   const naoLidas = Object.entries(SEM_LEITURA_FISCAL).filter(([k]) => c((bloco as any)[k]?.total) !== 0)
     .map(([k, r]) => `${r} ${brl((bloco as any)[k].total)}`);
@@ -167,6 +177,6 @@ export async function validarArquivosCentral(i: {
     leituraOk, motivo: leituraOk ? null : valorServico == null && valorPdf != null && pdf.tomadorCnpj
       ? "Valor do serviço (bruto) não encontrado na NFS-e; o descritivo sozinho não é aceito."
       : "PDF incompleto: tomador ou valores não encontrados.",
-    valorExcel, valorPdf, valorServico, comparacao: cmp, tomadorPdf: pdf.tomadorCnpj ?? null, arquivos,
+    valorExcel, valorPdf, valorServico, comparacao: cmp, tomadorPdf: pdf.tomadorCnpj ?? null, arquivos, identidade,
   };
 }

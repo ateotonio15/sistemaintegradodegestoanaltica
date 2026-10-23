@@ -142,7 +142,10 @@ Deno.serve(async (req) => {
   const comArquivo = { storage_path: storagePath };
 
   if ((mesmaNota ?? []).length)
-    return registrar({ ...comArquivo, estado: "validacao_inconclusiva", motivo: "Nova versão de PDF para nota já recebida; requer análise." });
+    // Regra de revisão: PDF diferente para a mesma nota fica guardado como nova versão,
+    // fora da fila automática; a versão anterior e seu eventual anexo não são alterados.
+    return registrar({ ...comArquivo, estado: "revisao_versao_pdf", motivo: "Nova versão de PDF para nota já recebida; a anterior é preservada e nada é anexado sem revisão humana.",
+      validacao: { versoes_anteriores: (mesmaNota ?? []).map((r) => r.id) } });
 
   // Destino pelo CNPJ completo do tomador (regras compartilhadas)
   let r;
