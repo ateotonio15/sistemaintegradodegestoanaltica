@@ -1,6 +1,7 @@
 import { corsHeaders } from "npm:@supabase/supabase-js@2/cors";
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { z } from "npm:zod@3";
+import { carregarEResolver } from "../_shared/nfse-central-db.ts";
 
 /**
  * Receptor de PDFs da Central de NFS-e (contrato v1).
@@ -9,7 +10,7 @@ import { z } from "npm:zod@3";
  */
 const CORTE_EMISSAO = Date.parse("2026-10-22T04:00:00Z"); // 22/10/2026 00:00 Manaus
 const MAX_BYTES = 10 * 1024 * 1024;
-const VALIDADOR_VERSAO = "v1-sem-leitura-pdf";
+const VALIDADOR_VERSAO = "v2-siga-estrito";
 
 const Meta = z.object({
   versao_contrato: z.literal(1),
@@ -27,6 +28,7 @@ const Meta = z.object({
   gerador_versao: z.string().max(40).optional(),
   nome_arquivo: z.string().max(200).optional(),
   movimentacao_destino_id: z.string().uuid().optional(),
+  homologacao: z.boolean().optional(),
 });
 
 const digits = (s: string | null | undefined) => (s ?? "").replace(/\D/g, "");
@@ -47,9 +49,9 @@ function tokenOk(req: Request) {
   return diff === 0;
 }
 
-const isPdf = (a: { mime_type?: string | null; nome_arquivo?: string | null }) =>
+const _isPdf = (a: { mime_type?: string | null; nome_arquivo?: string | null }) =>
   (a.mime_type ?? "").includes("pdf") || (a.nome_arquivo ?? "").toLowerCase().endsWith(".pdf");
-const isXls = (a: { mime_type?: string | null; nome_arquivo?: string | null }) =>
+const _isXls = (a: { mime_type?: string | null; nome_arquivo?: string | null }) =>
   /spreadsheet|excel|csv/.test(a.mime_type ?? "") || /\.(xlsx|xlsm|xls|csv)$/i.test(a.nome_arquivo ?? "");
 
 Deno.serve(async (req) => {
@@ -95,7 +97,7 @@ Deno.serve(async (req) => {
     competencia_fiscal: m.competencia_fiscal ?? null, pdf_sha256: hash, pdf_tamanho_bytes: bytes.byteLength,
     pdf_tipo: m.pdf_tipo ?? null, gerador_versao: m.gerador_versao ?? null,
     nome_arquivo: (m.nome_arquivo ?? "nota.pdf").replace(/[^\w.\- ]/g, "_"),
-    movimentacao_sugerida_id: m.movimentacao_destino_id ?? null, validador_versao: VALIDADOR_VERSAO,
+    movimentacao_sugerida_id: m.movimentacao_destino_id ?? null, homologacao: m.homologacao === true, validador_versao: VALIDADOR_VERSAO,
   };
 
   const registrar = async (extra: Record<string, unknown>) => {
@@ -123,44 +125,8 @@ Deno.serve(async (req) => {
   if ((mesmaNota ?? []).length)
     return registrar({ ...comArquivo, estado: "validacao_inconclusiva", motivo: "Nova versão de PDF para nota já recebida; requer análise." });
 
-  // Destino pelo CNPJ completo do tomador (empresa ou pagador ativo)
-  const [{ data: emps }, { data: pags }] = await Promise.all([
-    db.from("empresas").select("id, cnpj, exige_po_pc, aguarda_faturamento_excel"),
-    db.from("financeiro_pagadores").select("empresa_id, cnpj, ativo").eq("ativo", true),
-  ]);
-  const empresaIds = new Set<string>();
-  (emps ?? []).forEach((e) => digits(e.cnpj) === cnpjTomador && empresaIds.add(e.id));
-  (pags ?? []).forEach((p) => digits(p.cnpj) === cnpjTomador && empresaIds.add(p.empresa_id));
-  if (!empresaIds.size)
-    return registrar({ ...comArquivo, estado: "destino_ambiguo", motivo: "Nenhum pagador com este CNPJ do tomador." });
-
-  const { data: movs } = await db.from("financeiro_movimentacoes")
-    .select("id, empresa_id, mes_referencia, periodo, data_envio_nota").in("empresa_id", [...empresaIds]);
-  const ids = (movs ?? []).map((x) => x.id);
-  const { data: anexos } = ids.length
-    ? await db.from("anexos_financeiro").select("financeiro_movimentacao_id, mime_type, nome_arquivo, origem").in("financeiro_movimentacao_id", ids)
-    : { data: [] as any[] };
-  const empMap = new Map((emps ?? []).map((e) => [e.id, e]));
-  const faturados = (movs ?? []).filter((mov) => {
-    if (mov.data_envio_nota) return false;
-    const e = empMap.get(mov.empresa_id);
-    const ax = (anexos ?? []).filter((a) => a.financeiro_movimentacao_id === mov.id && !["retroativo", "reajuste"].includes((a.origem ?? "normal").toLowerCase()));
-    if (ax.some(isPdf) || !ax.some(isXls)) return false;
-    return !e?.exige_po_pc && !e?.aguarda_faturamento_excel; // status exatamente "Faturado"
-  });
-
-  let candidatos = faturados;
-  if (m.movimentacao_destino_id) candidatos = faturados.filter((x) => x.id === m.movimentacao_destino_id);
-  if (!candidatos.length)
-    return registrar({ ...comArquivo, estado: "aguardando_faturado", motivo: "Nenhuma movimentação deste pagador está em “Faturado” com faturamento anexado." });
-  if (candidatos.length > 1)
-    return registrar({ ...comArquivo, estado: "destino_ambiguo", motivo: `${candidatos.length} movimentações em “Faturado” para este CNPJ; não escolhemos automaticamente.` });
-
-  // Destino único encontrado. A comparação estrita de valores (centavos, diferença zero)
-  // ainda não é executada no servidor — por segurança, não anexamos.
-  return registrar({
-    ...comArquivo, movimentacao_destino_id: candidatos[0].id, status_observado: "Faturado",
-    estado: "validacao_inconclusiva",
-    motivo: "Destino único em “Faturado”. Validação de valores do PDF ainda não disponível no servidor; PDF mantido fora dos anexos.",
-  });
+  // Destino pelo CNPJ completo do tomador (regras compartilhadas)
+  const r = await carregarEResolver(db, cnpjTomador, m.movimentacao_destino_id ?? null);
+  return registrar({ ...comArquivo, estado: r.estado, motivo: r.motivo, movimentacao_destino_id: r.destino?.id ?? null, status_observado: r.destino ? "Faturado" : null });
+});
 });
