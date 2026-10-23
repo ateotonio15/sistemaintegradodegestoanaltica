@@ -123,4 +123,3 @@ Deno.serve(async (req) => {
   const r = await carregarEResolver(db, cnpjTomador, m.movimentacao_destino_id ?? null);
   return registrar({ ...comArquivo, estado: r.estado, motivo: r.motivo, movimentacao_destino_id: r.destino?.id ?? null, status_observado: r.destino ? "Faturado" : null });
 });
-});
