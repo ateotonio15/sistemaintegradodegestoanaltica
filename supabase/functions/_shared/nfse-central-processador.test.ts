@@ -24,7 +24,7 @@ function fake(opts: { pdf: ArrayBuffer; xls: ArrayBuffer | ArrayBuffer[]; auto?:
     revisaoAtual: async () => (revisoes.length > 1 ? revisoes.shift()! : revisoes[0]),
     tipoAnalise: async () => "normal",
     cnpjPagador: async () => "12.345.678/0001-90",
-    baixar: async (bucket, path) => { baixados.push(`${bucket}/${path}`); if (bucket === "nfse-entrada") return opts.pdf; const i = Number(path.match(/fat(\\d+)/)![1]) - 1; return xlss[i].slice(0); },
+    baixar: async (bucket, path) => { baixados.push(`${bucket}/${path}`); if (bucket === "nfse-entrada") return opts.pdf; const i = Number(path.match(/fat(\d+)/)![1]) - 1; return xlss[i].slice(0); },
     autoAnexarReais: async () => opts.auto ?? false,
     salvar: async (_id, p) => { salvos.push(p); },
     copiarParaAnexos: async () => "emp-1/mov-1/central-ab.pdf",
