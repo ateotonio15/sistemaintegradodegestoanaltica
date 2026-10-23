@@ -49,11 +49,6 @@ function tokenOk(req: Request) {
   return diff === 0;
 }
 
-const _isPdf = (a: { mime_type?: string | null; nome_arquivo?: string | null }) =>
-  (a.mime_type ?? "").includes("pdf") || (a.nome_arquivo ?? "").toLowerCase().endsWith(".pdf");
-const _isXls = (a: { mime_type?: string | null; nome_arquivo?: string | null }) =>
-  /spreadsheet|excel|csv/.test(a.mime_type ?? "") || /\.(xlsx|xlsm|xls|csv)$/i.test(a.nome_arquivo ?? "");
-
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
   if (req.method !== "POST") return json({ erro: "Método não permitido" }, 405);
@@ -119,7 +114,6 @@ Deno.serve(async (req) => {
   const storagePath = `${cnpjTomador}/${m.entrega_id}/${hash}.pdf`;
   const up = await db.storage.from("nfse-entrada").upload(storagePath, bytes, { contentType: "application/pdf", upsert: false });
   if (up.error && !/exists/i.test(up.error.message)) return json({ erro: "Falha ao guardar o PDF" }, 500);
-  base.nome_arquivo = base.nome_arquivo; // noop
   const comArquivo = { storage_path: storagePath };
 
   if ((mesmaNota ?? []).length)
