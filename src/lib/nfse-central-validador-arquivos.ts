@@ -177,8 +177,9 @@ export async function validarArquivosCentral(i: {
   const leituraOk = valorPdf != null && valorServico != null && !!pdf.tomadorCnpj;
   const competenciaDescricao = pdf.competenciaDescricao ?? null;
   const competenciaMovimentacao = i.contexto?.competencia ?? null;
-  const impedimento = competenciaDescricao && i.contexto && competenciaDescricao !== competenciaMovimentacao
-    ? `Período descrito no PDF ${competenciaDescricao} difere da competência da movimentação ${competenciaMovimentacao ?? "não informada"} (${i.contexto.periodo ?? "período não informado"}). Financeiro deve comprovar a correspondência com os documentos; nenhuma regra de deslocamento foi aplicada.` : null;
+  // Regra do Financeiro: a movimentação pode ser feita no mês anterior ao faturamento/nota.
+  // A diferença é apenas registrada (sem deslocamento automático e sem bloquear a aprovação).
+  const impedimento: string | null = null;
   return {
     contextoDocumento: { competenciaDescricao, competenciaMovimentacao, impedimento },
     leituraOk, motivo: leituraOk ? null : valorServico == null && valorPdf != null && pdf.tomadorCnpj
