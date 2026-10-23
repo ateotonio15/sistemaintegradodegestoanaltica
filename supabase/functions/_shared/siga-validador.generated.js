@@ -2682,8 +2682,22 @@ function lerChave(t) {
   const d = m ? dig(m[1]) : "";
   return d.length >= 44 ? d : null;
 }
+function lerColuna(t, rotulo) {
+  const linhas = norm3(t).split("\n").map((l) => l.trim());
+  for (let i = 0; i < linhas.length - 1; i++) {
+    const cab = linhas[i].split(/\s{2,}/);
+    const idx = cab.findIndex((c2) => rotulo.test(c2.trim()));
+    if (idx < 0 || cab.length < 2) continue;
+    const vals = linhas[i + 1].split(/\s{2,}/);
+    if (vals.length < cab.length) continue;
+    return vals[idx]?.trim() || null;
+  }
+  return null;
+}
 function lerNumero(t) {
-  const m = norm3(t).match(/n(?:u|ú)?mero\s*d[ao]?\s*nfs[\s-]?e[^\d\n]{0,20}(\d{1,15})/i);
+  const col = lerColuna(t, /^numero\s+da\s+nfs-?e$/i);
+  if (col && /^\d{1,15}$/.test(col)) return sem0(col);
+  const m = norm3(t).match(/n(?:u|ú)?mero\s*d[ao]?\s*nfs[\s-]?e[^\d]{0,20}(\d{1,15})/i);
   return m ? sem0(m[1]) : null;
 }
 function lerPrestador(t) {
@@ -2697,11 +2711,16 @@ function lerPrestador(t) {
   return m ? dig(m[1]) : null;
 }
 function lerEmissao(t) {
-  const m = norm3(t).match(/(?:data\s+e\s+hora\s+d[ae]\s+emissao|data\s+d[ae]\s+emissao|emitida\s+em)[^\d\n]{0,30}(\d{2})\/(\d{2})\/(\d{4})(?:[^\d\n]{1,5}(\d{2}:\d{2}(?::\d{2})?))?/i);
+  const col = lerColuna(t, /^data\s+e\s+hora\s+da\s+emissao\s+da\s+nfs-?e$/i);
+  const c2 = col?.match(/^(\d{2})\/(\d{2})\/(\d{4})(?:\s+(\d{2}:\d{2}(?::\d{2})?))?$/);
+  if (c2) return { data: `${c2[3]}-${c2[2]}-${c2[1]}`, hora: c2[4] ?? null };
+  const m = norm3(t).match(/(?:data\s+e\s+hora\s+d[ae]\s+emissao|data\s+d[ae]\s+emissao|emitida\s+em)(?:\s+da\s+nfs-?e)?[^\d]{0,30}(\d{2})\/(\d{2})\/(\d{4})(?:[^\d\n]{1,5}(\d{2}:\d{2}(?::\d{2})?))?/i);
   return m ? { data: `${m[3]}-${m[2]}-${m[1]}`, hora: m[4] ?? null } : null;
 }
 function lerCompetencia(t) {
-  const m = norm3(t).match(/competencia(?:\s+da\s+nfs-?e)?[^\d\n]{0,20}(\d{2}\/\d{2}\/\d{4}|\d{2}\/\d{4})/i);
+  const col = lerColuna(t, /^competencia\s+da\s+nfs-?e$/i);
+  if (col && /^(\d{2}\/\d{2}\/\d{4}|\d{2}\/\d{4})$/.test(col)) return col;
+  const m = norm3(t).match(/competencia(?:\s+da\s+nfs-?e)?[^\d]{0,20}(\d{2}\/\d{2}\/\d{4}|\d{2}\/\d{4})/i);
   return m ? m[1] : null;
 }
 function dataManaus(iso) {
