@@ -4,9 +4,63 @@ import { assertEquals, assert } from "jsr:@std/assert@1";
 import { z } from "npm:zod@3";
 import { processarRecebimento, chaveEntrada, type Adaptador, type Recebimento } from "./nfse-central-processador.ts";
 import { resolverDestino } from "./nfse-central-regras.ts";
-import { CHAVE_FICTICIA, PRESTADOR_FICTICIO, CNPJ_FICTICIO, pdfFicticio, pdfIlegivel, pdfSoInclusaoFicticio, planilhaFicticia } from "./nfse-central-fixtures.ts";
+import { CHAVE_FICTICIA, PRESTADOR_FICTICIO, CNPJ_FICTICIO, pdfFicticio, pdfIlegivel, pdfSoInclusaoFicticio, planilhaFicticia, pdfAdesaoFicticio, planilhaAdesaoFicticia } from "./nfse-central-fixtures.ts";
 
 const MOV = { id: "mov-1", empresa_id: "emp-1" };
+
+Deno.test("adesão explícita compara total sem recalcular 7 x preço arredondado", async () => {
+  const f = fake({ pdf: pdfAdesaoFicticio(), xls: await planilhaAdesaoFicticia() });
+  assertEquals((await processarRecebimento(rec({ homologacao: true }), f.ad)).estado, "aprovado_aguardando_liberacao");
+  const s = f.salvos.at(-1);
+  assert(s);
+  assertEquals(valores(s), [3120494, 3120494, 0]);
+  const cmp = (s.validacao as any).comparacao;
+  assertEquals(cmp.taxaAdesao.total, { excel: 1024.39, pdf: 1024.39, ok: true });
+  assertEquals(cmp.taxaAdesao.quantidade, { excel: 7, pdf: null, conferida: false });
+  assertEquals(cmp.enfermaria.beneficiarios.pdf, 55);
+  assertEquals(cmp.apartamento.beneficiarios.pdf, 30);
+  assertEquals(cmp.inclusoes, null);
+  assertEquals(f.vinculos.length, 0);
+});
+
+Deno.test("adesão aceita espaços, acentos e R$", async () => {
+  for (const linha of ["Taxa de Adesao = R$ 1.024,39 /", "TAXA  DE  ADESÃO : 1.024,39 /", "Taxa de Adesão= 1.024,39 /"]) {
+    const f = fake({ pdf: pdfAdesaoFicticio(linha), xls: await planilhaAdesaoFicticia() });
+    assertEquals((await processarRecebimento(rec({ homologacao: true }), f.ad)).estado, "aprovado_aguardando_liberacao");
+  }
+});
+
+Deno.test("adesão ausente não é deduzida do bruto", async () => {
+  const f = fake({ pdf: pdfAdesaoFicticio(""), xls: await planilhaAdesaoFicticia() });
+  assertEquals((await processarRecebimento(rec(), f.ad)).estado, "validacao_inconclusiva");
+  assertEquals(f.vinculos.length, 0);
+});
+
+Deno.test("adesão divergente em um centavo bloqueia mesmo com bruto correto", async () => {
+  const f = fake({ pdf: pdfAdesaoFicticio("Taxa de Adesão= 1.024,40 /"), xls: await planilhaAdesaoFicticia() });
+  assertEquals((await processarRecebimento(rec(), f.ad)).estado, "divergencia");
+  assertEquals(f.vinculos.length, 0);
+});
+
+Deno.test("adesão não é contada novamente em inclusões", async () => {
+  const f = fake({ pdf: pdfAdesaoFicticio(), xls: await planilhaAdesaoFicticia(true) });
+  assertEquals((await processarRecebimento(rec(), f.ad)).estado, "validacao_inconclusiva");
+  assertEquals(f.vinculos.length, 0);
+});
+
+Deno.test("novembro no documento e outubro 15-20 no movimento impede aprovação", async () => {
+  const f = fake({ pdf: pdfAdesaoFicticio(undefined, "Novembro/2026"), xls: await planilhaAdesaoFicticia(), auto: true });
+  f.ad.resolverDestino = async () => ({ estado: "aguardando_validacao", motivo: null, destino: { ...MOV, mes_referencia: "2026-10", periodo: "15-20" } });
+  const r = await processarRecebimento(rec({ homologacao: true }), f.ad);
+  assertEquals(r.estado, "validacao_inconclusiva");
+  assert((r.motivo ?? "").includes("2026-11"));
+  const s = f.salvos.at(-1);
+  assert(s);
+  assertEquals(valores(s), [3120494, 3120494, 0]);
+  assertEquals((s.validacao as any).conferido.competencia, false);
+  assertEquals((s.validacao as any).conferido.periodo, false);
+  assertEquals(f.vinculos.length, 0);
+});
 const rec = (extra: Partial<Recebimento> = {}): Recebimento => ({
   id: "rec-1", estado: "aguardando_validacao", cnpj_tomador: CNPJ_FICTICIO, emitida_em: "2026-10-22T09:00:00-04:00",
   storage_path: "fila/nota.pdf", movimentacao_sugerida_id: null, movimentacao_destino_id: MOV.id, faturamento_revisao: null,
