@@ -360,3 +360,13 @@ Deno.test("homologação com nota correta e liberação ligada nunca anexa", asy
   assertEquals((await processarRecebimento(rec({ homologacao: true }), f.ad)).estado, "aprovado_aguardando_liberacao");
   assertEquals(f.vinculos.length, 0);
 });
+
+Deno.test("identidade: DANFSe v2.0 em tabela lê número da NFS-e (não o da DPS) e emissão", async () => {
+  const { conferirIdentidadeFiscal } = await import("./siga-validador.generated.js");
+  const t = " CHAVE DE ACESSO DA NFS-e\n 13026032284537141000138000000001779026109779221276\n NÚMERO DA NFS-e  COMPETÊNCIA DA NFS-e  DATA E HORA DA EMISSÃO DA NFS-e\n 17790  23/10/2026  23/10/2026 09:39:21\n NÚMERO DA DPS  SÉRIE DA DPS  DATA E HORA DA EMISSÃO DA DPS\n 332965  900  22/10/2026 09:39:21\n PRESTADOR / FORNECEDOR   CNPJ / CPF / NIF\n 84.537.141/0001-38\n TOMADOR / ADQUIRENTE  CNPJ / CPF / NIF\n 02.796.653/0001-54\n";
+  const r = conferirIdentidadeFiscal(t, { chaveAcesso: "13026032284537141000138000000001779026109779221276", numeroNfse: "17790", cnpjPrestador: "84537141000138", cnpjTomador: "02796653000154", emitidaEm: "2026-10-23T09:39:21-04:00" });
+  assertEquals(r.campos.numero.lido, "17790");
+  assertEquals(r.campos.emissao.situacao, "confere");
+  const outro = conferirIdentidadeFiscal(t, { chaveAcesso: "13026032284537141000138000000001779026109779221276", numeroNfse: "332965", cnpjPrestador: "84537141000138", cnpjTomador: "02796653000154", emitidaEm: null });
+  assertEquals(outro.campos.numero.situacao, "divergente");
+});
