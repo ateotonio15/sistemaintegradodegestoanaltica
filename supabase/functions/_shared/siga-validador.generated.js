@@ -385,6 +385,15 @@ function compararExcelComPdf(excel, pdf, tipoAnalise) {
         `Valor de devolu\xE7\xE3o divergente (Excel ${formatBRL(excelTotal)} \xD7 PDF ${formatBRL(pdfDevolucaoTotal)}).`
       );
   }
+  let taxaAdesao = null;
+  const adesaoExcel = excel.taxaAdesao?.total ?? 0;
+  const adesaoPdf = pdf?.taxaAdesao?.total ?? null;
+  if (adesaoExcel !== 0 || (excel.taxaAdesao?.quantidade ?? 0) > 0 || adesaoPdf !== null) {
+    const total = { excel: adesaoExcel, pdf: adesaoPdf, ok: adesaoPdf !== null && Math.round(adesaoExcel * 100) === Math.round(adesaoPdf * 100) };
+    taxaAdesao = { total, quantidade: { excel: excel.taxaAdesao?.quantidade ?? 0, pdf: pdf?.taxaAdesao?.quantidade ?? null, conferida: false } };
+    if (pdf && adesaoPdf === null) divergencias.push("Taxa de ades\xE3o n\xE3o encontrada explicitamente ou com linhas amb\xEDguas no PDF.");
+    else if (pdf && !total.ok) divergencias.push("Total da taxa de ades\xE3o divergente entre Excel e PDF.");
+  }
   divergencias.push(...obterDivergenciasNotaFiscal(pdf));
   return {
     pagador: excel.pagador,
@@ -394,6 +403,7 @@ function compararExcelComPdf(excel, pdf, tipoAnalise) {
     inclusoes,
     exclusoes,
     devolucoes,
+    taxaAdesao,
     divergencias,
     avisosPdf: pdf?.avisos ?? [],
     valorLiquido: pdf?.valorLiquido ?? null,
@@ -2329,6 +2339,18 @@ async function extrairTextoPdf(buffer) {
   }
   return partes.join("\n").replace(/\u00a0/g, " ");
 }
+function extrairTaxaAdesao(texto) {
+  const t = norm2(texto);
+  const valores = [...t.matchAll(/\btaxa\s+de\s+adesao\s*[:=\-]\s*(?:r\s*\$\s*)?(\d[\d.]*,\d{2}|\d+\.\d{2})(?!\d)/g)];
+  return { total: valores.length === 1 ? parseValor(valores[0][1]) : null, quantidade: null };
+}
+function extrairCompetenciaDescricao(texto) {
+  const meses = ["janeiro", "fevereiro", "marco", "abril", "maio", "junho", "julho", "agosto", "setembro", "outubro", "novembro", "dezembro"];
+  const matches = [...norm2(texto).matchAll(/\bperiodo\s+de\s*:\s*([a-z]+)\s*\/\s*(20\d{2})\b/g)];
+  if (matches.length !== 1) return null;
+  const mes = meses.indexOf(matches[0][1]);
+  return mes < 0 ? null : `${matches[0][2]}-${String(mes + 1).padStart(2, "0")}`;
+}
 async function analisarPdfFinanceiro(buffer) {
   const empty = { beneficiarios: null, mensalidade: null, total: 0 };
   const avisos = [];
@@ -2640,6 +2662,8 @@ async function analisarPdfFinanceiro(buffer) {
     inclusoes: { total: inclusoesTotal },
     exclusoes: { total: exclusoesTotal },
     devolucoes: { total: devolucoesTotal },
+    taxaAdesao: extrairTaxaAdesao(texto),
+    competenciaDescricao: extrairCompetenciaDescricao(texto),
     valorLiquido,
     nfNumero,
     tomadorCnpj,
@@ -2797,7 +2821,8 @@ function sumPdfTotal(c2) {
     cr.apartamento,
     cr.inclusoes,
     cr.exclusoes,
-    cr.devolucoes
+    cr.devolucoes,
+    cr.taxaAdesao ?? null
   ].filter((p) => p !== null).map((p) => p?.total?.pdf ?? null);
   if (!partes.length) return null;
   if (partes.some((p) => p === null)) return null;
@@ -2838,7 +2863,6 @@ function detalheRetro(b) {
 var SEM_LEITURA_FISCAL = {
   coparticipacao: "Coparticipa\xE7\xE3o",
   complemento: "Complemento",
-  taxaAdesao: "Taxa de ades\xE3o",
   permuta: "Permuta"
 };
 async function comporFaturamento(planilhas, cnpjTomador) {
@@ -2948,7 +2972,11 @@ async function validarArquivosCentral(i) {
   const valorExcel = somarTotalFaturamento(bloco);
   const valorServico = pdf.tributos?.valorServico ?? null;
   const leituraOk = valorPdf != null && valorServico != null && !!pdf.tomadorCnpj;
+  const competenciaDescricao = pdf.competenciaDescricao ?? null;
+  const competenciaMovimentacao = i.contexto?.competencia ?? null;
+  const impedimento = competenciaDescricao && i.contexto && competenciaDescricao !== competenciaMovimentacao ? `Per\xEDodo descrito no PDF ${competenciaDescricao} difere da compet\xEAncia da movimenta\xE7\xE3o ${competenciaMovimentacao ?? "n\xE3o informada"} (${i.contexto.periodo ?? "per\xEDodo n\xE3o informado"}). Financeiro deve comprovar a correspond\xEAncia com os documentos; nenhuma regra de deslocamento foi aplicada.` : null;
   return {
+    contextoDocumento: { competenciaDescricao, competenciaMovimentacao, impedimento },
     leituraOk,
     motivo: leituraOk ? null : valorServico == null && valorPdf != null && pdf.tomadorCnpj ? "Valor do servi\xE7o (bruto) n\xE3o encontrado na NFS-e; o descritivo sozinho n\xE3o \xE9 aceito." : "PDF incompleto: tomador ou valores n\xE3o encontrados.",
     valorExcel,
