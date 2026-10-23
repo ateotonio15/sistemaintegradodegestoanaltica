@@ -18,7 +18,11 @@ export async function planilhaFicticia(total = 1000, extras: [string, number | n
   return new Uint8Array(buf as ArrayBuffer).buffer as ArrayBuffer;
 }
 
-export function pdfFicticio(total = "1.000,00", mensal = "100.00", cnpj = fmt, inclusao: string | null = null): ArrayBuffer {
+const num = (s: string) => Number(s.replace(/\./g, "").replace(",", "."));
+const moeda = (n: number) => n.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+/** `valorServico` = valor fiscal bruto; padrão = descritivo completo; `null` = ausente. */
+export function pdfFicticio(total = "1.000,00", mensal = "100.00", cnpj = fmt, inclusao: string | null = null, valorServico?: string | null): ArrayBuffer {
+  const vs = valorServico === undefined ? moeda(num(total) + (inclusao ? num(inclusao) : 0)) : valorServico;
   const doc = new jsPDF();
   const linhas = [
     "NFS-e FICTICIA - TESTE",
@@ -29,6 +33,7 @@ export function pdfFicticio(total = "1.000,00", mensal = "100.00", cnpj = fmt, i
     "TRIBUTACAO",
     "Descricao do Servico",
     `Enfermaria: 10x${mensal}= ${total}${inclusao ? ` Inclusão:${inclusao}` : ""}`,
+    ...(vs ? ["VALORES", `Valor do Servico R$ ${vs}`] : []),
   ];
   linhas.forEach((l, i) => doc.text(l, 10, 20 + i * 10));
   return doc.output("arraybuffer");
@@ -39,7 +44,7 @@ export const pdfIlegivel = (): ArrayBuffer => new TextEncoder().encode("%PDF-1.4
 /** NFS-e fictícia só com inclusões (faturamento sem mensalidade). */
 export function pdfSoInclusaoFicticio(inclusao = "200,00", cnpj = fmt): ArrayBuffer {
   const doc = new jsPDF();
-  ["NFS-e FICTICIA - TESTE", "TOMADOR DO SERVICO", "Nome / Nome Empresarial", "EMPRESA FICTICIA LTDA", `CNPJ ${cnpj}`, "TRIBUTACAO", "Descricao do Servico", `Inclusão:${inclusao}`]
+  ["NFS-e FICTICIA - TESTE", "TOMADOR DO SERVICO", "Nome / Nome Empresarial", "EMPRESA FICTICIA LTDA", `CNPJ ${cnpj}`, "TRIBUTACAO", "Descricao do Servico", `Inclusão:${inclusao}`, "VALORES", `Valor do Servico R$ ${inclusao}`]
     .forEach((l, i) => doc.text(l, 10, 20 + i * 10));
   return doc.output("arraybuffer");
 }

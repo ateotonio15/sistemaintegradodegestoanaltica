@@ -148,7 +148,7 @@ export async function validarArquivosCentral(i: {
   pdf: ArrayBuffer; planilhas: PlanilhaEntrada[]; cnpjTomador: string; tipoAnalise?: string | null;
 }): Promise<ResultadoArquivosCentral> {
   const { bloco, arquivos, ambiguidade } = await comporFaturamento(i.planilhas, i.cnpjTomador);
-  const vazio = (motivo: string): ResultadoArquivosCentral => ({ leituraOk: false, motivo, valorExcel: null, valorPdf: null, comparacao: null, tomadorPdf: null, arquivos });
+  const vazio = (motivo: string): ResultadoArquivosCentral => ({ leituraOk: false, motivo, valorExcel: null, valorPdf: null, valorServico: null, comparacao: null, tomadorPdf: null, arquivos });
   if (!bloco) return vazio(ambiguidade ?? "Composição indeterminada.");
   const naoLidas = Object.entries(SEM_LEITURA_FISCAL).filter(([k]) => c((bloco as any)[k]?.total) !== 0)
     .map(([k, r]) => `${r} ${brl((bloco as any)[k].total)}`);
@@ -161,7 +161,7 @@ export async function validarArquivosCentral(i: {
   cmp.tomadorCnpj = pdf.tomadorCnpj ?? null;
   const valorPdf = sumPdfTotal(cmp);
   const valorExcel = somarTotalFaturamento(bloco as any);
-  const valorServico = pdf.resumo?.valorServico ?? (pdf as any).valorServico ?? null;
+  const valorServico = pdf.tributos?.valorServico ?? null;
   const leituraOk = valorPdf != null && valorServico != null && !!pdf.tomadorCnpj;
   return {
     leituraOk, motivo: leituraOk ? null : valorServico == null && valorPdf != null && pdf.tomadorCnpj
