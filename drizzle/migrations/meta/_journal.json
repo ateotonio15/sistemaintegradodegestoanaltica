@@ -351,6 +351,13 @@
       "when": 1792767145888,
       "tag": "0049_migration",
       "breakpoints": true
+    },
+    {
+      "idx": 50,
+      "version": "7",
+      "when": 1792775876186,
+      "tag": "0050_nfse_central_revisao_fila_guardas",
+      "breakpoints": true
     }
   ]
 }

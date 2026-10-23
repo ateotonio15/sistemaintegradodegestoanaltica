@@ -2,7 +2,8 @@
 // Executa os parsers reais do SIGA (pacote gerado) sem navegador nem tela aberta.
 import { assertEquals, assert } from "jsr:@std/assert@1";
 import { z } from "npm:zod@3";
-import { processarRecebimento, type Adaptador, type Recebimento } from "./nfse-central-processador.ts";
+import { processarRecebimento, chaveEntrada, type Adaptador, type Recebimento } from "./nfse-central-processador.ts";
+import { resolverDestino } from "./nfse-central-regras.ts";
 import { CNPJ_FICTICIO, pdfFicticio, pdfIlegivel, pdfSoInclusaoFicticio, planilhaFicticia } from "./nfse-central-fixtures.ts";
 
 const MOV = { id: "mov-1", empresa_id: "emp-1" };
@@ -12,7 +13,7 @@ const rec = (extra: Partial<Recebimento> = {}): Recebimento => ({
   homologacao: false, pdf_sha256: "ab", nome_arquivo: "nota.pdf", pdf_tamanho_bytes: 1, ...extra,
 });
 
-function fake(opts: { pdf: ArrayBuffer; xls: ArrayBuffer | ArrayBuffer[]; auto?: boolean; revisoes?: string[] }) {
+function fake(opts: { pdf: ArrayBuffer; xls: ArrayBuffer | ArrayBuffer[]; auto?: boolean; revisoes?: string[]; origens?: string[]; tipo?: string }) {
   const xlss = Array.isArray(opts.xls) ? opts.xls : [opts.xls];
   const salvos: Record<string, unknown>[] = [];
   const vinculos: string[] = [];
@@ -20,9 +21,9 @@ function fake(opts: { pdf: ArrayBuffer; xls: ArrayBuffer | ArrayBuffer[]; auto?:
   const revisoes = [...(opts.revisoes ?? ["r1"])];
   const ad: Adaptador = {
     resolverDestino: async () => ({ estado: "aguardando_validacao", motivo: null, destino: MOV }),
-    anexosDaMov: async () => xlss.map((_, i) => ({ id: `x${i + 1}`, mime_type: null, nome_arquivo: `fat${i + 1}.xlsx`, storage_path: `emp-1/mov-1/fat${i + 1}.xlsx`, bucket: "anexos-financeiro", origem: "normal" })),
+    anexosDaMov: async () => xlss.map((_, i) => ({ id: `x${i + 1}`, mime_type: null, nome_arquivo: `fat${i + 1}.xlsx`, storage_path: `emp-1/mov-1/fat${i + 1}.xlsx`, bucket: "anexos-financeiro", origem: opts.origens?.[i] ?? "normal" })),
     revisaoAtual: async () => (revisoes.length > 1 ? revisoes.shift()! : revisoes[0]),
-    tipoAnalise: async () => "normal",
+    tipoAnalise: async () => opts.tipo ?? "normal",
     cnpjPagador: async () => "12.345.678/0001-90",
     baixar: async (bucket, path) => { baixados.push(`${bucket}/${path}`); if (bucket === "nfse-entrada") return opts.pdf; const i = Number(path.match(/fat(\d+)/)![1]) - 1; return xlss[i].slice(0); },
     autoAnexarReais: async () => opts.auto ?? false,
@@ -95,8 +96,10 @@ Deno.test("aprovado e liberado chama o vínculo com a revisão lida", async () =
 
 Deno.test("divergência com arquivos inalterados não é reanalisada", async () => {
   const f = fake({ pdf: pdfFicticio(), xls: await planilhaFicticia() });
-  await processarRecebimento(rec({ estado: "divergencia", faturamento_revisao: "r1" }), f.ad);
+  const chave = await chaveEntrada("r1", "normal", "ab");
+  await processarRecebimento(rec({ estado: "divergencia", faturamento_revisao: "r1", chave_validacao: chave }), f.ad);
   assertEquals(f.baixados.length, 0);
+  assert(f.salvos.at(-1)!.proxima_tentativa_em, "sai da frente da fila");
 });
 
 // ---- Composição com vários arquivos ----
@@ -178,4 +181,57 @@ Deno.test("duas planilhas com mensalidade distintas: inconclusivo", async () => 
   const r = await processarRecebimento(rec(), f.ad);
   assertEquals(r.estado, "validacao_inconclusiva");
   assert(/mensalidade para o mesmo CNPJ/.test(r.motivo ?? ""));
+});
+
+// ---- Revisão 23/10: valor fiscal, seleção, cache, destino ----
+Deno.test("valor do serviço R$ 2.000,00 com descritivo R$ 1.000,00 não é aprovado", async () => {
+  const f = fake({ pdf: pdfFicticio("1.000,00", "100.00", undefined, null, "2.000,00"), xls: await planilhaFicticia(), auto: true });
+  const r = await processarRecebimento(rec(), f.ad);
+  assertEquals(r.estado, "divergencia");
+  const s = f.salvos.at(-1)!;
+  assertEquals([s.valor_excel_centavos, s.valor_pdf_centavos, s.diferenca_centavos], [100000, 200000, 100000]);
+  assertEquals((s.validacao as any).valor_descritivo_centavos, 100000);
+  assertEquals(f.vinculos.length, 0);
+});
+
+Deno.test("sem valor do serviço (bruto) na nota: inconclusivo, descritivo sozinho não basta", async () => {
+  const f = fake({ pdf: pdfFicticio("1.000,00", "100.00", undefined, null, null), xls: await planilhaFicticia(), auto: true });
+  assertEquals((await processarRecebimento(rec(), f.ad)).estado, "validacao_inconclusiva");
+  assertEquals(f.vinculos.length, 0);
+});
+
+Deno.test("planilha com origem=retroativo entra na validação e é classificada pelo conteúdo", async () => {
+  const f = fake({ pdf: pdfCom("200,00"), xls: [await planilhaFicticia(), await planilhaFicticia(0, [["Inclusão", 2, 200]], false)], origens: ["normal", "retroativo"] });
+  await processarRecebimento(rec(), f.ad);
+  assert(f.baixados.includes("anexos-financeiro/emp-1/mov-1/fat2.xlsx"));
+  assertEquals(valores(f.salvos.at(-1)!), [120000, 120000, 0]);
+});
+
+Deno.test("mudança do tipo de análise invalida o cache e reavalia", async () => {
+  const chaveNormal = await chaveEntrada("r1", "normal", "ab");
+  const f = fake({ pdf: pdfFicticio(), xls: await planilhaFicticia(), tipo: "moto_honda" });
+  const r = await processarRecebimento(rec({ estado: "divergencia", faturamento_revisao: "r1", chave_validacao: chaveNormal }), f.ad);
+  assertEquals(r.estado, "validacao_inconclusiva");
+  assert(f.salvos.at(-1)!.chave_validacao !== chaveNormal);
+});
+
+Deno.test("sugestão da Central não resolve dois movimentos em Faturado", () => {
+  const anexos = ["m1", "m2"].map((id) => ({ financeiro_movimentacao_id: id, nome_arquivo: "fat.xlsx", origem: "normal" }));
+  const base = { cnpjTomador: CNPJ_FICTICIO, empresas: [{ id: "e1", cnpj: CNPJ_FICTICIO }], pagadores: [], anexos,
+    movs: [{ id: "m1", empresa_id: "e1" }, { id: "m2", empresa_id: "e1" }] };
+  assertEquals(resolverDestino(base).estado, "destino_ambiguo");
+  assertEquals(resolverDestino({ ...base, sugerida: "m1" }).estado, "destino_ambiguo");
+  const um = { ...base, movs: [{ id: "m1", empresa_id: "e1" }] };
+  assertEquals(resolverDestino({ ...um, sugerida: "m2" }).estado, "destino_ambiguo");
+  assertEquals(resolverDestino({ ...um, sugerida: "m1" }).destino?.id, "m1");
+});
+
+Deno.test("leitura paginada percorre todas as páginas e trata erro como falha", async () => {
+  const { todas, PAGINA } = await import("./nfse-central-db.ts");
+  const total = PAGINA * 2 + 5;
+  const r = await todas(async (de, ate) => ({ data: Array.from({ length: Math.max(0, Math.min(ate, total - 1) - de + 1) }, (_, i) => de + i), error: null }));
+  assertEquals(r.length, total);
+  let falhou = false;
+  try { await todas(async () => ({ data: null, error: { message: "x" } })); } catch { falhou = true; }
+  assert(falhou);
 });

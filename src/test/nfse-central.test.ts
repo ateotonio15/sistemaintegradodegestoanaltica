@@ -14,24 +14,32 @@ const base = { cnpjTomador: CNPJ, cnpjPagador: CNPJ, emitidaEm: "2026-10-22T08:0
 
 describe("Central NFS-e — validação estrita", () => {
   it("aprova somente com diferença de zero centavos", () => {
-    expect(avaliarValidacao({ ...base, comparacao: cmp(1000), valorPdf: 1000 }).estado).toBe("aprovado_aguardando_liberacao");
+    expect(avaliarValidacao({ ...base, comparacao: cmp(1000), valorPdf: 1000, valorServico: 1000 }).estado).toBe("aprovado_aguardando_liberacao");
   });
   it("rejeita diferença de R$ 0,01", () => {
-    const r = avaliarValidacao({ ...base, comparacao: cmp(1000.01), valorPdf: 1000.01 });
+    const r = avaliarValidacao({ ...base, comparacao: cmp(1000.01), valorPdf: 1000.01, valorServico: 1000.01 });
     expect(r.aprovado).toBe(false);
     expect(r.diferencaCentavos).toBe(1);
     expect(r.estado).toBe("divergencia");
   });
   it("rejeita CNPJ do tomador divergente do pagador e do PDF", () => {
-    expect(avaliarValidacao({ ...base, cnpjPagador: "12345678000271", comparacao: cmp(1000), valorPdf: 1000 }).estado).toBe("divergencia");
-    expect(avaliarValidacao({ ...base, comparacao: cmp(1000, "99999999000199"), valorPdf: 1000 }).estado).toBe("divergencia");
+    expect(avaliarValidacao({ ...base, cnpjPagador: "12345678000271", comparacao: cmp(1000), valorPdf: 1000, valorServico: 1000 }).estado).toBe("divergencia");
+    expect(avaliarValidacao({ ...base, comparacao: cmp(1000, "99999999000199"), valorPdf: 1000, valorServico: 1000 }).estado).toBe("divergencia");
   });
   it("não aprova status diferente de Faturado", () => {
-    expect(avaliarValidacao({ ...base, faturado: false, comparacao: cmp(1000), valorPdf: 1000 }).estado).toBe("aguardando_faturado");
+    expect(avaliarValidacao({ ...base, faturado: false, comparacao: cmp(1000), valorPdf: 1000, valorServico: 1000 }).estado).toBe("aguardando_faturado");
   });
   it("arquivo ilegível ou valor parcial fica inconclusivo", () => {
-    expect(avaliarValidacao({ ...base, leituraOk: false, comparacao: null, valorPdf: null }).estado).toBe("validacao_inconclusiva");
-    expect(avaliarValidacao({ ...base, comparacao: cmp(null), valorPdf: null }).estado).toBe("validacao_inconclusiva");
+    expect(avaliarValidacao({ ...base, leituraOk: false, comparacao: null, valorPdf: null, valorServico: null }).estado).toBe("validacao_inconclusiva");
+    expect(avaliarValidacao({ ...base, comparacao: cmp(null), valorPdf: null, valorServico: null }).estado).toBe("validacao_inconclusiva");
+  });
+  it("valor do serviço bruto diferente do descritivo não é aprovado", () => {
+    const r = avaliarValidacao({ ...base, comparacao: cmp(1000), valorPdf: 1000, valorServico: 2000 });
+    expect(r.estado).toBe("divergencia");
+    expect(r.diferencaCentavos).toBe(100000);
+  });
+  it("sem valor do serviço bruto fica inconclusivo", () => {
+    expect(avaliarValidacao({ ...base, comparacao: cmp(1000), valorPdf: 1000, valorServico: null }).estado).toBe("validacao_inconclusiva");
   });
   it("corte de emissão em 22/10/2026 00:00 de Manaus", () => {
     expect(emitidaNoPeriodo("2026-10-22T00:00:00-04:00")).toBe(true);

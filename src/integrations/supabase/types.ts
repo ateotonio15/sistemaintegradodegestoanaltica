@@ -4109,6 +4109,7 @@ export type Database = {
         Row: {
           anexo_financeiro_id: string | null
           chave_acesso: string
+          chave_validacao: string | null
           cnpj_prestador: string
           cnpj_tomador: string
           competencia_fiscal: string | null
@@ -4131,6 +4132,8 @@ export type Database = {
           pdf_sha256: string
           pdf_tamanho_bytes: number
           pdf_tipo: string | null
+          proxima_tentativa_em: string
+          reservado_ate: string | null
           status_observado: string | null
           storage_path: string | null
           tentativas: number
@@ -4145,6 +4148,7 @@ export type Database = {
         Insert: {
           anexo_financeiro_id?: string | null
           chave_acesso: string
+          chave_validacao?: string | null
           cnpj_prestador: string
           cnpj_tomador: string
           competencia_fiscal?: string | null
@@ -4167,6 +4171,8 @@ export type Database = {
           pdf_sha256: string
           pdf_tamanho_bytes: number
           pdf_tipo?: string | null
+          proxima_tentativa_em?: string
+          reservado_ate?: string | null
           status_observado?: string | null
           storage_path?: string | null
           tentativas?: number
@@ -4181,6 +4187,7 @@ export type Database = {
         Update: {
           anexo_financeiro_id?: string | null
           chave_acesso?: string
+          chave_validacao?: string | null
           cnpj_prestador?: string
           cnpj_tomador?: string
           competencia_fiscal?: string | null
@@ -4203,6 +4210,8 @@ export type Database = {
           pdf_sha256?: string
           pdf_tamanho_bytes?: number
           pdf_tipo?: string | null
+          proxima_tentativa_em?: string
+          reservado_ate?: string | null
           status_observado?: string | null
           storage_path?: string | null
           tentativas?: number
@@ -6460,6 +6469,62 @@ export type Database = {
       marcar_prioridade_maxima: {
         Args: { p_empresa_id: string; p_motivo: string; p_observacoes?: string }
         Returns: string
+      }
+      nfse_central_candidatos: {
+        Args: { _cnpj: string }
+        Returns: {
+          cnpj: string
+          empresa_id: string
+          origem: string
+        }[]
+      }
+      nfse_central_reservar: {
+        Args: { _lote: number }
+        Returns: {
+          anexo_financeiro_id: string | null
+          chave_acesso: string
+          chave_validacao: string | null
+          cnpj_prestador: string
+          cnpj_tomador: string
+          competencia_fiscal: string | null
+          created_at: string
+          diferenca_centavos: number | null
+          documento_origem_id: string | null
+          emitida_em: string
+          entrega_id: string
+          estado: string
+          faturamento_revisao: string | null
+          gerador_versao: string | null
+          homologacao: boolean
+          id: string
+          motivo: string | null
+          movimentacao_destino_id: string | null
+          movimentacao_sugerida_id: string | null
+          nome_arquivo: string | null
+          numero_nfse: string | null
+          origem: string
+          pdf_sha256: string
+          pdf_tamanho_bytes: number
+          pdf_tipo: string | null
+          proxima_tentativa_em: string
+          reservado_ate: string | null
+          status_observado: string | null
+          storage_path: string | null
+          tentativas: number
+          updated_at: string
+          validacao: Json | null
+          validado_em: string | null
+          validado_por: string | null
+          validador_versao: string | null
+          valor_excel_centavos: number | null
+          valor_pdf_centavos: number | null
+        }[]
+        SetofOptions: {
+          from: "*"
+          to: "nfse_recebimentos"
+          isOneToOne: false
+          isSetofReturn: true
+        }
       }
       nfse_central_revisao: { Args: { _mov: string }; Returns: string }
       nfse_central_vincular: {

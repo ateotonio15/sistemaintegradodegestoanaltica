@@ -10,7 +10,7 @@ import { carregarEResolver } from "../_shared/nfse-central-db.ts";
  */
 const CORTE_EMISSAO = Date.parse("2026-10-22T04:00:00Z"); // 22/10/2026 00:00 Manaus
 const MAX_BYTES = 10 * 1024 * 1024;
-const VALIDADOR_VERSAO = "v2-siga-estrito";
+const VALIDADOR_VERSAO = "v6-valor-fiscal";
 
 const Meta = z.object({
   versao_contrato: z.literal(1),
@@ -110,8 +110,15 @@ Deno.serve(async (req) => {
     movimentacao_sugerida_id: m.movimentacao_destino_id ?? null, homologacao: m.homologacao === true, validador_versao: VALIDADOR_VERSAO,
   };
 
+  const homolog = m.homologacao === true;
   const registrar = async (extra: Record<string, unknown>) => {
     const { data, error } = await db.from("nfse_recebimentos").insert({ ...base, ...extra }).select("id, estado, motivo").single();
+    if (error?.code === "23505") {
+      // Entrega concorrente da mesma nota/PDF no mesmo modo: devolve o canônico.
+      const { data: c } = await db.from("nfse_recebimentos").select("id, estado, motivo, anexo_financeiro_id").eq("origem", "central_nfse")
+        .eq("cnpj_prestador", cnpjPrestador).eq("chave_acesso", m.chave_acesso).eq("pdf_sha256", hash).eq("homologacao", homolog).neq("estado", "ja_recebido").maybeSingle();
+      if (c) return json({ recebimento_id: c.id, estado: c.estado, ja_recebido: true, motivo: c.motivo, anexo_financeiro_id: c.anexo_financeiro_id });
+    }
     if (error) return json({ erro: "Falha ao registrar recebimento" }, 500);
     return json({ recebimento_id: data.id, estado: data.estado, motivo: data.motivo });
   };
@@ -119,11 +126,14 @@ Deno.serve(async (req) => {
   if (Date.parse(m.emitida_em) < CORTE_EMISSAO)
     return registrar({ estado: "fora_do_periodo", motivo: "Emissão anterior a 22/10/2026." });
 
-  // Mesma nota já recebida em outra entrega
-  const { data: mesmaNota } = await db.from("nfse_recebimentos").select("id, pdf_sha256, estado")
-    .eq("origem", "central_nfse").eq("cnpj_prestador", cnpjPrestador).eq("chave_acesso", m.chave_acesso);
-  if ((mesmaNota ?? []).some((r) => r.pdf_sha256 === hash))
-    return registrar({ estado: "ja_recebido", motivo: "Mesma nota e mesmo PDF já recebidos em outra entrega." });
+  // Mesma nota já recebida em outra entrega — homologação e produção são separadas:
+  // uma entrega real nunca é absorvida por um teste anterior da mesma nota.
+  const { data: mesmaNota, error: errNota } = await db.from("nfse_recebimentos").select("id, pdf_sha256, estado, motivo, homologacao, anexo_financeiro_id")
+    .eq("origem", "central_nfse").eq("cnpj_prestador", cnpjPrestador).eq("chave_acesso", m.chave_acesso).eq("homologacao", homolog).neq("estado", "ja_recebido");
+  if (errNota) return json({ erro: "Falha ao consultar recebimentos" }, 500);
+  const canonico = (mesmaNota ?? []).find((r) => r.pdf_sha256 === hash);
+  // Reenvio da mesma nota/PDF no mesmo modo: devolve o recebimento canônico e seu estado atual, sem nova linha.
+  if (canonico) return json({ recebimento_id: canonico.id, estado: canonico.estado, ja_recebido: true, motivo: canonico.motivo, anexo_financeiro_id: canonico.anexo_financeiro_id });
 
   // Guarda o PDF em área privada (fora dos anexos financeiros ativos)
   const storagePath = `${cnpjTomador}/${m.entrega_id}/${hash}.pdf`;
@@ -135,6 +145,8 @@ Deno.serve(async (req) => {
     return registrar({ ...comArquivo, estado: "validacao_inconclusiva", motivo: "Nova versão de PDF para nota já recebida; requer análise." });
 
   // Destino pelo CNPJ completo do tomador (regras compartilhadas)
-  const r = await carregarEResolver(db, cnpjTomador, m.movimentacao_destino_id ?? null);
+  let r;
+  try { r = await carregarEResolver(db, cnpjTomador, m.movimentacao_destino_id ?? null); }
+  catch { return registrar({ ...comArquivo, estado: "recebido_pendente", motivo: "Destino será resolvido pelo processamento do servidor." }); }
   return registrar({ ...comArquivo, estado: r.estado, motivo: r.motivo, movimentacao_destino_id: r.destino?.id ?? null, status_observado: r.destino ? "Faturado" : null });
 });
