@@ -12,7 +12,7 @@ import { CredenciaisCentralCard } from "@/components/nfse/CredenciaisCentralCard
 const ROTULO: Record<string, string> = {
   recebido_pendente: "Recebido", aguardando_faturado: "Aguardando “Faturado”",
   aguardando_faturamento_anexado: "Sem faturamento anexado", destino_ambiguo: "Destino ambíguo",
-  aguardando_validacao: "Em validação", validacao_inconclusiva: "Validação inconclusiva",
+  aguardando_validacao: "Em validação", validacao_inconclusiva: "Validação inconclusiva", revisao_versao_pdf: "Nova versão de PDF — revisão",
   divergencia: "Divergência", fora_do_periodo: "Fora do período",
   aprovado_aguardando_liberacao: "Aprovado (não anexado)", vinculado: "Anexado", ja_recebido: "Já recebido", conflito: "Conflito",
 };
