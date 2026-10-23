@@ -1,11 +1,11 @@
-import { useEffect, useRef, useState } from "react";
+import { useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { RefreshCw } from "lucide-react";
-import { processarRecebimento, type RecebimentoCentral } from "@/lib/nfse-central-validacao";
+import { reavaliarRecebimento } from "@/lib/nfse-central-validacao";
 
 const ROTULO: Record<string, string> = {
   recebido_pendente: "Recebido", aguardando_faturado: "Aguardando “Faturado”",
@@ -18,12 +18,11 @@ const COR = (e: string) =>
   e === "vinculado" ? "default" : e === "divergencia" || e === "conflito" ? "destructive" : "secondary";
 const brl = (c: number | null) => (c == null ? "—" : (c / 100).toLocaleString("pt-BR", { style: "currency", currency: "BRL" }));
 const cnpjFmt = (s: string) => s.replace(/^(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})$/, "$1.$2.$3/$4-$5");
-const PENDENTES = ["recebido_pendente", "aguardando_faturado", "aguardando_faturamento_anexado", "destino_ambiguo", "aguardando_validacao"];
+const PENDENTES = ["recebido_pendente", "aguardando_faturado", "aguardando_faturamento_anexado", "destino_ambiguo", "aguardando_validacao", "validacao_inconclusiva", "divergencia"];
 
 export default function RecebidosCentral() {
   const qc = useQueryClient();
   const [processando, setProcessando] = useState(false);
-  const rodou = useRef(false);
   const { data: config } = useQuery({
     queryKey: ["nfse-central-config"],
     queryFn: async () => (await supabase.from("nfse_central_config").select("auto_anexar_reais").eq("id", 1).maybeSingle()).data,
@@ -42,17 +41,13 @@ export default function RecebidosCentral() {
     setProcessando(true);
     try {
       for (const r of itens.filter((i) => PENDENTES.includes(i.estado))) {
-        try { await processarRecebimento(r as RecebimentoCentral); } catch { /* segue para o próximo */ }
+        try { await reavaliarRecebimento(r.id); } catch { /* segue para o próximo */ }
       }
     } finally {
       setProcessando(false);
       qc.invalidateQueries({ queryKey: ["nfse-recebimentos"] });
     }
   };
-  useEffect(() => {
-    if (!rodou.current && itens.some((i) => PENDENTES.includes(i.estado))) { rodou.current = true; processar(); }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [itens]);
 
   return (
     <>
@@ -60,7 +55,7 @@ export default function RecebidosCentral() {
         <div className="flex flex-wrap items-center justify-between gap-2">
           <div>
             <h1 className="text-2xl font-bold">Recebidos da Central</h1>
-            <p className="text-sm text-muted-foreground">PDFs de NFS-e enviados pela Central e validados pelo SIGA.</p>
+            <p className="text-sm text-muted-foreground">PDFs de NFS-e enviados pela Central. O SIGA valida automaticamente a cada minuto, mesmo com esta tela fechada.</p>
           </div>
           <div className="flex items-center gap-2">
             <Badge variant={config?.auto_anexar_reais ? "default" : "outline"}>

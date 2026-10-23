@@ -71,4 +71,6 @@
 
 ## Recebidos da Central NFS-e (23/10/2026)
 - [x] Receptor, validação estrita, anexação transacional, proteção de grupos, tela "Recebidos da Central", 13 testes.
+- [x] Validação independente do navegador no servidor, fila automática, 9 testes do servidor + vínculo testado em transação desfeita.
+- [x] (Mayara) Arquivo do relatório de pendentes: já atendido; chave mantida no servidor.
 - [ ] Homologação com a Central e liberação da anexação automática (aguarda o usuário).

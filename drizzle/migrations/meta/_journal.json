@@ -330,6 +330,13 @@
       "when": 1792765106864,
       "tag": "0046_nfse_central_validacao_vinculo",
       "breakpoints": true
+    },
+    {
+      "idx": 47,
+      "version": "7",
+      "when": 1792765886133,
+      "tag": "0047_nfse_central_despertar_fila",
+      "breakpoints": true
     }
   ]
 }
