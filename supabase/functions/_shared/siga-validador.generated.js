@@ -2758,16 +2758,26 @@ async function sha(buf) {
   return Array.from(h, (x) => x.toString(16).padStart(2, "0")).join("");
 }
 var brl2 = (n) => n.toFixed(2).replace(".", ",");
+function detalheRetro(b) {
+  const m = /* @__PURE__ */ new Map();
+  for (const d of b.retroativas?.mesesDetalhe ?? []) m.set(d.mes, `${d.quantidade}|${c(d.total)}`);
+  return m;
+}
+var SEM_LEITURA_FISCAL = {
+  coparticipacao: "Coparticipa\xE7\xE3o",
+  complemento: "Complemento",
+  taxaAdesao: "Taxa de ades\xE3o",
+  permuta: "Permuta"
+};
 async function comporFaturamento(planilhas, cnpjTomador) {
   const arquivos = [];
   const unicos = [];
   const hashes = /* @__PURE__ */ new Map();
-  const impressoes = /* @__PURE__ */ new Map();
   const falha = (m) => ({ bloco: null, arquivos, ambiguidade: m });
   for (const p of planilhas) {
     const h = await sha(p.dados);
     if (hashes.has(h)) {
-      arquivos.push({ id: p.id, nome: p.nome, papel: "duplicado", valor: null, duplicadoDe: hashes.get(h), observacao: "Arquivo id\xEAntico." });
+      arquivos.push({ id: p.id, nome: p.nome, papel: "duplicado", valor: null, duplicadoDe: hashes.get(h), observacao: "Arquivo id\xEAntico (mesmo hash)." });
       continue;
     }
     hashes.set(h, p.id);
@@ -2789,38 +2799,52 @@ async function comporFaturamento(planilhas, cnpjTomador) {
     }
     const b = doPagador[0];
     const a = { id: p.id, nome: p.nome, papel: "complementar", valor: somarTotalFaturamento(b) };
-    const imp = impressao(b);
-    if (impressoes.has(imp)) {
-      arquivos.push({ ...a, papel: "duplicado", duplicadoDe: impressoes.get(imp), observacao: "Mesmos valores de outra planilha." });
-      continue;
-    }
-    impressoes.set(imp, p.id);
     arquivos.push(a);
+    const igual = unicos.find((u) => impressao(u.b) === impressao(b));
+    if (igual) return falha(`\u201C${p.nome}\u201D e \u201C${igual.a.nome}\u201D s\xE3o arquivos diferentes com os mesmos valores (${brl2(a.valor)}); sem evid\xEAncia de que sejam os mesmos lan\xE7amentos, n\xE3o \xE9 poss\xEDvel decidir entre duplicidade e duas cobran\xE7as.`);
     unicos.push({ a, b });
   }
   if (!unicos.length) return falha(planilhas.length ? "Nenhuma planilha anexada cont\xE9m o CNPJ do tomador." : "Faturamento n\xE3o anexado.");
   const principais = unicos.filter((u) => temMensalidade(u.b));
-  if (principais.length !== 1) return falha(principais.length ? `Planilhas com mensalidade para o mesmo CNPJ: ${principais.map((u) => `\u201C${u.a.nome}\u201D (${brl2(u.a.valor)})`).join(", ")}; n\xE3o \xE9 poss\xEDvel saber se substituem ou complementam.` : "Nenhuma planilha com mensalidade para o CNPJ; composi\xE7\xE3o indeterminada.");
-  const pr = principais[0];
+  if (principais.length > 1) return falha(`Planilhas com mensalidade para o mesmo CNPJ: ${principais.map((u) => `\u201C${u.a.nome}\u201D (${brl2(u.a.valor)})`).join(", ")}; n\xE3o \xE9 poss\xEDvel saber se substituem ou complementam.`);
+  const pr = principais[0] ?? unicos[0];
   pr.a.papel = "principal";
+  if (!principais.length) pr.a.observacao = "Faturamento sem mensalidade.";
   const comp = structuredClone(pr.b);
   for (const u of unicos) {
     if (u === pr) continue;
     if (soRetroativo(u.b)) {
-      if (retro(pr.b) === retro(u.b)) {
-        u.a.papel = "retroativo_incluido";
-        u.a.observacao = "Retroativo j\xE1 contido nas inclus\xF5es da planilha principal; n\xE3o somado.";
+      if (retro(comp) === 0) {
+        comp.inclusoes = { ...comp.inclusoes, quantidade: (comp.inclusoes?.quantidade ?? 0) + (u.b.inclusoes?.quantidade ?? 0), total: (c(comp.inclusoes?.total) + c(u.b.inclusoes.total)) / 100 };
+        comp.retroativas = structuredClone(u.b.retroativas);
+        u.a.observacao = "Retroativo ausente da planilha principal; somado \xE0s inclus\xF5es.";
         continue;
       }
-      if (retro(comp) !== 0) return falha(`Retroativo de \u201C${u.a.nome}\u201D (${brl2(retro(u.b) / 100)}) difere do retroativo j\xE1 inclu\xEDdo (${brl2(retro(comp) / 100)}).`);
-      comp.inclusoes = { ...comp.inclusoes, quantidade: (comp.inclusoes?.quantidade ?? 0) + (u.b.inclusoes?.quantidade ?? 0), total: (c(comp.inclusoes?.total) + c(u.b.inclusoes.total)) / 100 };
-      comp.retroativas = { ...u.b.retroativas };
-      u.a.observacao = "Retroativo ausente da planilha principal; somado \xE0s inclus\xF5es.";
-      continue;
+      const base = detalheRetro(comp), arq = detalheRetro(u.b);
+      if (!base.size || !arq.size)
+        return falha(`Retroativo de \u201C${u.a.nome}\u201D (${brl2(retro(u.b) / 100)}) e retroativo j\xE1 presente (${brl2(retro(comp) / 100)}) sem detalhamento por compet\xEAncia; n\xE3o \xE9 poss\xEDvel comprovar se \xE9 o mesmo lan\xE7amento ou outra cobran\xE7a.`);
+      const meses = [...arq.keys()];
+      if (meses.every((m) => base.get(m) === arq.get(m))) {
+        u.a.papel = "retroativo_incluido";
+        u.a.observacao = `Retroativo de ${meses.join(", ")} com mesma quantidade e valor j\xE1 contido nas inclus\xF5es da planilha principal; n\xE3o somado.`;
+        continue;
+      }
+      if (meses.every((m) => !base.has(m))) {
+        comp.inclusoes = { ...comp.inclusoes, quantidade: (comp.inclusoes?.quantidade ?? 0) + (u.b.inclusoes?.quantidade ?? 0), total: (c(comp.inclusoes?.total) + c(u.b.inclusoes.total)) / 100 };
+        comp.retroativas = {
+          ...comp.retroativas,
+          quantidade: (comp.retroativas.quantidade ?? 0) + (u.b.retroativas.quantidade ?? 0),
+          total: (retro(comp) + retro(u.b)) / 100,
+          mesesDetalhe: [...comp.retroativas.mesesDetalhe ?? [], ...u.b.retroativas.mesesDetalhe ?? []]
+        };
+        u.a.observacao = `Retroativo de outra compet\xEAncia (${meses.join(", ")}); cobran\xE7a distinta, somada.`;
+        continue;
+      }
+      return falha(`Retroativo de \u201C${u.a.nome}\u201D coincide parcialmente com o da planilha principal (${meses.join(", ")}); n\xE3o \xE9 poss\xEDvel separar o que j\xE1 est\xE1 inclu\xEDdo.`);
     }
     const cats = ["inclusoes", ...CATS_EXTRA].filter((k) => c(u.b[k]?.total) !== 0);
     const sobrepostas = cats.filter((k) => c(comp[k]?.total) !== 0);
-    if (sobrepostas.length || !cats.length) return falha(sobrepostas.length ? `\u201C${u.a.nome}\u201D repete categorias j\xE1 presentes (${sobrepostas.join(", ")}); n\xE3o \xE9 poss\xEDvel saber se \xE9 complemento ou substitui\xE7\xE3o.` : `\u201C${u.a.nome}\u201D n\xE3o tem valores identific\xE1veis para o CNPJ.`);
+    if (temMensalidade(u.b) || sobrepostas.length || !cats.length) return falha(sobrepostas.length || temMensalidade(u.b) ? `\u201C${u.a.nome}\u201D repete categorias j\xE1 presentes (${sobrepostas.join(", ") || "mensalidade"}); n\xE3o \xE9 poss\xEDvel saber se \xE9 complemento ou substitui\xE7\xE3o.` : `\u201C${u.a.nome}\u201D n\xE3o tem valores identific\xE1veis para o CNPJ.`);
     for (const k of cats) comp[k] = { ...u.b[k] };
     if (retro(u.b) !== 0) comp.retroativas = { ...u.b.retroativas };
   }
@@ -2831,6 +2855,9 @@ async function validarArquivosCentral(i) {
   const { bloco, arquivos, ambiguidade } = await comporFaturamento(i.planilhas, i.cnpjTomador);
   const vazio = (motivo) => ({ leituraOk: false, motivo, valorExcel: null, valorPdf: null, comparacao: null, tomadorPdf: null, arquivos });
   if (!bloco) return vazio(ambiguidade ?? "Composi\xE7\xE3o indeterminada.");
+  const naoLidas = Object.entries(SEM_LEITURA_FISCAL).filter(([k]) => c(bloco[k]?.total) !== 0).map(([k, r]) => `${r} ${brl2(bloco[k].total)}`);
+  if (naoLidas.length)
+    return vazio(`Faturamento com ${naoLidas.join(", ")}: o SIGA n\xE3o l\xEA esse valor na NFS-e, ent\xE3o o total fiscal seria parcial; n\xE3o comparado (nem com o valor l\xEDquido).`);
   const pdf = await analisarPdfFinanceiro(i.pdf);
   if (pdf.avisos.some((a) => /falha ao abrir/i.test(a))) return vazio("PDF ileg\xEDvel.");
   const cmp = compararExcelComPdf(bloco, { ...pdf, arquivo: "central.pdf" }, i.tipoAnalise);
