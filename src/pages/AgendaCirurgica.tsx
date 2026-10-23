@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Link, useSearchParams } from "react-router-dom";
 import * as XLSX from "xlsx";
-import { ArrowLeft, Download, FileText, KeyRound, RefreshCw, Search, Server, Stethoscope } from "lucide-react";
+import { ArrowLeft, Download, FileText, RefreshCw, Search, Stethoscope } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -11,13 +11,12 @@ import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { SelecionarServidorAgenda } from "@/components/agenda/SelecionarServidorAgenda";
 import { RelatorioPendentesEmpresa } from "@/components/agenda/RelatorioPendentesEmpresa";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import {
-  AgendamentoCirurgico, ConfigServidorAgenda, FiltrosAgenda, ModoAcesso, lerModoAgenda, salvarModoAgenda,
+  AgendamentoCirurgico, ConfigServidorAgenda, FiltrosAgenda, ModoAcesso, lerModoAgenda,
   detalharAgendamento, detalharAgendamentoDireto, isoParaBr, lerServidorAgenda,
-  lerChaveDireta, listarAgendamentos, listarAgendamentosDireto, salvarChaveDireta,
+  lerChaveDireta, listarAgendamentos, listarAgendamentosDireto,
 } from "@/lib/agendaCirurgicaApi";
 
 const pad = (n: number) => String(n).padStart(2, "0");
@@ -35,10 +34,9 @@ export default function AgendaCirurgica() {
   const [filtros, setFiltros] = useState<FiltrosAgenda>({ dt_inicio: isoParaBr(hoje()), dt_fim: isoParaBr(hoje()), page: 1, limit: 50 });
   const [sel, setSel] = useState<AgendamentoCirurgico | null>(null);
   const [exportando, setExportando] = useState(false);
-  const [modo, setModo] = useState<ModoAcesso>(() => lerModoAgenda());
-  const [chave, setChave] = useState<string>(() => lerChaveDireta());
-  const [servidor, setServidor] = useState<ConfigServidorAgenda>(() => lerServidorAgenda());
-  const [selServidor, setSelServidor] = useState(false);
+  const [modo] = useState<ModoAcesso>(() => lerModoAgenda());
+  const [chave] = useState<string>(() => lerChaveDireta());
+  const [servidor] = useState<ConfigServidorAgenda>(() => lerServidorAgenda());
 
   const direto = modo === "direto";
   const prontoDireto = !direto || !!chave.trim();
@@ -61,12 +59,6 @@ export default function AgendaCirurgica() {
     ie_status_agenda: form.ie_status_agenda, cd_agenda: form.cd_agenda, cd_medico: form.cd_medico, cd_convenio: form.cd_convenio, page: 1, limit: 50,
   });
   const set = (k: keyof typeof form) => (e: React.ChangeEvent<HTMLInputElement>) => setForm((f) => ({ ...f, [k]: e.target.value }));
-
-  const trocarModo = (m: ModoAcesso) => { setModo(m); salvarModoAgenda(m); setSel(null); };
-  const atualizarChave = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setChave(e.target.value);
-    salvarChaveDireta(e.target.value.trim());
-  };
 
   const exportar = async () => {
     setExportando(true);
@@ -107,33 +99,6 @@ export default function AgendaCirurgica() {
           <Button size="sm" onClick={exportar} disabled={exportando || !data?.total}><Download className="h-4 w-4 mr-1" />{exportando ? "Exportando..." : "Exportar Excel"}</Button>
         </div>}
       </div>
-
-      <Card className="p-4 space-y-3">
-        <div className="flex items-center gap-2 flex-wrap">
-          <span className="text-xs text-muted-foreground">Modo de acesso:</span>
-          <Button size="sm" variant={modo === "servidor" ? "default" : "outline"} onClick={() => trocarModo("servidor")}>Servidor (nuvem)</Button>
-          <Button size="sm" variant={modo === "direto" ? "default" : "outline"} onClick={() => trocarModo("direto")}>Direto (rede interna/VPN)</Button>
-          {direto && (
-            <>
-              <Badge variant="secondary">{servidor.tipo === "producao" ? "Produção" : servidor.tipo === "localhost" ? "Localhost" : "Personalizada"}: {servidor.url}</Badge>
-              <Button size="sm" variant="outline" onClick={() => setSelServidor(true)}><Server className="h-4 w-4 mr-1" />Selecionar servidor da API</Button>
-            </>
-          )}
-        </div>
-        <SelecionarServidorAgenda open={selServidor} onOpenChange={setSelServidor} atual={servidor}
-          onSalvar={(c) => { setServidor(c); setSel(null); }} />
-        {direto && (
-          <div className="rounded-md border border-border bg-muted/40 p-3 space-y-2">
-            <div className="flex items-center gap-2 text-sm font-medium"><KeyRound className="h-4 w-4 text-primary" />Chave da API (x-api-key)</div>
-            <Input type="password" value={chave} onChange={atualizarChave} placeholder="Cole aqui a chave fornecida pela TI da Samel" autoComplete="off" />
-            <p className="text-xs text-muted-foreground">
-              Neste modo o navegador chama a API da Samel diretamente — funciona apenas na rede interna da Samel ou com a VPN ligada.
-              A chave fica guardada somente nesta sessão do navegador e não vai para o código nem para o banco. Vale para as duas abas.
-            </p>
-            {!chave.trim() && <p className="text-xs text-destructive">Informe a chave para habilitar a busca.</p>}
-          </div>
-        )}
-      </Card>
 
       <Tabs value={aba} onValueChange={v => {setSel(null);setParams(p => { const next = new URLSearchParams(p); next.set("aba",v);return next; });}}>
       <TabsList className="h-auto flex-wrap justify-start"><TabsTrigger value="agenda" className="gap-2"><Stethoscope className="h-4 w-4" />Agendamentos</TabsTrigger><TabsTrigger value="pendentes" className="gap-2 whitespace-normal text-left"><FileText className="h-4 w-4 shrink-0" />Procedimentos Pendentes por Empresa</TabsTrigger></TabsList>

@@ -120,7 +120,19 @@ export const salvarServidorAgenda = (c: ConfigServidorAgenda) => {
 };
 const baseDireta = () => `${normalizarBaseAgenda(lerServidorAgenda().url) || SERVIDORES_AGENDA.producao}/integracao`;
 
+export const obterChaveEnv = (): string => {
+  try {
+    const k = (import.meta as any).env?.VITE_AGENDA_CIRURGICA_API_KEY;
+    if (typeof k === "string" && k.trim()) return k.trim();
+  } catch { /* ignore */ }
+  return "";
+};
+
+export const temChaveEnv = (): boolean => !!obterChaveEnv();
+
 export const lerChaveDireta = (): string => {
+  const envKey = obterChaveEnv();
+  if (envKey) return envKey;
   try { return sessionStorage.getItem(CHAVE_SESSAO) ?? ""; } catch { return ""; }
 };
 export const salvarChaveDireta = (chave: string) => {
