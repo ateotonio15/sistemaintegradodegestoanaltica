@@ -323,6 +323,13 @@
       "when": 1792764559003,
       "tag": "0045_nfse_recebimentos_central",
       "breakpoints": true
+    },
+    {
+      "idx": 46,
+      "version": "7",
+      "when": 1792765106864,
+      "tag": "0046_nfse_central_validacao_vinculo",
+      "breakpoints": true
     }
   ]
 }
