@@ -4054,6 +4054,93 @@ export type Database = {
           },
         ]
       }
+      nfse_recebimentos: {
+        Row: {
+          anexo_financeiro_id: string | null
+          chave_acesso: string
+          cnpj_prestador: string
+          cnpj_tomador: string
+          competencia_fiscal: string | null
+          created_at: string
+          documento_origem_id: string | null
+          emitida_em: string
+          entrega_id: string
+          estado: string
+          gerador_versao: string | null
+          id: string
+          motivo: string | null
+          movimentacao_destino_id: string | null
+          movimentacao_sugerida_id: string | null
+          nome_arquivo: string | null
+          numero_nfse: string | null
+          origem: string
+          pdf_sha256: string
+          pdf_tamanho_bytes: number
+          pdf_tipo: string | null
+          status_observado: string | null
+          storage_path: string | null
+          tentativas: number
+          updated_at: string
+          validador_versao: string | null
+        }
+        Insert: {
+          anexo_financeiro_id?: string | null
+          chave_acesso: string
+          cnpj_prestador: string
+          cnpj_tomador: string
+          competencia_fiscal?: string | null
+          created_at?: string
+          documento_origem_id?: string | null
+          emitida_em: string
+          entrega_id: string
+          estado?: string
+          gerador_versao?: string | null
+          id?: string
+          motivo?: string | null
+          movimentacao_destino_id?: string | null
+          movimentacao_sugerida_id?: string | null
+          nome_arquivo?: string | null
+          numero_nfse?: string | null
+          origem?: string
+          pdf_sha256: string
+          pdf_tamanho_bytes: number
+          pdf_tipo?: string | null
+          status_observado?: string | null
+          storage_path?: string | null
+          tentativas?: number
+          updated_at?: string
+          validador_versao?: string | null
+        }
+        Update: {
+          anexo_financeiro_id?: string | null
+          chave_acesso?: string
+          cnpj_prestador?: string
+          cnpj_tomador?: string
+          competencia_fiscal?: string | null
+          created_at?: string
+          documento_origem_id?: string | null
+          emitida_em?: string
+          entrega_id?: string
+          estado?: string
+          gerador_versao?: string | null
+          id?: string
+          motivo?: string | null
+          movimentacao_destino_id?: string | null
+          movimentacao_sugerida_id?: string | null
+          nome_arquivo?: string | null
+          numero_nfse?: string | null
+          origem?: string
+          pdf_sha256?: string
+          pdf_tamanho_bytes?: number
+          pdf_tipo?: string | null
+          status_observado?: string | null
+          storage_path?: string | null
+          tentativas?: number
+          updated_at?: string
+          validador_versao?: string | null
+        }
+        Relationships: []
+      }
       notificacoes: {
         Row: {
           codigo_contrato: string | null
