@@ -59,20 +59,24 @@ export async function processarRecebimento(rec: Recebimento, ad: Adaptador): Pro
     return { estado, motivo };
   };
   const planilhas = (await ad.anexosDaMov(mov.id)).filter((a) => contaStatus(a) && isXls(a));
-  if (planilhas.length !== 1) return falhar("validacao_inconclusiva", planilhas.length ? "Mais de uma planilha de faturamento anexada." : "Faturamento não anexado.");
+  if (!planilhas.length) return falhar("validacao_inconclusiva", "Faturamento não anexado.");
   const tipo = await ad.tipoAnalise(mov.id);
   if ((tipo ?? "").toLowerCase().includes("honda")) return falhar("validacao_inconclusiva", "Análise simplificada não participa da anexação automática.");
   if (!rec.storage_path) return falhar("validacao_inconclusiva", "PDF da fila indisponível.");
 
-  const [pdf, xls] = await Promise.all([
+  const [pdf, ...xlss] = await Promise.all([
     ad.baixar("nfse-entrada", rec.storage_path),
-    ad.baixar(planilhas[0].bucket || "anexos-financeiro", planilhas[0].storage_path),
+    ...planilhas.map((p) => ad.baixar(p.bucket || "anexos-financeiro", p.storage_path)),
   ]);
-  if (!pdf || !xls) return falhar("validacao_inconclusiva", "Não foi possível baixar o PDF ou a planilha.");
+  if (!pdf || xlss.some((x) => !x)) return falhar("validacao_inconclusiva", "Não foi possível baixar o PDF ou alguma planilha.");
 
   let arq;
-  try { arq = await validarArquivosCentral({ pdf, xls, cnpjTomador: rec.cnpj_tomador, tipoAnalise: tipo }); }
-  catch { return falhar("validacao_inconclusiva", "PDF ou planilha ilegível."); }
+  try {
+    arq = await validarArquivosCentral({
+      pdf, cnpjTomador: rec.cnpj_tomador, tipoAnalise: tipo,
+      planilhas: planilhas.map((p, i) => ({ id: p.id, nome: p.nome_arquivo ?? p.id, dados: xlss[i]! })),
+    });
+  } catch { return falhar("validacao_inconclusiva", "PDF ou planilha ilegível."); }
 
   const v = avaliarValidacao({
     cnpjTomador: rec.cnpj_tomador, cnpjPagador: await ad.cnpjPagador(mov.empresa_id, rec.cnpj_tomador),
@@ -83,7 +87,7 @@ export async function processarRecebimento(rec: Recebimento, ad: Adaptador): Pro
   const base = {
     movimentacao_destino_id: mov.id, status_observado: "Faturado", faturamento_revisao: revisao,
     valor_excel_centavos: v.valorExcelCentavos, valor_pdf_centavos: v.valorPdfCentavos, diferenca_centavos: v.diferencaCentavos,
-    validacao: { comparacao: arq.comparacao, motivos: v.motivos, tomador_pdf: arq.tomadorPdf, planilha_id: planilhas[0].id },
+    validacao: { comparacao: arq.comparacao, motivos: v.motivos, tomador_pdf: arq.tomadorPdf, arquivos: arq.arquivos, ambiguidade: arq.comparacao ? null : arq.motivo },
     validador_versao: VALIDADOR_VERSAO, validado_em: new Date().toISOString(),
   };
   if (!v.aprovado) { await ad.salvar(rec.id, { ...base, estado: v.estado, motivo }); return { estado: v.estado, motivo }; }
