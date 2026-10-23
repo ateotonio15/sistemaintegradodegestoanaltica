@@ -2853,7 +2853,7 @@ async function comporFaturamento(planilhas, cnpjTomador) {
 }
 async function validarArquivosCentral(i) {
   const { bloco, arquivos, ambiguidade } = await comporFaturamento(i.planilhas, i.cnpjTomador);
-  const vazio = (motivo) => ({ leituraOk: false, motivo, valorExcel: null, valorPdf: null, comparacao: null, tomadorPdf: null, arquivos });
+  const vazio = (motivo) => ({ leituraOk: false, motivo, valorExcel: null, valorPdf: null, valorServico: null, comparacao: null, tomadorPdf: null, arquivos });
   if (!bloco) return vazio(ambiguidade ?? "Composi\xE7\xE3o indeterminada.");
   const naoLidas = Object.entries(SEM_LEITURA_FISCAL).filter(([k]) => c(bloco[k]?.total) !== 0).map(([k, r]) => `${r} ${brl2(bloco[k].total)}`);
   if (naoLidas.length)
@@ -2864,12 +2864,14 @@ async function validarArquivosCentral(i) {
   cmp.tomadorCnpj = pdf.tomadorCnpj ?? null;
   const valorPdf = sumPdfTotal(cmp);
   const valorExcel = somarTotalFaturamento(bloco);
-  const leituraOk = valorPdf != null && !!pdf.tomadorCnpj;
+  const valorServico = pdf.tributos?.valorServico ?? null;
+  const leituraOk = valorPdf != null && valorServico != null && !!pdf.tomadorCnpj;
   return {
     leituraOk,
-    motivo: leituraOk ? null : "PDF incompleto: tomador ou valores n\xE3o encontrados.",
+    motivo: leituraOk ? null : valorServico == null && valorPdf != null && pdf.tomadorCnpj ? "Valor do servi\xE7o (bruto) n\xE3o encontrado na NFS-e; o descritivo sozinho n\xE3o \xE9 aceito." : "PDF incompleto: tomador ou valores n\xE3o encontrados.",
     valorExcel,
     valorPdf,
+    valorServico,
     comparacao: cmp,
     tomadorPdf: pdf.tomadorCnpj ?? null,
     arquivos

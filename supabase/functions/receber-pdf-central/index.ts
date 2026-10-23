@@ -110,6 +110,7 @@ Deno.serve(async (req) => {
     movimentacao_sugerida_id: m.movimentacao_destino_id ?? null, homologacao: m.homologacao === true, validador_versao: VALIDADOR_VERSAO,
   };
 
+  const homolog = m.homologacao === true;
   const registrar = async (extra: Record<string, unknown>) => {
     const { data, error } = await db.from("nfse_recebimentos").insert({ ...base, ...extra }).select("id, estado, motivo").single();
     if (error?.code === "23505") {
@@ -127,7 +128,6 @@ Deno.serve(async (req) => {
 
   // Mesma nota já recebida em outra entrega — homologação e produção são separadas:
   // uma entrega real nunca é absorvida por um teste anterior da mesma nota.
-  const homolog = m.homologacao === true;
   const { data: mesmaNota, error: errNota } = await db.from("nfse_recebimentos").select("id, pdf_sha256, estado, motivo, homologacao, anexo_financeiro_id")
     .eq("origem", "central_nfse").eq("cnpj_prestador", cnpjPrestador).eq("chave_acesso", m.chave_acesso).eq("homologacao", homolog).neq("estado", "ja_recebido");
   if (errNota) return json({ erro: "Falha ao consultar recebimentos" }, 500);
