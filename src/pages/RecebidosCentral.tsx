@@ -93,7 +93,10 @@ export default function RecebidosCentral() {
                       <td className="p-2 text-right">{brl(r.valor_excel_centavos)}</td>
                       <td className="p-2 text-right">{brl(r.valor_pdf_centavos)}</td>
                       <td className="p-2 text-right">{brl(r.diferenca_centavos)}</td>
-                      <td className="p-2 max-w-md text-muted-foreground">{r.motivo ?? "—"}</td>
+                      <td className="p-2 max-w-md text-muted-foreground">
+                        {r.motivo ?? "—"}
+                        <DetalheValidacao v={r.validacao as any} />
+                      </td>
                     </tr>
                   ))}
                 </tbody>
@@ -103,5 +106,24 @@ export default function RecebidosCentral() {
         </Card>
       </div>
     </>
+  );
+}
+
+const PAPEL: Record<string, string> = {
+  principal: "base", complementar: "somada", retroativo_incluido: "retroativo já incluído",
+  duplicado: "cópia idêntica", nao_pertinente: "outro CNPJ", ilegivel: "ilegível",
+};
+function DetalheValidacao({ v }: { v: any }) {
+  if (!v || (!v.arquivos?.length && !v.contexto)) return null;
+  const ctx = v.contexto;
+  return (
+    <div className="mt-1 space-y-0.5 text-xs">
+      {ctx && (
+        <p>Movimentação: competência {ctx.competencia ?? "—"}, período {ctx.periodo ?? "—"} <span className="italic">(da movimentação; não conferidos nos arquivos)</span></p>
+      )}
+      {(v.arquivos ?? []).map((a: any) => (
+        <p key={a.id}>{a.nome}: {PAPEL[a.papel] ?? a.papel}{a.valor != null ? ` · ${(a.valor as number).toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}` : ""}</p>
+      ))}
+    </div>
   );
 }

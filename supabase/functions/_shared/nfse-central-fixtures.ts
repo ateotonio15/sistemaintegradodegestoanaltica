@@ -5,18 +5,20 @@ import { jsPDF } from "npm:jspdf@2.5.2";
 export const CNPJ_FICTICIO = "12345678000190";
 const fmt = "12.345.678/0001-90";
 
-export async function planilhaFicticia(total = 1000): Promise<ArrayBuffer> {
+export async function planilhaFicticia(total = 1000, extras: [string, number | null, number][] = [], mensal = true, abaExtra = false): Promise<ArrayBuffer> {
   const wb = new ExcelJS.Workbook();
   const ws = wb.addWorksheet("RESUMO");
   ws.addRow(["Empresa/Módulo", "Qtd", "Mensalidade", "Valor"]);
   ws.addRow([`EMPRESA FICTICIA LTDA CNPJ: ${fmt}`]);
-  ws.addRow(["M.Empresarial", 10, total / 10, total]);
-  ws.addRow(["TOTAL", null, null, total]);
+  if (mensal) ws.addRow(["M.Empresarial", 10, total / 10, total]);
+  for (const [rot, q, v] of extras) ws.addRow(q == null ? [rot] : [rot, q, null, v]);
+  if (abaExtra) wb.addWorksheet("OBS").addRow(["Arquivo reemitido"]);
+  ws.addRow(["TOTAL", null, null, (mensal ? total : 0) + extras.reduce((a, e) => a + e[2], 0)]);
   const buf = await wb.xlsx.writeBuffer();
   return new Uint8Array(buf as ArrayBuffer).buffer as ArrayBuffer;
 }
 
-export function pdfFicticio(total = "1.000,00", mensal = "100.00", cnpj = fmt): ArrayBuffer {
+export function pdfFicticio(total = "1.000,00", mensal = "100.00", cnpj = fmt, inclusao: string | null = null): ArrayBuffer {
   const doc = new jsPDF();
   const linhas = [
     "NFS-e FICTICIA - TESTE",
@@ -26,10 +28,18 @@ export function pdfFicticio(total = "1.000,00", mensal = "100.00", cnpj = fmt): 
     `CNPJ ${cnpj}`,
     "TRIBUTACAO",
     "Descricao do Servico",
-    `Enfermaria: 10x${mensal}= ${total}`,
+    `Enfermaria: 10x${mensal}= ${total}${inclusao ? ` Inclusão:${inclusao}` : ""}`,
   ];
   linhas.forEach((l, i) => doc.text(l, 10, 20 + i * 10));
   return doc.output("arraybuffer");
 }
 
 export const pdfIlegivel = (): ArrayBuffer => new TextEncoder().encode("%PDF-1.4\nlixo sem estrutura").buffer as ArrayBuffer;
+
+/** NFS-e fictícia só com inclusões (faturamento sem mensalidade). */
+export function pdfSoInclusaoFicticio(inclusao = "200,00", cnpj = fmt): ArrayBuffer {
+  const doc = new jsPDF();
+  ["NFS-e FICTICIA - TESTE", "TOMADOR DO SERVICO", "Nome / Nome Empresarial", "EMPRESA FICTICIA LTDA", `CNPJ ${cnpj}`, "TRIBUTACAO", "Descricao do Servico", `Inclusão:${inclusao}`]
+    .forEach((l, i) => doc.text(l, 10, 20 + i * 10));
+  return doc.output("arraybuffer");
+}

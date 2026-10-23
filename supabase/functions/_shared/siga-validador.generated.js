@@ -286,7 +286,7 @@ function obterDivergenciasNotaFiscal(dados) {
 function compararExcelComPdf(excel, pdf, tipoAnalise) {
   const divergencias = [];
   const isFaixaEtaria = String(tipoAnalise ?? "").toLowerCase().replace(/[\s-]+/g, "_") === "faixa_etaria";
-  const tem = (c) => c.beneficiarios > 0 || c.total > 0;
+  const tem = (c2) => c2.beneficiarios > 0 || c2.total > 0;
   let enfermaria = null;
   if (tem(excel.enfermaria)) {
     const e = excel.enfermaria;
@@ -344,15 +344,15 @@ function compararExcelComPdf(excel, pdf, tipoAnalise) {
   let inclusoes = null;
   const pdfIncTotal = pdf ? pdf.inclusoes.total : null;
   if (excel.inclusoes.quantidade > 0 || excel.inclusoes.total !== 0 || (pdfIncTotal ?? 0) > 0) {
-    const c = campo(excel.inclusoes.total, pdfIncTotal && pdfIncTotal > 0 ? pdfIncTotal : null, "money");
-    inclusoes = { total: c };
+    const c2 = campo(excel.inclusoes.total, pdfIncTotal && pdfIncTotal > 0 ? pdfIncTotal : null, "money");
+    inclusoes = { total: c2 };
     if (pdf && (!pdfIncTotal || pdfIncTotal <= 0) && excel.inclusoes.total !== 0) {
       const retroTotal = excel.retroativas?.total ?? 0;
       const soRetro = retroTotal > 0 && Math.abs(excel.inclusoes.total - retroTotal) < 0.01;
       divergencias.push(
         soRetro ? "Valor de cobran\xE7a retroativa n\xE3o encontrado no PDF." : "Valor de inclus\xF5es n\xE3o encontrado no PDF."
       );
-    } else if (pdf && !c.ok)
+    } else if (pdf && !c2.ok)
       divergencias.push(
         `Valor de inclus\xF5es divergente (Excel ${formatBRL(excel.inclusoes.total)} \xD7 PDF ${formatBRL(pdfIncTotal)}).`
       );
@@ -360,11 +360,11 @@ function compararExcelComPdf(excel, pdf, tipoAnalise) {
   let exclusoes = null;
   if (excel.exclusoes && (excel.exclusoes.quantidade > 0 || excel.exclusoes.total !== 0)) {
     const pdfTotal = pdf && pdf.exclusoes.total !== null ? pdf.exclusoes.total : null;
-    const c = campo(excel.exclusoes.total, pdfTotal, "money");
-    exclusoes = { total: c };
+    const c2 = campo(excel.exclusoes.total, pdfTotal, "money");
+    exclusoes = { total: c2 };
     if (pdf && pdfTotal === null)
       divergencias.push("Valor de exclus\xF5es n\xE3o encontrado no PDF.");
-    else if (pdf && !c.ok)
+    else if (pdf && !c2.ok)
       divergencias.push(
         `Valor de exclus\xF5es divergente (Excel ${formatBRL(excel.exclusoes.total)} \xD7 PDF ${formatBRL(pdfTotal)}).`
       );
@@ -374,13 +374,13 @@ function compararExcelComPdf(excel, pdf, tipoAnalise) {
   const pdfDevolucaoTotal = pdf && pdf.devolucoes?.total !== null && pdf.devolucoes?.total !== void 0 ? pdf.devolucoes.total : null;
   if (excelTemDevolucao || pdfDevolucaoTotal !== null) {
     const excelTotal = excel.devolucoes?.total ?? 0;
-    const c = campo(excelTotal, pdfDevolucaoTotal, "money");
-    devolucoes = { total: c };
+    const c2 = campo(excelTotal, pdfDevolucaoTotal, "money");
+    devolucoes = { total: c2 };
     if (pdf && excelTemDevolucao && pdfDevolucaoTotal === null)
       divergencias.push("Valor de devolu\xE7\xE3o n\xE3o encontrado no PDF.");
     else if (pdf && !excelTemDevolucao && pdfDevolucaoTotal !== null)
       divergencias.push(`Devolu\xE7\xE3o encontrada no PDF (${formatBRL(pdfDevolucaoTotal)}), mas n\xE3o encontrada no Excel.`);
-    else if (pdf && !c.ok)
+    else if (pdf && !c2.ok)
       divergencias.push(
         `Valor de devolu\xE7\xE3o divergente (Excel ${formatBRL(excelTotal)} \xD7 PDF ${formatBRL(pdfDevolucaoTotal)}).`
       );
@@ -406,11 +406,11 @@ function parseCoparticipacaoRows(rows) {
   let anchorCol = -1;
   for (let i = 0; i < rows.length; i++) {
     const r = rows[i] || [];
-    for (let c = 0; c < r.length; c++) {
-      const t = norm(r[c]);
+    for (let c2 = 0; c2 < r.length; c2++) {
+      const t = norm(r[c2]);
       if (t && t.includes("copartic") && t.includes("empresarial")) {
         anchorRow = i;
-        anchorCol = c;
+        anchorCol = c2;
         break;
       }
     }
@@ -420,11 +420,11 @@ function parseCoparticipacaoRows(rows) {
   let qtdCol = -1;
   let valCol = -1;
   const scanCols = (rr, minCol) => {
-    for (let c = minCol; c < rr.length; c++) {
-      const t = norm(rr[c]);
+    for (let c2 = minCol; c2 < rr.length; c2++) {
+      const t = norm(rr[c2]);
       if (!t) continue;
-      if (qtdCol < 0 && (t === "qtd" || t.includes("soma de qtd") || t.includes("quantidade"))) qtdCol = c;
-      if (valCol < 0 && (t === "valor" || t.includes("soma de valor") || t.includes("valor total"))) valCol = c;
+      if (qtdCol < 0 && (t === "qtd" || t.includes("soma de qtd") || t.includes("quantidade"))) qtdCol = c2;
+      if (valCol < 0 && (t === "valor" || t.includes("soma de valor") || t.includes("valor total"))) valCol = c2;
     }
   };
   for (let i = anchorRow; i >= 0 && i >= anchorRow - 10; i--) {
@@ -561,8 +561,8 @@ function parseCoparticipacaoResumoPorCnpj(rows, idxLabel, idxValor, idxQtd = -1)
       if (reCnpj.test(lblJ)) break;
       let temTotal = false;
       let temTotalGeral = false;
-      for (const c of rr) {
-        const t = norm(c);
+      for (const c2 of rr) {
+        const t = norm(c2);
         if (!t) continue;
         if (t.startsWith("total geral")) {
           temTotalGeral = true;
@@ -596,11 +596,11 @@ function parseCoparticipacaoPivotTipoCobranca(rows) {
     const r = rows[i] || [];
     let q = -1;
     let v = -1;
-    for (let c = 0; c < r.length; c++) {
-      const t = norm(r[c]);
+    for (let c2 = 0; c2 < r.length; c2++) {
+      const t = norm(r[c2]);
       if (!t) continue;
-      if (q < 0 && (t.includes("soma de qtd") || t === "qtd")) q = c;
-      if (v < 0 && (t.includes("soma de valor") || t === "valor")) v = c;
+      if (q < 0 && (t.includes("soma de qtd") || t === "qtd")) q = c2;
+      if (v < 0 && (t.includes("soma de valor") || t === "valor")) v = c2;
     }
     if (q >= 0 && v >= 0) {
       headerRow = i;
@@ -614,8 +614,8 @@ function parseCoparticipacaoPivotTipoCobranca(rows) {
   for (let i = headerRow + 1; i < rows.length; i++) {
     const r = rows[i] || [];
     let label = "";
-    for (const c of r) {
-      const t = cellToText(c).trim();
+    for (const c2 of r) {
+      const t = cellToText(c2).trim();
       if (t) {
         label = t;
         break;
@@ -671,16 +671,16 @@ function analisarResumoSheet(wb) {
   for (let i = 0; i < Math.min(15, rows.length); i++) {
     const r = rows[i] || [];
     let lbl = -1, qtd = -1, mens = -1, val = -1;
-    for (let c = 0; c < r.length; c++) {
-      const h = norm(r[c]);
+    for (let c2 = 0; c2 < r.length; c2++) {
+      const h = norm(r[c2]);
       if (!h) continue;
       if (lbl < 0 && (h.includes("empresa/modulo") || h.includes("empresa / modulo") || h.includes("modulo") || h === "empresa"))
-        lbl = c;
+        lbl = c2;
       else if (qtd < 0 && (h === "qtd" || h.includes("quantidade") || h.includes("usuario")))
-        qtd = c;
+        qtd = c2;
       else if (mens < 0 && (h.includes("mensalidade") || h.includes("valor unit") || h.includes("valor unitario")))
-        mens = c;
-      else if (val < 0 && (h === "valor" || h === "total" || h.includes("valor total"))) val = c;
+        mens = c2;
+      else if (val < 0 && (h === "valor" || h === "total" || h.includes("valor total"))) val = c2;
     }
     if (lbl >= 0 && val >= 0) {
       headerIdx = i;
@@ -701,11 +701,11 @@ function analisarResumoSheet(wb) {
   let breakIdx = rows.length;
   let inCoparticBlock = false;
   const reCompHdr = /^compet[eê]ncia\s+(janeiro|fevereiro|mar[cç]o|abril|maio|junho|julho|agosto|setembro|outubro|novembro|dezembro)\s*[\/_-]?\s*(\d{4}|\d{2})(?!\d)/i;
-  const compHdrs = rows.filter((row) => (row || []).some((c) => reCompHdr.test(cellToText(c).trim())));
+  const compHdrs = rows.filter((row) => (row || []).some((c2) => reCompHdr.test(cellToText(c2).trim())));
   const multiCompetencia = compHdrs.length >= 2;
   const mesDeCompHdr = (row) => {
-    for (const c of row || []) {
-      const m = reCompHdr.exec(cellToText(c).trim());
+    for (const c2 of row || []) {
+      const m = reCompHdr.exec(cellToText(c2).trim());
       if (m) return `${m[1].normalize("NFD").replace(/[\u0300-\u036f]/g, "").slice(0, 3).toUpperCase()}/${m[2].slice(-2)}`;
     }
     return null;
@@ -798,7 +798,7 @@ function analisarResumoSheet(wb) {
     if (!cur) continue;
     {
       const mHdr = /^(retroa[cç][aã]o|retroativ[oa]s?)\b.*?(janeiro|fevereiro|mar[cç]o|abril|maio|junho|julho|agosto|setembro|outubro|novembro|dezembro)\s*[\/_-]?\s*(\d{4}|\d{2})(?!\d)/i.exec(labelRaw.trim());
-      const temNumeros = r.some((c, ci) => ci !== idxLabel && !isNaN(toNumber(c)) && toNumber(c) !== 0);
+      const temNumeros = r.some((c2, ci) => ci !== idxLabel && !isNaN(toNumber(c2)) && toNumber(c2) !== 0);
       if (mHdr && !temNumeros) {
         const mesAbrev = mHdr[2].normalize("NFD").replace(/[\u0300-\u036f]/g, "").slice(0, 3).toUpperCase();
         cur.retroMesAtual = `${mesAbrev}/${mHdr[3].slice(-2)}`;
@@ -902,12 +902,12 @@ function analisarResumoSheet(wb) {
   let pvValIdx = -1;
   for (let i = breakIdx; i < rows.length; i++) {
     const r = rows[i] || [];
-    const hQtd = r.findIndex((c) => {
-      const t = norm(c);
+    const hQtd = r.findIndex((c2) => {
+      const t = norm(c2);
       return t.includes("qtd") || t.includes("quantidade");
     });
-    const hVal = r.findIndex((c) => {
-      const t = norm(c);
+    const hVal = r.findIndex((c2) => {
+      const t = norm(c2);
       return t.includes("valor");
     });
     if (hVal >= 0 || hQtd >= 0) {
@@ -915,15 +915,15 @@ function analisarResumoSheet(wb) {
       pvValIdx = hVal;
       continue;
     }
-    const anyTotalGeral = r.some((c) => norm(c).startsWith("total geral"));
+    const anyTotalGeral = r.some((c2) => norm(c2).startsWith("total geral"));
     if (anyTotalGeral) continue;
     let hitIdx = -1;
     let hitLabel = "";
-    for (let c = 0; c < r.length; c++) {
-      const t = norm(r[c]);
+    for (let c2 = 0; c2 < r.length; c2++) {
+      const t = norm(r[c2]);
       if (t.includes("cobranca retroativa") || t.includes("retroativ") && !t.startsWith("total")) {
-        hitIdx = c;
-        hitLabel = String(r[c] ?? "");
+        hitIdx = c2;
+        hitLabel = String(r[c2] ?? "");
         break;
       }
     }
@@ -940,8 +940,8 @@ function analisarResumoSheet(wb) {
     }
     if (isNaN(total)) {
       const nums = [];
-      for (let c = hitIdx + 1; c < r.length && nums.length < 2; c++) {
-        const n = toNumber(r[c]);
+      for (let c2 = hitIdx + 1; c2 < r.length && nums.length < 2; c2++) {
+        const n = toNumber(r[c2]);
         if (!isNaN(n)) nums.push(n);
       }
       if (nums.length >= 2) {
@@ -1149,24 +1149,24 @@ function analisarResumoRetroativoPorCompetencia(wb) {
   const ws = wb.worksheets.find((w) => /^resumo(?:[\s_-]*automatic[oa])?$/.test(norm(w.name).replace(/\s+/g, "").normalize("NFD").replace(/[\u0300-\u036f]/g, ""))) ?? wb.worksheets.find((w) => norm(w.name).replace(/\s+/g, "") === "resumo");
   if (!ws) return null;
   const rows = [];
-  ws.eachRow({ includeEmpty: false }, (row) => rows.push(row.values.slice(1).map((c) => cellToText(c).trim())));
+  ws.eachRow({ includeEmpty: false }, (row) => rows.push(row.values.slice(1).map((c2) => cellToText(c2).trim())));
   const reComp = /^(?:compet[eê]ncia|cobran[cç]a\s+retroativ[ao])\s+(janeiro|fevereiro|mar[cç]o|abril|maio|junho|julho|agosto|setembro|outubro|novembro|dezembro)\s*[\/_-]?\s*(\d{4}|\d{2})(?!\d)/i;
   const reCnpj = /(\d{2}\.?\d{3}\.?\d{3}\/?\d{4}-?\d{2})/;
-  if (rows.filter((r) => r.some((c) => reComp.test(c))).length < 2) return null;
+  if (rows.filter((r) => r.some((c2) => reComp.test(c2))).length < 2) return null;
   let cnpj = "";
   let nome = "";
   const meses = [];
   let atual = null;
   let semCabecalho = false;
   for (const r of rows) {
-    const txt = r.find((c) => c) ?? "";
-    const hdr = r.map((c) => reComp.exec(c)).find(Boolean);
+    const txt = r.find((c2) => c2) ?? "";
+    const hdr = r.map((c2) => reComp.exec(c2)).find(Boolean);
     if (hdr) {
       atual = `${hdr[1].normalize("NFD").replace(/[\u0300-\u036f]/g, "").slice(0, 3).toUpperCase()}/${hdr[2].slice(-2)}`;
       continue;
     }
     if (!cnpj) {
-      const m = r.filter((c) => c && isNaN(Number(c))).map((c) => reCnpj.exec(c)).find(Boolean);
+      const m = r.filter((c2) => c2 && isNaN(Number(c2))).map((c2) => reCnpj.exec(c2)).find(Boolean);
       if (m) {
         cnpj = m[1].replace(/\D/g, "");
         nome = txt.split(/\n|cnpj/i)[0].trim();
@@ -1178,7 +1178,7 @@ function analisarResumoRetroativoPorCompetencia(wb) {
       continue;
     }
     if (atual && norm(txt).startsWith("total geral")) {
-      const nums = r.map((c) => toNumber(c)).filter((n) => !isNaN(n));
+      const nums = r.map((c2) => toNumber(c2)).filter((n) => !isNaN(n));
       if (nums.length >= 2) meses.push({ mes: atual, quantidade: Math.round(nums[0]), total: nums[nums.length - 1] });
       atual = null;
     }
@@ -1188,7 +1188,7 @@ function analisarResumoRetroativoPorCompetencia(wb) {
   if (!cnpj) {
     const achados = /* @__PURE__ */ new Set();
     wb.worksheets.filter((w) => w !== ws).forEach((w) => {
-      const hdr = w.getRow(1).values.slice(1).map((c) => norm(cellToText(c)));
+      const hdr = w.getRow(1).values.slice(1).map((c2) => norm(cellToText(c2)));
       const ci = hdr.findIndex((h) => h === "cnpj");
       if (ci < 0) return;
       w.eachRow({ includeEmpty: false }, (row, n) => {
@@ -1202,7 +1202,7 @@ function analisarResumoRetroativoPorCompetencia(wb) {
   if (!cnpj || meses.length < 2) return null;
   const quantidade = meses.reduce((s, m) => s + m.quantidade, 0);
   const total = Math.round(meses.reduce((s, m) => s + m.total, 0) * 100) / 100;
-  const retro = { quantidade, total, meses: meses.map((m) => m.mes), mesesDetalhe: meses };
+  const retro2 = { quantidade, total, meses: meses.map((m) => m.mes), mesesDetalhe: meses };
   return [{
     cnpj,
     nome,
@@ -1210,8 +1210,8 @@ function analisarResumoRetroativoPorCompetencia(wb) {
     enfermaria: { beneficiarios: 0, mensalidade: 0, total: 0 },
     apartamento: { beneficiarios: 0, mensalidade: 0, total: 0 },
     inclusoes: { quantidade, total },
-    retroativas: retro,
-    retroativasReajuste: retro,
+    retroativas: retro2,
+    retroativasReajuste: retro2,
     avisos: []
   }];
 }
@@ -1274,7 +1274,7 @@ async function analisarExcelFinanceiroPorCnpj(buffer) {
     ];
   }
   const grupos = /* @__PURE__ */ new Map();
-  const ehCnpjPlaceholder = (c) => !c || c.length !== 14 || /0{6,}$/.test(c);
+  const ehCnpjPlaceholder = (c2) => !c2 || c2.length !== 14 || /0{6,}$/.test(c2);
   const FORCE_GROUP_BY_NAME = getForceGroupByNamePatterns();
   const forceByName = (nome) => {
     const n = norm(nome);
@@ -1561,12 +1561,12 @@ async function analisarExcelFinanceiroPorCnpj(buffer) {
     let pvValIdx = -1;
     for (let i = 0; i < rowsSheet.length; i++) {
       const r = rowsSheet[i] || [];
-      const hQtd = r.findIndex((c) => {
-        const t = norm(c);
+      const hQtd = r.findIndex((c2) => {
+        const t = norm(c2);
         return t.includes("qtd") || t.includes("quantidade");
       });
-      const hVal = r.findIndex((c) => {
-        const t = norm(c);
+      const hVal = r.findIndex((c2) => {
+        const t = norm(c2);
         return t.includes("valor") || t.startsWith("soma de") && t.includes("mensalidade");
       });
       if (hVal >= 0 || hQtd >= 0) {
@@ -1574,22 +1574,22 @@ async function analisarExcelFinanceiroPorCnpj(buffer) {
         pvValIdx = hVal;
         continue;
       }
-      if (r.some((c) => norm(c).startsWith("total"))) continue;
+      if (r.some((c2) => norm(c2).startsWith("total"))) continue;
       let hitIdx = -1;
       let hitLabel = "";
-      for (let c = 0; c < r.length; c++) {
-        const t = norm(r[c]);
-        const ehRetroMes = /^retroativ[oa]s?/.test(t) && !t.includes("total") && extrairMes(String(r[c] ?? "")) !== null;
+      for (let c2 = 0; c2 < r.length; c2++) {
+        const t = norm(r[c2]);
+        const ehRetroMes = /^retroativ[oa]s?/.test(t) && !t.includes("total") && extrairMes(String(r[c2] ?? "")) !== null;
         if (t.includes("cobranca retroativa") || ehRetroMes) {
-          hitIdx = c;
-          hitLabel = String(r[c] ?? "");
+          hitIdx = c2;
+          hitLabel = String(r[c2] ?? "");
           break;
         }
-        if (!t.includes("total") && extrairMes(String(r[c] ?? "")) !== null) {
+        if (!t.includes("total") && extrairMes(String(r[c2] ?? "")) !== null) {
           const palavra = t.split(/[^a-z]+/)[0] || "";
           if (palavra.length >= 7 && palavra !== "retroativo" && palavra !== "retroativa" && palavra !== "retroativos" && palavra !== "retroativas") {
             const dist = Math.min(distanciaEdicao(palavra, "retroativo"), distanciaEdicao(palavra, "retroativa"));
-            if (dist <= 2) errosDigitacaoRetro.add(String(r[c] ?? "").replace(/\s+/g, " ").trim());
+            if (dist <= 2) errosDigitacaoRetro.add(String(r[c2] ?? "").replace(/\s+/g, " ").trim());
           }
         }
       }
@@ -1607,8 +1607,8 @@ async function analisarExcelFinanceiroPorCnpj(buffer) {
       if (isNaN(total)) {
         const nums = [];
         let qtdCand = null;
-        for (let c = hitIdx + 1; c < r.length; c++) {
-          const raw = r[c];
+        for (let c2 = hitIdx + 1; c2 < r.length; c2++) {
+          const raw = r[c2];
           const n = toNumber(raw);
           if (isNaN(n)) continue;
           const digitos = String(raw ?? "").replace(/\D/g, "");
@@ -1653,11 +1653,11 @@ async function analisarExcelFinanceiroPorCnpj(buffer) {
       if (mes && pvValIdx > hitIdx) {
         for (let j = i + 1; j < rowsSheet.length; j++) {
           const rr = rowsSheet[j] || [];
-          if (rr.some((c) => {
-            const t = norm(c);
+          if (rr.some((c2) => {
+            const t = norm(c2);
             return t.startsWith("total") || t.includes("cobranca retroativa") || t.includes("rotulos");
           })) break;
-          const nomeCel = rr.slice(0, pvValIdx).find((c) => typeof c === "string" && /[a-z]/i.test(c));
+          const nomeCel = rr.slice(0, pvValIdx).find((c2) => typeof c2 === "string" && /[a-z]/i.test(c2));
           const v = toNumber(rr[pvValIdx]);
           if (!nomeCel || isNaN(v)) break;
           const q = pvQtdIdx >= 0 ? toNumber(rr[pvQtdIdx]) : NaN;
@@ -1685,7 +1685,7 @@ async function analisarExcelFinanceiroPorCnpj(buffer) {
         const r = rowsSheet[i];
         const v = findColumnIndex(r, COL_VALOR);
         const t = findColumnIndex(r, COL_TIPO_COBRANCA);
-        const q = r.findIndex((c) => norm(c) === "qtd");
+        const q = r.findIndex((c2) => norm(c2) === "qtd");
         if (v >= 0 || t >= 0) {
           hIdx = i;
           iVal = v;
@@ -1748,7 +1748,7 @@ async function analisarExcelFinanceiroPorCnpj(buffer) {
           hIdx = i;
           iVal = v;
           iPag = p;
-          iQtd = r.findIndex((c) => norm(c) === "qtd");
+          iQtd = r.findIndex((c2) => norm(c2) === "qtd");
           iTipo = findColumnIndex(r, COL_TIPO_COBRANCA);
           break;
         }
@@ -1943,11 +1943,11 @@ function lerSubBlocosDeclarados(wb) {
       const r = rows[i] || [];
       let col = -1;
       let m = null;
-      for (let c = 0; c < r.length; c++) {
-        const txt = cellToText(r[c]);
+      for (let c2 = 0; c2 < r.length; c2++) {
+        const txt = cellToText(r[c2]);
         const hit = txt.match(reCnpjRotulo);
         if (hit) {
-          col = c;
+          col = c2;
           m = hit;
           break;
         }
@@ -1964,12 +1964,12 @@ function lerSubBlocosDeclarados(wb) {
       for (const cand of [i, i + 1]) {
         const rc = rows[cand] || [];
         let q = -1, me = -1, to = -1;
-        for (let c = 0; c < rc.length; c++) {
-          const h = norm(rc[c]);
+        for (let c2 = 0; c2 < rc.length; c2++) {
+          const h = norm(rc[c2]);
           if (!h) continue;
-          if (q < 0 && (h === "qtd" || h.includes("quantidade"))) q = c;
-          else if (me < 0 && h.includes("mensalidade")) me = c;
-          else if (to < 0 && (h.includes("total") || h.includes("valor"))) to = c;
+          if (q < 0 && (h === "qtd" || h.includes("quantidade"))) q = c2;
+          else if (me < 0 && h.includes("mensalidade")) me = c2;
+          else if (to < 0 && (h.includes("total") || h.includes("valor"))) to = c2;
         }
         if (q >= 0 && to >= 0) {
           idxQtd = q;
@@ -2070,8 +2070,8 @@ function dividirBlocosPorSubBlocosDeclarados(wb, blocos) {
         ],
         totalDeclaradoExcel: sub.enfTotal + sub.aptTotal
       };
-      const retro = escala(bloco.retroativas, peso);
-      if (retro) novo.retroativas = retro;
+      const retro2 = escala(bloco.retroativas, peso);
+      if (retro2) novo.retroativas = retro2;
       const retroR = escala(bloco.retroativasReajuste, peso);
       if (retroR) novo.retroativasReajuste = retroR;
       const retroB = escala(bloco.retroativasBeneficiarios, peso);
@@ -2164,8 +2164,8 @@ function mesclarBlocosPorNomeForcado(blocos) {
         ...cnpjs.length > 1 ? [`Consolidado por nome \u2014 ${cnpjs.length} CNPJs agrupados (${cnpjs.join(", ")}).`] : []
       ]
     };
-    const retro = somaQT(arr, "retroativas");
-    if (retro) {
+    const retro2 = somaQT(arr, "retroativas");
+    if (retro2) {
       const meses = Array.from(new Set(arr.flatMap((x) => x.retroativas?.meses || [])));
       const detalheMap = /* @__PURE__ */ new Map();
       arr.forEach((x) => (x.retroativas?.mesesDetalhe || []).forEach((d) => {
@@ -2176,7 +2176,7 @@ function mesclarBlocosPorNomeForcado(blocos) {
       }));
       const mesesDetalhe = Array.from(detalheMap.entries()).map(([mes, v]) => ({ mes, ...v }));
       novoBloco.retroativas = {
-        ...retro,
+        ...retro2,
         ...meses.length ? { meses } : {},
         ...mesesDetalhe.length ? { mesesDetalhe } : {}
       };
@@ -2199,18 +2199,18 @@ function mesclarBlocosPorNomeForcado(blocos) {
     const complementos = arr.map((x) => x.complemento).filter(Boolean);
     if (complementos.length > 0) {
       novoBloco.complemento = {
-        quantidade: complementos.reduce((s2, c) => s2 + c.quantidade, 0),
-        total: complementos.reduce((s2, c) => s2 + c.total, 0),
-        periodoLabel: complementos.find((c) => c.periodoLabel)?.periodoLabel ?? null,
-        itens: complementos.flatMap((c) => c.itens || [])
+        quantidade: complementos.reduce((s2, c2) => s2 + c2.quantidade, 0),
+        total: complementos.reduce((s2, c2) => s2 + c2.total, 0),
+        periodoLabel: complementos.find((c2) => c2.periodoLabel)?.periodoLabel ?? null,
+        itens: complementos.flatMap((c2) => c2.itens || [])
       };
     }
     const copartics = arr.map((x) => x.coparticipacao).filter(Boolean);
     if (copartics.length > 0) {
-      const substipulantes = copartics.flatMap((c) => c.substipulantes || []);
+      const substipulantes = copartics.flatMap((c2) => c2.substipulantes || []);
       novoBloco.coparticipacao = {
-        quantidade: copartics.reduce((s, c) => s + c.quantidade, 0),
-        total: copartics.reduce((s, c) => s + c.total, 0),
+        quantidade: copartics.reduce((s, c2) => s + c2.quantidade, 0),
+        total: copartics.reduce((s, c2) => s + c2.total, 0),
         ...substipulantes.length ? { substipulantes } : {}
       };
     }
@@ -2682,12 +2682,12 @@ function calcularTotalFaturamento(r) {
   let total = 0;
   const pendencias = [];
   for (const cat of CATEGORIAS_TOTAL_FATURAMENTO) {
-    const c = r[cat];
-    if (!c) continue;
-    const qtd = Number(c.quantidade ?? c.beneficiarios ?? 0) || 0;
-    const situacao = classificarValorCampo(c.total);
+    const c2 = r[cat];
+    if (!c2) continue;
+    const qtd = Number(c2.quantidade ?? c2.beneficiarios ?? 0) || 0;
+    const situacao = classificarValorCampo(c2.total);
     if (situacao === "valor" || situacao === "zero") {
-      total += Number(c.total);
+      total += Number(c2.total);
       continue;
     }
     if (qtd > 0) {
@@ -2710,16 +2710,16 @@ function somarTotalFaturamento(r) {
 }
 
 // src/lib/pdf-total.ts
-function sumPdfTotal(c) {
-  if (!c) return null;
-  if ("beneficiarios" in c && !("enfermaria" in c)) {
-    const s = c;
+function sumPdfTotal(c2) {
+  if (!c2) return null;
+  if ("beneficiarios" in c2 && !("enfermaria" in c2)) {
+    const s = c2;
     const partes2 = [s.inclusoes, s.exclusoes].filter((p) => p !== null).map((p) => p?.pdf ?? null);
     if (!partes2.length) return null;
     if (partes2.some((p) => p === null)) return null;
     return Number(partes2.reduce((a, b) => a + b, 0).toFixed(2));
   }
-  const cr = c;
+  const cr = c2;
   const partes = [
     cr.enfermaria,
     cr.apartamento,
@@ -2734,32 +2734,136 @@ function sumPdfTotal(c) {
 }
 
 // src/lib/nfse-central-validador-arquivos.ts
-var vazio = (motivo, extra = {}) => ({
-  leituraOk: false,
-  motivo,
-  valorExcel: null,
-  valorPdf: null,
-  comparacao: null,
-  tomadorPdf: null,
-  ...extra
-});
-async function validarArquivosCentral(i) {
-  let blocos;
-  try {
-    blocos = await analisarExcelFinanceiroPorCnpj(i.xls);
-  } catch {
-    return vazio("Planilha de faturamento ileg\xEDvel.");
+var c = (v) => Math.round((Number(v) || 0) * 100);
+var CATS_EXTRA = ["exclusoes", "devolucoes", "permuta", "taxaAdesao", "coparticipacao", "complemento"];
+function temMensalidade(b) {
+  return c(b.enfermaria?.total) !== 0 || c(b.apartamento?.total) !== 0 || (b.enfermaria?.beneficiarios ?? 0) > 0 || (b.apartamento?.beneficiarios ?? 0) > 0;
+}
+var retro = (b) => c(b.retroativas?.total);
+function soRetroativo(b) {
+  return !temMensalidade(b) && retro(b) !== 0 && c(b.inclusoes?.total) === retro(b) && CATS_EXTRA.every((k) => c(b[k]?.total) === 0);
+}
+function impressao(b) {
+  return JSON.stringify([
+    b.enfermaria,
+    b.apartamento,
+    b.inclusoes?.total,
+    b.inclusoes?.quantidade,
+    retro(b),
+    ...CATS_EXTRA.map((k) => [b[k]?.total ?? null, b[k]?.quantidade ?? null])
+  ]);
+}
+async function sha(buf) {
+  const h = new Uint8Array(await crypto.subtle.digest("SHA-256", buf));
+  return Array.from(h, (x) => x.toString(16).padStart(2, "0")).join("");
+}
+var brl2 = (n) => n.toFixed(2).replace(".", ",");
+function detalheRetro(b) {
+  const m = /* @__PURE__ */ new Map();
+  for (const d of b.retroativas?.mesesDetalhe ?? []) m.set(d.mes, `${d.quantidade}|${c(d.total)}`);
+  return m;
+}
+var SEM_LEITURA_FISCAL = {
+  coparticipacao: "Coparticipa\xE7\xE3o",
+  complemento: "Complemento",
+  taxaAdesao: "Taxa de ades\xE3o",
+  permuta: "Permuta"
+};
+async function comporFaturamento(planilhas, cnpjTomador) {
+  const arquivos = [];
+  const unicos = [];
+  const hashes = /* @__PURE__ */ new Map();
+  const falha = (m) => ({ bloco: null, arquivos, ambiguidade: m });
+  for (const p of planilhas) {
+    const h = await sha(p.dados);
+    if (hashes.has(h)) {
+      arquivos.push({ id: p.id, nome: p.nome, papel: "duplicado", valor: null, duplicadoDe: hashes.get(h), observacao: "Arquivo id\xEAntico (mesmo hash)." });
+      continue;
+    }
+    hashes.set(h, p.id);
+    let blocos;
+    try {
+      blocos = await analisarExcelFinanceiroPorCnpj(p.dados);
+    } catch {
+      arquivos.push({ id: p.id, nome: p.nome, papel: "ilegivel", valor: null });
+      return falha(`Planilha \u201C${p.nome}\u201D ileg\xEDvel; n\xE3o \xE9 poss\xEDvel saber se comp\xF5e o faturamento.`);
+    }
+    const doPagador = blocos.filter((b2) => (b2.cnpj ?? "").replace(/\D/g, "") === cnpjTomador);
+    if (!doPagador.length) {
+      arquivos.push({ id: p.id, nome: p.nome, papel: "nao_pertinente", valor: null, observacao: "Sem bloco do CNPJ do tomador." });
+      continue;
+    }
+    if (doPagador.length > 1) {
+      arquivos.push({ id: p.id, nome: p.nome, papel: "ilegivel", valor: null });
+      return falha(`Mais de um bloco do mesmo CNPJ na planilha \u201C${p.nome}\u201D.`);
+    }
+    const b = doPagador[0];
+    const a = { id: p.id, nome: p.nome, papel: "complementar", valor: somarTotalFaturamento(b) };
+    arquivos.push(a);
+    const igual = unicos.find((u) => impressao(u.b) === impressao(b));
+    if (igual) return falha(`\u201C${p.nome}\u201D e \u201C${igual.a.nome}\u201D s\xE3o arquivos diferentes com os mesmos valores (${brl2(a.valor)}); sem evid\xEAncia de que sejam os mesmos lan\xE7amentos, n\xE3o \xE9 poss\xEDvel decidir entre duplicidade e duas cobran\xE7as.`);
+    unicos.push({ a, b });
   }
-  const doPagador = blocos.filter((b) => (b.cnpj ?? "").replace(/\D/g, "") === i.cnpjTomador);
-  if (doPagador.length !== 1)
-    return vazio(doPagador.length ? "Mais de um bloco do mesmo CNPJ na planilha." : "CNPJ do tomador n\xE3o encontrado na planilha.");
-  const excel = doPagador[0];
+  if (!unicos.length) return falha(planilhas.length ? "Nenhuma planilha anexada cont\xE9m o CNPJ do tomador." : "Faturamento n\xE3o anexado.");
+  const principais = unicos.filter((u) => temMensalidade(u.b));
+  if (principais.length > 1) return falha(`Planilhas com mensalidade para o mesmo CNPJ: ${principais.map((u) => `\u201C${u.a.nome}\u201D (${brl2(u.a.valor)})`).join(", ")}; n\xE3o \xE9 poss\xEDvel saber se substituem ou complementam.`);
+  const pr = principais[0] ?? unicos[0];
+  pr.a.papel = "principal";
+  if (!principais.length) pr.a.observacao = "Faturamento sem mensalidade.";
+  const comp = structuredClone(pr.b);
+  for (const u of unicos) {
+    if (u === pr) continue;
+    if (soRetroativo(u.b)) {
+      if (retro(comp) === 0) {
+        comp.inclusoes = { ...comp.inclusoes, quantidade: (comp.inclusoes?.quantidade ?? 0) + (u.b.inclusoes?.quantidade ?? 0), total: (c(comp.inclusoes?.total) + c(u.b.inclusoes.total)) / 100 };
+        comp.retroativas = structuredClone(u.b.retroativas);
+        u.a.observacao = "Retroativo ausente da planilha principal; somado \xE0s inclus\xF5es.";
+        continue;
+      }
+      const base = detalheRetro(comp), arq = detalheRetro(u.b);
+      if (!base.size || !arq.size)
+        return falha(`Retroativo de \u201C${u.a.nome}\u201D (${brl2(retro(u.b) / 100)}) e retroativo j\xE1 presente (${brl2(retro(comp) / 100)}) sem detalhamento por compet\xEAncia; n\xE3o \xE9 poss\xEDvel comprovar se \xE9 o mesmo lan\xE7amento ou outra cobran\xE7a.`);
+      const meses = [...arq.keys()];
+      if (meses.every((m) => base.get(m) === arq.get(m))) {
+        u.a.papel = "retroativo_incluido";
+        u.a.observacao = `Retroativo de ${meses.join(", ")} com mesma quantidade e valor j\xE1 contido nas inclus\xF5es da planilha principal; n\xE3o somado.`;
+        continue;
+      }
+      if (meses.every((m) => !base.has(m))) {
+        comp.inclusoes = { ...comp.inclusoes, quantidade: (comp.inclusoes?.quantidade ?? 0) + (u.b.inclusoes?.quantidade ?? 0), total: (c(comp.inclusoes?.total) + c(u.b.inclusoes.total)) / 100 };
+        comp.retroativas = {
+          ...comp.retroativas,
+          quantidade: (comp.retroativas.quantidade ?? 0) + (u.b.retroativas.quantidade ?? 0),
+          total: (retro(comp) + retro(u.b)) / 100,
+          mesesDetalhe: [...comp.retroativas.mesesDetalhe ?? [], ...u.b.retroativas.mesesDetalhe ?? []]
+        };
+        u.a.observacao = `Retroativo de outra compet\xEAncia (${meses.join(", ")}); cobran\xE7a distinta, somada.`;
+        continue;
+      }
+      return falha(`Retroativo de \u201C${u.a.nome}\u201D coincide parcialmente com o da planilha principal (${meses.join(", ")}); n\xE3o \xE9 poss\xEDvel separar o que j\xE1 est\xE1 inclu\xEDdo.`);
+    }
+    const cats = ["inclusoes", ...CATS_EXTRA].filter((k) => c(u.b[k]?.total) !== 0);
+    const sobrepostas = cats.filter((k) => c(comp[k]?.total) !== 0);
+    if (temMensalidade(u.b) || sobrepostas.length || !cats.length) return falha(sobrepostas.length || temMensalidade(u.b) ? `\u201C${u.a.nome}\u201D repete categorias j\xE1 presentes (${sobrepostas.join(", ") || "mensalidade"}); n\xE3o \xE9 poss\xEDvel saber se \xE9 complemento ou substitui\xE7\xE3o.` : `\u201C${u.a.nome}\u201D n\xE3o tem valores identific\xE1veis para o CNPJ.`);
+    for (const k of cats) comp[k] = { ...u.b[k] };
+    if (retro(u.b) !== 0) comp.retroativas = { ...u.b.retroativas };
+  }
+  delete comp.totalDeclaradoExcel;
+  return { bloco: comp, arquivos, ambiguidade: null };
+}
+async function validarArquivosCentral(i) {
+  const { bloco, arquivos, ambiguidade } = await comporFaturamento(i.planilhas, i.cnpjTomador);
+  const vazio = (motivo) => ({ leituraOk: false, motivo, valorExcel: null, valorPdf: null, comparacao: null, tomadorPdf: null, arquivos });
+  if (!bloco) return vazio(ambiguidade ?? "Composi\xE7\xE3o indeterminada.");
+  const naoLidas = Object.entries(SEM_LEITURA_FISCAL).filter(([k]) => c(bloco[k]?.total) !== 0).map(([k, r]) => `${r} ${brl2(bloco[k].total)}`);
+  if (naoLidas.length)
+    return vazio(`Faturamento com ${naoLidas.join(", ")}: o SIGA n\xE3o l\xEA esse valor na NFS-e, ent\xE3o o total fiscal seria parcial; n\xE3o comparado (nem com o valor l\xEDquido).`);
   const pdf = await analisarPdfFinanceiro(i.pdf);
   if (pdf.avisos.some((a) => /falha ao abrir/i.test(a))) return vazio("PDF ileg\xEDvel.");
-  const cmp = compararExcelComPdf(excel, { ...pdf, arquivo: "central.pdf" }, i.tipoAnalise);
+  const cmp = compararExcelComPdf(bloco, { ...pdf, arquivo: "central.pdf" }, i.tipoAnalise);
   cmp.tomadorCnpj = pdf.tomadorCnpj ?? null;
   const valorPdf = sumPdfTotal(cmp);
-  const valorExcel = somarTotalFaturamento(excel);
+  const valorExcel = somarTotalFaturamento(bloco);
   const leituraOk = valorPdf != null && !!pdf.tomadorCnpj;
   return {
     leituraOk,
@@ -2767,9 +2871,11 @@ async function validarArquivosCentral(i) {
     valorExcel,
     valorPdf,
     comparacao: cmp,
-    tomadorPdf: pdf.tomadorCnpj ?? null
+    tomadorPdf: pdf.tomadorCnpj ?? null,
+    arquivos
   };
 }
 export {
+  comporFaturamento,
   validarArquivosCentral
 };
