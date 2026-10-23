@@ -87,5 +87,6 @@
 - [x] Fila com próxima tentativa e reserva; consultas filtradas/paginadas; barreira final completa no banco.
 - [x] Verificação automática do pacote do validador. 24 testes do servidor + 15 de regras aprovados.
 - [ ] Correções do lado da Central (resposta HTTP, envio pelo servidor a partir do XML): fora deste projeto.
-- [ ] Conferir identidade fiscal (chave, número, prestador) do PDF com os metadados: depende de leitura padronizada desses campos na nota.
-- [ ] Homologação com a Distribuidora Lopes: depende de nota emitida e movimentação em “Faturado”, enviada pela Central.
+- [x] Identidade fiscal lida do PDF (chave, número, prestador, tomador, emissão) e regra de nova versão de PDF; 36 testes do servidor.
+- [ ] Validar a leitura da identidade num PDF real da Central: depende de uma entrega real em homologação.
+- [ ] Homologação com a Distribuidora Lopes: movimentação 2026-10 é a única em “Faturado”, mas tem taxa de adesão (R$ 1.024,39), que o SIGA não lê na nota → seria inconclusiva; depende de decisão sobre essa categoria.
