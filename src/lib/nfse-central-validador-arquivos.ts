@@ -26,6 +26,8 @@ export interface ResultadoArquivosCentral {
   motivo: string | null;
   valorExcel: number | null;
   valorPdf: number | null;
+  /** Valor fiscal bruto do serviço lido na NFS-e (nunca o líquido). */
+  valorServico: number | null;
   comparacao: ReturnType<typeof compararExcelComPdf> | null;
   tomadorPdf: string | null;
   arquivos: ArquivoComposicao[];
@@ -159,9 +161,12 @@ export async function validarArquivosCentral(i: {
   cmp.tomadorCnpj = pdf.tomadorCnpj ?? null;
   const valorPdf = sumPdfTotal(cmp);
   const valorExcel = somarTotalFaturamento(bloco as any);
-  const leituraOk = valorPdf != null && !!pdf.tomadorCnpj;
+  const valorServico = pdf.resumo?.valorServico ?? (pdf as any).valorServico ?? null;
+  const leituraOk = valorPdf != null && valorServico != null && !!pdf.tomadorCnpj;
   return {
-    leituraOk, motivo: leituraOk ? null : "PDF incompleto: tomador ou valores não encontrados.",
-    valorExcel, valorPdf, comparacao: cmp, tomadorPdf: pdf.tomadorCnpj ?? null, arquivos,
+    leituraOk, motivo: leituraOk ? null : valorServico == null && valorPdf != null && pdf.tomadorCnpj
+      ? "Valor do serviço (bruto) não encontrado na NFS-e; o descritivo sozinho não é aceito."
+      : "PDF incompleto: tomador ou valores não encontrados.",
+    valorExcel, valorPdf, valorServico, comparacao: cmp, tomadorPdf: pdf.tomadorCnpj ?? null, arquivos,
   };
 }
