@@ -1,3 +1,4 @@
+import { anexoCompartilhavelNoGrupo } from "@/lib/financeiro-utils";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Navigate } from "react-router-dom";
@@ -522,6 +523,7 @@ export default function Financeiro() {
         const anexosPorGrupoPeriodo = new Map<string, any[]>();
 
         data.forEach((a: any) => {
+          if (!anexoCompartilhavelNoGrupo(a)) return;
           const meta = movMeta.get(a.financeiro_movimentacao_id);
           const grupoId = meta ? empresaGrupoMap.get(meta.empresa_id)?.grupo_id : null;
           if (!meta || !grupoId) return;

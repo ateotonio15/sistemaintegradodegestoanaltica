@@ -45,14 +45,39 @@ export const listarAgendamentos = (filtros: FiltrosAgenda) => chamar<RespostaAge
 export const detalharAgendamento = (nr: number | string) => chamar<any>({ acao: "detalhe", nr_sequencia: String(nr) });
 export const healthAgenda = () => chamar<any>({ acao: "health" });
 
+export interface PendenteProcedimentoItem {
+  cd_pessoa_fisica: string;
+  nm_paciente: string;
+  cd_procedimento: number;
+  ds_procedimento: string;
+  nr_atendimento: number | null;
+  dt_agenda: string;
+  dt_agendamento: string;
+  ie_autorizacao: string;
+  ie_status_agenda: string;
+  dias_para_execucao: number;
+  empresa: string;
+  cd_cgc_estipulante: string | null;
+}
+export interface FiltrosPendentes { dt_inicio: string; dt_final: string; cd_cgc?: string; cd_procedimento?: string }
+export interface RelatorioPendentesResponse {
+  sucesso: boolean;
+  dados: PendenteProcedimentoItem[];
+  total: number;
+  media_dias_geral: string;
+  filtros: { dt_inicio: string; dt_final: string; cd_cgc: string; cd_procedimento: string };
+}
+export const listarProcedimentosPendentes = (filtros: FiltrosPendentes) =>
+  chamar<RelatorioPendentesResponse>({ acao: "pendentes", filtros });
+
 /** AAAA-MM-DD → DD/MM/AAAA */
 export const isoParaBr = (s: string) => (s ? s.split("-").reverse().join("/") : "");
 
 // ---------------------------------------------------------------------------
 // Modo DIRETO: o navegador chama a API da Samel sem passar pelo nosso servidor.
 // Só funciona dentro da rede interna da Samel ou com a VPN ligada.
-// A chave pode ser configurada no .env (VITE_AGENDA_CIRURGICA_API_KEY) ou
-// informada na tela (salva no localStorage do navegador para não pedir toda hora).
+// A chave é informada na tela e guardada apenas na sessão do navegador
+// (sessionStorage) — nunca no código nem no banco.
 // ---------------------------------------------------------------------------
 
 export type ServidorAgenda = "producao" | "localhost" | "personalizada";
@@ -61,10 +86,23 @@ export const SERVIDORES_AGENDA: Record<Exclude<ServidorAgenda, "personalizada">,
   localhost: "http://localhost:5000/api",
 };
 const SERVIDOR_KEY = "agenda_cirurgica_servidor";
-const CHAVE_STORAGE = "agenda_cirurgica_api_key";
+const CHAVE_SESSAO = "agenda_cirurgica_api_key";
 const MODO_STORAGE = "agenda_cirurgica_modo";
 
 export type ModoAcesso = "servidor" | "direto";
+
+/** Lembra o modo de acesso escolhido (não guarda nenhuma chave). */
+export const lerModoAgenda = (): ModoAcesso => {
+  try {
+    const m = localStorage.getItem(MODO_STORAGE);
+    if (m === "direto" || m === "servidor") return m;
+  } catch { /* ignore */ }
+  return "direto";
+};
+
+export const salvarModoAgenda = (modo: ModoAcesso) => {
+  try { localStorage.setItem(MODO_STORAGE, modo); } catch { /* ignore */ }
+};
 
 export interface ConfigServidorAgenda { tipo: ServidorAgenda; url: string }
 
@@ -82,60 +120,14 @@ export const salvarServidorAgenda = (c: ConfigServidorAgenda) => {
 };
 const baseDireta = () => `${normalizarBaseAgenda(lerServidorAgenda().url) || SERVIDORES_AGENDA.producao}/integracao`;
 
-/** Retorna a chave configurada na variável de ambiente Vite, se existir */
-export const obterChaveEnv = (): string => {
-  try {
-    return (import.meta.env.VITE_AGENDA_CIRURGICA_API_KEY as string | undefined)?.trim() ?? "";
-  } catch {
-    return "";
-  }
-};
-
-/** Indica se há uma chave definida via .env */
-export const temChaveEnv = (): boolean => !!obterChaveEnv();
-
-/**
- * Lê a chave da API.
- * Prioridades:
- * 1. Chave configurada via .env (VITE_AGENDA_CIRURGICA_API_KEY)
- * 2. Chave salva no localStorage (permanente por navegador)
- * 3. Chave na sessionStorage (sessão atual)
- */
 export const lerChaveDireta = (): string => {
-  const envKey = obterChaveEnv();
-  if (envKey) return envKey;
-  try {
-    const local = localStorage.getItem(CHAVE_STORAGE)?.trim();
-    if (local) return local;
-    const sess = sessionStorage.getItem(CHAVE_STORAGE)?.trim();
-    if (sess) return sess;
-  } catch { /* ignore */ }
-  return "";
+  try { return sessionStorage.getItem(CHAVE_SESSAO) ?? ""; } catch { return ""; }
 };
-
 export const salvarChaveDireta = (chave: string) => {
   try {
-    const limpa = chave.trim();
-    if (limpa) {
-      localStorage.setItem(CHAVE_STORAGE, limpa);
-      sessionStorage.setItem(CHAVE_STORAGE, limpa);
-    } else {
-      localStorage.removeItem(CHAVE_STORAGE);
-      sessionStorage.removeItem(CHAVE_STORAGE);
-    }
+    if (chave) sessionStorage.setItem(CHAVE_SESSAO, chave);
+    else sessionStorage.removeItem(CHAVE_SESSAO);
   } catch { /* ignore */ }
-};
-
-export const lerModoAgenda = (): ModoAcesso => {
-  try {
-    const m = localStorage.getItem(MODO_STORAGE);
-    if (m === "direto" || m === "servidor") return m;
-  } catch { /* ignore */ }
-  return "direto";
-};
-
-export const salvarModoAgenda = (modo: ModoAcesso) => {
-  try { localStorage.setItem(MODO_STORAGE, modo); } catch { /* ignore */ }
 };
 
 async function chamarDireto<T>(url: string, chave: string): Promise<T> {
@@ -171,6 +163,17 @@ function montarQueryListagem(f: FiltrosAgenda): string {
   return p.toString();
 }
 
+export const listarProcedimentosPendentesDireto = async (filtros: FiltrosPendentes, chave: string) => {
+  const p = new URLSearchParams({
+    dt_inicio: filtros.dt_inicio, dt_final: filtros.dt_final,
+    cd_cgc: filtros.cd_cgc || "0", cd_procedimento: filtros.cd_procedimento || "0",
+  });
+  const base = normalizarBaseAgenda(lerServidorAgenda().url) || SERVIDORES_AGENDA.producao;
+  const r = await chamarDireto<RelatorioPendentesResponse & { sucesso?: boolean; mensagem?: string }>(`${base}/relatorio/procedimentos-pendentes-empresa?${p}`, chave);
+  if (r && r.sucesso === false) throw new Error(r.mensagem ?? "A API não retornou os pendentes.");
+  return r;
+};
+
 export const listarAgendamentosDireto = (filtros: FiltrosAgenda, chave: string) =>
   chamarDireto<RespostaAgenda>(`${baseDireta()}/agendamentos?${montarQueryListagem(filtros)}`, chave);
 
@@ -179,60 +182,3 @@ export const detalharAgendamentoDireto = (nr: number | string, chave: string) =>
 
 export const healthAgendaDireto = () =>
   chamarDireto<any>(`${baseDireta()}/health`, lerChaveDireta());
-
-// ---------------------------------------------------------------------------
-// Relatório de Procedimentos Pendentes por Empresa
-// Rota: /relatorio/procedimentos-pendentes-empresa
-// ---------------------------------------------------------------------------
-
-export interface PendenteProcedimentoItem {
-  cd_pessoa_fisica: string;
-  cd_procedimento: number;
-  ds_procedimento: string;
-  nm_paciente: string;
-  nm_social?: string;
-  dt_agenda: string;
-  dt_agendamento: string;
-  ie_autorizacao: string;
-  ie_status_agenda: string;
-  nr_atendimento: number | null;
-  dias_para_execucao: number;
-  empresa: string;
-  cd_cgc_estipulante: string;
-}
-
-export interface RelatorioPendentesResponse {
-  sucesso: boolean;
-  dados: PendenteProcedimentoItem[];
-  total: number;
-  media_dias_geral: string | null;
-  filtros: {
-    dt_inicio: string;
-    dt_final: string;
-    cd_cgc: string;
-    cd_procedimento: string;
-    status_list?: string;
-  };
-  mensagem?: string;
-}
-
-export interface FiltrosRelatorioPendentes {
-  dt_inicio: string; // DD/MM/AAAA
-  dt_final: string;  // DD/MM/AAAA
-  cd_cgc?: string;
-  cd_procedimento?: string;
-  status_list?: string;
-}
-
-export const listarProcedimentosPendentes = (filtros: FiltrosRelatorioPendentes) => {
-  const p = new URLSearchParams();
-  p.set("dt_inicio", filtros.dt_inicio);
-  p.set("dt_final", filtros.dt_final);
-  p.set("cd_cgc", filtros.cd_cgc || "0");
-  p.set("cd_procedimento", filtros.cd_procedimento || "0");
-  if (filtros.status_list && filtros.status_list !== "TODOS") {
-    p.set("status_list", filtros.status_list);
-  }
-  const base = `${normalizarBaseAgenda(lerServidorAgenda().url) || SERVIDORES_AGENDA.producao}/relatorio/procedimentos-pendentes-empresa`;
-  return chamarDireto<RelatorioPendentesResponse>(`${base}?${p.toString()}`, lerChaveDireta());
-};

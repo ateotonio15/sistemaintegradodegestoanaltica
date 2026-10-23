@@ -107,35 +107,8 @@ function sumExcelTotal(r: AnaliseResultado): number {
   return somarTotalFaturamento(r as any);
 }
 
-/**
- * Total do PDF preservando ausência e falha de leitura (item 6):
- * - componente `null` = valor não encontrado no PDF (desconhecido), NÃO zero;
- * - se qualquer componente relevante for desconhecido, o total é null
- *   (inconclusivo) — ausência nunca produz um "total confirmado de zero";
- * - zero explícito em todos os componentes continua sendo zero válido.
- */
-export function sumPdfTotal(c: ComparacaoResultado | ComparacaoSimplificada | null): number | null {
-  if (!c) return null;
-  if ("beneficiarios" in c && !("enfermaria" in (c as any))) {
-    // simplificada: inclusões/exclusões desconhecidas (pdf null) tornam o
-    // total inconclusivo; zero explícito permanece zero.
-    const s = c as ComparacaoSimplificada;
-    const partes = [s.inclusoes?.pdf ?? null, s.exclusoes?.pdf ?? null];
-    if (partes.some((p) => p === null)) return null;
-    return Number(((partes[0] as number) + (partes[1] as number)).toFixed(2));
-  }
-  const cr = c as ComparacaoResultado;
-  const partes = [
-    cr.enfermaria?.total?.pdf ?? null,
-    cr.apartamento?.total?.pdf ?? null,
-    cr.inclusoes?.total?.pdf ?? null,
-    (cr as any).exclusoes?.total?.pdf ?? null,
-    (cr as any).devolucoes?.total?.pdf ?? null,
-  ];
-  if (partes.some((p) => p === null)) return null;
-  const soma = (partes as number[]).reduce((acc, v) => acc + v, 0);
-  return Number(soma.toFixed(2));
-}
+export { sumPdfTotal } from "@/lib/pdf-total";
+import { sumPdfTotal } from "@/lib/pdf-total";
 
 /** Empresa simplificada usada no batch. */
 interface EmpresaInfo {

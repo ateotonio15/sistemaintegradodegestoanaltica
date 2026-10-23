@@ -1,5 +1,20 @@
 # Roadmap — Primeiro pacote financeiro
 
+## Revisão dos quatro apontamentos de monitoramento
+- [x] Restaurar limpeza de ID do rascunho, implantação, dias de fatura e desbloqueio do responsável; dois cadastros consecutivos com IDs distintos conferidos com gravações interceptadas, cancelar/reabrir limpa datas.
+- [x] Permissões de reajustes: evidência antiga; consulta das políticas atuais confirma INSERT para admin/diretora e Cadastro/Administradoras vinculados; Visualização só lê. Nenhuma ampliação nem migração; origem dos logs de 01/10 não identifica usuário/empresa.
+- [x] Troca de setor limpa tipo/reclamação; troca de tipo limpa reclamação; combinação incompatível bloqueada no envio. Fluxo conferido na sessão atual sem gravações.
+- [x] Total PDF ignora apenas categoria explicitamente não aplicável, incluindo simplificada; valores desconhecidos/omitidos e ausência total continuam inconclusivos.
+- [x] 59 testes aprovados e tela sem erros; gravação real de empresas e execução financeira real não realizadas para não alterar dados da operação.
+
+## Agenda Cirúrgica — relatório pendentes
+- [x] Pedido de 21/10: acesso direto como padrão nas duas abas; chave manual na sessão preservada, sem expor credencial privada via VITE.
+- [ ] Acesso sem campo de chave: depende de intermediário autenticado da TI Samel ou liberação do acesso da nuvem; não embutir segredo no navegador.
+- [x] Adicionar abas, relatório, filtros, indicadores, exportações e impressão.
+- [x] Consultar relatório com a chave existente exclusivamente no ENV do servidor; não expor via VITE. Modo direto manual anterior preservado apenas nos agendamentos; não usado no novo relatório.
+- [x] Sete testes aprovados; sessão real da solicitante, abas, filtro de risco, busca e CSV conferidos com resposta simulada sem gravações.
+- [ ] Validar resultados reais, impressão e exportação com dados da Samel: consulta autenticada não respondeu após 30s; bloqueado pela conectividade da nuvem com a rede interna, depende da TI Samel.
+
 ## Endereços em Editar Informações
 - [x] Ampliar confirmação da consulta CNPJ com identificação, endereço e contato; aplicar somente após confirmação, preservando ausentes, secundários e permissões. Dezessete testes aprovados; consulta real autenticada conferida e Cancelar/Usar estes dados testados com resposta fictícia, sem gravações na operação. Nome Fantasia não existe no formulário atual e fica somente na consulta; Executivo preserva a restrição do nome. Campos de endereço e contato continuam editáveis; salvar permanece separado.
 - [x] Adicionar campos "Razão Social" e "Nome Fantasia" abaixo do "Nome" no formulário de empresas (colunas novas na tabela), preenchidos pela consulta de CNPJ; API sem nome fantasia nunca inventa valor, exibe "Nome fantasia não informado" na consulta e como dica no campo, que continua editável. Onze testes aprovados; formulário e aplicação conferidos com resposta fictícia no navegador, sem gravações na operação.
@@ -53,3 +68,14 @@
 - Lista de Empresas mostra o selo automaticamente ao lado do CNPJ já consultado; lupa manual continua para os pendentes.
 - Filtro "Divergências CNPJ": situação diferente de ativa, erro de consulta ou endereço divergente do principal cadastrado (`divergenciaCnpj` em `src/lib/consulta-cnpj.ts`).
 - Verificado: 23 testes, tsgo limpo, Playwright (selos automáticos + filtro), sincronização gravando "Ativa" no banco.
+
+## Recebidos da Central NFS-e (23/10/2026)
+- [x] Receptor, validação estrita, anexação transacional, proteção de grupos, tela "Recebidos da Central", 13 testes.
+- [x] Validação independente do navegador no servidor, fila automática, 9 testes do servidor + vínculo testado em transação desfeita.
+- [x] (Mayara) Arquivo do relatório de pendentes: já atendido; chave mantida no servidor.
+- [ ] Homologação com a Central e liberação da anexação automática (aguarda o usuário).
+
+## Conexão com Git (23/10/2026)
+- [ ] Conectar o projeto ao Git pelo usuário em Configurações do projeto → Git. O Lovable sempre cria um repositório privado novo e não vincula um existente. Bloqueado: exige permissão de proprietário/admin do espaço de trabalho; a tela mostrou "No connections available".
+- [ ] Depois de conectado: levar o histórico do repositório atual (github.com/ateotonio15/sistemaintegradodegestoanaltica) para dentro do repositório novo por merge, preservando o trabalho da Central de NFS-e e as alterações da agenda.
+- [x] Conferir antes de conectar: `.env` do projeto contém apenas dados públicos do backend; chave da Samel não está no arquivo nem no código do navegador.

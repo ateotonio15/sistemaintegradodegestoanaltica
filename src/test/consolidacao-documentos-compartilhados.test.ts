@@ -357,6 +357,19 @@ describe("Relatório analítico — universo filtrado", () => {
 
 // Revisão — Problema 6: sumPdfTotal preserva ausência/falha de leitura
 describe("sumPdfTotal — ausência nunca vira zero confirmado", () => {
+  it("categoria explicitamente não aplicável não anula total conhecido", () => {
+    expect(sumPdfTotal({ enfermaria: { total: { pdf: 9296.10 } }, apartamento: null, inclusoes: { total: { pdf: 873.48 } }, exclusoes: null, devolucoes: null } as any)).toBe(10169.58);
+  });
+  it("categoria omitida ou valor desconhecido continua inconclusivo", () => {
+    expect(sumPdfTotal({ enfermaria: { total: { pdf: 800 } }, apartamento: null, inclusoes: { total: { pdf: null } }, exclusoes: null, devolucoes: null } as any)).toBeNull();
+    expect(sumPdfTotal({ enfermaria: { total: { pdf: 800 } }, apartamento: null, inclusoes: null, exclusoes: null } as any)).toBeNull();
+  });
+  it("simplificada sem exclusões soma inclusões conhecidas", () => {
+    expect(sumPdfTotal({ beneficiarios: { pdf: 10 }, inclusoes: { pdf: 150 }, exclusoes: null } as any)).toBe(150);
+  });
+  it("nenhuma categoria aplicável não confirma zero", () => {
+    expect(sumPdfTotal({ enfermaria: null, apartamento: null, inclusoes: null, exclusoes: null, devolucoes: null } as any)).toBeNull();
+  });
   it("comparação nula devolve null", () => {
     expect(sumPdfTotal(null)).toBeNull();
   });

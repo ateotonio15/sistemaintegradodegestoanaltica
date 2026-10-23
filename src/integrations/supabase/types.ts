@@ -4054,6 +4054,168 @@ export type Database = {
           },
         ]
       }
+      nfse_central_config: {
+        Row: {
+          auto_anexar_reais: boolean
+          id: number
+          updated_at: string
+        }
+        Insert: {
+          auto_anexar_reais?: boolean
+          id?: number
+          updated_at?: string
+        }
+        Update: {
+          auto_anexar_reais?: boolean
+          id?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      nfse_central_credenciais: {
+        Row: {
+          created_at: string
+          criada_por: string | null
+          id: string
+          nome: string
+          revogada_em: string | null
+          revogada_por: string | null
+          token_hash: string
+          ultimo_uso_em: string | null
+        }
+        Insert: {
+          created_at?: string
+          criada_por?: string | null
+          id?: string
+          nome: string
+          revogada_em?: string | null
+          revogada_por?: string | null
+          token_hash: string
+          ultimo_uso_em?: string | null
+        }
+        Update: {
+          created_at?: string
+          criada_por?: string | null
+          id?: string
+          nome?: string
+          revogada_em?: string | null
+          revogada_por?: string | null
+          token_hash?: string
+          ultimo_uso_em?: string | null
+        }
+        Relationships: []
+      }
+      nfse_recebimentos: {
+        Row: {
+          anexo_financeiro_id: string | null
+          chave_acesso: string
+          cnpj_prestador: string
+          cnpj_tomador: string
+          competencia_fiscal: string | null
+          created_at: string
+          diferenca_centavos: number | null
+          documento_origem_id: string | null
+          emitida_em: string
+          entrega_id: string
+          estado: string
+          faturamento_revisao: string | null
+          gerador_versao: string | null
+          homologacao: boolean
+          id: string
+          motivo: string | null
+          movimentacao_destino_id: string | null
+          movimentacao_sugerida_id: string | null
+          nome_arquivo: string | null
+          numero_nfse: string | null
+          origem: string
+          pdf_sha256: string
+          pdf_tamanho_bytes: number
+          pdf_tipo: string | null
+          status_observado: string | null
+          storage_path: string | null
+          tentativas: number
+          updated_at: string
+          validacao: Json | null
+          validado_em: string | null
+          validado_por: string | null
+          validador_versao: string | null
+          valor_excel_centavos: number | null
+          valor_pdf_centavos: number | null
+        }
+        Insert: {
+          anexo_financeiro_id?: string | null
+          chave_acesso: string
+          cnpj_prestador: string
+          cnpj_tomador: string
+          competencia_fiscal?: string | null
+          created_at?: string
+          diferenca_centavos?: number | null
+          documento_origem_id?: string | null
+          emitida_em: string
+          entrega_id: string
+          estado?: string
+          faturamento_revisao?: string | null
+          gerador_versao?: string | null
+          homologacao?: boolean
+          id?: string
+          motivo?: string | null
+          movimentacao_destino_id?: string | null
+          movimentacao_sugerida_id?: string | null
+          nome_arquivo?: string | null
+          numero_nfse?: string | null
+          origem?: string
+          pdf_sha256: string
+          pdf_tamanho_bytes: number
+          pdf_tipo?: string | null
+          status_observado?: string | null
+          storage_path?: string | null
+          tentativas?: number
+          updated_at?: string
+          validacao?: Json | null
+          validado_em?: string | null
+          validado_por?: string | null
+          validador_versao?: string | null
+          valor_excel_centavos?: number | null
+          valor_pdf_centavos?: number | null
+        }
+        Update: {
+          anexo_financeiro_id?: string | null
+          chave_acesso?: string
+          cnpj_prestador?: string
+          cnpj_tomador?: string
+          competencia_fiscal?: string | null
+          created_at?: string
+          diferenca_centavos?: number | null
+          documento_origem_id?: string | null
+          emitida_em?: string
+          entrega_id?: string
+          estado?: string
+          faturamento_revisao?: string | null
+          gerador_versao?: string | null
+          homologacao?: boolean
+          id?: string
+          motivo?: string | null
+          movimentacao_destino_id?: string | null
+          movimentacao_sugerida_id?: string | null
+          nome_arquivo?: string | null
+          numero_nfse?: string | null
+          origem?: string
+          pdf_sha256?: string
+          pdf_tamanho_bytes?: number
+          pdf_tipo?: string | null
+          status_observado?: string | null
+          storage_path?: string | null
+          tentativas?: number
+          updated_at?: string
+          validacao?: Json | null
+          validado_em?: string | null
+          validado_por?: string | null
+          validador_versao?: string | null
+          valor_excel_centavos?: number | null
+          valor_pdf_centavos?: number | null
+        }
+        Relationships: []
+      }
       notificacoes: {
         Row: {
           codigo_contrato: string | null
@@ -6298,6 +6460,17 @@ export type Database = {
       marcar_prioridade_maxima: {
         Args: { p_empresa_id: string; p_motivo: string; p_observacoes?: string }
         Returns: string
+      }
+      nfse_central_revisao: { Args: { _mov: string }; Returns: string }
+      nfse_central_vincular: {
+        Args: {
+          _nome: string
+          _recebimento: string
+          _revisao: string
+          _storage_path: string
+          _tamanho: number
+        }
+        Returns: Json
       }
       plantao_do_usuario: {
         Args: { _plantao_id: string; _user_id: string }

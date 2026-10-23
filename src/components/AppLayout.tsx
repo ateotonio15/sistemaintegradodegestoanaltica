@@ -51,6 +51,7 @@ const allNavItems = [
   { to: "/implantacao", label: "Análise de Contratos", icon: FileSignature },
   { to: "/contratos-recem-implantados", label: "Primeira Vigencia", icon: ClockAlert },
   { to: "/arquivos", label: "Arquivos", icon: FolderArchive },
+  { to: "/recebidos-central", label: "Recebidos da Central", icon: FolderArchive },
   { to: "/reajustes", label: "Reajuste", icon: TrendingUp },
   { to: "/usuarios", label: "Usuários", icon: Users, adminOnly: true },
   
@@ -193,7 +194,7 @@ export function AppLayout({ children }: { children?: React.ReactNode }) {
         return allowed.includes(item.to);
       }
       if (isFinanceiro) {
-        const allowed = ["/", "/dashboard/financeiro", "/empresas", "/movimentacoes", "/financeiro", "/arquivos", "/reajustes", "/contratos-recem-implantados"];
+        const allowed = ["/", "/dashboard/financeiro", "/empresas", "/movimentacoes", "/financeiro", "/arquivos", "/recebidos-central", "/reajustes", "/contratos-recem-implantados"];
         return allowed.includes(item.to);
       }
       if ((item.to === "/uber" || item.to === "/uber/dashboard") && !isAdmin && role !== "executivo" && role !== "vendas") return false;
@@ -201,7 +202,7 @@ export function AppLayout({ children }: { children?: React.ReactNode }) {
       if (item.to === "/financeiro" && !isAdmin && !isFinanceiro && role !== "comum" && role !== "administradoras" && role !== "visualizacao") return false;
       if (item.to === "/implantacao" && !isAdmin && role !== "comum" && role !== "administradoras" && role !== "visualizacao" && role !== "diretora" && role !== "vendas") return false;
       if (item.to === "/contratos-recem-implantados" && !isAdmin && !isFinanceiro && role !== "comum" && role !== "administradoras" && role !== "diretora") return false;
-      if (item.to === "/arquivos" && !isAdmin && !isFinanceiro) return false;
+      if ((item.to === "/arquivos" || item.to === "/recebidos-central") && !isAdmin && !isFinanceiro) return false;
       if (item.to === "/vidas" && !isAdmin && !["diretora","comum","administradoras","vendas"].includes(role as string)) return false;
       return true;
     });

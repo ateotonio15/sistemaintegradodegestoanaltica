@@ -17,6 +17,7 @@ import DashboardVendas from "./pages/DashboardVendas";
 import DashboardAdministradoras from "./pages/DashboardAdministradoras";
 
 import Financeiro from "./pages/Financeiro";
+import RecebidosCentral from "./pages/RecebidosCentral";
 import PainelTvFinanceiro from "./pages/PainelTvFinanceiro";
 import Reajustes from "./pages/Reajustes";
 import Arquivos from "./pages/Arquivos";
@@ -256,6 +257,7 @@ const AppRoutes = () => (
 
       <Route element={<RoleGate allow={["admin", "financeiro"]} />}>
         <Route path="/arquivos" element={<Arquivos />} />
+        <Route path="/recebidos-central" element={<RecebidosCentral />} />
         <Route path="/cartas" element={<Cartas />} />
       </Route>
 
