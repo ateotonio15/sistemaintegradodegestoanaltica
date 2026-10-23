@@ -179,3 +179,60 @@ export const detalharAgendamentoDireto = (nr: number | string, chave: string) =>
 
 export const healthAgendaDireto = () =>
   chamarDireto<any>(`${baseDireta()}/health`, lerChaveDireta());
+
+// ---------------------------------------------------------------------------
+// Relatório de Procedimentos Pendentes por Empresa
+// Rota: /relatorio/procedimentos-pendentes-empresa
+// ---------------------------------------------------------------------------
+
+export interface PendenteProcedimentoItem {
+  cd_pessoa_fisica: string;
+  cd_procedimento: number;
+  ds_procedimento: string;
+  nm_paciente: string;
+  nm_social?: string;
+  dt_agenda: string;
+  dt_agendamento: string;
+  ie_autorizacao: string;
+  ie_status_agenda: string;
+  nr_atendimento: number | null;
+  dias_para_execucao: number;
+  empresa: string;
+  cd_cgc_estipulante: string;
+}
+
+export interface RelatorioPendentesResponse {
+  sucesso: boolean;
+  dados: PendenteProcedimentoItem[];
+  total: number;
+  media_dias_geral: string | null;
+  filtros: {
+    dt_inicio: string;
+    dt_final: string;
+    cd_cgc: string;
+    cd_procedimento: string;
+    status_list?: string;
+  };
+  mensagem?: string;
+}
+
+export interface FiltrosRelatorioPendentes {
+  dt_inicio: string; // DD/MM/AAAA
+  dt_final: string;  // DD/MM/AAAA
+  cd_cgc?: string;
+  cd_procedimento?: string;
+  status_list?: string;
+}
+
+export const listarProcedimentosPendentes = (filtros: FiltrosRelatorioPendentes) => {
+  const p = new URLSearchParams();
+  p.set("dt_inicio", filtros.dt_inicio);
+  p.set("dt_final", filtros.dt_final);
+  p.set("cd_cgc", filtros.cd_cgc || "0");
+  p.set("cd_procedimento", filtros.cd_procedimento || "0");
+  if (filtros.status_list && filtros.status_list !== "TODOS") {
+    p.set("status_list", filtros.status_list);
+  }
+  const base = `${normalizarBaseAgenda(lerServidorAgenda().url) || SERVIDORES_AGENDA.producao}/relatorio/procedimentos-pendentes-empresa`;
+  return chamarDireto<RelatorioPendentesResponse>(`${base}?${p.toString()}`, lerChaveDireta());
+};
