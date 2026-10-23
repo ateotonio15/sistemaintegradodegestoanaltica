@@ -139,7 +139,6 @@ Deno.test("duas planilhas com mensalidade distintas: validação inconclusiva co
 });
 
 Deno.test("planilha de outro CNPJ anexada junto não é somada", async () => {
-  const outra = new TextDecoder().decode(new Uint8Array(0)); void outra;
   const f = fake({ pdf: pdfFicticio(), xls: [await planilhaFicticia(), await planilhaFicticia(0, [["Inclusão", 2, 200]], false)] });
   // tomador diferente: nenhum bloco pertinente
   const r = await processarRecebimento(rec({ cnpj_tomador: "11111111000191" }), f.ad);
