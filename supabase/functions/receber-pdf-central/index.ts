@@ -40,19 +40,34 @@ async function sha256Hex(buf: ArrayBuffer) {
   return [...new Uint8Array(h)].map((b) => b.toString(16).padStart(2, "0")).join("");
 }
 
-function tokenOk(req: Request) {
+function tokenLegadoOk(recebido: string) {
   const esperado = Deno.env.get("CENTRAL_NFSE_TOKEN") ?? "";
-  const recebido = (req.headers.get("authorization") ?? "").replace(/^Bearer\s+/i, "");
   if (!esperado || recebido.length !== esperado.length) return false;
   let diff = 0;
   for (let i = 0; i < esperado.length; i++) diff |= esperado.charCodeAt(i) ^ recebido.charCodeAt(i);
   return diff === 0;
 }
 
+/** Aceita credenciais geradas na tela de Admin (guardadas só como hash) ou a legada. */
+async function tokenOk(req: Request) {
+  const recebido = (req.headers.get("authorization") ?? "").replace(/^Bearer\s+/i, "").trim();
+  if (!recebido) return false;
+  if (recebido.startsWith("cnfse_")) {
+    const hash = await sha256Hex(new TextEncoder().encode(recebido).buffer as ArrayBuffer);
+    const db = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
+    const { data } = await db.from("nfse_central_credenciais").select("id")
+      .eq("token_hash", hash).is("revogada_em", null).maybeSingle();
+    if (!data) return false;
+    await db.from("nfse_central_credenciais").update({ ultimo_uso_em: new Date().toISOString() }).eq("id", data.id);
+    return true;
+  }
+  return tokenLegadoOk(recebido);
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
   if (req.method !== "POST") return json({ erro: "Método não permitido" }, 405);
-  if (!tokenOk(req)) return json({ erro: "Credencial inválida" }, 401);
+  if (!(await tokenOk(req))) return json({ erro: "Credencial inválida" }, 401);
 
   let form: FormData;
   try { form = await req.formData(); } catch { return json({ erro: "multipart/form-data esperado" }, 400); }
