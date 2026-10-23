@@ -47,6 +47,9 @@ export interface AnalisePdfResultado {
   exclusoes: { total: number | null };
   /** Total de devoluções do histórico (negativo); null se não encontrado. */
   devolucoes: { total: number | null };
+  /** Adesão explicitamente identificada; quantidade não inferida do total. */
+  taxaAdesao?: { total: number | null; quantidade: number | null };
+  competenciaDescricao?: string | null;
   /** Valor Líquido da NFS-e (extraído do PDF), null se não encontrado. */
   valorLiquido: number | null;
   /** Número da NF (ex: "4601"), null se não encontrado. */
@@ -234,6 +237,23 @@ export async function extrairVencimentoPdf(buffer: ArrayBuffer): Promise<string 
   } catch {
     return null;
   }
+}
+
+/** Somente a linha explícita, nunca diferença de totais nem preço arredondado. */
+export function extrairTaxaAdesao(texto: string): { total: number | null; quantidade: null } {
+  const t = norm(texto);
+  const valores = [...t.matchAll(/\btaxa\s+de\s+adesao\s*[:=\-]\s*(?:r\s*\$\s*)?(\d[\d.]*,\d{2}|\d+\.\d{2})(?!\d)/g)];
+  // Várias linhas não permitem distinguir repetição de cobrança complementar.
+  return { total: valores.length === 1 ? parseValor(valores[0][1]) : null, quantidade: null };
+}
+
+/** Mês do período descrito, distinto da emissão e da competência fiscal da NFS-e. */
+export function extrairCompetenciaDescricao(texto: string): string | null {
+  const meses = ["janeiro", "fevereiro", "marco", "abril", "maio", "junho", "julho", "agosto", "setembro", "outubro", "novembro", "dezembro"];
+  const matches = [...norm(texto).matchAll(/\bperiodo\s+de\s*:\s*([a-z]+)\s*\/\s*(20\d{2})\b/g)];
+  if (matches.length !== 1) return null;
+  const mes = meses.indexOf(matches[0][1]);
+  return mes < 0 ? null : `${matches[0][2]}-${String(mes + 1).padStart(2, "0")}`;
 }
 
 
@@ -666,6 +686,8 @@ export async function analisarPdfFinanceiro(
     inclusoes: { total: inclusoesTotal },
     exclusoes: { total: exclusoesTotal },
     devolucoes: { total: devolucoesTotal },
+    taxaAdesao: extrairTaxaAdesao(texto),
+    competenciaDescricao: extrairCompetenciaDescricao(texto),
     valorLiquido,
     nfNumero,
     tomadorCnpj,
