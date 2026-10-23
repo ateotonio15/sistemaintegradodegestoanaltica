@@ -2959,7 +2959,7 @@ async function validarArquivosCentral(i) {
     identidade = conferirIdentidadeFiscal(texto, i.identidade);
   }
   const { bloco, arquivos, ambiguidade } = await comporFaturamento(i.planilhas, i.cnpjTomador);
-  const vazio = (motivo) => ({ leituraOk: false, motivo, valorExcel: null, valorPdf: null, valorServico: null, comparacao: null, tomadorPdf: null, arquivos, identidade });
+  const vazio = (motivo) => ({ leituraOk: false, motivo, valorExcel: null, valorPdf: null, valorServico: null, comparacao: null, tomadorPdf: null, arquivos, identidade, contextoDocumento: null });
   if (!bloco) return vazio(ambiguidade ?? "Composi\xE7\xE3o indeterminada.");
   const naoLidas = Object.entries(SEM_LEITURA_FISCAL).filter(([k]) => c(bloco[k]?.total) !== 0).map(([k, r]) => `${r} ${brl2(bloco[k].total)}`);
   if (naoLidas.length)

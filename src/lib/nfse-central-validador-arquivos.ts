@@ -35,7 +35,7 @@ export interface ResultadoArquivosCentral {
   arquivos: ArquivoComposicao[];
   /** Identidade fiscal lida do próprio PDF (null quando não solicitada). */
   identidade: IdentidadeFiscal | null;
-  contextoDocumento?: { competenciaDescricao: string | null; competenciaMovimentacao: string | null; impedimento: string | null };
+  contextoDocumento?: { competenciaDescricao: string | null; competenciaMovimentacao: string | null; impedimento: string | null } | null;
 }
 
 const c = (v: unknown) => Math.round((Number(v) || 0) * 100);
