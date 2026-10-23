@@ -12,18 +12,19 @@ const rec = (extra: Partial<Recebimento> = {}): Recebimento => ({
   homologacao: false, pdf_sha256: "ab", nome_arquivo: "nota.pdf", pdf_tamanho_bytes: 1, ...extra,
 });
 
-function fake(opts: { pdf: ArrayBuffer; xls: ArrayBuffer; auto?: boolean; revisoes?: string[] }) {
+function fake(opts: { pdf: ArrayBuffer; xls: ArrayBuffer | ArrayBuffer[]; auto?: boolean; revisoes?: string[] }) {
+  const xlss = Array.isArray(opts.xls) ? opts.xls : [opts.xls];
   const salvos: Record<string, unknown>[] = [];
   const vinculos: string[] = [];
   const baixados: string[] = [];
   const revisoes = [...(opts.revisoes ?? ["r1"])];
   const ad: Adaptador = {
     resolverDestino: async () => ({ estado: "aguardando_validacao", motivo: null, destino: MOV }),
-    anexosDaMov: async () => [{ id: "x1", mime_type: null, nome_arquivo: "fat.xlsx", storage_path: "emp-1/mov-1/fat.xlsx", bucket: "anexos-financeiro", origem: "normal" }],
+    anexosDaMov: async () => xlss.map((_, i) => ({ id: `x${i + 1}`, mime_type: null, nome_arquivo: `fat${i + 1}.xlsx`, storage_path: `emp-1/mov-1/fat${i + 1}.xlsx`, bucket: "anexos-financeiro", origem: "normal" })),
     revisaoAtual: async () => (revisoes.length > 1 ? revisoes.shift()! : revisoes[0]),
     tipoAnalise: async () => "normal",
     cnpjPagador: async () => "12.345.678/0001-90",
-    baixar: async (bucket, path) => { baixados.push(`${bucket}/${path}`); return bucket === "nfse-entrada" ? opts.pdf : opts.xls; },
+    baixar: async (bucket, path) => { baixados.push(`${bucket}/${path}`); if (bucket === "nfse-entrada") return opts.pdf; const i = Number(path.match(/fat(\\d+)/)![1]) - 1; return xlss[i].slice(0); },
     autoAnexarReais: async () => opts.auto ?? false,
     salvar: async (_id, p) => { salvos.push(p); },
     copiarParaAnexos: async () => "emp-1/mov-1/central-ab.pdf",
@@ -36,7 +37,7 @@ Deno.test("processa com todas as telas fechadas e lê os arquivos armazenados", 
   const f = fake({ pdf: pdfFicticio(), xls: await planilhaFicticia() });
   const r = await processarRecebimento(rec(), f.ad);
   assertEquals(r.estado, "aprovado_aguardando_liberacao");
-  assertEquals(f.baixados, ["nfse-entrada/fila/nota.pdf", "anexos-financeiro/emp-1/mov-1/fat.xlsx"]);
+  assertEquals(f.baixados, ["nfse-entrada/fila/nota.pdf", "anexos-financeiro/emp-1/mov-1/fat1.xlsx"]);
   const ult = f.salvos.at(-1)!;
   assertEquals([ult.valor_excel_centavos, ult.valor_pdf_centavos, ult.diferenca_centavos], [100000, 100000, 0]);
   assertEquals(f.vinculos.length, 0); // anexação real desligada
@@ -96,4 +97,51 @@ Deno.test("divergência com arquivos inalterados não é reanalisada", async () 
   const f = fake({ pdf: pdfFicticio(), xls: await planilhaFicticia() });
   await processarRecebimento(rec({ estado: "divergencia", faturamento_revisao: "r1" }), f.ad);
   assertEquals(f.baixados.length, 0);
+});
+
+// ---- Composição com vários arquivos ----
+const papeis = (s: Record<string, unknown>) => ((s.validacao as any).arquivos as any[]).map((a) => a.papel);
+const valores = (s: Record<string, unknown>) => [s.valor_excel_centavos, s.valor_pdf_centavos, s.diferenca_centavos];
+
+Deno.test("duas planilhas pertinentes (mensalidade + inclusões) somam uma vez cada", async () => {
+  const f = fake({ pdf: pdfFicticio("1.000,00", "100.00", undefined, "200,00"), xls: [await planilhaFicticia(), await planilhaFicticia(0, [["Inclusão", 2, 200]], false)] });
+  assertEquals((await processarRecebimento(rec(), f.ad)).estado, "aprovado_aguardando_liberacao");
+  const s = f.salvos.at(-1)!;
+  assertEquals(valores(s), [120000, 120000, 0]);
+  assertEquals(papeis(s), ["principal", "complementar"]);
+  assertEquals(f.vinculos.length, 0);
+});
+
+Deno.test("planilha duplicada não é somada", async () => {
+  const x = await planilhaFicticia();
+  const f = fake({ pdf: pdfFicticio(), xls: [x, x.slice(0)] });
+  assertEquals((await processarRecebimento(rec(), f.ad)).estado, "aprovado_aguardando_liberacao");
+  const s = f.salvos.at(-1)!;
+  assertEquals(valores(s), [100000, 100000, 0]);
+  assertEquals(papeis(s), ["principal", "duplicado"]);
+});
+
+Deno.test("faturamento com retroativo + planilha do retroativo: retroativo contado uma vez", async () => {
+  const f = fake({ pdf: pdfFicticio("1.000,00", "100.00", undefined, "200,00"),
+    xls: [await planilhaFicticia(1000, [["Cobrança Retroativa", 2, 200]]), await planilhaFicticia(0, [["Cobrança Retroativa", 2, 200]], false)] });
+  assertEquals((await processarRecebimento(rec(), f.ad)).estado, "aprovado_aguardando_liberacao");
+  const s = f.salvos.at(-1)!;
+  assertEquals(valores(s), [120000, 120000, 0]); // seria 140000 se somasse de novo
+  assertEquals(papeis(s), ["principal", "retroativo_incluido"]);
+});
+
+Deno.test("duas planilhas com mensalidade distintas: validação inconclusiva com a ambiguidade", async () => {
+  const f = fake({ pdf: pdfFicticio(), xls: [await planilhaFicticia(1000), await planilhaFicticia(900)] });
+  const r = await processarRecebimento(rec(), f.ad);
+  assertEquals(r.estado, "validacao_inconclusiva");
+  assert(/mensalidade para o mesmo CNPJ/.test(r.motivo ?? ""));
+  assertEquals(f.vinculos.length, 0);
+});
+
+Deno.test("planilha de outro CNPJ anexada junto não é somada", async () => {
+  const outra = new TextDecoder().decode(new Uint8Array(0)); void outra;
+  const f = fake({ pdf: pdfFicticio(), xls: [await planilhaFicticia(), await planilhaFicticia(0, [["Inclusão", 2, 200]], false)] });
+  // tomador diferente: nenhum bloco pertinente
+  const r = await processarRecebimento(rec({ cnpj_tomador: "11111111000191" }), f.ad);
+  assertEquals(r.estado === "aprovado_aguardando_liberacao", false);
 });
