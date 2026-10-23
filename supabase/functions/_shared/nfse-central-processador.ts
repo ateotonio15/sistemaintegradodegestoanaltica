@@ -53,7 +53,7 @@ export async function processarRecebimento(rec: Recebimento, ad: Adaptador): Pro
   if (!PENDENTES.includes(rec.estado)) return { estado: rec.estado, motivo: null };
   const destino = await ad.resolverDestino(rec);
   if (!destino.destino) {
-    await ad.salvar(rec.id, { estado: destino.estado, motivo: destino.motivo, movimentacao_destino_id: null, status_observado: null });
+    await ad.salvar(rec.id, { estado: destino.estado, motivo: destino.motivo, movimentacao_destino_id: null, status_observado: null, proxima_tentativa_em: proxima() });
     return { estado: destino.estado, motivo: destino.motivo };
   }
   const mov = destino.destino;
