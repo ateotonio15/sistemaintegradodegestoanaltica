@@ -7,7 +7,7 @@
 import { avaliarValidacao, type ResultadoDestino } from "./nfse-central-regras.ts";
 import { validarArquivosCentral } from "./siga-validador.generated.js";
 
-export const VALIDADOR_VERSAO = "v9-contexto-movimentacao";
+export const VALIDADOR_VERSAO = "v10-danfse-rotulos-multilinha";
 export const PENDENTES = [
   "recebido_pendente", "aguardando_faturado", "aguardando_faturamento_anexado",
   "destino_ambiguo", "aguardando_validacao", "validacao_inconclusiva", "divergencia", "aprovado_aguardando_liberacao",

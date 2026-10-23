@@ -36,7 +36,7 @@ export function lerChave(t: string): string | null {
   return d.length >= 44 ? d : null;
 }
 export function lerNumero(t: string): string | null {
-  const m = norm(t).match(/n(?:u|ú)?mero\s*d[ao]?\s*nfs[\s-]?e[^\d\n]{0,20}(\d{1,15})/i);
+  const m = norm(t).match(/n(?:u|ú)?mero\s*d[ao]?\s*nfs[\s-]?e[^\d]{0,20}(\d{1,15})/i);
   return m ? sem0(m[1]) : null;
 }
 export function lerPrestador(t: string): string | null {
@@ -51,11 +51,11 @@ export function lerPrestador(t: string): string | null {
 }
 /** Data (DD/MM/AAAA) e hora opcional da emissão. Competência é lida à parte. */
 export function lerEmissao(t: string): { data: string; hora: string | null } | null {
-  const m = norm(t).match(/(?:data\s+e\s+hora\s+d[ae]\s+emissao|data\s+d[ae]\s+emissao|emitida\s+em)[^\d\n]{0,30}(\d{2})\/(\d{2})\/(\d{4})(?:[^\d\n]{1,5}(\d{2}:\d{2}(?::\d{2})?))?/i);
+  const m = norm(t).match(/(?:data\s+e\s+hora\s+d[ae]\s+emissao|data\s+d[ae]\s+emissao|emitida\s+em)(?:\s+da\s+nfs-?e)?[^\d]{0,30}(\d{2})\/(\d{2})\/(\d{4})(?:[^\d\n]{1,5}(\d{2}:\d{2}(?::\d{2})?))?/i);
   return m ? { data: `${m[3]}-${m[2]}-${m[1]}`, hora: m[4] ?? null } : null;
 }
 export function lerCompetencia(t: string): string | null {
-  const m = norm(t).match(/competencia(?:\s+da\s+nfs-?e)?[^\d\n]{0,20}(\d{2}\/\d{2}\/\d{4}|\d{2}\/\d{4})/i);
+  const m = norm(t).match(/competencia(?:\s+da\s+nfs-?e)?[^\d]{0,20}(\d{2}\/\d{2}\/\d{4}|\d{2}\/\d{4})/i);
   return m ? m[1] : null;
 }
 /** Data de emissão em Manaus (UTC-4) a partir do instante informado. */

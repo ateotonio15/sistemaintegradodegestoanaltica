@@ -2683,7 +2683,7 @@ function lerChave(t) {
   return d.length >= 44 ? d : null;
 }
 function lerNumero(t) {
-  const m = norm3(t).match(/n(?:u|ú)?mero\s*d[ao]?\s*nfs[\s-]?e[^\d\n]{0,20}(\d{1,15})/i);
+  const m = norm3(t).match(/n(?:u|ú)?mero\s*d[ao]?\s*nfs[\s-]?e[^\d]{0,20}(\d{1,15})/i);
   return m ? sem0(m[1]) : null;
 }
 function lerPrestador(t) {
@@ -2697,11 +2697,11 @@ function lerPrestador(t) {
   return m ? dig(m[1]) : null;
 }
 function lerEmissao(t) {
-  const m = norm3(t).match(/(?:data\s+e\s+hora\s+d[ae]\s+emissao|data\s+d[ae]\s+emissao|emitida\s+em)[^\d\n]{0,30}(\d{2})\/(\d{2})\/(\d{4})(?:[^\d\n]{1,5}(\d{2}:\d{2}(?::\d{2})?))?/i);
+  const m = norm3(t).match(/(?:data\s+e\s+hora\s+d[ae]\s+emissao|data\s+d[ae]\s+emissao|emitida\s+em)(?:\s+da\s+nfs-?e)?[^\d]{0,30}(\d{2})\/(\d{2})\/(\d{4})(?:[^\d\n]{1,5}(\d{2}:\d{2}(?::\d{2})?))?/i);
   return m ? { data: `${m[3]}-${m[2]}-${m[1]}`, hora: m[4] ?? null } : null;
 }
 function lerCompetencia(t) {
-  const m = norm3(t).match(/competencia(?:\s+da\s+nfs-?e)?[^\d\n]{0,20}(\d{2}\/\d{2}\/\d{4}|\d{2}\/\d{4})/i);
+  const m = norm3(t).match(/competencia(?:\s+da\s+nfs-?e)?[^\d]{0,20}(\d{2}\/\d{2}\/\d{4}|\d{2}\/\d{4})/i);
   return m ? m[1] : null;
 }
 function dataManaus(iso) {
