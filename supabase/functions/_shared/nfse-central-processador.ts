@@ -7,7 +7,7 @@
 import { avaliarValidacao, type ResultadoDestino } from "./nfse-central-regras.ts";
 import { validarArquivosCentral } from "./siga-validador.generated.js";
 
-export const VALIDADOR_VERSAO = "v7-identidade-fiscal";
+export const VALIDADOR_VERSAO = "v8-adesao-contexto";
 export const PENDENTES = [
   "recebido_pendente", "aguardando_faturado", "aguardando_faturamento_anexado",
   "destino_ambiguo", "aguardando_validacao", "validacao_inconclusiva", "divergencia", "aprovado_aguardando_liberacao",
@@ -93,8 +93,9 @@ export async function processarRecebimento(rec: Recebimento, ad: Adaptador): Pro
   try {
     arq = await validarArquivosCentral({
       pdf, cnpjTomador: rec.cnpj_tomador, tipoAnalise: tipo,
+      contexto: { competencia: mov.mes_referencia ?? null, periodo: mov.periodo ?? null },
       identidade: { chaveAcesso: rec.chave_acesso ?? null, numeroNfse: rec.numero_nfse ?? null, cnpjPrestador: rec.cnpj_prestador ?? null, cnpjTomador: rec.cnpj_tomador, emitidaEm: rec.emitida_em },
-      planilhas: planilhas.map((p, i) => ({ id: p.id, nome: p.nome_arquivo ?? p.id, dados: xlss[i]! })),
+      planilhas: planilhas.flatMap((p, i) => { const dados = xlss[i]; return dados ? [{ id: p.id, nome: p.nome_arquivo ?? p.id, dados }] : []; }),
     });
   } catch { return falhar("validacao_inconclusiva", "PDF ou planilha ilegível."); }
 
@@ -123,6 +124,7 @@ export async function processarRecebimento(rec: Recebimento, ad: Adaptador): Pro
       valor_descritivo_centavos: arq.valorPdf != null ? Math.round(arq.valorPdf * 100) : null,
       valor_servico_centavos: arq.valorServico != null ? Math.round(arq.valorServico * 100) : null,
       identidade: idf,
+      contexto_documento: arq.contextoDocumento ?? null,
       comparacao: arq.comparacao, motivos: v.motivos, tomador_pdf: arq.tomadorPdf, arquivos: arq.arquivos, ambiguidade: arq.comparacao ? null : arq.motivo,
       // Contexto vem da movimentação escolhida (CNPJ + "Faturado"); competência e período não são lidos da nota nem dos arquivos.
       contexto: { cnpj_tomador: rec.cnpj_tomador, competencia: mov.mes_referencia ?? null, periodo: mov.periodo ?? null },
@@ -131,6 +133,11 @@ export async function processarRecebimento(rec: Recebimento, ad: Adaptador): Pro
     validador_versao: VALIDADOR_VERSAO, validado_em: new Date().toISOString(),
   };
   if (!v.aprovado) { await ad.salvar(rec.id, { ...base, estado: v.estado, motivo }); return { estado: v.estado, motivo }; }
+  if (arq.contextoDocumento?.impedimento) {
+    const m = arq.contextoDocumento.impedimento;
+    await ad.salvar(rec.id, { ...base, estado: "validacao_inconclusiva", motivo: m });
+    return { estado: "validacao_inconclusiva", motivo: m };
+  }
 
   // Mudança do faturamento durante a leitura → reavaliar no próximo ciclo
   if ((await ad.revisaoAtual(mov.id)) !== revisao) {

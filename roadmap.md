@@ -1,5 +1,11 @@
 # Roadmap — Primeiro pacote financeiro
 
+## Central — adesão explícita e contexto da nota 17790
+- [x] Ler e comparar adesão separadamente; 42 testes do servidor e 67 regressões aprovados, incluindo centavos, ausência, quantidade não informada e dupla contagem.
+- [x] Investigar outubro 15-20 versus novembro: não há regra comprovada de deslocamento; vencimento cadastrado na competência atual. Mês divergente descrito no PDF bloqueia aprovação, mantendo competência/período não conferidos.
+- [x] Atualizar pacote do servidor e testar; anexação real confirmada desligada, sem envio nem alterações operacionais.
+- [ ] Homologar nota 17790 com PDF original: depende do envio pela Central e da comprovação pelo Financeiro de que novembro pertence à movimentação de outubro 15-20; ainda não há recebimento dessa nota.
+
 ## Revisão dos quatro apontamentos de monitoramento
 - [x] Restaurar limpeza de ID do rascunho, implantação, dias de fatura e desbloqueio do responsável; dois cadastros consecutivos com IDs distintos conferidos com gravações interceptadas, cancelar/reabrir limpa datas.
 - [x] Permissões de reajustes: evidência antiga; consulta das políticas atuais confirma INSERT para admin/diretora e Cadastro/Administradoras vinculados; Visualização só lê. Nenhuma ampliação nem migração; origem dos logs de 01/10 não identifica usuário/empresa.

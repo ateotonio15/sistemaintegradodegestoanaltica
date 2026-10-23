@@ -113,6 +113,7 @@ export interface ComparacaoCmp {
   inclusoes: { total: CampoCmp } | null;
   exclusoes: { total: CampoCmp } | null;
   devolucoes: { total: CampoCmp } | null;
+  taxaAdesao?: { total: CampoCmp } | null;
   divergencias: string[];
   tomadorCnpj?: string | null;
 }
@@ -165,6 +166,7 @@ export function avaliarValidacao(i: {
   if (c.inclusoes) cats.push(["Inclusões", [c.inclusoes.total]]);
   if (c.exclusoes) cats.push(["Exclusões", [c.exclusoes.total]]);
   if (c.devolucoes) cats.push(["Devoluções", [c.devolucoes.total]]);
+  if (c.taxaAdesao) cats.push(["Taxa de adesão", [c.taxaAdesao.total]]);
   if (!cats.length) { motivos.push("Nenhuma categoria comparável encontrada."); return fim("validacao_inconclusiva"); }
   let parcial = false;
   for (const [nome, campos] of cats) {

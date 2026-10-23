@@ -26,6 +26,7 @@ export function sumPdfTotal(c: ComparacaoResultado | ComparacaoSimplificada | nu
     cr.inclusoes,
     cr.exclusoes,
     cr.devolucoes,
+    cr.taxaAdesao ?? null,
   ].filter(p => p !== null).map(p => p?.total?.pdf ?? null);
   if (!partes.length) return null;
   if (partes.some((p) => p === null)) return null;

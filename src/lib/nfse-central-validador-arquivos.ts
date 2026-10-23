@@ -35,6 +35,7 @@ export interface ResultadoArquivosCentral {
   arquivos: ArquivoComposicao[];
   /** Identidade fiscal lida do próprio PDF (null quando não solicitada). */
   identidade: IdentidadeFiscal | null;
+  contextoDocumento?: { competenciaDescricao: string | null; competenciaMovimentacao: string | null; impedimento: string | null } | null;
 }
 
 const c = (v: unknown) => Math.round((Number(v) || 0) * 100);
@@ -68,7 +69,7 @@ function detalheRetro(b: AnalisePorCnpj): Map<string, string> {
 }
 /** Categorias que o SIGA não lê na NFS-e: sem elas o valor fiscal comparado seria parcial. */
 const SEM_LEITURA_FISCAL: Record<string, string> = {
-  coparticipacao: "Coparticipação", complemento: "Complemento", taxaAdesao: "Taxa de adesão", permuta: "Permuta",
+  coparticipacao: "Coparticipação", complemento: "Complemento", permuta: "Permuta",
 };
 
 /** Decide a composição do faturamento do CNPJ a partir de todos os arquivos. Não lê o PDF. */
@@ -150,6 +151,7 @@ export async function comporFaturamento(planilhas: PlanilhaEntrada[], cnpjTomado
 
 export async function validarArquivosCentral(i: {
   pdf: ArrayBuffer; planilhas: PlanilhaEntrada[]; cnpjTomador: string; tipoAnalise?: string | null; identidade?: IdentidadeEsperada;
+  contexto?: { competencia: string | null; periodo: string | null };
 }): Promise<ResultadoArquivosCentral> {
   let identidade: IdentidadeFiscal | null = null;
   if (i.identidade) {
@@ -158,7 +160,7 @@ export async function validarArquivosCentral(i: {
     identidade = conferirIdentidadeFiscal(texto, i.identidade);
   }
   const { bloco, arquivos, ambiguidade } = await comporFaturamento(i.planilhas, i.cnpjTomador);
-  const vazio = (motivo: string): ResultadoArquivosCentral => ({ leituraOk: false, motivo, valorExcel: null, valorPdf: null, valorServico: null, comparacao: null, tomadorPdf: null, arquivos, identidade });
+  const vazio = (motivo: string): ResultadoArquivosCentral => ({ leituraOk: false, motivo, valorExcel: null, valorPdf: null, valorServico: null, comparacao: null, tomadorPdf: null, arquivos, identidade, contextoDocumento: null });
   if (!bloco) return vazio(ambiguidade ?? "Composição indeterminada.");
   const naoLidas = Object.entries(SEM_LEITURA_FISCAL).filter(([k]) => c((bloco as any)[k]?.total) !== 0)
     .map(([k, r]) => `${r} ${brl((bloco as any)[k].total)}`);
@@ -173,7 +175,12 @@ export async function validarArquivosCentral(i: {
   const valorExcel = somarTotalFaturamento(bloco as any);
   const valorServico = pdf.tributos?.valorServico ?? null;
   const leituraOk = valorPdf != null && valorServico != null && !!pdf.tomadorCnpj;
+  const competenciaDescricao = pdf.competenciaDescricao ?? null;
+  const competenciaMovimentacao = i.contexto?.competencia ?? null;
+  const impedimento = competenciaDescricao && i.contexto && competenciaDescricao !== competenciaMovimentacao
+    ? `Período descrito no PDF ${competenciaDescricao} difere da competência da movimentação ${competenciaMovimentacao ?? "não informada"} (${i.contexto.periodo ?? "período não informado"}). Financeiro deve comprovar a correspondência com os documentos; nenhuma regra de deslocamento foi aplicada.` : null;
   return {
+    contextoDocumento: { competenciaDescricao, competenciaMovimentacao, impedimento },
     leituraOk, motivo: leituraOk ? null : valorServico == null && valorPdf != null && pdf.tomadorCnpj
       ? "Valor do serviço (bruto) não encontrado na NFS-e; o descritivo sozinho não é aceito."
       : "PDF incompleto: tomador ou valores não encontrados.",

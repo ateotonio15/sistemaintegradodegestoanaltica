@@ -724,6 +724,7 @@ export interface ComparacaoResultado {
   exclusoes: { total: CampoValidacao } | null;
   /** Devoluções — comparação Excel × histórico da NFS-e (valor negativo). */
   devolucoes: { total: CampoValidacao } | null;
+  taxaAdesao?: { total: CampoValidacao; quantidade: { excel: number; pdf: number | null; conferida: false } } | null;
   divergencias: string[];
   avisosPdf: string[];
   /** CNPJ (14 dígitos) do bloco analisado, quando disponível. */
@@ -939,6 +940,15 @@ export function compararExcelComPdf(
       );
   }
 
+  let taxaAdesao: ComparacaoResultado["taxaAdesao"] = null;
+  const adesaoExcel = excel.taxaAdesao?.total ?? 0;
+  const adesaoPdf = pdf?.taxaAdesao?.total ?? null;
+  if (adesaoExcel !== 0 || (excel.taxaAdesao?.quantidade ?? 0) > 0 || adesaoPdf !== null) {
+    const total = { excel: adesaoExcel, pdf: adesaoPdf, ok: adesaoPdf !== null && Math.round(adesaoExcel * 100) === Math.round(adesaoPdf * 100) };
+    taxaAdesao = { total, quantidade: { excel: excel.taxaAdesao?.quantidade ?? 0, pdf: pdf?.taxaAdesao?.quantidade ?? null, conferida: false } };
+    if (pdf && adesaoPdf === null) divergencias.push("Taxa de adesão não encontrada explicitamente ou com linhas ambíguas no PDF.");
+    else if (pdf && !total.ok) divergencias.push("Total da taxa de adesão divergente entre Excel e PDF.");
+  }
   divergencias.push(...obterDivergenciasNotaFiscal(pdf));
 
   return {
@@ -949,6 +959,7 @@ export function compararExcelComPdf(
     inclusoes,
     exclusoes,
     devolucoes,
+    taxaAdesao,
     divergencias,
     avisosPdf: pdf?.avisos ?? [],
     valorLiquido: pdf?.valorLiquido ?? null,
