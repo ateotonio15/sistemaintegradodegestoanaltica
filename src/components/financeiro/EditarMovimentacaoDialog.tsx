@@ -1,3 +1,4 @@
+import { anexoCompartilhavelNoGrupo } from "@/lib/financeiro-utils";
 import { useState, useEffect } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -236,7 +237,7 @@ export function EditarMovimentacaoDialog({ open, onOpenChange, movimentacao, emp
       const grupoList = (grupoRaw ?? []) as any[];
       const existingPaths = new Set(ownList.map((a) => a.storage_path));
       const extras = grupoList
-        .filter((a) => !existingPaths.has(a.storage_path))
+        .filter((a) => !existingPaths.has(a.storage_path) && anexoCompartilhavelNoGrupo(a))
         .map((a) => ({ ...a, _compartilhado_grupo: true }));
 
       return [...ownList, ...extras];

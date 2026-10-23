@@ -72,6 +72,11 @@ export interface MovGrupoKey {
   periodo: string | null;
 }
 
+/** Notas recebidas da Central de NFS-e pertencem a um único pagador e nunca são replicadas no grupo. */
+export function anexoCompartilhavelNoGrupo(a: { origem?: string | null }): boolean {
+  return (a.origem ?? "").toLowerCase() !== "central_nfse";
+}
+
 /**
  * Replica os anexos entre contratos do mesmo Grupo Financeiro (mesma
  * competência + período), igual à aba Faturamento. Sem isso, contratos
@@ -96,6 +101,7 @@ export function expandirAnexosPorGrupo<A extends { financeiro_movimentacao_id: s
   const movMeta = new Map(movs.map((m) => [m.id, m]));
   const porGrupoPeriodo = new Map<string, A[]>();
   anexos.forEach((a) => {
+    if (!anexoCompartilhavelNoGrupo(a as { origem?: string | null })) return;
     const meta = movMeta.get(a.financeiro_movimentacao_id);
     const grupoId = meta ? empresaGrupo.get(meta.empresa_id) : undefined;
     if (!meta || !grupoId) return;

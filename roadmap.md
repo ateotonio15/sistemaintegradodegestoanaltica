@@ -68,3 +68,7 @@
 - Lista de Empresas mostra o selo automaticamente ao lado do CNPJ já consultado; lupa manual continua para os pendentes.
 - Filtro "Divergências CNPJ": situação diferente de ativa, erro de consulta ou endereço divergente do principal cadastrado (`divergenciaCnpj` em `src/lib/consulta-cnpj.ts`).
 - Verificado: 23 testes, tsgo limpo, Playwright (selos automáticos + filtro), sincronização gravando "Ativa" no banco.
+
+## Recebidos da Central NFS-e (23/10/2026)
+- [x] Receptor, validação estrita, anexação transacional, proteção de grupos, tela "Recebidos da Central", 13 testes.
+- [ ] Homologação com a Central e liberação da anexação automática (aguarda o usuário).
