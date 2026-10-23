@@ -1,5 +1,10 @@
 # Roadmap — Primeiro pacote financeiro
 
+## Central — adesão explícita e contexto da nota 17790
+- [ ] Ler e comparar adesão separadamente; testar centavos, ausência e dupla contagem.
+- [ ] Investigar outubro 15-20 versus novembro nos documentos; impedir aprovação sem comprovação.
+- [ ] Atualizar pacote do servidor, testar e implantar; conferir anexação desligada sem alterar dados operacionais.
+
 ## Revisão dos quatro apontamentos de monitoramento
 - [x] Restaurar limpeza de ID do rascunho, implantação, dias de fatura e desbloqueio do responsável; dois cadastros consecutivos com IDs distintos conferidos com gravações interceptadas, cancelar/reabrir limpa datas.
 - [x] Permissões de reajustes: evidência antiga; consulta das políticas atuais confirma INSERT para admin/diretora e Cadastro/Administradoras vinculados; Visualização só lê. Nenhuma ampliação nem migração; origem dos logs de 01/10 não identifica usuário/empresa.
