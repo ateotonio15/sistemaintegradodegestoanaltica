@@ -10,7 +10,7 @@ import { validarArquivosCentral } from "./siga-validador.generated.js";
 export const VALIDADOR_VERSAO = "v3-servidor";
 export const PENDENTES = [
   "recebido_pendente", "aguardando_faturado", "aguardando_faturamento_anexado",
-  "destino_ambiguo", "aguardando_validacao", "validacao_inconclusiva", "divergencia",
+  "destino_ambiguo", "aguardando_validacao", "validacao_inconclusiva", "divergencia", "aprovado_aguardando_liberacao",
 ];
 
 export interface Recebimento {
@@ -49,6 +49,9 @@ export async function processarRecebimento(rec: Recebimento, ad: Adaptador): Pro
   const revisao = await ad.revisaoAtual(mov.id);
   // Não repete a mesma análise de arquivos inalterados
   if (["divergencia", "validacao_inconclusiva"].includes(rec.estado) && rec.movimentacao_destino_id === mov.id && rec.faturamento_revisao === revisao)
+    return { estado: rec.estado, motivo: null };
+  if (rec.estado === "aprovado_aguardando_liberacao" && rec.movimentacao_destino_id === mov.id && rec.faturamento_revisao === revisao
+      && (rec.homologacao || !(await ad.autoAnexarReais())))
     return { estado: rec.estado, motivo: null };
 
   const falhar = async (estado: string, motivo: string) => {
