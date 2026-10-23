@@ -35,7 +35,25 @@ export function lerChave(t: string): string | null {
   const d = m ? dig(m[1]) : "";
   return d.length >= 44 ? d : null;
 }
+/**
+ * DANFSe v2.0 em tabela: uma linha com vários rótulos separados por 2+ espaços e,
+ * na linha seguinte, os valores na mesma ordem. Lê o valor da coluna do rótulo exato.
+ */
+export function lerColuna(t: string, rotulo: RegExp): string | null {
+  const linhas = norm(t).split("\n").map((l) => l.trim());
+  for (let i = 0; i < linhas.length - 1; i++) {
+    const cab = linhas[i].split(/\s{2,}/);
+    const idx = cab.findIndex((c) => rotulo.test(c.trim()));
+    if (idx < 0 || cab.length < 2) continue;
+    const vals = linhas[i + 1].split(/\s{2,}/);
+    if (vals.length < cab.length) continue;
+    return vals[idx]?.trim() || null;
+  }
+  return null;
+}
 export function lerNumero(t: string): string | null {
+  const col = lerColuna(t, /^numero\s+da\s+nfs-?e$/i);
+  if (col && /^\d{1,15}$/.test(col)) return sem0(col);
   const m = norm(t).match(/n(?:u|ú)?mero\s*d[ao]?\s*nfs[\s-]?e[^\d]{0,20}(\d{1,15})/i);
   return m ? sem0(m[1]) : null;
 }
@@ -51,10 +69,15 @@ export function lerPrestador(t: string): string | null {
 }
 /** Data (DD/MM/AAAA) e hora opcional da emissão. Competência é lida à parte. */
 export function lerEmissao(t: string): { data: string; hora: string | null } | null {
+  const col = lerColuna(t, /^data\s+e\s+hora\s+da\s+emissao\s+da\s+nfs-?e$/i);
+  const c = col?.match(/^(\d{2})\/(\d{2})\/(\d{4})(?:\s+(\d{2}:\d{2}(?::\d{2})?))?$/);
+  if (c) return { data: `${c[3]}-${c[2]}-${c[1]}`, hora: c[4] ?? null };
   const m = norm(t).match(/(?:data\s+e\s+hora\s+d[ae]\s+emissao|data\s+d[ae]\s+emissao|emitida\s+em)(?:\s+da\s+nfs-?e)?[^\d]{0,30}(\d{2})\/(\d{2})\/(\d{4})(?:[^\d\n]{1,5}(\d{2}:\d{2}(?::\d{2})?))?/i);
   return m ? { data: `${m[3]}-${m[2]}-${m[1]}`, hora: m[4] ?? null } : null;
 }
 export function lerCompetencia(t: string): string | null {
+  const col = lerColuna(t, /^competencia\s+da\s+nfs-?e$/i);
+  if (col && /^(\d{2}\/\d{2}\/\d{4}|\d{2}\/\d{4})$/.test(col)) return col;
   const m = norm(t).match(/competencia(?:\s+da\s+nfs-?e)?[^\d]{0,20}(\d{2}\/\d{2}\/\d{4}|\d{2}\/\d{4})/i);
   return m ? m[1] : null;
 }
