@@ -6,6 +6,8 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { RefreshCw } from "lucide-react";
 import { reavaliarRecebimento } from "@/lib/nfse-central-validacao";
+import { useAuth } from "@/hooks/useAuth";
+import { CredenciaisCentralCard } from "@/components/nfse/CredenciaisCentralCard";
 
 const ROTULO: Record<string, string> = {
   recebido_pendente: "Recebido", aguardando_faturado: "Aguardando “Faturado”",
@@ -22,6 +24,7 @@ const PENDENTES = ["recebido_pendente", "aguardando_faturado", "aguardando_fatur
 
 export default function RecebidosCentral() {
   const qc = useQueryClient();
+  const { isAdmin } = useAuth();
   const [processando, setProcessando] = useState(false);
   const { data: config } = useQuery({
     queryKey: ["nfse-central-config"],
@@ -66,6 +69,7 @@ export default function RecebidosCentral() {
             </Button>
           </div>
         </div>
+        {isAdmin && <CredenciaisCentralCard />}
         <Card>
           <CardHeader><CardTitle className="text-base">Recebimentos ({itens.length})</CardTitle></CardHeader>
           <CardContent className="overflow-x-auto">

@@ -4072,6 +4072,39 @@ export type Database = {
         }
         Relationships: []
       }
+      nfse_central_credenciais: {
+        Row: {
+          created_at: string
+          criada_por: string | null
+          id: string
+          nome: string
+          revogada_em: string | null
+          revogada_por: string | null
+          token_hash: string
+          ultimo_uso_em: string | null
+        }
+        Insert: {
+          created_at?: string
+          criada_por?: string | null
+          id?: string
+          nome: string
+          revogada_em?: string | null
+          revogada_por?: string | null
+          token_hash: string
+          ultimo_uso_em?: string | null
+        }
+        Update: {
+          created_at?: string
+          criada_por?: string | null
+          id?: string
+          nome?: string
+          revogada_em?: string | null
+          revogada_por?: string | null
+          token_hash?: string
+          ultimo_uso_em?: string | null
+        }
+        Relationships: []
+      }
       nfse_recebimentos: {
         Row: {
           anexo_financeiro_id: string | null
