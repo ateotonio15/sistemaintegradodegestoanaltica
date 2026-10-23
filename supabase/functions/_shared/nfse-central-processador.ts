@@ -87,7 +87,12 @@ export async function processarRecebimento(rec: Recebimento, ad: Adaptador): Pro
   const base = {
     movimentacao_destino_id: mov.id, status_observado: "Faturado", faturamento_revisao: revisao,
     valor_excel_centavos: v.valorExcelCentavos, valor_pdf_centavos: v.valorPdfCentavos, diferenca_centavos: v.diferencaCentavos,
-    validacao: { comparacao: arq.comparacao, motivos: v.motivos, tomador_pdf: arq.tomadorPdf, arquivos: arq.arquivos, ambiguidade: arq.comparacao ? null : arq.motivo },
+    validacao: {
+      comparacao: arq.comparacao, motivos: v.motivos, tomador_pdf: arq.tomadorPdf, arquivos: arq.arquivos, ambiguidade: arq.comparacao ? null : arq.motivo,
+      // Contexto vem da movimentação escolhida (CNPJ + "Faturado"); competência e período não são lidos da nota nem dos arquivos.
+      contexto: { cnpj_tomador: rec.cnpj_tomador, competencia: mov.mes_referencia ?? null, periodo: mov.periodo ?? null },
+      conferido: { cnpj_tomador: true, status_faturado: true, valores: v.diferencaCentavos === 0 && !!arq.comparacao, competencia: false, periodo: false },
+    },
     validador_versao: VALIDADOR_VERSAO, validado_em: new Date().toISOString(),
   };
   if (!v.aprovado) { await ad.salvar(rec.id, { ...base, estado: v.estado, motivo }); return { estado: v.estado, motivo }; }
