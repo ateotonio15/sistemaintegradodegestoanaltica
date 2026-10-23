@@ -3,7 +3,7 @@
 import { assertEquals, assert } from "jsr:@std/assert@1";
 import { z } from "npm:zod@3";
 import { processarRecebimento, type Adaptador, type Recebimento } from "./nfse-central-processador.ts";
-import { CNPJ_FICTICIO, pdfFicticio, pdfIlegivel, planilhaFicticia } from "./nfse-central-fixtures.ts";
+import { CNPJ_FICTICIO, pdfFicticio, pdfIlegivel, pdfSoInclusaoFicticio, planilhaFicticia } from "./nfse-central-fixtures.ts";
 
 const MOV = { id: "mov-1", empresa_id: "emp-1" };
 const rec = (extra: Partial<Recebimento> = {}): Recebimento => ({
@@ -102,9 +102,12 @@ Deno.test("divergência com arquivos inalterados não é reanalisada", async () 
 // ---- Composição com vários arquivos ----
 const papeis = (s: Record<string, unknown>) => ((s.validacao as any).arquivos as any[]).map((a) => a.papel);
 const valores = (s: Record<string, unknown>) => [s.valor_excel_centavos, s.valor_pdf_centavos, s.diferenca_centavos];
+const RETRO_JUN: [string, number | null, number][] = [["Retroação à Junho/26", null, 0], ["M.Empresarial", 2, 200]];
+const RETRO_JUL: [string, number | null, number][] = [["Retroação à Julho/26", null, 0], ["M.Empresarial", 2, 200]];
+const pdfCom = (inc: string) => pdfFicticio("1.000,00", "100.00", undefined, inc);
 
 Deno.test("duas planilhas pertinentes (mensalidade + inclusões) somam uma vez cada", async () => {
-  const f = fake({ pdf: pdfFicticio("1.000,00", "100.00", undefined, "200,00"), xls: [await planilhaFicticia(), await planilhaFicticia(0, [["Inclusão", 2, 200]], false)] });
+  const f = fake({ pdf: pdfCom("200,00"), xls: [await planilhaFicticia(), await planilhaFicticia(0, [["Inclusão", 2, 200]], false)] });
   assertEquals((await processarRecebimento(rec(), f.ad)).estado, "aprovado_aguardando_liberacao");
   const s = f.salvos.at(-1)!;
   assertEquals(valores(s), [120000, 120000, 0]);
@@ -112,7 +115,7 @@ Deno.test("duas planilhas pertinentes (mensalidade + inclusões) somam uma vez c
   assertEquals(f.vinculos.length, 0);
 });
 
-Deno.test("planilha duplicada não é somada", async () => {
+Deno.test("cópia idêntica (mesmo hash) é reconhecida e contada uma vez", async () => {
   const x = await planilhaFicticia();
   const f = fake({ pdf: pdfFicticio(), xls: [x, x.slice(0)] });
   assertEquals((await processarRecebimento(rec(), f.ad)).estado, "aprovado_aguardando_liberacao");
@@ -121,26 +124,58 @@ Deno.test("planilha duplicada não é somada", async () => {
   assertEquals(papeis(s), ["principal", "duplicado"]);
 });
 
-Deno.test("faturamento com retroativo + planilha do retroativo: retroativo contado uma vez", async () => {
-  const f = fake({ pdf: pdfFicticio("1.000,00", "100.00", undefined, "200,00"),
-    xls: [await planilhaFicticia(1000, [["Cobrança Retroativa", 2, 200]]), await planilhaFicticia(0, [["Cobrança Retroativa", 2, 200]], false)] });
+Deno.test("documentos distintos com o mesmo valor não são tratados como duplicados", async () => {
+  const f = fake({ pdf: pdfFicticio(), xls: [await planilhaFicticia(), await planilhaFicticia(1000, [], true, true)] });
+  const r = await processarRecebimento(rec(), f.ad);
+  assertEquals(r.estado, "validacao_inconclusiva");
+  assert(/mesmos valores/.test(r.motivo ?? ""));
+  assertEquals(f.salvos.at(-1)!.valor_excel_centavos ?? null, null);
+});
+
+Deno.test("retroativo da mesma competência, quantidade e valor já incluído não é somado", async () => {
+  const f = fake({ pdf: pdfCom("200,00"), xls: [await planilhaFicticia(1000, RETRO_JUN), await planilhaFicticia(0, RETRO_JUN, false)] });
   assertEquals((await processarRecebimento(rec(), f.ad)).estado, "aprovado_aguardando_liberacao");
   const s = f.salvos.at(-1)!;
-  assertEquals(valores(s), [120000, 120000, 0]); // seria 140000 se somasse de novo
+  assertEquals(valores(s), [120000, 120000, 0]); // 140000 se contasse duas vezes
   assertEquals(papeis(s), ["principal", "retroativo_incluido"]);
 });
 
-Deno.test("duas planilhas com mensalidade distintas: validação inconclusiva com a ambiguidade", async () => {
+Deno.test("retroativo de mesmo valor referente a outra competência é cobrança distinta e soma", async () => {
+  const f = fake({ pdf: pdfCom("400,00"), xls: [await planilhaFicticia(1000, RETRO_JUN), await planilhaFicticia(0, RETRO_JUL, false)] });
+  assertEquals((await processarRecebimento(rec(), f.ad)).estado, "aprovado_aguardando_liberacao");
+  const s = f.salvos.at(-1)!;
+  assertEquals(valores(s), [140000, 140000, 0]);
+  assertEquals(papeis(s), ["principal", "complementar"]);
+});
+
+Deno.test("retroativo de mesmo total sem detalhamento por competência fica inconclusivo", async () => {
+  const f = fake({ pdf: pdfCom("200,00"),
+    xls: [await planilhaFicticia(1000, [["Cobrança Retroativa", 2, 200]]), await planilhaFicticia(0, [["Cobrança Retroativa", 2, 200]], false)] });
+  const r = await processarRecebimento(rec(), f.ad);
+  assertEquals(r.estado, "validacao_inconclusiva");
+  assert(/detalhamento por competência/.test(r.motivo ?? ""));
+});
+
+Deno.test("coparticipação não é comparada com total parcial da nota", async () => {
+  const f = fake({ pdf: pdfFicticio(), xls: [await planilhaFicticia(), await planilhaFicticia(0, [["Coparticipação", 2, 200]], false)] });
+  const r = await processarRecebimento(rec(), f.ad);
+  assertEquals(r.estado, "validacao_inconclusiva");
+  assert(/Coparticipação/.test(r.motivo ?? ""));
+  assertEquals(f.salvos.at(-1)!.diferenca_centavos ?? null, null);
+});
+
+Deno.test("faturamento válido sem mensalidade (só inclusões) é aprovado sem anexar", async () => {
+  const f = fake({ pdf: pdfSoInclusaoFicticio("200,00"), xls: await planilhaFicticia(0, [["Inclusão", 2, 200]], false) });
+  assertEquals((await processarRecebimento(rec(), f.ad)).estado, "aprovado_aguardando_liberacao");
+  const s = f.salvos.at(-1)!;
+  assertEquals(valores(s), [20000, 20000, 0]);
+  assertEquals((s.validacao as any).conferido.competencia, false);
+  assertEquals(f.vinculos.length, 0);
+});
+
+Deno.test("duas planilhas com mensalidade distintas: inconclusivo", async () => {
   const f = fake({ pdf: pdfFicticio(), xls: [await planilhaFicticia(1000), await planilhaFicticia(900)] });
   const r = await processarRecebimento(rec(), f.ad);
   assertEquals(r.estado, "validacao_inconclusiva");
   assert(/mensalidade para o mesmo CNPJ/.test(r.motivo ?? ""));
-  assertEquals(f.vinculos.length, 0);
-});
-
-Deno.test("planilha de outro CNPJ anexada junto não é somada", async () => {
-  const f = fake({ pdf: pdfFicticio(), xls: [await planilhaFicticia(), await planilhaFicticia(0, [["Inclusão", 2, 200]], false)] });
-  // tomador diferente: nenhum bloco pertinente
-  const r = await processarRecebimento(rec({ cnpj_tomador: "11111111000191" }), f.ad);
-  assertEquals(r.estado === "aprovado_aguardando_liberacao", false);
 });
