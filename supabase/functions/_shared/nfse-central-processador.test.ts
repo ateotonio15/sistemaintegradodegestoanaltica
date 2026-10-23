@@ -241,7 +241,7 @@ Deno.test("leitura paginada percorre todas as páginas e trata erro como falha",
 // ---- Identidade fiscal do conteúdo do PDF ----
 const idf = (s: Record<string, unknown>) => (s.validacao as any).identidade;
 const casoIdent = async (ident: Parameters<typeof pdfFicticio>[5], extra: Partial<Recebimento> = {}) => {
-  const f = fake({ pdf: pdfFicticio("1.000,00", "100.00", undefined, null, undefined, ident), xls: await planilhaFicticia(), auto: true });
+  const f = fake({ pdf: pdfFicticio("1.000,00", "100.00", undefined, null, undefined, ident), xls: await planilhaFicticia(), auto: false });
   const r = await processarRecebimento(rec(extra), f.ad);
   assertEquals(f.vinculos.length, 0);
   return { r, s: f.salvos.at(-1)! };
