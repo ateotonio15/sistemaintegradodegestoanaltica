@@ -74,3 +74,8 @@
 - [x] Validação independente do navegador no servidor, fila automática, 9 testes do servidor + vínculo testado em transação desfeita.
 - [x] (Mayara) Arquivo do relatório de pendentes: já atendido; chave mantida no servidor.
 - [ ] Homologação com a Central e liberação da anexação automática (aguarda o usuário).
+
+## Conexão com Git (23/10/2026)
+- [ ] Conectar o projeto ao Git pelo usuário em Configurações do projeto → Git. O Lovable sempre cria um repositório privado novo e não vincula um existente. Bloqueado: exige permissão de proprietário/admin do espaço de trabalho; a tela mostrou "No connections available".
+- [ ] Depois de conectado: levar o histórico do repositório atual (github.com/ateotonio15/sistemaintegradodegestoanaltica) para dentro do repositório novo por merge, preservando o trabalho da Central de NFS-e e as alterações da agenda.
+- [x] Conferir antes de conectar: `.env` do projeto contém apenas dados públicos do backend; chave da Samel não está no arquivo nem no código do navegador.
