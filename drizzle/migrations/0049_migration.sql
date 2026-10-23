@@ -1,0 +1,2 @@
+REVOKE SELECT ON public.nfse_central_credenciais FROM authenticated;
+GRANT SELECT (id, nome, criada_por, created_at, revogada_em, revogada_por, ultimo_uso_em) ON public.nfse_central_credenciais TO authenticated;
