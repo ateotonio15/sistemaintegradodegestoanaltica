@@ -1,5 +1,11 @@
 # Roadmap — Primeiro pacote financeiro
 
+## Central — adesão explícita e contexto da nota 17790
+- [x] Ler e comparar adesão separadamente; 42 testes do servidor e 67 regressões aprovados, incluindo centavos, ausência, quantidade não informada e dupla contagem.
+- [x] Investigar outubro 15-20 versus novembro: não há regra comprovada de deslocamento; vencimento cadastrado na competência atual. Mês divergente descrito no PDF bloqueia aprovação, mantendo competência/período não conferidos.
+- [x] Atualizar pacote do servidor e testar; anexação real confirmada desligada, sem envio nem alterações operacionais.
+- [ ] Homologar nota 17790 com PDF original: depende do envio pela Central e da comprovação pelo Financeiro de que novembro pertence à movimentação de outubro 15-20; ainda não há recebimento dessa nota.
+
 ## Revisão dos quatro apontamentos de monitoramento
 - [x] Restaurar limpeza de ID do rascunho, implantação, dias de fatura e desbloqueio do responsável; dois cadastros consecutivos com IDs distintos conferidos com gravações interceptadas, cancelar/reabrir limpa datas.
 - [x] Permissões de reajustes: evidência antiga; consulta das políticas atuais confirma INSERT para admin/diretora e Cadastro/Administradoras vinculados; Visualização só lê. Nenhuma ampliação nem migração; origem dos logs de 01/10 não identifica usuário/empresa.
@@ -79,3 +85,14 @@
 - [ ] Conectar o projeto ao Git pelo usuário em Configurações do projeto → Git. O Lovable sempre cria um repositório privado novo e não vincula um existente. Bloqueado: exige permissão de proprietário/admin do espaço de trabalho; a tela mostrou "No connections available".
 - [ ] Depois de conectado: levar o histórico do repositório atual (github.com/ateotonio15/sistemaintegradodegestoanaltica) para dentro do repositório novo por merge, preservando o trabalho da Central de NFS-e e as alterações da agenda.
 - [x] Conferir antes de conectar: `.env` do projeto contém apenas dados públicos do backend; chave da Samel não está no arquivo nem no código do navegador.
+
+## Revisão Central → SIGA (23/10) e teste Lopes
+- [x] Valor fiscal bruto obrigatório e conciliado com descritivo e faturamento.
+- [x] Retroativos na seleção de validação; cache por chave forte; sugestão não resolve ambiguidade.
+- [x] Homologação separada da produção na deduplicação; reenvio devolve canônico.
+- [x] Fila com próxima tentativa e reserva; consultas filtradas/paginadas; barreira final completa no banco.
+- [x] Verificação automática do pacote do validador. 24 testes do servidor + 15 de regras aprovados.
+- [ ] Correções do lado da Central (resposta HTTP, envio pelo servidor a partir do XML): fora deste projeto.
+- [x] Identidade fiscal lida do PDF (chave, número, prestador, tomador, emissão) e regra de nova versão de PDF; 36 testes do servidor.
+- [ ] Validar a leitura da identidade num PDF real da Central: depende de uma entrega real em homologação.
+- [ ] Homologação com a Distribuidora Lopes: movimentação 2026-10 é a única em “Faturado”, mas tem taxa de adesão (R$ 1.024,39), que o SIGA não lê na nota → seria inconclusiva; depende de decisão sobre essa categoria.

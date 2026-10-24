@@ -385,6 +385,15 @@ function compararExcelComPdf(excel, pdf, tipoAnalise) {
         `Valor de devolu\xE7\xE3o divergente (Excel ${formatBRL(excelTotal)} \xD7 PDF ${formatBRL(pdfDevolucaoTotal)}).`
       );
   }
+  let taxaAdesao = null;
+  const adesaoExcel = excel.taxaAdesao?.total ?? 0;
+  const adesaoPdf = pdf?.taxaAdesao?.total ?? null;
+  if (adesaoExcel !== 0 || (excel.taxaAdesao?.quantidade ?? 0) > 0 || adesaoPdf !== null) {
+    const total = { excel: adesaoExcel, pdf: adesaoPdf, ok: adesaoPdf !== null && Math.round(adesaoExcel * 100) === Math.round(adesaoPdf * 100) };
+    taxaAdesao = { total, quantidade: { excel: excel.taxaAdesao?.quantidade ?? 0, pdf: pdf?.taxaAdesao?.quantidade ?? null, conferida: false } };
+    if (pdf && adesaoPdf === null) divergencias.push("Taxa de ades\xE3o n\xE3o encontrada explicitamente ou com linhas amb\xEDguas no PDF.");
+    else if (pdf && !total.ok) divergencias.push("Total da taxa de ades\xE3o divergente entre Excel e PDF.");
+  }
   divergencias.push(...obterDivergenciasNotaFiscal(pdf));
   return {
     pagador: excel.pagador,
@@ -394,6 +403,7 @@ function compararExcelComPdf(excel, pdf, tipoAnalise) {
     inclusoes,
     exclusoes,
     devolucoes,
+    taxaAdesao,
     divergencias,
     avisosPdf: pdf?.avisos ?? [],
     valorLiquido: pdf?.valorLiquido ?? null,
@@ -2329,6 +2339,18 @@ async function extrairTextoPdf(buffer) {
   }
   return partes.join("\n").replace(/\u00a0/g, " ");
 }
+function extrairTaxaAdesao(texto) {
+  const t = norm2(texto);
+  const valores = [...t.matchAll(/\btaxa\s+de\s+adesao\s*[:=\-]\s*(?:r\s*\$\s*)?(\d[\d.]*,\d{2}|\d+\.\d{2})(?!\d)/g)];
+  return { total: valores.length === 1 ? parseValor(valores[0][1]) : null, quantidade: null };
+}
+function extrairCompetenciaDescricao(texto) {
+  const meses = ["janeiro", "fevereiro", "marco", "abril", "maio", "junho", "julho", "agosto", "setembro", "outubro", "novembro", "dezembro"];
+  const matches = [...norm2(texto).matchAll(/\bperiodo\s+de\s*:\s*([a-z]+)\s*\/\s*(20\d{2})\b/g)];
+  if (matches.length !== 1) return null;
+  const mes = meses.indexOf(matches[0][1]);
+  return mes < 0 ? null : `${matches[0][2]}-${String(mes + 1).padStart(2, "0")}`;
+}
 async function analisarPdfFinanceiro(buffer) {
   const empty = { beneficiarios: null, mensalidade: null, total: 0 };
   const avisos = [];
@@ -2640,6 +2662,8 @@ async function analisarPdfFinanceiro(buffer) {
     inclusoes: { total: inclusoesTotal },
     exclusoes: { total: exclusoesTotal },
     devolucoes: { total: devolucoesTotal },
+    taxaAdesao: extrairTaxaAdesao(texto),
+    competenciaDescricao: extrairCompetenciaDescricao(texto),
     valorLiquido,
     nfNumero,
     tomadorCnpj,
@@ -2647,6 +2671,97 @@ async function analisarPdfFinanceiro(buffer) {
     tributos,
     avisos
   };
+}
+
+// src/lib/nfse-identidade-fiscal.ts
+var dig = (s) => (s ?? "").replace(/\D/g, "");
+var sem0 = (s) => s.replace(/^0+(?=\d)/, "");
+var norm3 = (t) => t.normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/\u00a0/g, " ");
+function lerChave(t) {
+  const m = norm3(t).match(/chave\s+de\s+acesso(?:\s+da\s+nfs-?e)?[^\d]{0,40}((?:\d[\s.]?){44,60})/i);
+  const d = m ? dig(m[1]) : "";
+  return d.length >= 44 ? d : null;
+}
+function lerColuna(t, rotulo) {
+  const linhas = norm3(t).split("\n").map((l) => l.trim());
+  for (let i = 0; i < linhas.length - 1; i++) {
+    const cab = linhas[i].split(/\s{2,}/);
+    const idx = cab.findIndex((c2) => rotulo.test(c2.trim()));
+    if (idx < 0 || cab.length < 2) continue;
+    const vals = linhas[i + 1].split(/\s{2,}/);
+    if (vals.length < cab.length) continue;
+    return vals[idx]?.trim() || null;
+  }
+  return null;
+}
+function lerNumero(t) {
+  const col = lerColuna(t, /^numero\s+da\s+nfs-?e$/i);
+  if (col && /^\d{1,15}$/.test(col)) return sem0(col);
+  const m = norm3(t).match(/n(?:u|ú)?mero\s*d[ao]?\s*nfs[\s-]?e[^\d]{0,20}(\d{1,15})/i);
+  return m ? sem0(m[1]) : null;
+}
+function lerPrestador(t) {
+  const n = norm3(t);
+  const ini = n.search(/(emitente\s+da\s+nfs-?e|prestador\s+(?:d[oe]s?\s+)?servi[cç]os?)/i);
+  if (ini < 0) return null;
+  const resto = n.slice(ini);
+  const fim = resto.search(/tomador/i);
+  const trecho = fim > 0 ? resto.slice(0, fim) : resto.slice(0, 1500);
+  const m = trecho.match(/(\d{2}\.\d{3}\.\d{3}\/\d{4}-\d{2})/);
+  return m ? dig(m[1]) : null;
+}
+function lerEmissao(t) {
+  const col = lerColuna(t, /^data\s+e\s+hora\s+da\s+emissao\s+da\s+nfs-?e$/i);
+  const c2 = col?.match(/^(\d{2})\/(\d{2})\/(\d{4})(?:\s+(\d{2}:\d{2}(?::\d{2})?))?$/);
+  if (c2) return { data: `${c2[3]}-${c2[2]}-${c2[1]}`, hora: c2[4] ?? null };
+  const m = norm3(t).match(/(?:data\s+e\s+hora\s+d[ae]\s+emissao|data\s+d[ae]\s+emissao|emitida\s+em)(?:\s+da\s+nfs-?e)?[^\d]{0,30}(\d{2})\/(\d{2})\/(\d{4})(?:[^\d\n]{1,5}(\d{2}:\d{2}(?::\d{2})?))?/i);
+  return m ? { data: `${m[3]}-${m[2]}-${m[1]}`, hora: m[4] ?? null } : null;
+}
+function lerCompetencia(t) {
+  const col = lerColuna(t, /^competencia\s+da\s+nfs-?e$/i);
+  if (col && /^(\d{2}\/\d{2}\/\d{4}|\d{2}\/\d{4})$/.test(col)) return col;
+  const m = norm3(t).match(/competencia(?:\s+da\s+nfs-?e)?[^\d]{0,20}(\d{2}\/\d{2}\/\d{4}|\d{2}\/\d{4})/i);
+  return m ? m[1] : null;
+}
+function dataManaus(iso) {
+  if (!iso) return null;
+  const t = Date.parse(iso);
+  if (isNaN(t)) return null;
+  return new Date(t - 4 * 36e5).toISOString().slice(0, 10);
+}
+function conferirIdentidadeFiscal(texto, e) {
+  const motivos = [];
+  const campo2 = (rotulo, lido, esperado, igual, obrigatorio = true) => {
+    if (!esperado) {
+      if (obrigatorio) motivos.push(`${rotulo}: n\xE3o informado nos metadados.`);
+      return { situacao: "nao_informado", lido, esperado };
+    }
+    if (!lido) {
+      if (obrigatorio) motivos.push(`${rotulo}: n\xE3o encontrado ou ileg\xEDvel no PDF.`);
+      return { situacao: "ausente", lido, esperado };
+    }
+    if (!igual(lido, esperado)) {
+      motivos.push(`${rotulo}: PDF ${lido} \xD7 informado ${esperado}.`);
+      return { situacao: "divergente", lido, esperado };
+    }
+    return { situacao: "confere", lido, esperado };
+  };
+  const exato = (a, b) => a === b;
+  const cnpj14 = (a, b) => a.length === 14 && a === b;
+  const emi = lerEmissao(texto);
+  const campos = {
+    chave_acesso: campo2("Chave de acesso", lerChave(texto), dig(e.chaveAcesso) || null, exato),
+    numero: campo2("N\xFAmero da NFS-e", lerNumero(texto), e.numeroNfse ? sem0(dig(e.numeroNfse)) || null : null, exato),
+    cnpj_prestador: campo2("CNPJ do prestador", lerPrestador(texto), dig(e.cnpjPrestador) || null, cnpj14),
+    cnpj_tomador: campo2("CNPJ do tomador", extrairTomador(texto).cnpj, dig(e.cnpjTomador) || null, cnpj14),
+    // Emissão: conferida quando legível no PDF; ausência não bloqueia, divergência bloqueia.
+    emissao: campo2("Data de emiss\xE3o", emi?.data ?? null, dataManaus(e.emitidaEm), exato, false)
+  };
+  const vals = Object.values(campos);
+  const divergente = vals.some((c2) => c2.situacao === "divergente");
+  const faltando = [campos.chave_acesso, campos.numero, campos.cnpj_prestador, campos.cnpj_tomador].some((c2) => c2.situacao !== "confere");
+  const estado = divergente ? "divergencia" : faltando ? "validacao_inconclusiva" : "ok";
+  return { ok: estado === "ok", estado, campos, competenciaNota: lerCompetencia(texto), motivos };
 }
 
 // src/lib/faturamento-totais.ts
@@ -2725,7 +2840,8 @@ function sumPdfTotal(c2) {
     cr.apartamento,
     cr.inclusoes,
     cr.exclusoes,
-    cr.devolucoes
+    cr.devolucoes,
+    cr.taxaAdesao ?? null
   ].filter((p) => p !== null).map((p) => p?.total?.pdf ?? null);
   if (!partes.length) return null;
   if (partes.some((p) => p === null)) return null;
@@ -2766,7 +2882,6 @@ function detalheRetro(b) {
 var SEM_LEITURA_FISCAL = {
   coparticipacao: "Coparticipa\xE7\xE3o",
   complemento: "Complemento",
-  taxaAdesao: "Taxa de ades\xE3o",
   permuta: "Permuta"
 };
 async function comporFaturamento(planilhas, cnpjTomador) {
@@ -2852,8 +2967,18 @@ async function comporFaturamento(planilhas, cnpjTomador) {
   return { bloco: comp, arquivos, ambiguidade: null };
 }
 async function validarArquivosCentral(i) {
+  let identidade = null;
+  if (i.identidade) {
+    let texto = "";
+    try {
+      texto = await extrairTextoPdf(i.pdf);
+    } catch {
+      texto = "";
+    }
+    identidade = conferirIdentidadeFiscal(texto, i.identidade);
+  }
   const { bloco, arquivos, ambiguidade } = await comporFaturamento(i.planilhas, i.cnpjTomador);
-  const vazio = (motivo) => ({ leituraOk: false, motivo, valorExcel: null, valorPdf: null, comparacao: null, tomadorPdf: null, arquivos });
+  const vazio = (motivo) => ({ leituraOk: false, motivo, valorExcel: null, valorPdf: null, valorServico: null, comparacao: null, tomadorPdf: null, arquivos, identidade, contextoDocumento: null });
   if (!bloco) return vazio(ambiguidade ?? "Composi\xE7\xE3o indeterminada.");
   const naoLidas = Object.entries(SEM_LEITURA_FISCAL).filter(([k]) => c(bloco[k]?.total) !== 0).map(([k, r]) => `${r} ${brl2(bloco[k].total)}`);
   if (naoLidas.length)
@@ -2864,18 +2989,26 @@ async function validarArquivosCentral(i) {
   cmp.tomadorCnpj = pdf.tomadorCnpj ?? null;
   const valorPdf = sumPdfTotal(cmp);
   const valorExcel = somarTotalFaturamento(bloco);
-  const leituraOk = valorPdf != null && !!pdf.tomadorCnpj;
+  const valorServico = pdf.tributos?.valorServico ?? null;
+  const leituraOk = valorPdf != null && valorServico != null && !!pdf.tomadorCnpj;
+  const competenciaDescricao = pdf.competenciaDescricao ?? null;
+  const competenciaMovimentacao = i.contexto?.competencia ?? null;
+  const impedimento = null;
   return {
+    contextoDocumento: { competenciaDescricao, competenciaMovimentacao, impedimento },
     leituraOk,
-    motivo: leituraOk ? null : "PDF incompleto: tomador ou valores n\xE3o encontrados.",
+    motivo: leituraOk ? null : valorServico == null && valorPdf != null && pdf.tomadorCnpj ? "Valor do servi\xE7o (bruto) n\xE3o encontrado na NFS-e; o descritivo sozinho n\xE3o \xE9 aceito." : "PDF incompleto: tomador ou valores n\xE3o encontrados.",
     valorExcel,
     valorPdf,
+    valorServico,
     comparacao: cmp,
     tomadorPdf: pdf.tomadorCnpj ?? null,
-    arquivos
+    arquivos,
+    identidade
   };
 }
 export {
   comporFaturamento,
+  conferirIdentidadeFiscal,
   validarArquivosCentral
 };

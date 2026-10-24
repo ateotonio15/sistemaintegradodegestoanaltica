@@ -1,7 +1,7 @@
 import { corsHeaders } from "npm:@supabase/supabase-js@2/cors";
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { z } from "npm:zod@3";
-import { carregarEResolver } from "../_shared/nfse-central-db.ts";
+import { carregarEResolver, todas } from "../_shared/nfse-central-db.ts";
 import { processarRecebimento, PENDENTES, type Adaptador, type Recebimento } from "../_shared/nfse-central-processador.ts";
 
 /**
@@ -18,9 +18,20 @@ export function adaptadorBanco(db: any): Adaptador {
   const d = (s: string | null) => (s ?? "").replace(/\D/g, "");
   return {
     resolverDestino: (rec) => carregarEResolver(db, rec.cnpj_tomador, rec.movimentacao_sugerida_id),
-    anexosDaMov: async (id) => (await db.from("anexos_financeiro").select("id, mime_type, nome_arquivo, storage_path, bucket, origem").eq("financeiro_movimentacao_id", id)).data ?? [],
-    revisaoAtual: async (id) => (await db.rpc("nfse_central_revisao", { _mov: id })).data ?? "",
+    anexosDaMov: (id) => todas((de, ate) => db.from("anexos_financeiro").select("id, mime_type, nome_arquivo, storage_path, bucket, origem").eq("financeiro_movimentacao_id", id).order("id").range(de, ate)),
+    revisaoAtual: async (id) => {
+      const { data, error } = await db.rpc("nfse_central_revisao", { _mov: id });
+      if (error) throw new Error("Falha ao ler a revisão do faturamento");
+      return data ?? "";
+    },
     tipoAnalise: async (id) => (await db.from("financeiro_movimentacoes").select("tipo_analise").eq("id", id).maybeSingle()).data?.tipo_analise ?? null,
+    outrasVersoes: async (rec) => {
+      const { count, error } = await db.from("nfse_recebimentos").select("id", { count: "exact", head: true })
+        .eq("origem", "central_nfse").eq("cnpj_prestador", rec.cnpj_prestador).eq("chave_acesso", rec.chave_acesso)
+        .eq("homologacao", rec.homologacao).neq("id", rec.id).neq("pdf_sha256", rec.pdf_sha256).neq("estado", "ja_recebido");
+      if (error) throw new Error("Falha ao consultar versões da nota");
+      return count ?? 0;
+    },
     cnpjPagador: async (empresaId, cnpj) => {
       const [{ data: e }, { data: p }] = await Promise.all([
         db.from("empresas").select("cnpj").eq("id", empresaId).maybeSingle(),
@@ -33,7 +44,10 @@ export function adaptadorBanco(db: any): Adaptador {
       return r.error ? null : await r.data.arrayBuffer();
     },
     autoAnexarReais: async () => !!(await db.from("nfse_central_config").select("auto_anexar_reais").eq("id", 1).maybeSingle()).data?.auto_anexar_reais,
-    salvar: async (id, patch) => { await db.from("nfse_recebimentos").update({ ...patch, updated_at: new Date().toISOString() }).eq("id", id); },
+    salvar: async (id, patch) => {
+      const { error } = await db.from("nfse_recebimentos").update({ ...patch, reservado_ate: null, updated_at: new Date().toISOString() }).eq("id", id);
+      if (error) throw new Error("Falha ao gravar o recebimento");
+    },
     copiarParaAnexos: async (rec, empresaId, movId) => {
       const arq = await db.storage.from("nfse-entrada").download(rec.storage_path!);
       if (arq.error) return null;
@@ -58,12 +72,21 @@ Deno.serve(async (req) => {
   if (tokenAgendador) {
     const { data: cfg } = await db.from("config_sync").select("valor").eq("chave", "nfse_central_token").maybeSingle();
     if (!cfg?.valor || cfg.valor !== tokenAgendador) return json({ erro: "Token inválido" }, 401);
-    const { data: fila } = await db.from("nfse_recebimentos").select("*").in("estado", PENDENTES)
-      .order("updated_at", { ascending: true }).limit(LOTE);
+    // Reserva lotes até acabar o trabalho executável ou o tempo do ciclo; pendências inalteradas
+    // ganham próxima tentativa futura e deixam de ocupar a frente da fila.
+    const inicio = Date.now();
     const resultados = [];
-    for (const rec of (fila ?? []) as Recebimento[]) {
-      try { resultados.push({ id: rec.id, ...(await processarRecebimento(rec, ad)) }); }
-      catch { await ad.salvar(rec.id, {}); resultados.push({ id: rec.id, estado: "erro" }); }
+    while (Date.now() - inicio < 45_000) {
+      const { data: fila, error } = await db.rpc("nfse_central_reservar", { _lote: LOTE });
+      if (error) return json({ erro: "Falha ao reservar a fila" }, 500);
+      if (!fila?.length) break;
+      for (const rec of fila as Recebimento[]) {
+        try { resultados.push({ id: rec.id, ...(await processarRecebimento(rec, ad)) }); }
+        catch {
+          await db.from("nfse_recebimentos").update({ reservado_ate: null, proxima_tentativa_em: new Date(Date.now() + 5 * 60_000).toISOString() }).eq("id", rec.id);
+          resultados.push({ id: rec.id, estado: "erro" });
+        }
+      }
     }
     return json({ processados: resultados.length, resultados });
   }
