@@ -53,6 +53,7 @@ import {
   type Demanda,
 } from "@/lib/demandas-utils";
 import DemandaFormDialog from "@/components/demandas/DemandaFormDialog";
+import { SeloCirurgiaDemanda } from "@/components/demandas/AlertaCirurgiaAgendada";
 import ImportarDemandasDialog from "@/components/demandas/ImportarDemandasDialog";
 import HistoricoImportacoesDialog from "@/components/demandas/HistoricoImportacoesDialog";
 
@@ -457,7 +458,10 @@ export default function Demandas() {
                       className="border-t border-border/60 hover:bg-accent/30 transition-colors"
                     >
                       <td className="py-2.5 px-3 whitespace-nowrap">{formatDate(d.data_reclamacao)}</td>
-                      <td className="py-2.5 px-3 font-medium">{d.nome_cliente}</td>
+                      <td className="py-2.5 px-3 font-medium">
+                        {d.nome_cliente}
+                        <SeloCirurgiaDemanda cpf={d.cpf} nome={d.nome_cliente} />
+                      </td>
                       <td className="py-2.5 px-3 text-muted-foreground">{d.empresa || "—"}</td>
                       <td className="py-2.5 px-3 text-muted-foreground">{d.setor_responsavel || "—"}</td>
                       <td className="py-2.5 px-3 text-muted-foreground">{d.tipo_reclamacao || "—"}</td>
