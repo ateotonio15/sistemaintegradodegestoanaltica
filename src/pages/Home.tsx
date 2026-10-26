@@ -10,6 +10,7 @@ import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { CirurgiaCardBadge } from "@/components/demandas/CirurgiaCardBadge";
 import {
   Search,
   ArrowLeft,
@@ -702,6 +703,8 @@ export default function Home() {
                                 <div className="text-sm font-semibold text-foreground truncate">
                                   {item.label}
                                 </div>
+                                {item.to === "/demandas" && <CirurgiaCardBadge demandas />}
+                                {item.to === "/agenda-cirurgica" && <CirurgiaCardBadge />}
                                 <div className="text-xs text-muted-foreground line-clamp-2">
                                   {item.description}
                                 </div>
@@ -741,7 +744,7 @@ export default function Home() {
                             <div className="text-sm font-semibold text-foreground truncate">
                               {isGroup ? section.title : onlyItem.label}
                             </div>
-                            {isGroup && (
+                            {section.title === "Demandas" ? <CirurgiaCardBadge demandas /> : section.title === "Agenda Cirúrgica" ? <CirurgiaCardBadge /> : isGroup && (
                               <span className="text-[10px] font-medium px-1.5 py-0.5 rounded-full bg-primary/10 text-primary">
                                 {visibleItems.length}
                               </span>

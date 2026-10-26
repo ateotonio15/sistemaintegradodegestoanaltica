@@ -65,6 +65,15 @@ export default function Demandas() {
   const [params, setParams] = useSearchParams();
   const reclamacaoParam = params.get("reclamacao");
   const idParam = params.get("id");
+  const destacarParam = params.get("destacar");
+  useEffect(() => {
+    if (!destacarParam) return;
+    const timer = setTimeout(() => {
+      document.getElementById(`demanda-${destacarParam}`)?.scrollIntoView({ block: "center", behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "instant" : "smooth" });
+      document.getElementById(`demanda-${destacarParam}`)?.focus({ preventScroll: true });
+    }, 200);
+    return () => clearTimeout(timer);
+  }, [destacarParam, demandas]);
   const [voltarPlantao] = useState(() => {
     const v = params.get("voltar");
     return v && v.startsWith("/plantoes") ? v : null;
