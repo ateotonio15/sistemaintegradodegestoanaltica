@@ -1,5 +1,9 @@
 # Roadmap — Primeiro pacote financeiro
 
+## Demandas — alerta de cirurgia agendada
+- [ ] Integrar alerta e selo separados do status, verificar beneficiário e atualizar automaticamente pela agenda existente.
+- [ ] Testar cirurgia ativa, cancelamento, troca de CPF e indisponibilidade; conferir formulário e lista sem alterar dados reais.
+
 ## Relatórios de vidas em Movimentações
 - [x] Integrar progresso no resumo e registro manual em lote somente para relatórios filtrados aptos.
 - [x] Oito testes aprovados; lote de 25-30 e atualização do resumo conferidos na sessão atual com leitura simulada e gravação interceptada, sem alterar registros reais. Envio de e-mail permanece desligado; persistência real do lote não exercitada.
