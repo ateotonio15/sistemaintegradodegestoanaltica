@@ -386,6 +386,13 @@
       "when": 1793043815322,
       "tag": "0054_separar_primeira_mensalidade_status_movimentacoes",
       "breakpoints": true
+    },
+    {
+      "idx": 55,
+      "version": "7",
+      "when": 1793044073684,
+      "tag": "0055_avisos_globais_cirurgia",
+      "breakpoints": true
     }
   ]
 }

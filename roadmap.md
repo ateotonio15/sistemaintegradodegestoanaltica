@@ -1,5 +1,11 @@
 # Roadmap — Primeiro pacote financeiro
 
+## Avisos globais de cirurgia — 26/10
+- [x] Verificação única por minuto no servidor, deduplicação por reclamação/agendamento/data e leitura protegida por perfil e acesso à reclamação; nenhuma reclamação alterada.
+- [x] Sino existente, indicadores dos cards e atalho com destaque da linha, preservando filtros salvos; fluxo autenticado com aviso simulado e ciência interceptada conferido sem gravações fictícias.
+- [x] 23 testes aprovados, incluindo permissões reais das tabelas e regras de confirmação.
+- [ ] Confirmar evento real: função e agendamento executados, mas a agenda não respondeu à nuvem; TI Samel precisa liberar acesso ou disponibilizar intermediário seguro. Nenhum aviso falso criado.
+
 ## E-mail da Samel — cadastro do remetente
 - [x] Adicionar formulário em Configurações com domínio, nome, e-mail remetente e resposta; salvar somente dados não sigilosos, com edição protegida para Administrador.
 - [x] Cinco testes aprovados; salvar/reabrir conferidos na sessão autenticada com gravação interceptada, sem endereços fictícios na operação; persistência real não exercitada. Envio permanece desligado.

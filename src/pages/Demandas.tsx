@@ -65,12 +65,21 @@ export default function Demandas() {
   const [params, setParams] = useSearchParams();
   const reclamacaoParam = params.get("reclamacao");
   const idParam = params.get("id");
+  const destacarParam = params.get("destacar");
+  const { data: demandas = [], isLoading } = useDemandas();
+  useEffect(() => {
+    if (!destacarParam) return;
+    const timer = setTimeout(() => {
+      document.getElementById(`demanda-${destacarParam}`)?.scrollIntoView({ block: "center", behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "instant" : "smooth" });
+      document.getElementById(`demanda-${destacarParam}`)?.focus({ preventScroll: true });
+    }, 200);
+    return () => clearTimeout(timer);
+  }, [destacarParam, demandas]);
   const [voltarPlantao] = useState(() => {
     const v = params.get("voltar");
     return v && v.startsWith("/plantoes") ? v : null;
   });
 
-  const { data: demandas = [], isLoading } = useDemandas();
   const del = useDeleteDemanda();
 
   // Filtros
@@ -208,6 +217,7 @@ export default function Demandas() {
   const filtered = useMemo(() => {
     const q = busca.trim().toLowerCase();
     return demandas.filter((d) => {
+      if (destacarParam) return d.id === destacarParam;
       if (dataIni && d.data_reclamacao < dataIni) return false;
       if (dataFim && d.data_reclamacao > dataFim) return false;
       if (empresa !== "__all__" && d.empresa !== empresa) return false;
@@ -222,7 +232,7 @@ export default function Demandas() {
       if (q && !d.nome_cliente.toLowerCase().includes(q)) return false;
       return true;
     });
-  }, [demandas, dataIni, dataFim, empresa, setor, executiva, status, busca, reclamacaoParam]);
+  }, [demandas, dataIni, dataFim, empresa, setor, executiva, status, busca, reclamacaoParam, destacarParam]);
 
   const limparFiltros = () => {
     setDataIni("");
@@ -234,6 +244,7 @@ export default function Demandas() {
     setBusca("");
     const next = new URLSearchParams(params);
     next.delete("reclamacao");
+    next.delete("destacar");
     setParams(next, { replace: true });
   };
 
@@ -455,7 +466,9 @@ export default function Demandas() {
                   return (
                     <tr
                       key={d.id}
-                      className="border-t border-border/60 hover:bg-accent/30 transition-colors"
+                      id={`demanda-${d.id}`}
+                      tabIndex={destacarParam === d.id ? 0 : undefined}
+                      className={cn("border-t border-border/60 hover:bg-accent/30 transition-colors", destacarParam === d.id && "bg-success/10 outline outline-2 outline-success -outline-offset-2")}
                     >
                       <td className="py-2.5 px-3 whitespace-nowrap">{formatDate(d.data_reclamacao)}</td>
                       <td className="py-2.5 px-3 font-medium">

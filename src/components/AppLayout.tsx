@@ -40,6 +40,8 @@ import { CadastroEmpresasPopover } from "@/components/CadastroEmpresasPopover";
 import { AlertaPendenciasPlantao } from "@/components/plantoes/AlertaPendenciasPlantao";
 import { FloatingFilaChat } from "@/components/atendimentos/FloatingFilaChat";
 import { AlertaGlobalMargemUea } from "@/components/dependentes-uea/AlertaGlobalMargemUea";
+import { useCirurgiaRealtime, useNotificacoesCirurgia } from "@/hooks/useNotificacoesCirurgia";
+import { CirurgiaNotificacoesLista } from "@/components/demandas/CirurgiaNotificacoesLista";
 
 
 const allNavItems = [
@@ -127,6 +129,9 @@ export function AppLayout({ children }: { children?: React.ReactNode }) {
   useAtivarContratosPendentes();
   const { data: canAccessHonda } = useCanAccessHonda();
   const hasLateralNavigation = isAdmin || role === "vendas";
+  useCirurgiaRealtime();
+  const cirurgias = useNotificacoesCirurgia();
+  const [notificacoesOpen, setNotificacoesOpen] = useState(false);
 
   const SIDEBAR_STORAGE_KEY = "sidebar-collapsed";
 
@@ -365,7 +370,7 @@ export function AppLayout({ children }: { children?: React.ReactNode }) {
     queryClient.invalidateQueries({ queryKey: ["notificacoes-saude-lidas", user.id] });
   }, [user, pendingSaude, queryClient]);
 
-  const totalPendentes = pendingNotifs.length + pendingSaude.length;
+  const totalPendentes = pendingNotifs.length + pendingSaude.length + cirurgias.avisos.length;
 
   // ============================================================
   // Fila de Atendimento — atalho visível quando há chamados abertos
@@ -718,28 +723,29 @@ export function AppLayout({ children }: { children?: React.ReactNode }) {
               </button>
 
               {/* Unified Notifications Bell */}
-              <Popover>
+              <Popover open={notificacoesOpen} onOpenChange={setNotificacoesOpen}>
                 <PopoverTrigger asChild>
-                  <button className="relative p-2.5 rounded-lg hover:bg-accent transition-colors text-muted-foreground hover:text-foreground">
-                    <Bell className="h-4 w-4" />
+                  <Button variant="ghost" size="icon" aria-label="Notificações" className="relative text-muted-foreground hover:text-foreground">
+                    <Bell className={cn("h-4 w-4", cirurgias.avisos.length > 0 && "text-success motion-safe:animate-pulse")} />
                     {totalPendentes > 0 && (
-                      <span className="absolute top-1 right-1 flex h-4 w-4 items-center justify-center rounded-full bg-destructive text-[10px] font-bold text-destructive-foreground animate-scale-in">
+                      <span className={cn("absolute top-1 right-1 flex h-4 w-4 items-center justify-center rounded-full text-[10px] font-bold", cirurgias.avisos.length > 0 ? "bg-success text-success-foreground" : "bg-destructive text-destructive-foreground")}>
                         {totalPendentes > 9 ? "9+" : totalPendentes}
                       </span>
                     )}
-                  </button>
+                  </Button>
                 </PopoverTrigger>
-                <PopoverContent className="w-96 p-0 rounded-xl shadow-lg" align="end">
+                <PopoverContent className="w-96 max-w-[calc(100vw-2rem)] p-0 rounded-xl shadow-lg" align="end">
                   <div className="p-3.5 border-b flex items-center justify-between">
                     <h4 className="font-semibold text-sm">Notificações</h4>
-                    {(pendingNotifs.length > 0 || pendingSaude.length > 0) && (
-                      <Button variant="ghost" size="sm" className="h-7 text-xs gap-1 text-muted-foreground" onClick={() => { markAllAsRead(); markAllSaudeAsRead(); }}>
+                    {(pendingNotifs.length > 0 || pendingSaude.length > 0 || cirurgias.avisos.length > 0) && (
+                      <Button variant="ghost" size="sm" className="h-7 text-xs gap-1 text-muted-foreground" onClick={() => { markAllAsRead(); markAllSaudeAsRead(); void cirurgias.marcar(cirurgias.avisos.map(n => n.id)); }}>
                         <CheckCheck className="h-3.5 w-3.5" />
                         Marcar todas como lidas
                       </Button>
                     )}
                   </div>
                   <div className="max-h-96 overflow-y-auto">
+                    <CirurgiaNotificacoesLista onNavigate={() => setNotificacoesOpen(false)} />
                     {pendingSaude.map((n) => {
                       const statusColor =
                         n.status_notif === "cancelado" ? "text-rose-500"
@@ -820,7 +826,7 @@ export function AppLayout({ children }: { children?: React.ReactNode }) {
                         </div>
                       );
                     })}
-                    {pendingNotifs.length === 0 && pendingSaude.length === 0 ? (
+                    {pendingNotifs.length === 0 && pendingSaude.length === 0 && cirurgias.avisos.length === 0 ? (
                       <div className="p-8 text-center text-sm text-muted-foreground">
                         Nenhuma notificação pendente ✅
                       </div>
