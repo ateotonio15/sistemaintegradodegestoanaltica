@@ -1,3 +1,4 @@
+// @vitest-environment node
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { PGlite } from "@electric-sql/pglite";
 import { readFileSync } from "node:fs";
@@ -5,7 +6,7 @@ import { readFileSync } from "node:fs";
 const empresa = "3ce1b149-e00b-4ac2-b26c-daa6d49937be";
 const normal = "a9ab689c-b0ce-46df-b8aa-1f91a85204fd";
 const primeira = "0adeaeea-59b7-4dcb-bf23-f63cbf9e9286";
-const sql = readFileSync(new URL("../../drizzle/migrations/0054_separar_primeira_mensalidade_status_movimentacoes.sql", import.meta.url), "utf8");
+const sql = readFileSync("drizzle/migrations/0054_separar_primeira_mensalidade_status_movimentacoes.sql", "utf8");
 let db: PGlite;
 
 beforeAll(async () => {
