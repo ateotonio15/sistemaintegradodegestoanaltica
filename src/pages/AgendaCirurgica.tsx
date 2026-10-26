@@ -18,6 +18,7 @@ import {
   detalharAgendamento, detalharAgendamentoDireto, isoParaBr, lerServidorAgenda,
   lerChaveDireta, listarAgendamentos, listarAgendamentosDireto,
 } from "@/lib/agendaCirurgicaApi";
+import { formatarDataAgenda, formatarHoraAgenda } from "@/lib/agenda-pendentes";
 
 const pad = (n: number) => String(n).padStart(2, "0");
 const hoje = () => { const d = new Date(); return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`; };
@@ -25,6 +26,12 @@ const hoje = () => { const d = new Date(); return `${d.getFullYear()}-${pad(d.ge
 function Campo({ l, v }: { l: string; v?: string | number | null }) {
   return <div><div className="text-xs text-muted-foreground">{l}</div><div className="text-sm">{v === undefined || v === null || v === "" ? "—" : v}</div></div>;
 }
+
+/** intervalo "HH:mm – HH:mm" sem repetir a data quando o horário chega como data/hora completa */
+const intervaloHoras = (a?: string | null, b?: string | null) => {
+  const i = formatarHoraAgenda(a), f = formatarHoraAgenda(b);
+  return i && f ? `${i} – ${f}` : i || f || "—";
+};
 
 export default function AgendaCirurgica() {
   const { user } = useAuth();
