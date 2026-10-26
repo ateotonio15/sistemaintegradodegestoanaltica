@@ -1,5 +1,9 @@
 # Roadmap — Primeiro pacote financeiro
 
+## Relatórios de vidas em Movimentações
+- [x] Integrar quatro colunas e formulário de registro manual, persistência protegida e status independente.
+- [x] Cinco testes aprovados; salvar/reabrir conferido na sessão autenticada com gravação interceptada, sem dados fictícios na operação; persistência real não exercitada.
+
 ## Central — adesão explícita e contexto da nota 17790
 - [x] Ler e comparar adesão separadamente; 42 testes do servidor e 67 regressões aprovados, incluindo centavos, ausência, quantidade não informada e dupla contagem.
 - [x] Investigar outubro 15-20 versus novembro: não há regra comprovada de deslocamento; vencimento cadastrado na competência atual. Mês divergente descrito no PDF bloqueia aprovação, mantendo competência/período não conferidos.

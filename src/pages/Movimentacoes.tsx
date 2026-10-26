@@ -41,6 +41,8 @@ import { sincronizarEnvioDosAnexos } from "@/lib/movimentacao-envio-anexos";
 import { AnexosMovimentacaoDialog } from "@/components/movimentacoes/AnexosMovimentacaoDialog";
 import { useEmpresaGrupoMap } from "@/hooks/useGrupoFinanceiro";
 import { GrupoTag } from "@/components/financeiro/GrupoTag";
+import { RelatorioManualDialog } from "@/components/movimentacoes/RelatorioManualDialog";
+import { RELATORIO_VAZIO } from "@/lib/movimentacao-relatorio";
 
 
 import DashboardAdministradoras from "@/pages/DashboardAdministradoras";
@@ -103,6 +105,7 @@ export default function Movimentacoes() {
   const [somentePendentes, setSomentePendentes] = useState(false);
   const [verSomenteSemEmpresa, setVerSomenteSemEmpresa] = useState(false);
   const [anexosMov, setAnexosMov] = useState<{ id: string; nome: string | null; mes: string | null; periodo: string | null } | null>(null);
+  const [relatorioMov, setRelatorioMov] = useState<Movimentacao | null>(null);
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const { user, isAdmin, isExecutivo, role, isViewOnly } = useAuth();
@@ -310,6 +313,21 @@ export default function Movimentacoes() {
     enabled: !!user,
   });
 
+
+  const { data: relatorios = [], isLoading: carregandoRelatorios, isError: erroRelatorios } = useQuery({
+    queryKey: ["movimentacao-relatorios", filterMes, activeTab, movimentacoes.map(m => m.id)],
+    enabled: !!user && movimentacoes.length > 0,
+    queryFn: async () => {
+      const rows = [];
+      for (let i = 0; i < movimentacoes.length; i += 100) {
+        const { data, error } = await supabase.from("movimentacao_relatorios").select("*").in("movimentacao_id", movimentacoes.slice(i, i + 100).map(m => m.id));
+        if (error) throw error;
+        rows.push(...(data ?? []));
+      }
+      return rows;
+    },
+  });
+  const relatoriosMap = new Map(relatorios.map(r => [r.movimentacao_id, r]));
 
   // Mapa do módulo Faturamento: (empresa_id|mes|periodo) -> { nota, status, por }
   type FinInfo = {
@@ -1091,14 +1109,18 @@ export default function Movimentacoes() {
                     <TableHead className="font-semibold">Financeiro</TableHead>
                     <TableHead className="font-semibold">Status Faturamento</TableHead>
                     <TableHead className="font-semibold">Nota Enviada</TableHead>
+                    <TableHead className="font-semibold whitespace-nowrap">Status do Relatório</TableHead>
+                    <TableHead className="font-semibold">Destinatários</TableHead>
+                    <TableHead className="font-semibold whitespace-nowrap">Data de Envio</TableHead>
+                    <TableHead className="font-semibold whitespace-nowrap">Confirmação da Empresa</TableHead>
                     {canEditDates && <TableHead className="w-24 font-semibold">Ações</TableHead>}
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {isLoading ? (
-                     <TableRow><TableCell colSpan={canEditDates ? 12 : 11} className="text-center text-muted-foreground py-12">Carregando...</TableCell></TableRow>
+                     <TableRow><TableCell colSpan={canEditDates ? 16 : 15} className="text-center text-muted-foreground py-12">Carregando...</TableCell></TableRow>
                    ) : filtered.length === 0 ? (
-                     <TableRow><TableCell colSpan={canEditDates ? 12 : 11} className="text-center text-muted-foreground py-12">Nenhuma movimentação encontrada</TableCell></TableRow>
+                     <TableRow><TableCell colSpan={canEditDates ? 16 : 15} className="text-center text-muted-foreground py-12">Nenhuma movimentação encontrada</TableCell></TableRow>
                   ) : (
                     filtered.map((m) => {
                       const status = calcularStatus(m);
@@ -1110,6 +1132,7 @@ export default function Movimentacoes() {
                       const prioAtiva = temPrio && !m.data_envio_financeiro;
                       const prioIntensa = prioAtiva && isPrioridadeAlertaIntenso(m.empresas as any);
                       const grupoLinha = m.empresa_id ? empresaGrupoMap?.get(m.empresa_id) ?? null : null;
+                      const relatorio = relatoriosMap.get(m.id) ?? RELATORIO_VAZIO;
                       return (
                         <TableRow
                           key={m.id}
@@ -1183,6 +1206,14 @@ export default function Movimentacoes() {
                               <span className="text-muted-foreground text-sm">—</span>
                             )}
                           </TableCell>
+                          <TableCell>
+                            <Button variant="outline" size="sm" className="h-auto min-h-8 max-w-[190px] whitespace-normal text-left" disabled={carregandoRelatorios || erroRelatorios} onClick={() => setRelatorioMov(m)} aria-label={`Relatório de vidas de ${m.empresas?.nome ?? "empresa"}`}>
+                              {carregandoRelatorios ? "Carregando..." : erroRelatorios ? "Indisponível" : relatorio.status}
+                            </Button>
+                          </TableCell>
+                          <TableCell className="min-w-[160px] max-w-[240px] whitespace-normal break-words">{relatorio.destinatarios || "—"}</TableCell>
+                          <TableCell className="whitespace-nowrap">{formatDateBR(relatorio.data_envio)}</TableCell>
+                          <TableCell className="min-w-[160px] whitespace-normal">{relatorio.confirmacao}</TableCell>
                           {canEditDates && (
                           <TableCell>
                             <div className="flex gap-1">
@@ -1210,6 +1241,15 @@ export default function Movimentacoes() {
         open={!!anexosMov}
         onOpenChange={(o) => !o && setAnexosMov(null)}
       />
+      {relatorioMov && <RelatorioManualDialog
+        key={relatorioMov.id}
+        movimentacaoId={relatorioMov.id}
+        nome={relatorioMov.empresas?.nome ?? "Sem empresa"}
+        contexto={`${formatMesReferencia(relatorioMov.mes_referencia)} · ${relatorioMov.periodo ?? "—"}`}
+        registro={relatoriosMap.get(relatorioMov.id)}
+        canEdit={canEditDates}
+        onClose={() => setRelatorioMov(null)}
+      />}
 
       <Dialog open={dashboardOpen} onOpenChange={setDashboardOpen}>
         <DialogContent className="max-w-[95vw] w-full h-[90vh] p-0 overflow-hidden flex flex-col">
