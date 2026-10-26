@@ -379,6 +379,13 @@
       "when": 1793036124671,
       "tag": "0053_config_email_relatorios",
       "breakpoints": true
+    },
+    {
+      "idx": 54,
+      "version": "7",
+      "when": 1793043815322,
+      "tag": "0054_separar_primeira_mensalidade_status_movimentacoes",
+      "breakpoints": true
     }
   ]
 }
