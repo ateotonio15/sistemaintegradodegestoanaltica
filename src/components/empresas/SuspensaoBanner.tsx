@@ -16,11 +16,12 @@ export function SuspensaoBanner() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("empresas")
-        .select("id, nome, codigo_contrato, motivo_suspensao, data_suspensao")
+        .select("id, nome, codigo_contrato, motivo_suspensao, data_suspensao, status_empresa, data_rescisao")
         .eq("contrato_suspenso", true)
         .order("data_suspensao", { ascending: false });
       if (error) throw error;
-      return data;
+      // Contratos cancelados (com rescisão ou inativos) saem da lista de suspensos
+      return (data ?? []).filter((e) => !e.data_rescisao && e.status_empresa !== "Inativa");
     },
     enabled: !!user,
   });
