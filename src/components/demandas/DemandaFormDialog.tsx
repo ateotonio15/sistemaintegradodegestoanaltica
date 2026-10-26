@@ -223,8 +223,8 @@ export default function DemandaFormDialog({ open, onOpenChange, demanda, initial
           nome_procedimento: p.nome_procedimento?.trim() ? p.nome_procedimento : dados.nome_procedimento,
         }));
         toast.success("Dados da cirurgia carregados da agenda");
-      } catch {
-        if (ativo) setAgendaAviso("Agenda cirúrgica indisponível — preencha manualmente.");
+      } catch (e) {
+        if (ativo) setAgendaAviso(`Agenda cirúrgica indisponível — preencha manualmente. ${(e as Error)?.message ?? ""}`.trim());
       } finally {
         if (ativo) setAgendaLoading(false);
       }
