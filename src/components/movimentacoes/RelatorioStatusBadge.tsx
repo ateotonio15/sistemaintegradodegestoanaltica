@@ -8,10 +8,11 @@ import { nomeArquivoRelatorio, relatorioBadgeClass, rotuloCurtoRelatorio, type R
  * Ao clicar, mostra os detalhes (arquivo, destinatários, envio e status completo).
  * Apenas apresentação: nunca altera o registro nem o status da movimentação.
  */
-export function RelatorioStatusBadge({ registro, empresaNome, mesReferencia, desabilitado, rotulo }: {
+export function RelatorioStatusBadge({ registro, empresaNome, mesReferencia, dataEnvioEmpresa, desabilitado, rotulo }: {
   registro: RegistroRelatorio;
   empresaNome: string;
   mesReferencia: string | null;
+  dataEnvioEmpresa?: string | null;
   desabilitado?: boolean;
   rotulo?: string;
 }) {
@@ -42,7 +43,7 @@ export function RelatorioStatusBadge({ registro, empresaNome, mesReferencia, des
           </div>
           <div>
             <p className="font-semibold">Enviado:</p>
-            <p className="text-muted-foreground">{formatDateBR(registro.data_envio)}</p>
+            <p className="text-muted-foreground">{formatDateBR(registro.data_envio ?? dataEnvioEmpresa ?? null)}</p>
           </div>
           <div>
             <p className="font-semibold">Status:</p>
