@@ -110,6 +110,7 @@ export default function Movimentacoes() {
   const [verSomenteSemEmpresa, setVerSomenteSemEmpresa] = useState(false);
   const [anexosMov, setAnexosMov] = useState<{ id: string; nome: string | null; mes: string | null; periodo: string | null } | null>(null);
   const [relatorioMov, setRelatorioMov] = useState<Movimentacao | null>(null);
+  const [relatorioStatusInicial, setRelatorioStatusInicial] = useState<string | undefined>(undefined);
   const [loteOpen, setLoteOpen] = useState(false);
   const [prepararResultado, setPrepararResultado] = useState<ResultadoPreparacao | null>(null);
   const { toast } = useToast();
