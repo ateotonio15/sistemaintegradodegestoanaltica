@@ -465,13 +465,13 @@ export default function DemandaFormDialog({ open, onOpenChange, demanda, initial
           </Field>
 
 
+          {(agendaLoading || agendaAviso) && (
+            <p role="status" className="md:col-span-2 text-xs text-muted-foreground flex items-center gap-1">
+              {agendaLoading ? <><Loader2 className="h-3 w-3 animate-spin" /> Consultando agenda cirúrgica…</> : agendaAviso}
+            </p>
+          )}
           {isSurgical(form.reclamacao) && (
             <>
-              {(agendaLoading || agendaAviso) && (
-                <p className="md:col-span-2 text-[11px] text-muted-foreground flex items-center gap-1">
-                  {agendaLoading ? <><Loader2 className="h-3 w-3 animate-spin" /> Consultando agenda cirúrgica…</> : agendaAviso}
-                </p>
-              )}
               <Field label="Data de entrada *">
                 <Input
                   type="date"
