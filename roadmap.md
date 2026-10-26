@@ -1,8 +1,9 @@
 # Roadmap — Primeiro pacote financeiro
 
 ## Demandas — alerta de cirurgia agendada
-- [ ] Integrar alerta e selo separados do status, verificar beneficiário e atualizar automaticamente pela agenda existente.
-- [ ] Testar cirurgia ativa, cancelamento, troca de CPF e indisponibilidade; conferir formulário e lista sem alterar dados reais.
+- [x] Integrar alerta e selo separados do status, verificar beneficiário e atualizar automaticamente pela agenda existente a cada minuto e ao retornar à janela.
+- [x] Dezesseis testes aprovados; formulário, selo na lista, cancelamento após um minuto e troca de CPF conferidos com respostas simuladas em sessão autenticada, sem gravações.
+- [ ] Confirmar alerta com resposta real da agenda: consulta da Ellen não respondeu em 20 segundos; depende da conectividade com a agenda Samel. Webhook não configurado no sistema externo; atualização disponível por consulta periódica.
 
 ## Relatórios de vidas em Movimentações
 - [x] Integrar progresso no resumo e registro manual em lote somente para relatórios filtrados aptos.
