@@ -21,7 +21,7 @@ export function SuspensaoBanner() {
         .order("data_suspensao", { ascending: false });
       if (error) throw error;
       // Contratos cancelados (com rescisão ou inativos) saem da lista de suspensos
-      return (data ?? []).filter((e) => !e.data_rescisao && e.status_empresa === "Ativa");
+      return (data ?? []).filter((e) => !e.data_rescisao && e.status_empresa !== "Inativa");
     },
     enabled: !!user,
   });
