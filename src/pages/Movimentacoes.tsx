@@ -13,7 +13,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useToast } from "@/hooks/use-toast";
-import { Plus, Pencil, Trash2, Download, Search, Plane, LayoutDashboard, RefreshCw, Sparkles } from "lucide-react";
+import { Plus, Pencil, Trash2, Download, Search, Plane, LayoutDashboard, RefreshCw, Sparkles, Mail, Send } from "lucide-react";
 
 import { useAuth } from "@/hooks/useAuth";
 import {
@@ -42,8 +42,9 @@ import { AnexosMovimentacaoDialog } from "@/components/movimentacoes/AnexosMovim
 import { useEmpresaGrupoMap } from "@/hooks/useGrupoFinanceiro";
 import { GrupoTag } from "@/components/financeiro/GrupoTag";
 import { RelatorioManualDialog } from "@/components/movimentacoes/RelatorioManualDialog";
-import { RELATORIO_VAZIO, resumoEnvioRelatorios, selecionarLoteRelatorios } from "@/lib/movimentacao-relatorio";
+import { RELATORIO_VAZIO, classificarPreparacao, resumoEnvioRelatorios, resumoLoteEnvio, selecionarLoteRelatorios } from "@/lib/movimentacao-relatorio";
 import { RelatorioLoteDialog } from "@/components/movimentacoes/RelatorioLoteDialog";
+import { PrepararRelatoriosDialog, type ResultadoPreparacao } from "@/components/movimentacoes/PrepararRelatoriosDialog";
 
 
 import DashboardAdministradoras from "@/pages/DashboardAdministradoras";
@@ -108,6 +109,7 @@ export default function Movimentacoes() {
   const [anexosMov, setAnexosMov] = useState<{ id: string; nome: string | null; mes: string | null; periodo: string | null } | null>(null);
   const [relatorioMov, setRelatorioMov] = useState<Movimentacao | null>(null);
   const [loteOpen, setLoteOpen] = useState(false);
+  const [prepararResultado, setPrepararResultado] = useState<ResultadoPreparacao | null>(null);
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const { user, isAdmin, isExecutivo, role, isViewOnly } = useAuth();
@@ -592,7 +594,46 @@ export default function Movimentacoes() {
   }, [movimentacoes, filterPeriodo, filterStatus, filterResponsavel, somentePendentes, verSomenteSemEmpresa, searchTerm, respContratoOf]);
 
   const aptosLote = selecionarLoteRelatorios(filtered, relatoriosMap, filterMes, PERIODOS);
-  useEffect(() => { setLoteOpen(false); }, [filterMes, filterPeriodo, filterStatus, filterResponsavel, somentePendentes, verSomenteSemEmpresa, searchTerm]);
+  const movsDoMes = useMemo(() => filtered.filter(m => m.empresa_id && m.mes_referencia === filterMes), [filtered, filterMes]);
+  const loteResumo = useMemo(() => resumoLoteEnvio(movsDoMes, relatoriosMap), [movsDoMes, relatoriosMap]);
+  const contextoLote = `${formatMesReferencia(filterMes)} · ${filterPeriodo === "all" ? "todos os períodos" : `Período ${filterPeriodo}`}`;
+
+  const prepararRelatorios = useMutation({
+    mutationFn: async (): Promise<ResultadoPreparacao> => {
+      const semEmpresa = filtered.filter(m => !m.empresa_id && m.mes_referencia === filterMes).length;
+      const empresaIds = [...new Set(movsDoMes.map(m => m.empresa_id!))];
+      const emails = new Map<string, string>();
+      for (let i = 0; i < empresaIds.length; i += 100) {
+        const { data, error } = await supabase.from("empresas").select("id, email_empresa, email_financeiro_cliente").in("id", empresaIds.slice(i, i + 100));
+        if (error) throw error;
+        for (const e of data ?? []) emails.set(e.id, [e.email_empresa, e.email_financeiro_cliente].filter(Boolean).join("; "));
+      }
+      let prontas = 0, semDestinatario = 0;
+      const lote: TablesInsert<"movimentacao_relatorios">[] = [];
+      for (const m of movsDoMes) {
+        const existente = relatoriosMap.get(m.id);
+        const destinatarios = emails.get(m.empresa_id!) || existente?.destinatarios || "";
+        const classe = classificarPreparacao(existente, destinatarios);
+        if (classe === "final") continue;
+        if (classe === "pronto") prontas++; else semDestinatario++;
+        lote.push({
+          movimentacao_id: m.id, status: classe === "pronto" ? "Pronto para envio" : "Sem destinatário",
+          destinatarios, data_envio: null, confirmacao: "Aguardando", observacoes: existente?.observacoes ?? "",
+        });
+      }
+      for (let i = 0; i < lote.length; i += 100) {
+        const { error } = await supabase.from("movimentacao_relatorios").upsert(lote.slice(i, i + 100), { onConflict: "movimentacao_id" });
+        if (error) throw error;
+      }
+      return { encontradas: movsDoMes.length, prontas, semDestinatario, comErro: semEmpresa };
+    },
+    onSuccess: async resultado => {
+      await queryClient.invalidateQueries({ queryKey: ["movimentacao-relatorios"] });
+      setPrepararResultado(resultado);
+    },
+    onError: (e: Error) => toast({ title: "Não foi possível preparar os relatórios", description: e.message, variant: "destructive" }),
+  });
+  useEffect(() => { setLoteOpen(false); setPrepararResultado(null); }, [filterMes, filterPeriodo, filterStatus, filterResponsavel, somentePendentes, verSomenteSemEmpresa, searchTerm]);
 
   const mesesOptions = useMemo(() => {
     const options: string[] = [];
@@ -805,6 +846,29 @@ export default function Movimentacoes() {
               >
                 <Sparkles className={`mr-2 h-4 w-4 ${gerandoMov ? "animate-pulse" : ""}`} />
                 {gerandoMov ? "Gerando..." : "Gerar Movimentação"}
+              </Button>
+            )}
+            {canEditDates && (
+              <Button
+                variant="outline"
+                className="rounded-lg"
+                onClick={() => prepararRelatorios.mutate()}
+                disabled={prepararRelatorios.isPending || !movsDoMes.length || carregandoRelatorios || erroRelatorios}
+                title="Preparar os relatórios de vidas das empresas do filtro atual"
+              >
+                <Mail className={`mr-2 h-4 w-4 ${prepararRelatorios.isPending ? "animate-pulse" : ""}`} />
+                {prepararRelatorios.isPending ? "Preparando..." : "Preparar Relatórios"}
+              </Button>
+            )}
+            {canEditDates && (
+              <Button
+                variant="outline"
+                className="rounded-lg"
+                onClick={() => setLoteOpen(true)}
+                disabled={!aptosLote.length || carregandoRelatorios || erroRelatorios}
+                title="Enviar os relatórios prontos para envio"
+              >
+                <Send className="mr-2 h-4 w-4" />Enviar Relatórios ({aptosLote.length})
               </Button>
             )}
 
@@ -1101,11 +1165,6 @@ export default function Movimentacoes() {
         )}
 
         {/* Table */}
-        {canEditDates && <div className="flex justify-end">
-          <Button variant="outline" disabled={!aptosLote.length || carregandoRelatorios || erroRelatorios} onClick={() => setLoteOpen(true)}>
-            Registrar envio manual em lote ({aptosLote.length})
-          </Button>
-        </div>}
         <Card className="rounded-xl shadow-sm overflow-hidden">
           <CardContent className="p-0">
             <div className="overflow-x-auto">
@@ -1258,7 +1317,12 @@ export default function Movimentacoes() {
         canEdit={canEditDates}
         onClose={() => setRelatorioMov(null)}
       />}
-      {loteOpen && canEditDates && <RelatorioLoteDialog items={aptosLote.map(m => ({ id: m.id, nome: m.empresas?.nome ?? "Sem empresa", periodo: m.periodo, destinatarios: relatoriosMap.get(m.id)?.destinatarios ?? "" }))} onClose={() => setLoteOpen(false)} />}
+      {loteOpen && canEditDates && <RelatorioLoteDialog
+        items={aptosLote.map(m => ({ id: m.id, nome: m.empresas?.nome ?? "Sem empresa", periodo: m.periodo, destinatarios: relatoriosMap.get(m.id)?.destinatarios ?? "" }))}
+        resumo={loteResumo}
+        contexto={contextoLote}
+        onClose={() => setLoteOpen(false)} />}
+      {prepararResultado && <PrepararRelatoriosDialog resultado={prepararResultado} contexto={contextoLote} onClose={() => setPrepararResultado(null)} />}
 
       <Dialog open={dashboardOpen} onOpenChange={setDashboardOpen}>
         <DialogContent className="max-w-[95vw] w-full h-[90vh] p-0 overflow-hidden flex flex-col">

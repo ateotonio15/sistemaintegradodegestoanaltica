@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { RELATORIO_VAZIO, STATUS_RELATORIO, validarRegistroRelatorio, selecionarLoteRelatorios, resumoEnvioRelatorios } from "@/lib/movimentacao-relatorio";
+import { RELATORIO_VAZIO, STATUS_RELATORIO, validarRegistroRelatorio, selecionarLoteRelatorios, resumoEnvioRelatorios, classificarPreparacao, resumoLoteEnvio } from "@/lib/movimentacao-relatorio";
 import { PERIODOS } from "@/lib/movimentacao-utils";
 describe("controle manual independente do relatório", () => {
   it("mantém exatamente os seis períodos existentes", () => {
@@ -35,5 +35,27 @@ describe("controle manual independente do relatório", () => {
   });
   it("confirmação divergente não pode ser registrada como conferida", () => {
     expect(validarRegistroRelatorio({ ...RELATORIO_VAZIO, status: "Conferido pela empresa", destinatarios: "RH", data_envio: "2026-10-26", confirmacao: "Divergência informada" })).not.toBeNull();
+  });
+  it("preparar marca pronta com destinatário e sem destinatário sem e-mail", () => {
+    expect(classificarPreparacao(undefined, "rh@empresa.com.br")).toBe("pronto");
+    expect(classificarPreparacao(RELATORIO_VAZIO, " ")).toBe("sem_destinatario");
+    expect(classificarPreparacao({ ...RELATORIO_VAZIO, status: "Sem destinatário" }, "rh@empresa.com.br")).toBe("pronto");
+  });
+  it("preparar nunca reabre relatório já enviado, conferido ou divergente", () => {
+    for (const status of ["Enviado", "Conferido pela empresa", "Divergência informada"]) {
+      expect(classificarPreparacao({ ...RELATORIO_VAZIO, status, destinatarios: "RH", data_envio: "2026-10-26" }, "novo@empresa.com.br")).toBe("final");
+    }
+  });
+  it("resumo do envio separa prontas, sem destinatário e com erro, e só as aptas entram no lote", () => {
+    const itens = [{ id: "pronta" }, { id: "sem-dest" }, { id: "erro" }, { id: "sem-registro" }, { id: "enviada" }];
+    const registros = new Map([
+      ["pronta", { ...RELATORIO_VAZIO, status: "Pronto para envio", destinatarios: "rh@empresa.com.br" }],
+      ["sem-dest", { ...RELATORIO_VAZIO, status: "Sem destinatário" }],
+      ["erro", { ...RELATORIO_VAZIO, status: "Erro no envio", destinatarios: "rh@empresa.com.br" }],
+      ["enviada", { ...RELATORIO_VAZIO, status: "Enviado", destinatarios: "RH", data_envio: "2026-10-26" }],
+    ]);
+    const resumo = resumoLoteEnvio(itens, registros);
+    expect(resumo).toMatchObject({ selecionadas: 5, prontas: 1, semDestinatario: 1, comErro: 3 });
+    expect(resumo.aptas.map(i => i.id)).toEqual(["pronta"]);
   });
 });
