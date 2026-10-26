@@ -93,7 +93,7 @@ export function nomeArquivoRelatorio(empresaNome: string, mesReferencia: string)
   const meses = ["JAN", "FEV", "MAR", "ABR", "MAI", "JUN", "JUL", "AGO", "SET", "OUT", "NOV", "DEZ"];
   const rotuloMes = meses[parseInt(mes, 10) - 1] ?? mes ?? "";
   const nome = empresaNome
-    .normalize("NFD").replace(/[̀-ͯ]/g, "")
+    .normalize("NFD").replace(/[\u0300-\u036f]/g, "")
     .replace(/[^A-Za-z0-9]+/g, "_").replace(/^_+|_+$/g, "")
     .toUpperCase() || "EMPRESA";
   return `RELATORIO_VIDAS_${nome}_${rotuloMes}-${ano}.xlsx`;
