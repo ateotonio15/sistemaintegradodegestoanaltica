@@ -1,8 +1,8 @@
 # Roadmap — Primeiro pacote financeiro
 
 ## Relatórios de vidas em Movimentações
-- [ ] Integrar progresso no resumo e registro manual em lote somente para relatórios filtrados aptos.
-- [ ] Testar períodos existentes, elegibilidade e lote na sessão atual sem gravações fictícias.
+- [x] Integrar progresso no resumo e registro manual em lote somente para relatórios filtrados aptos.
+- [x] Oito testes aprovados; lote de 25-30 e atualização do resumo conferidos na sessão atual com leitura simulada e gravação interceptada, sem alterar registros reais. Envio de e-mail permanece desligado; persistência real do lote não exercitada.
 - [x] Integrar quatro colunas e formulário de registro manual, persistência protegida e status independente.
 - [x] Cinco testes aprovados; salvar/reabrir conferido na sessão autenticada com gravação interceptada, sem dados fictícios na operação; persistência real não exercitada.
 
