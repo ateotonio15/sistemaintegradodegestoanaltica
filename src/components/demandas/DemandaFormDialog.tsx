@@ -28,6 +28,7 @@ import { sugerirReclamacao, type ClassificacaoIA } from "@/lib/reclamacao-ia";
 import type { Demanda } from "@/lib/demandas-utils";
 import { format } from "date-fns";
 import { fetchBeneficiarioByCpf } from "@/lib/beneficiario-lookup";
+import { buscarCirurgiaPorCpf } from "@/lib/agenda-paciente-lookup";
 import PessoaFisicaAutocomplete from "@/components/demandas/PessoaFisicaAutocomplete";
 import { buscarPessoaFisica, isCpfValido, type PessoaFisicaResult } from "@/lib/pessoa-fisica-lookup";
 import {
@@ -198,6 +199,39 @@ export default function DemandaFormDialog({ open, onOpenChange, demanda, initial
     }, 400);
     return () => { ctrl.abort(); clearTimeout(timer); };
   }, [form.cpf]);
+
+  // Preenchimento automático pela agenda cirúrgica (só preenche campos vazios; campos sempre editáveis)
+  const [agendaLoading, setAgendaLoading] = useState(false);
+  const [agendaAviso, setAgendaAviso] = useState("");
+  const cirurgicoCtx = isSurgical(form.reclamacao) || /agenda cir/i.test(form.setor_responsavel || "");
+  useEffect(() => {
+    setAgendaAviso("");
+    const digits = String(form.cpf || "").replace(/\D/g, "");
+    const nome = String(form.nome_cliente || "").trim();
+    if (!cirurgicoCtx || digits.length !== 11 || nome.length < 3) return;
+    let ativo = true;
+    const timer = setTimeout(async () => {
+      setAgendaLoading(true);
+      try {
+        const dados = await buscarCirurgiaPorCpf(digits, nome);
+        if (!ativo) return;
+        if (!dados) { setAgendaAviso("Paciente não encontrado na agenda cirúrgica — preencha manualmente."); return; }
+        setForm((p) => ({
+          ...p,
+          data_entrada: p.data_entrada || dados.data_entrada,
+          nome_medico: p.nome_medico?.trim() ? p.nome_medico : dados.nome_medico,
+          nome_procedimento: p.nome_procedimento?.trim() ? p.nome_procedimento : dados.nome_procedimento,
+        }));
+        toast.success("Dados da cirurgia carregados da agenda");
+      } catch {
+        if (ativo) setAgendaAviso("Agenda cirúrgica indisponível — preencha manualmente.");
+      } finally {
+        if (ativo) setAgendaLoading(false);
+      }
+    }, 600);
+    return () => { ativo = false; clearTimeout(timer); };
+  }, [form.cpf, form.nome_cliente, cirurgicoCtx]);
+
 
 
   const set = <K extends keyof Demanda>(k: K, v: Demanda[K] | string | boolean) =>
@@ -442,6 +476,11 @@ export default function DemandaFormDialog({ open, onOpenChange, demanda, initial
 
           {isSurgical(form.reclamacao) && (
             <>
+              {(agendaLoading || agendaAviso) && (
+                <p className="md:col-span-2 text-[11px] text-muted-foreground flex items-center gap-1">
+                  {agendaLoading ? <><Loader2 className="h-3 w-3 animate-spin" /> Consultando agenda cirúrgica…</> : agendaAviso}
+                </p>
+              )}
               <Field label="Data de entrada *">
                 <Input
                   type="date"

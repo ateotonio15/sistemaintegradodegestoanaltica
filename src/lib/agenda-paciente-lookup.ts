@@ -1,0 +1,53 @@
+import { listarAgendamentos, type AgendamentoCirurgico } from "@/lib/agendaCirurgicaApi";
+
+export type DadosCirurgiaPaciente = {
+  data_entrada: string; // yyyy-MM-dd
+  nome_medico: string;
+  nome_procedimento: string;
+};
+
+const soDigitos = (s?: string | null) => String(s ?? "").replace(/\D/g, "");
+const br = (d: Date) =>
+  `${String(d.getDate()).padStart(2, "0")}/${String(d.getMonth() + 1).padStart(2, "0")}/${d.getFullYear()}`;
+
+/** Converte "DD/MM/YYYY" ou "YYYY-MM-DD..." para "YYYY-MM-DD". */
+export function normalizarDataAgenda(s?: string | null): string {
+  const v = String(s ?? "").trim();
+  const m1 = v.match(/^(\d{2})\/(\d{2})\/(\d{4})/);
+  if (m1) return `${m1[3]}-${m1[2]}-${m1[1]}`;
+  const m2 = v.match(/^(\d{4})-(\d{2})-(\d{2})/);
+  return m2 ? `${m2[1]}-${m2[2]}-${m2[3]}` : "";
+}
+
+/** Escolhe o agendamento do CPF mais próximo de hoje (prioriza futuros). */
+export function escolherAgendamento(lista: AgendamentoCirurgico[], cpf: string, hojeIso: string): DadosCirurgiaPaciente | null {
+  const alvo = soDigitos(cpf);
+  const doCpf = lista
+    .filter((a) => soDigitos(a.paciente?.nr_cpf) === alvo)
+    .map((a) => ({ a, data: normalizarDataAgenda(a.dt_agenda) }))
+    .filter((x) => x.data);
+  if (!doCpf.length) return null;
+  const futuros = doCpf.filter((x) => x.data >= hojeIso).sort((x, y) => x.data.localeCompare(y.data));
+  const passados = doCpf.filter((x) => x.data < hojeIso).sort((x, y) => y.data.localeCompare(x.data));
+  const { a, data } = futuros[0] ?? passados[0];
+  return {
+    data_entrada: data,
+    nome_medico: a.medico?.nm_medico?.trim() || "",
+    nome_procedimento: (a.procedimento_principal?.descricao || a.procedimentos?.[0]?.descricao || "").trim(),
+  };
+}
+
+/**
+ * Busca na agenda cirúrgica (via servidor protegido) os dados da cirurgia do paciente.
+ * A API filtra por nome; a correspondência final é feita pelo CPF completo.
+ * Retorna null quando não encontrado ou quando a agenda não responde.
+ */
+export async function buscarCirurgiaPorCpf(cpf: string, nome: string): Promise<DadosCirurgiaPaciente | null> {
+  if (soDigitos(cpf).length !== 11 || nome.trim().length < 3) return null;
+  const hoje = new Date();
+  const ini = new Date(hoje.getFullYear(), hoje.getMonth() - 6, hoje.getDate());
+  const fim = new Date(hoje.getFullYear(), hoje.getMonth() + 6, hoje.getDate());
+  const r = await listarAgendamentos({ dt_inicio: br(ini), dt_fim: br(fim), nm_paciente: nome.trim(), limit: 200 });
+  const hojeIso = `${hoje.getFullYear()}-${String(hoje.getMonth() + 1).padStart(2, "0")}-${String(hoje.getDate()).padStart(2, "0")}`;
+  return escolherAgendamento(r?.dados ?? [], cpf, hojeIso);
+}
