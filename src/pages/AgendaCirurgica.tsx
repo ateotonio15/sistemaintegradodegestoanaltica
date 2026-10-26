@@ -18,6 +18,7 @@ import {
   detalharAgendamento, detalharAgendamentoDireto, isoParaBr, lerServidorAgenda,
   lerChaveDireta, listarAgendamentos, listarAgendamentosDireto,
 } from "@/lib/agendaCirurgicaApi";
+import { formatarDataAgenda, formatarHoraAgenda } from "@/lib/agenda-pendentes";
 
 const pad = (n: number) => String(n).padStart(2, "0");
 const hoje = () => { const d = new Date(); return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`; };
@@ -25,6 +26,12 @@ const hoje = () => { const d = new Date(); return `${d.getFullYear()}-${pad(d.ge
 function Campo({ l, v }: { l: string; v?: string | number | null }) {
   return <div><div className="text-xs text-muted-foreground">{l}</div><div className="text-sm">{v === undefined || v === null || v === "" ? "—" : v}</div></div>;
 }
+
+/** intervalo "HH:mm – HH:mm" sem repetir a data quando o horário chega como data/hora completa */
+const intervaloHoras = (a?: string | null, b?: string | null) => {
+  const i = formatarHoraAgenda(a), f = formatarHoraAgenda(b);
+  return i && f ? `${i} – ${f}` : i || f || "—";
+};
 
 export default function AgendaCirurgica() {
   const { user } = useAuth();
@@ -72,7 +79,7 @@ export default function AgendaCirurgica() {
         todos.push(...(r.dados ?? [])); tp = r.total_paginas ?? 1; p++;
       } while (p <= tp && p <= 40);
       const rows = todos.map((a) => ({
-        "Nº Sequência": a.nr_sequencia, Data: a.dt_agenda, Início: a.hr_inicio, Fim: a.hr_fim, Status: a.status?.descricao,
+        "Nº Sequência": a.nr_sequencia, Data: formatarDataAgenda(a.dt_agenda), Início: formatarHoraAgenda(a.hr_inicio), Fim: formatarHoraAgenda(a.hr_fim), Status: a.status?.descricao,
         Sala: a.sala?.ds_agenda, Paciente: a.paciente?.nm_paciente, Idade: a.paciente?.nr_idade, Sexo: a.paciente?.ie_sexo,
         Médico: a.medico?.nm_medico, CRM: a.medico?.nr_crm ? `${a.medico.nr_crm}/${a.medico.uf_crm ?? ""}` : "", Anestesista: a.medico?.nm_anestesista,
         Procedimento: a.procedimento_principal?.descricao, Convênio: a.convenio?.ds_convenio, Plano: a.convenio?.ds_plano,
@@ -134,8 +141,8 @@ export default function AgendaCirurgica() {
               {(data?.dados ?? []).length === 0 && <TableRow><TableCell colSpan={8} className="text-center text-muted-foreground py-8">Nenhum agendamento encontrado.</TableCell></TableRow>}
               {(data?.dados ?? []).map((a) => (
                 <TableRow key={a.nr_sequencia} className="cursor-pointer" onClick={() => setSel(a)}>
-                  <TableCell>{a.dt_agenda}</TableCell>
-                  <TableCell className="whitespace-nowrap">{a.hr_inicio}{a.hr_fim ? ` – ${a.hr_fim}` : ""}</TableCell>
+                  <TableCell className="whitespace-nowrap">{formatarDataAgenda(a.dt_agenda)}</TableCell>
+                  <TableCell className="whitespace-nowrap">{intervaloHoras(a.hr_inicio, a.hr_fim)}</TableCell>
                   <TableCell>{a.sala?.ds_agenda ?? "—"}</TableCell>
                   <TableCell>{a.paciente?.nm_paciente ?? "—"}</TableCell>
                   <TableCell>{a.medico?.nm_medico ?? "—"}</TableCell>
@@ -161,13 +168,13 @@ export default function AgendaCirurgica() {
             <div className="space-y-4">
               {det.isFetching && <p className="text-xs text-muted-foreground">Carregando detalhes...</p>}
               <section className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                <Campo l="Data" v={item.dt_agenda} /><Campo l="Horário" v={`${item.hr_inicio ?? ""} – ${item.hr_fim ?? ""}`} />
+                <Campo l="Data" v={formatarDataAgenda(item.dt_agenda)} /><Campo l="Horário" v={intervaloHoras(item.hr_inicio, item.hr_fim)} />
                 <Campo l="Sala" v={item.sala?.ds_agenda} /><Campo l="Status" v={item.status?.descricao} />
               </section>
               <h3 className="text-sm font-semibold">Paciente</h3>
               <section className="grid grid-cols-2 md:grid-cols-3 gap-3">
                 <Campo l="Nome" v={item.paciente?.nm_paciente} /><Campo l="CPF" v={item.paciente?.nr_cpf} />
-                <Campo l="Nascimento" v={item.paciente?.dt_nascimento} /><Campo l="Idade" v={item.paciente?.nr_idade} />
+                <Campo l="Nascimento" v={formatarDataAgenda(item.paciente?.dt_nascimento ?? "")} /><Campo l="Idade" v={item.paciente?.nr_idade} />
                 <Campo l="Sexo" v={item.paciente?.ie_sexo} /><Campo l="Celular" v={item.paciente?.nr_celular} />
               </section>
               <h3 className="text-sm font-semibold">Equipe</h3>
