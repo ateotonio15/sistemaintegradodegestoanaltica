@@ -10,10 +10,20 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { useToast } from "@/hooks/use-toast";
 import { STATUS_RELATORIO, CONFIRMACOES_RELATORIO, RELATORIO_VAZIO, validarRegistroRelatorio, type RegistroRelatorio } from "@/lib/movimentacao-relatorio";
 
-export function RelatorioManualDialog({ movimentacaoId, nome, contexto, registro, statusInicial, canEdit, onClose }: {
-  movimentacaoId: string; nome: string; contexto: string; registro?: RegistroRelatorio; statusInicial?: string; canEdit: boolean; onClose: () => void;
+function hojeLocalISO(): string {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+}
+
+export function RelatorioManualDialog({ movimentacaoId, nome, contexto, registro, statusInicial, dataEnvioEmpresa, canEdit, onClose }: {
+  movimentacaoId: string; nome: string; contexto: string; registro?: RegistroRelatorio; statusInicial?: string; dataEnvioEmpresa?: string | null; canEdit: boolean; onClose: () => void;
 }) {
-  const [form, setForm] = useState<RegistroRelatorio>(() => ({ ...(registro ?? RELATORIO_VAZIO), ...(statusInicial ? { status: statusInicial } : {}) }));
+  const [form, setForm] = useState<RegistroRelatorio>(() => {
+    const base = { ...(registro ?? RELATORIO_VAZIO), ...(statusInicial ? { status: statusInicial } : {}) };
+    // Reutiliza a data já existente da coluna "Envio Empresa"; só sugere hoje quando não há nenhuma.
+    if (statusInicial === "Enviado" && !base.data_envio) base.data_envio = dataEnvioEmpresa ?? hojeLocalISO();
+    return base;
+  });
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const save = useMutation({
@@ -26,9 +36,16 @@ export function RelatorioManualDialog({ movimentacaoId, nome, contexto, registro
         data_envio: form.data_envio, confirmacao: form.confirmacao, observacoes: form.observacoes.trim(),
       }, { onConflict: "movimentacao_id" });
       if (error) throw error;
+      // Integração com o fluxo da movimentação: relatório enviado preenche "Envio Empresa" apenas se estiver vazia.
+      if (["Enviado", "Conferido pela empresa", "Divergência informada"].includes(form.status) && form.data_envio && !dataEnvioEmpresa) {
+        const { error: erroMov } = await supabase.from("movimentacoes").update({ data_envio_empresa: form.data_envio }).eq("id", movimentacaoId).is("data_envio_empresa", null);
+        if (erroMov) throw erroMov;
+      }
     },
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: ["movimentacao-relatorios"] });
+      await queryClient.invalidateQueries({ queryKey: ["movimentacoes"] });
+      await queryClient.invalidateQueries({ queryKey: ["movimentacoes-dashboard"] });
       toast({ title: "Registro manual salvo" }); onClose();
     },
     onError: (e: Error) => toast({ title: "Não foi possível salvar", description: e.message, variant: "destructive" }),
