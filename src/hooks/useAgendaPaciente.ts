@@ -13,7 +13,19 @@ export function useAgendaPaciente(cpf: string | null | undefined, nome: string |
   }, [key]);
   const query = useQuery({
     queryKey: ["agenda-paciente", digits, paciente],
-    queryFn: () => buscarAgendaPaciente(digits, paciente),
+    queryFn: async () => {
+      let timer: ReturnType<typeof setTimeout> | undefined;
+      try {
+        return await Promise.race([
+          buscarAgendaPaciente(digits, paciente),
+          new Promise<never>((_, reject) => {
+            timer = setTimeout(() => reject(new Error("A agenda não respondeu a tempo.")), 20_000);
+          }),
+        ]);
+      } finally {
+        clearTimeout(timer);
+      }
+    },
     enabled: enabled && ready === key && digits.length === 11 && paciente.length >= 3,
     staleTime: 30_000,
     gcTime: 5 * 60_000,
