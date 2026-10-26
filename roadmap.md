@@ -1,5 +1,10 @@
 # Roadmap — Primeiro pacote financeiro
 
+## Avisos globais de cirurgia — 26/10
+- [ ] Verificar reclamações cirúrgicas pendentes no servidor, registrar eventos sem duplicação e proteger por perfil e acesso à reclamação.
+- [ ] Integrar sino existente, indicadores dos cards e atalho com destaque da linha.
+- [ ] Executar testes de regras/permissões e verificar a navegação; resposta real depende do acesso da nuvem à agenda Samel.
+
 ## E-mail da Samel — cadastro do remetente
 - [x] Adicionar formulário em Configurações com domínio, nome, e-mail remetente e resposta; salvar somente dados não sigilosos, com edição protegida para Administrador.
 - [x] Cinco testes aprovados; salvar/reabrir conferidos na sessão autenticada com gravação interceptada, sem endereços fictícios na operação; persistência real não exercitada. Envio permanece desligado.
