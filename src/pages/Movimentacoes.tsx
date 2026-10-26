@@ -1336,11 +1336,12 @@ export default function Movimentacoes() {
         onOpenChange={(o) => !o && setAnexosMov(null)}
       />
       {relatorioMov && <RelatorioManualDialog
-        key={relatorioMov.id}
+        key={`${relatorioMov.id}-${relatorioStatusInicial ?? "ver"}`}
         movimentacaoId={relatorioMov.id}
         nome={relatorioMov.empresas?.nome ?? "Sem empresa"}
         contexto={`${formatMesReferencia(relatorioMov.mes_referencia)} · ${relatorioMov.periodo ?? "—"}`}
         registro={relatoriosMap.get(relatorioMov.id)}
+        statusInicial={relatorioStatusInicial}
         canEdit={canEditDates}
         onClose={() => setRelatorioMov(null)}
       />}
