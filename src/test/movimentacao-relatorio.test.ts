@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { RELATORIO_VAZIO, STATUS_RELATORIO, validarRegistroRelatorio, selecionarLoteRelatorios, resumoEnvioRelatorios } from "@/lib/movimentacao-relatorio";
+import { RELATORIO_VAZIO, STATUS_RELATORIO, validarRegistroRelatorio, selecionarLoteRelatorios, resumoEnvioRelatorios, classificarPreparacao, resumoLoteEnvio } from "@/lib/movimentacao-relatorio";
 import { PERIODOS } from "@/lib/movimentacao-utils";
 describe("controle manual independente do relatório", () => {
   it("mantém exatamente os seis períodos existentes", () => {
