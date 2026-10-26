@@ -372,6 +372,13 @@
       "when": 1793024821083,
       "tag": "0052_controle_manual_relatorios_movimentacoes",
       "breakpoints": true
+    },
+    {
+      "idx": 53,
+      "version": "7",
+      "when": 1793036124671,
+      "tag": "0053_config_email_relatorios",
+      "breakpoints": true
     }
   ]
 }

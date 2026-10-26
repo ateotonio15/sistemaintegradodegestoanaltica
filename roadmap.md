@@ -1,5 +1,10 @@
 # Roadmap — Primeiro pacote financeiro
 
+## E-mail da Samel — cadastro do remetente
+- [x] Adicionar formulário em Configurações com domínio, nome, e-mail remetente e resposta; salvar somente dados não sigilosos, com edição protegida para Administrador.
+- [x] Cinco testes aprovados; salvar/reabrir conferidos na sessão autenticada com gravação interceptada, sem endereços fictícios na operação; persistência real não exercitada. Envio permanece desligado.
+- [ ] Ativação do envio: depende da configuração do domínio por administrador/proprietário do espaço de trabalho no Lovable; cadastro do remetente não configura o serviço.
+
 ## Demandas — alerta de cirurgia agendada
 - [x] Integrar alerta e selo separados do status, verificar beneficiário e atualizar automaticamente pela agenda existente a cada minuto e ao retornar à janela.
 - [x] Dezesseis testes aprovados; formulário, selo na lista, cancelamento após um minuto e troca de CPF conferidos com respostas simuladas em sessão autenticada, sem gravações.

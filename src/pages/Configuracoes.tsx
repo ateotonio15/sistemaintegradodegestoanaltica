@@ -24,6 +24,7 @@ import {
 } from "@/hooks/useUserPreferences";
 import { cn } from "@/lib/utils";
 import { systemVersion, lastSystemUpdate } from "@/config/system";
+import { EmailRelatoriosForm } from "@/components/configuracoes/EmailRelatoriosForm";
 
 const TEMAS: { value: ThemeMode; label: string; icon: typeof Sun }[] = [
   { value: "light", label: "Modo Claro", icon: Sun },
@@ -217,6 +218,8 @@ export default function Configuracoes() {
           Gerencie suas preferências, segurança e informações do sistema.
         </p>
       </header>
+
+      <EmailRelatoriosForm />
 
       {/* 1. Aparência e Preferências */}
       <section className="space-y-4">
