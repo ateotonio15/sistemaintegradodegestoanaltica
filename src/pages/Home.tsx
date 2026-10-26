@@ -740,7 +740,7 @@ export default function Home() {
                           <Icon className="h-5 w-5" />
                         </div>
                         <div className="min-w-0 flex-1">
-                          <div className="flex items-center gap-1.5">
+                          <div className="flex flex-wrap items-center gap-1.5">
                             <div className="text-sm font-semibold text-foreground truncate">
                               {isGroup ? section.title : onlyItem.label}
                             </div>

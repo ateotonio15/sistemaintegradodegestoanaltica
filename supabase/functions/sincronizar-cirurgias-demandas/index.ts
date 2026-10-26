@@ -33,7 +33,9 @@ Deno.serve(async (req) => {
       if ((data?.length ?? 0) < 500) break;
     }
     const now = new Date();
-    const local = new Intl.DateTimeFormat("en-CA", { timeZone: "America/Manaus", year: "numeric", month: "2-digit", day: "2-digit" }).format(now);
+    const parts = new Intl.DateTimeFormat("en-CA", { timeZone: "America/Manaus", year: "numeric", month: "2-digit", day: "2-digit" }).formatToParts(now);
+    const part = (type: string) => parts.find(p => p.type === type)?.value ?? "";
+    const local = `${part("year")}-${part("month")}-${part("day")}`;
     const [y,m,d] = local.split("-").map(Number);
     const end = new Date(y, m - 1 + 6, d);
     const br = (date: Date) => `${String(date.getDate()).padStart(2,"0")}/${String(date.getMonth()+1).padStart(2,"0")}/${date.getFullYear()}`;

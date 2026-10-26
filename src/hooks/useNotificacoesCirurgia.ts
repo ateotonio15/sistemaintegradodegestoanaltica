@@ -12,14 +12,31 @@ export function useNotificacoesCirurgia() {
     queryKey: ["avisos-cirurgia", user?.id, role], enabled,
     queryFn: async () => {
       if (!user) return { avisos: [], sync: null };
+      const carregarAvisos = async () => {
+        const rows = [];
+        for (let offset = 0; ; offset += 500) {
+          const { data, error } = await supabase.from("demandas_cirurgia_notificacoes").select("*").order("created_at", { ascending: false }).order("id").range(offset,offset+499);
+          if (error) throw error;
+          rows.push(...(data ?? []));
+          if ((data?.length ?? 0) < 500) return rows;
+        }
+      };
+      const carregarLidas = async () => {
+        const ids = new Set<string>();
+        for (let offset = 0; ; offset += 500) {
+          const { data, error } = await supabase.from("demandas_cirurgia_lidas").select("notificacao_id").eq("user_id",user.id).order("notificacao_id").range(offset,offset+499);
+          if (error) throw error;
+          data?.forEach(n => ids.add(n.notificacao_id));
+          if ((data?.length ?? 0) < 500) return ids;
+        }
+      };
       const [avisos, lidas, sync] = await Promise.all([
-        supabase.from("demandas_cirurgia_notificacoes").select("*").order("created_at", { ascending: false }),
-        supabase.from("demandas_cirurgia_lidas").select("notificacao_id").eq("user_id", user.id),
+        carregarAvisos(),
+        carregarLidas(),
         supabase.from("demandas_cirurgia_sync").select("ultimo_sucesso_em,erro").eq("id",true).maybeSingle(),
       ]);
-      if (avisos.error || lidas.error || sync.error) throw avisos.error ?? lidas.error ?? sync.error;
-      const ids = new Set(lidas.data?.map(n => n.notificacao_id));
-      return { avisos: (avisos.data ?? []).filter(n => !ids.has(n.id)), sync: sync.data };
+      if (sync.error) throw sync.error;
+      return { avisos: avisos.filter(n => !lidas.has(n.id)), sync: sync.data };
     }, staleTime: 15000, refetchInterval: 60000, refetchOnWindowFocus: true,
   });
   const marcar = useMutation({ mutationFn: async (ids: string[]) => {
