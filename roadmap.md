@@ -1,5 +1,9 @@
 # Roadmap — Primeiro pacote financeiro
 
+## E-mail da Samel — cadastro do remetente
+- [ ] Adicionar formulário em Configurações com domínio, nome, e-mail remetente e resposta; salvar somente dados não sigilosos, com edição protegida para Administrador.
+- [ ] Testar validação e salvar/reabrir; envio permanece desligado e verificação do domínio depende do administrador/proprietário do espaço de trabalho.
+
 ## Demandas — alerta de cirurgia agendada
 - [x] Integrar alerta e selo separados do status, verificar beneficiário e atualizar automaticamente pela agenda existente a cada minuto e ao retornar à janela.
 - [x] Dezesseis testes aprovados; formulário, selo na lista, cancelamento após um minuto e troca de CPF conferidos com respostas simuladas em sessão autenticada, sem gravações.
