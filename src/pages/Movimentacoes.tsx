@@ -1124,17 +1124,15 @@ export default function Movimentacoes() {
                     <TableHead className="font-semibold">Status Faturamento</TableHead>
                     <TableHead className="font-semibold">Nota Enviada</TableHead>
                     <TableHead className="font-semibold whitespace-nowrap">Status do Relatório</TableHead>
-                    <TableHead className="font-semibold">Destinatários</TableHead>
-                    <TableHead className="font-semibold whitespace-nowrap">Data de Envio</TableHead>
                     <TableHead className="font-semibold whitespace-nowrap">Confirmação da Empresa</TableHead>
                     {canEditDates && <TableHead className="w-24 font-semibold">Ações</TableHead>}
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {isLoading ? (
-                     <TableRow><TableCell colSpan={canEditDates ? 16 : 15} className="text-center text-muted-foreground py-12">Carregando...</TableCell></TableRow>
+                     <TableRow><TableCell colSpan={canEditDates ? 14 : 13} className="text-center text-muted-foreground py-12">Carregando...</TableCell></TableRow>
                    ) : filtered.length === 0 ? (
-                     <TableRow><TableCell colSpan={canEditDates ? 16 : 15} className="text-center text-muted-foreground py-12">Nenhuma movimentação encontrada</TableCell></TableRow>
+                     <TableRow><TableCell colSpan={canEditDates ? 14 : 13} className="text-center text-muted-foreground py-12">Nenhuma movimentação encontrada</TableCell></TableRow>
                   ) : (
                     filtered.map((m) => {
                       const status = calcularStatus(m);
@@ -1225,8 +1223,6 @@ export default function Movimentacoes() {
                               {carregandoRelatorios ? "Carregando..." : erroRelatorios ? "Indisponível" : relatorio.status}
                             </Button>
                           </TableCell>
-                          <TableCell className="min-w-[160px] max-w-[240px] whitespace-normal break-words">{relatorio.destinatarios || "—"}</TableCell>
-                          <TableCell className="whitespace-nowrap">{formatDateBR(relatorio.data_envio)}</TableCell>
                           <TableCell className="min-w-[160px] whitespace-normal">{relatorio.confirmacao}</TableCell>
                           {canEditDates && (
                           <TableCell>

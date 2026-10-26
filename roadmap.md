@@ -5,6 +5,7 @@
 - [x] Oito testes aprovados; lote de 25-30 e atualização do resumo conferidos na sessão atual com leitura simulada e gravação interceptada, sem alterar registros reais. Envio de e-mail permanece desligado; persistência real do lote não exercitada.
 - [x] Integrar quatro colunas e formulário de registro manual, persistência protegida e status independente.
 - [x] Cinco testes aprovados; salvar/reabrir conferido na sessão autenticada com gravação interceptada, sem dados fictícios na operação; persistência real não exercitada.
+- [x] Remover as colunas "Destinatários" e "Data de Envio" da tabela, pois "Envio Empresa" e "Financeiro" já mostram essa informação; os campos continuam no formulário de registro e no fluxo em lote. Catorze títulos conferidos na tela; oito testes aprovados.
 
 ## Central — adesão explícita e contexto da nota 17790
 - [x] Ler e comparar adesão separadamente; 42 testes do servidor e 67 regressões aprovados, incluindo centavos, ausência, quantidade não informada e dupla contagem.
