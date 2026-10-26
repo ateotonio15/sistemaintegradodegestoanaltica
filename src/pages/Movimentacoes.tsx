@@ -13,7 +13,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useToast } from "@/hooks/use-toast";
-import { Plus, Pencil, Trash2, Download, Search, Plane, LayoutDashboard, RefreshCw, Sparkles, Mail, Send } from "lucide-react";
+import { Plus, Pencil, Trash2, Download, Search, Plane, LayoutDashboard, RefreshCw, Sparkles, Mail, Send, MoreHorizontal, Eye, RotateCcw } from "lucide-react";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 
 import { useAuth } from "@/hooks/useAuth";
 import {
@@ -42,7 +43,8 @@ import { AnexosMovimentacaoDialog } from "@/components/movimentacoes/AnexosMovim
 import { useEmpresaGrupoMap } from "@/hooks/useGrupoFinanceiro";
 import { GrupoTag } from "@/components/financeiro/GrupoTag";
 import { RelatorioManualDialog } from "@/components/movimentacoes/RelatorioManualDialog";
-import { RELATORIO_VAZIO, classificarPreparacao, resumoEnvioRelatorios, resumoLoteEnvio, selecionarLoteRelatorios } from "@/lib/movimentacao-relatorio";
+import { RELATORIO_VAZIO, classificarPreparacao, relatorioFinalizado, resumoEnvioRelatorios, resumoLoteEnvio, selecionarLoteRelatorios } from "@/lib/movimentacao-relatorio";
+import { RelatorioStatusBadge } from "@/components/movimentacoes/RelatorioStatusBadge";
 import { RelatorioLoteDialog } from "@/components/movimentacoes/RelatorioLoteDialog";
 import { PrepararRelatoriosDialog, type ResultadoPreparacao } from "@/components/movimentacoes/PrepararRelatoriosDialog";
 
