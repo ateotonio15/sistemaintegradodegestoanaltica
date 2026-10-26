@@ -10,10 +10,10 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { useToast } from "@/hooks/use-toast";
 import { STATUS_RELATORIO, CONFIRMACOES_RELATORIO, RELATORIO_VAZIO, validarRegistroRelatorio, type RegistroRelatorio } from "@/lib/movimentacao-relatorio";
 
-export function RelatorioManualDialog({ movimentacaoId, nome, contexto, registro, canEdit, onClose }: {
-  movimentacaoId: string; nome: string; contexto: string; registro?: RegistroRelatorio; canEdit: boolean; onClose: () => void;
+export function RelatorioManualDialog({ movimentacaoId, nome, contexto, registro, statusInicial, canEdit, onClose }: {
+  movimentacaoId: string; nome: string; contexto: string; registro?: RegistroRelatorio; statusInicial?: string; canEdit: boolean; onClose: () => void;
 }) {
-  const [form, setForm] = useState<RegistroRelatorio>(() => ({ ...(registro ?? RELATORIO_VAZIO) }));
+  const [form, setForm] = useState<RegistroRelatorio>(() => ({ ...(registro ?? RELATORIO_VAZIO), ...(statusInicial ? { status: statusInicial } : {}) }));
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const save = useMutation({
