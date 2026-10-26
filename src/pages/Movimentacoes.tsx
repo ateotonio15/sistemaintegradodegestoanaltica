@@ -42,7 +42,8 @@ import { AnexosMovimentacaoDialog } from "@/components/movimentacoes/AnexosMovim
 import { useEmpresaGrupoMap } from "@/hooks/useGrupoFinanceiro";
 import { GrupoTag } from "@/components/financeiro/GrupoTag";
 import { RelatorioManualDialog } from "@/components/movimentacoes/RelatorioManualDialog";
-import { RELATORIO_VAZIO } from "@/lib/movimentacao-relatorio";
+import { RELATORIO_VAZIO, resumoEnvioRelatorios, selecionarLoteRelatorios } from "@/lib/movimentacao-relatorio";
+import { RelatorioLoteDialog } from "@/components/movimentacoes/RelatorioLoteDialog";
 
 
 import DashboardAdministradoras from "@/pages/DashboardAdministradoras";
@@ -106,6 +107,7 @@ export default function Movimentacoes() {
   const [verSomenteSemEmpresa, setVerSomenteSemEmpresa] = useState(false);
   const [anexosMov, setAnexosMov] = useState<{ id: string; nome: string | null; mes: string | null; periodo: string | null } | null>(null);
   const [relatorioMov, setRelatorioMov] = useState<Movimentacao | null>(null);
+  const [loteOpen, setLoteOpen] = useState(false);
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const { user, isAdmin, isExecutivo, role, isViewOnly } = useAuth();
@@ -589,6 +591,9 @@ export default function Movimentacoes() {
     return rows;
   }, [movimentacoes, filterPeriodo, filterStatus, filterResponsavel, somentePendentes, verSomenteSemEmpresa, searchTerm, respContratoOf]);
 
+  const aptosLote = selecionarLoteRelatorios(filtered, relatoriosMap, filterMes, PERIODOS);
+  useEffect(() => { setLoteOpen(false); }, [filterMes, filterPeriodo, filterStatus, filterResponsavel, somentePendentes, verSomenteSemEmpresa, searchTerm]);
+
   const mesesOptions = useMemo(() => {
     const options: string[] = [];
     const now = new Date();
@@ -1062,6 +1067,7 @@ export default function Movimentacoes() {
                 });
                 const done = items.filter((m) => calcularStatus(m) === "Enviado ao financeiro").length;
                 const late = items.filter((m) => calcularStatus(m) === "Fora do prazo").length;
+                const progresso = resumoEnvioRelatorios(items.map(m => m.id), relatoriosMap);
                 const isActiveP = p === filterPeriodo;
                 return (
                   <button
@@ -1074,6 +1080,9 @@ export default function Movimentacoes() {
                     <div className="text-xs text-muted-foreground">{items.length} total</div>
                     {done > 0 && <div className="text-xs text-success font-medium">{done} concluída(s)</div>}
                     {late > 0 && <div className="text-xs text-destructive font-medium">{late} fora do prazo</div>}
+                    <div className="text-xs text-muted-foreground border-t border-border pt-1.5">
+                      {carregandoRelatorios ? "Relatórios: carregando..." : erroRelatorios ? "Relatórios indisponíveis" : `${progresso.enviados} enviados · ${progresso.pendentes} pendentes`}
+                    </div>
                   </button>
                 );
               })}
@@ -1092,6 +1101,11 @@ export default function Movimentacoes() {
         )}
 
         {/* Table */}
+        {canEditDates && <div className="flex justify-end">
+          <Button variant="outline" disabled={!aptosLote.length || carregandoRelatorios || erroRelatorios} onClick={() => setLoteOpen(true)}>
+            Registrar envio manual em lote ({aptosLote.length})
+          </Button>
+        </div>}
         <Card className="rounded-xl shadow-sm overflow-hidden">
           <CardContent className="p-0">
             <div className="overflow-x-auto">
@@ -1250,6 +1264,7 @@ export default function Movimentacoes() {
         canEdit={canEditDates}
         onClose={() => setRelatorioMov(null)}
       />}
+      {loteOpen && canEditDates && <RelatorioLoteDialog items={aptosLote.map(m => ({ id: m.id, nome: m.empresas?.nome ?? "Sem empresa", periodo: m.periodo, destinatarios: relatoriosMap.get(m.id)?.destinatarios ?? "" }))} onClose={() => setLoteOpen(false)} />}
 
       <Dialog open={dashboardOpen} onOpenChange={setDashboardOpen}>
         <DialogContent className="max-w-[95vw] w-full h-[90vh] p-0 overflow-hidden flex flex-col">
