@@ -1284,6 +1284,7 @@ export default function Movimentacoes() {
                               registro={relatorio}
                               empresaNome={m.empresas?.nome ?? "empresa"}
                               mesReferencia={m.mes_referencia ?? null}
+                              dataEnvioEmpresa={m.data_envio_empresa ?? null}
                               desabilitado={carregandoRelatorios || erroRelatorios}
                               rotulo={carregandoRelatorios ? "Carregando..." : "Indisponível"}
                             />
@@ -1342,6 +1343,7 @@ export default function Movimentacoes() {
         contexto={`${formatMesReferencia(relatorioMov.mes_referencia)} · ${relatorioMov.periodo ?? "—"}`}
         registro={relatoriosMap.get(relatorioMov.id)}
         statusInicial={relatorioStatusInicial}
+        dataEnvioEmpresa={relatorioMov.data_envio_empresa ?? null}
         canEdit={canEditDates}
         onClose={() => setRelatorioMov(null)}
       />}

@@ -43,7 +43,7 @@ export function RelatorioStatusBadge({ registro, empresaNome, mesReferencia, dat
           </div>
           <div>
             <p className="font-semibold">Enviado:</p>
-            <p className="text-muted-foreground">{formatDateBR(registro.data_envio)}</p>
+            <p className="text-muted-foreground">{formatDateBR(registro.data_envio ?? dataEnvioEmpresa ?? null)}</p>
           </div>
           <div>
             <p className="font-semibold">Status:</p>
