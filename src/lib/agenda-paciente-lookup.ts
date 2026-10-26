@@ -1,4 +1,10 @@
-import { listarAgendamentos, type AgendamentoCirurgico } from "@/lib/agendaCirurgicaApi";
+import {
+  listarAgendamentos,
+  listarAgendamentosDireto,
+  lerChaveDireta,
+  lerModoAgenda,
+  type AgendamentoCirurgico,
+} from "@/lib/agendaCirurgicaApi";
 
 export type DadosCirurgiaPaciente = {
   data_entrada: string; // yyyy-MM-dd
@@ -47,7 +53,15 @@ export async function buscarCirurgiaPorCpf(cpf: string, nome: string): Promise<D
   const hoje = new Date();
   const ini = new Date(hoje.getFullYear(), hoje.getMonth() - 6, hoje.getDate());
   const fim = new Date(hoje.getFullYear(), hoje.getMonth() + 6, hoje.getDate());
-  const r = await listarAgendamentos({ dt_inicio: br(ini), dt_fim: br(fim), nm_paciente: nome.trim(), limit: 200 });
+  const filtros = { dt_inicio: br(ini), dt_fim: br(fim), nm_paciente: nome.trim(), limit: 200 };
+  // Mesmo modo de acesso da tela da Agenda Cirúrgica: a API só responde na rede interna/VPN.
+  const direto = () => listarAgendamentosDireto(filtros, lerChaveDireta());
+  let r;
+  if (lerModoAgenda() === "direto") {
+    r = await direto();
+  } else {
+    try { r = await listarAgendamentos(filtros); } catch { r = await direto(); }
+  }
   const hojeIso = `${hoje.getFullYear()}-${String(hoje.getMonth() + 1).padStart(2, "0")}-${String(hoje.getDate()).padStart(2, "0")}`;
   return escolherAgendamento(r?.dados ?? [], cpf, hojeIso);
 }
