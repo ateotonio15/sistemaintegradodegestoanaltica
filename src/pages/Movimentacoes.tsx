@@ -609,17 +609,20 @@ export default function Movimentacoes() {
         for (const e of data ?? []) emails.set(e.id, [e.email_empresa, e.email_financeiro_cliente].filter(Boolean).join("; "));
       }
       let prontas = 0, semDestinatario = 0;
+      const lote: TablesInsert<"movimentacao_relatorios">[] = [];
       for (const m of movsDoMes) {
         const existente = relatoriosMap.get(m.id);
         const destinatarios = emails.get(m.empresa_id!) || existente?.destinatarios || "";
         const classe = classificarPreparacao(existente, destinatarios);
         if (classe === "final") continue;
-        const status = classe === "pronto" ? "Pronto para envio" : "Sem destinatário";
         if (classe === "pronto") prontas++; else semDestinatario++;
-        const { error } = await supabase.from("movimentacao_relatorios").upsert({
-          movimentacao_id: m.id, status, destinatarios, data_envio: null,
-          confirmacao: "Aguardando", observacoes: existente?.observacoes ?? "",
-        }, { onConflict: "movimentacao_id" });
+        lote.push({
+          movimentacao_id: m.id, status: classe === "pronto" ? "Pronto para envio" : "Sem destinatário",
+          destinatarios, data_envio: null, confirmacao: "Aguardando", observacoes: existente?.observacoes ?? "",
+        });
+      }
+      for (let i = 0; i < lote.length; i += 100) {
+        const { error } = await supabase.from("movimentacao_relatorios").upsert(lote.slice(i, i + 100), { onConflict: "movimentacao_id" });
         if (error) throw error;
       }
       return { encontradas: movsDoMes.length, prontas, semDestinatario, comErro: semEmpresa };
