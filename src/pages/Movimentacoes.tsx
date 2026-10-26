@@ -109,6 +109,7 @@ export default function Movimentacoes() {
   const [anexosMov, setAnexosMov] = useState<{ id: string; nome: string | null; mes: string | null; periodo: string | null } | null>(null);
   const [relatorioMov, setRelatorioMov] = useState<Movimentacao | null>(null);
   const [loteOpen, setLoteOpen] = useState(false);
+  const [prepararResultado, setPrepararResultado] = useState<ResultadoPreparacao | null>(null);
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const { user, isAdmin, isExecutivo, role, isViewOnly } = useAuth();
@@ -593,6 +594,42 @@ export default function Movimentacoes() {
   }, [movimentacoes, filterPeriodo, filterStatus, filterResponsavel, somentePendentes, verSomenteSemEmpresa, searchTerm, respContratoOf]);
 
   const aptosLote = selecionarLoteRelatorios(filtered, relatoriosMap, filterMes, PERIODOS);
+  const movsDoMes = useMemo(() => filtered.filter(m => m.empresa_id && m.mes_referencia === filterMes), [filtered, filterMes]);
+  const loteResumo = useMemo(() => resumoLoteEnvio(movsDoMes, relatoriosMap), [movsDoMes, relatoriosMap]);
+  const contextoLote = `${formatMesReferencia(filterMes)} · ${filterPeriodo === "all" ? "todos os períodos" : `Período ${filterPeriodo}`}`;
+
+  const prepararRelatorios = useMutation({
+    mutationFn: async (): Promise<ResultadoPreparacao> => {
+      const semEmpresa = filtered.filter(m => !m.empresa_id && m.mes_referencia === filterMes).length;
+      const empresaIds = [...new Set(movsDoMes.map(m => m.empresa_id!))];
+      const emails = new Map<string, string>();
+      for (let i = 0; i < empresaIds.length; i += 100) {
+        const { data, error } = await supabase.from("empresas").select("id, email_empresa, email_financeiro_cliente").in("id", empresaIds.slice(i, i + 100));
+        if (error) throw error;
+        for (const e of data ?? []) emails.set(e.id, [e.email_empresa, e.email_financeiro_cliente].filter(Boolean).join("; "));
+      }
+      let prontas = 0, semDestinatario = 0;
+      for (const m of movsDoMes) {
+        const existente = relatoriosMap.get(m.id);
+        const destinatarios = emails.get(m.empresa_id!) || existente?.destinatarios || "";
+        const classe = classificarPreparacao(existente, destinatarios);
+        if (classe === "final") continue;
+        const status = classe === "pronto" ? "Pronto para envio" : "Sem destinatário";
+        if (classe === "pronto") prontas++; else semDestinatario++;
+        const { error } = await supabase.from("movimentacao_relatorios").upsert({
+          movimentacao_id: m.id, status, destinatarios, data_envio: null,
+          confirmacao: "Aguardando", observacoes: existente?.observacoes ?? "",
+        }, { onConflict: "movimentacao_id" });
+        if (error) throw error;
+      }
+      return { encontradas: movsDoMes.length, prontas, semDestinatario, comErro: semEmpresa };
+    },
+    onSuccess: async resultado => {
+      await queryClient.invalidateQueries({ queryKey: ["movimentacao-relatorios"] });
+      setPrepararResultado(resultado);
+    },
+    onError: (e: Error) => toast({ title: "Não foi possível preparar os relatórios", description: e.message, variant: "destructive" }),
+  });
   useEffect(() => { setLoteOpen(false); }, [filterMes, filterPeriodo, filterStatus, filterResponsavel, somentePendentes, verSomenteSemEmpresa, searchTerm]);
 
   const mesesOptions = useMemo(() => {
