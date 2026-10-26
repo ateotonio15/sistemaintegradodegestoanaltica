@@ -1206,6 +1206,14 @@ export default function Movimentacoes() {
                               <span className="text-muted-foreground text-sm">—</span>
                             )}
                           </TableCell>
+                          <TableCell>
+                            <Button variant="outline" size="sm" className="h-auto min-h-8 max-w-[190px] whitespace-normal text-left" disabled={carregandoRelatorios || erroRelatorios} onClick={() => setRelatorioMov(m)} aria-label={`Relatório de vidas de ${m.empresas?.nome ?? "empresa"}`}>
+                              {carregandoRelatorios ? "Carregando..." : erroRelatorios ? "Indisponível" : relatorio.status}
+                            </Button>
+                          </TableCell>
+                          <TableCell className="min-w-[160px] max-w-[240px] whitespace-normal break-words">{relatorio.destinatarios || "—"}</TableCell>
+                          <TableCell className="whitespace-nowrap">{formatDateBR(relatorio.data_envio)}</TableCell>
+                          <TableCell className="min-w-[160px] whitespace-normal">{relatorio.confirmacao}</TableCell>
                           {canEditDates && (
                           <TableCell>
                             <div className="flex gap-1">
@@ -1233,6 +1241,15 @@ export default function Movimentacoes() {
         open={!!anexosMov}
         onOpenChange={(o) => !o && setAnexosMov(null)}
       />
+      {relatorioMov && <RelatorioManualDialog
+        key={relatorioMov.id}
+        movimentacaoId={relatorioMov.id}
+        nome={relatorioMov.empresas?.nome ?? "Sem empresa"}
+        contexto={`${formatMesReferencia(relatorioMov.mes_referencia)} · ${relatorioMov.periodo ?? "—"}`}
+        registro={relatoriosMap.get(relatorioMov.id)}
+        canEdit={canEditDates}
+        onClose={() => setRelatorioMov(null)}
+      />}
 
       <Dialog open={dashboardOpen} onOpenChange={setDashboardOpen}>
         <DialogContent className="max-w-[95vw] w-full h-[90vh] p-0 overflow-hidden flex flex-col">
