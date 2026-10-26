@@ -1,8 +1,8 @@
 # Roadmap — Primeiro pacote financeiro
 
 ## Relatórios de vidas em Movimentações
-- [ ] Integrar quatro colunas e formulário de registro manual, persistência protegida e status independente.
-- [ ] Testar validação e conferir salvar/reabrir na sessão autenticada.
+- [x] Integrar quatro colunas e formulário de registro manual, persistência protegida e status independente.
+- [x] Cinco testes aprovados; salvar/reabrir conferido na sessão autenticada com gravação interceptada, sem dados fictícios na operação; persistência real não exercitada.
 
 ## Central — adesão explícita e contexto da nota 17790
 - [x] Ler e comparar adesão separadamente; 42 testes do servidor e 67 regressões aprovados, incluindo centavos, ausência, quantidade não informada e dupla contagem.
