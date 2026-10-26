@@ -2000,6 +2000,94 @@ export type Database = {
           },
         ]
       }
+      demandas_cirurgia_lidas: {
+        Row: {
+          lida_em: string
+          notificacao_id: string
+          user_id: string
+        }
+        Insert: {
+          lida_em?: string
+          notificacao_id: string
+          user_id: string
+        }
+        Update: {
+          lida_em?: string
+          notificacao_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "demandas_cirurgia_lidas_notificacao_id_fkey"
+            columns: ["notificacao_id"]
+            isOneToOne: false
+            referencedRelation: "demandas_cirurgia_notificacoes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      demandas_cirurgia_notificacoes: {
+        Row: {
+          agendamento_id: string
+          created_at: string
+          data_cirurgia: string
+          demanda_id: string
+          id: string
+          nome_medico: string
+          nome_paciente: string
+        }
+        Insert: {
+          agendamento_id: string
+          created_at?: string
+          data_cirurgia: string
+          demanda_id: string
+          id?: string
+          nome_medico: string
+          nome_paciente: string
+        }
+        Update: {
+          agendamento_id?: string
+          created_at?: string
+          data_cirurgia?: string
+          demanda_id?: string
+          id?: string
+          nome_medico?: string
+          nome_paciente?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "demandas_cirurgia_notificacoes_demanda_id_fkey"
+            columns: ["demanda_id"]
+            isOneToOne: false
+            referencedRelation: "demandas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      demandas_cirurgia_sync: {
+        Row: {
+          erro: string | null
+          id: boolean
+          reservado_ate: string | null
+          ultima_consulta_em: string | null
+          ultimo_sucesso_em: string | null
+        }
+        Insert: {
+          erro?: string | null
+          id?: boolean
+          reservado_ate?: string | null
+          ultima_consulta_em?: string | null
+          ultimo_sucesso_em?: string | null
+        }
+        Update: {
+          erro?: string | null
+          id?: boolean
+          reservado_ate?: string | null
+          ultima_consulta_em?: string | null
+          ultimo_sucesso_em?: string | null
+        }
+        Relationships: []
+      }
       empresa_cnpj_situacao: {
         Row: {
           cnpj: string
@@ -6665,6 +6753,7 @@ export type Database = {
         Args: { p_empresa_id: string; p_motivo_remocao?: string }
         Returns: undefined
       }
+      reservar_sync_cirurgias: { Args: never; Returns: boolean }
       responder_avaliacao_plantao_com_executiva_por_token: {
         Args: {
           p_comentario: string
