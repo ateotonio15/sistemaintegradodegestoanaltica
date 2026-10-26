@@ -630,7 +630,7 @@ export default function Movimentacoes() {
     },
     onError: (e: Error) => toast({ title: "Não foi possível preparar os relatórios", description: e.message, variant: "destructive" }),
   });
-  useEffect(() => { setLoteOpen(false); }, [filterMes, filterPeriodo, filterStatus, filterResponsavel, somentePendentes, verSomenteSemEmpresa, searchTerm]);
+  useEffect(() => { setLoteOpen(false); setPrepararResultado(null); }, [filterMes, filterPeriodo, filterStatus, filterResponsavel, somentePendentes, verSomenteSemEmpresa, searchTerm]);
 
   const mesesOptions = useMemo(() => {
     const options: string[] = [];
@@ -843,6 +843,29 @@ export default function Movimentacoes() {
               >
                 <Sparkles className={`mr-2 h-4 w-4 ${gerandoMov ? "animate-pulse" : ""}`} />
                 {gerandoMov ? "Gerando..." : "Gerar Movimentação"}
+              </Button>
+            )}
+            {canEditDates && (
+              <Button
+                variant="outline"
+                className="rounded-lg"
+                onClick={() => prepararRelatorios.mutate()}
+                disabled={prepararRelatorios.isPending || !movsDoMes.length || carregandoRelatorios || erroRelatorios}
+                title="Preparar os relatórios de vidas das empresas do filtro atual"
+              >
+                <Mail className={`mr-2 h-4 w-4 ${prepararRelatorios.isPending ? "animate-pulse" : ""}`} />
+                {prepararRelatorios.isPending ? "Preparando..." : "Preparar Relatórios"}
+              </Button>
+            )}
+            {canEditDates && (
+              <Button
+                variant="outline"
+                className="rounded-lg"
+                onClick={() => setLoteOpen(true)}
+                disabled={!aptosLote.length || carregandoRelatorios || erroRelatorios}
+                title="Enviar os relatórios prontos para envio"
+              >
+                <Send className="mr-2 h-4 w-4" />Enviar Relatórios ({aptosLote.length})
               </Button>
             )}
 
