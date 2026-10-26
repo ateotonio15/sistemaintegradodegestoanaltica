@@ -51,3 +51,50 @@ export function validarRegistroRelatorio(r: RegistroRelatorio): string | null {
   if ((r.confirmacao !== "Aguardando" && r.status !== r.confirmacao) || (["Conferido pela empresa", "Divergência informada"].includes(r.status) && r.confirmacao !== r.status)) return "A confirmação deve corresponder ao status do relatório.";
   return null;
 }
+/** Rótulos curtos do status do relatório para a coluna compacta "Relatório". */
+const ROTULOS_CURTOS_RELATORIO: Record<string, string> = {
+  "Não gerado": "Não gerado",
+  "Gerando": "Gerando",
+  "Pronto para envio": "Pronto",
+  "Sem destinatário": "Sem e-mail",
+  "Enviando": "Enviando",
+  "Enviado": "Enviado",
+  "Erro no envio": "Erro",
+  "Conferido pela empresa": "Conferido",
+  "Divergência informada": "Divergência",
+};
+export function rotuloCurtoRelatorio(status: string): string {
+  return ROTULOS_CURTOS_RELATORIO[status] ?? status;
+}
+/** Classes do badge do relatório; apenas apresentação, não altera o status guardado. */
+export function relatorioBadgeClass(status: string): string {
+  switch (status) {
+    case "Enviado":
+      return "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border-emerald-500/40";
+    case "Conferido pela empresa":
+      return "bg-emerald-600/20 text-emerald-700 dark:text-emerald-300 border-emerald-600/40";
+    case "Pronto para envio":
+      return "bg-primary/15 text-primary border-primary/40";
+    case "Gerando":
+    case "Enviando":
+      return "bg-blue-500/15 text-blue-600 dark:text-blue-400 border-blue-500/40";
+    case "Sem destinatário":
+      return "bg-amber-500/15 text-amber-600 dark:text-amber-400 border-amber-500/40";
+    case "Erro no envio":
+    case "Divergência informada":
+      return "bg-destructive/15 text-destructive border-destructive/40";
+    default:
+      return "bg-muted text-muted-foreground border-border";
+  }
+}
+/** Nome de exibição do arquivo do relatório de vidas (apenas apresentação). */
+export function nomeArquivoRelatorio(empresaNome: string, mesReferencia: string): string {
+  const [ano, mes] = mesReferencia.split("-");
+  const meses = ["JAN", "FEV", "MAR", "ABR", "MAI", "JUN", "JUL", "AGO", "SET", "OUT", "NOV", "DEZ"];
+  const rotuloMes = meses[parseInt(mes, 10) - 1] ?? mes ?? "";
+  const nome = empresaNome
+    .normalize("NFD").replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^A-Za-z0-9]+/g, "_").replace(/^_+|_+$/g, "")
+    .toUpperCase() || "EMPRESA";
+  return `RELATORIO_VIDAS_${nome}_${rotuloMes}-${ano}.xlsx`;
+}

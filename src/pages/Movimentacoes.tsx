@@ -13,7 +13,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useToast } from "@/hooks/use-toast";
-import { Plus, Pencil, Trash2, Download, Search, Plane, LayoutDashboard, RefreshCw, Sparkles, Mail, Send } from "lucide-react";
+import { Plus, Pencil, Trash2, Download, Search, Plane, LayoutDashboard, RefreshCw, Sparkles, Mail, Send, MoreHorizontal, Eye, RotateCcw } from "lucide-react";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 
 import { useAuth } from "@/hooks/useAuth";
 import {
@@ -42,7 +43,8 @@ import { AnexosMovimentacaoDialog } from "@/components/movimentacoes/AnexosMovim
 import { useEmpresaGrupoMap } from "@/hooks/useGrupoFinanceiro";
 import { GrupoTag } from "@/components/financeiro/GrupoTag";
 import { RelatorioManualDialog } from "@/components/movimentacoes/RelatorioManualDialog";
-import { RELATORIO_VAZIO, classificarPreparacao, resumoEnvioRelatorios, resumoLoteEnvio, selecionarLoteRelatorios } from "@/lib/movimentacao-relatorio";
+import { RELATORIO_VAZIO, classificarPreparacao, relatorioFinalizado, resumoEnvioRelatorios, resumoLoteEnvio, selecionarLoteRelatorios } from "@/lib/movimentacao-relatorio";
+import { RelatorioStatusBadge } from "@/components/movimentacoes/RelatorioStatusBadge";
 import { RelatorioLoteDialog } from "@/components/movimentacoes/RelatorioLoteDialog";
 import { PrepararRelatoriosDialog, type ResultadoPreparacao } from "@/components/movimentacoes/PrepararRelatoriosDialog";
 
@@ -108,6 +110,7 @@ export default function Movimentacoes() {
   const [verSomenteSemEmpresa, setVerSomenteSemEmpresa] = useState(false);
   const [anexosMov, setAnexosMov] = useState<{ id: string; nome: string | null; mes: string | null; periodo: string | null } | null>(null);
   const [relatorioMov, setRelatorioMov] = useState<Movimentacao | null>(null);
+  const [relatorioStatusInicial, setRelatorioStatusInicial] = useState<string | undefined>(undefined);
   const [loteOpen, setLoteOpen] = useState(false);
   const [prepararResultado, setPrepararResultado] = useState<ResultadoPreparacao | null>(null);
   const { toast } = useToast();
@@ -1182,7 +1185,7 @@ export default function Movimentacoes() {
                     <TableHead className="font-semibold">Financeiro</TableHead>
                     <TableHead className="font-semibold">Status Faturamento</TableHead>
                     <TableHead className="font-semibold">Nota Enviada</TableHead>
-                    <TableHead className="font-semibold whitespace-nowrap">Status do Relatório</TableHead>
+                    <TableHead className="font-semibold whitespace-nowrap">Relatório</TableHead>
                     {canEditDates && <TableHead className="w-24 font-semibold">Ações</TableHead>}
                   </TableRow>
                 </TableHeader>
@@ -1277,15 +1280,39 @@ export default function Movimentacoes() {
                             )}
                           </TableCell>
                           <TableCell>
-                            <Button variant="outline" size="sm" className="h-auto min-h-8 max-w-[190px] whitespace-normal text-left" disabled={carregandoRelatorios || erroRelatorios} onClick={() => setRelatorioMov(m)} aria-label={`Relatório de vidas de ${m.empresas?.nome ?? "empresa"}`}>
-                              {carregandoRelatorios ? "Carregando..." : erroRelatorios ? "Indisponível" : relatorio.status}
-                            </Button>
+                            <RelatorioStatusBadge
+                              registro={relatorio}
+                              empresaNome={m.empresas?.nome ?? "empresa"}
+                              mesReferencia={m.mes_referencia ?? null}
+                              desabilitado={carregandoRelatorios || erroRelatorios}
+                              rotulo={carregandoRelatorios ? "Carregando..." : "Indisponível"}
+                            />
                           </TableCell>
                           {canEditDates && (
                           <TableCell>
                             <div className="flex gap-1">
                               <Button variant="ghost" size="icon" onClick={() => openEdit(m)} className="rounded-lg hover:bg-primary/10"><Pencil className="h-4 w-4 text-primary" /></Button>
-                              
+                              <DropdownMenu>
+                                <DropdownMenuTrigger asChild>
+                                  <Button variant="ghost" size="icon" className="rounded-lg hover:bg-primary/10" aria-label={`Ações do relatório de ${m.empresas?.nome ?? "empresa"}`}>
+                                    <MoreHorizontal className="h-4 w-4 text-primary" />
+                                  </Button>
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent align="end">
+                                  <DropdownMenuItem onClick={() => { setRelatorioStatusInicial(undefined); setRelatorioMov(m); }}>
+                                    <Eye className="mr-2 h-4 w-4" /> Visualizar relatório
+                                  </DropdownMenuItem>
+                                  {!relatorioFinalizado(relatorio) ? (
+                                    <DropdownMenuItem onClick={() => { setRelatorioStatusInicial("Enviado"); setRelatorioMov(m); }}>
+                                      <Send className="mr-2 h-4 w-4" /> Enviar
+                                    </DropdownMenuItem>
+                                  ) : (
+                                    <DropdownMenuItem onClick={() => { setRelatorioStatusInicial("Enviado"); setRelatorioMov(m); }}>
+                                      <RotateCcw className="mr-2 h-4 w-4" /> Reenviar
+                                    </DropdownMenuItem>
+                                  )}
+                                </DropdownMenuContent>
+                              </DropdownMenu>
                             </div>
                           </TableCell>
                           )}
@@ -1309,11 +1336,12 @@ export default function Movimentacoes() {
         onOpenChange={(o) => !o && setAnexosMov(null)}
       />
       {relatorioMov && <RelatorioManualDialog
-        key={relatorioMov.id}
+        key={`${relatorioMov.id}-${relatorioStatusInicial ?? "ver"}`}
         movimentacaoId={relatorioMov.id}
         nome={relatorioMov.empresas?.nome ?? "Sem empresa"}
         contexto={`${formatMesReferencia(relatorioMov.mes_referencia)} · ${relatorioMov.periodo ?? "—"}`}
         registro={relatoriosMap.get(relatorioMov.id)}
+        statusInicial={relatorioStatusInicial}
         canEdit={canEditDates}
         onClose={() => setRelatorioMov(null)}
       />}
