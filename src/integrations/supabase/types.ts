@@ -1097,6 +1097,36 @@ export type Database = {
           },
         ]
       }
+      config_email_relatorios: {
+        Row: {
+          atualizado_em: string
+          atualizado_por: string
+          dominio: string
+          email_remetente: string
+          email_resposta: string | null
+          id: number
+          nome_remetente: string
+        }
+        Insert: {
+          atualizado_em?: string
+          atualizado_por?: string
+          dominio: string
+          email_remetente: string
+          email_resposta?: string | null
+          id?: number
+          nome_remetente: string
+        }
+        Update: {
+          atualizado_em?: string
+          atualizado_por?: string
+          dominio?: string
+          email_remetente?: string
+          email_resposta?: string | null
+          id?: number
+          nome_remetente?: string
+        }
+        Relationships: []
+      }
       config_sync: {
         Row: {
           chave: string
