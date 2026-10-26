@@ -1162,11 +1162,6 @@ export default function Movimentacoes() {
         )}
 
         {/* Table */}
-        {canEditDates && <div className="flex justify-end">
-          <Button variant="outline" disabled={!aptosLote.length || carregandoRelatorios || erroRelatorios} onClick={() => setLoteOpen(true)}>
-            Registrar envio manual em lote ({aptosLote.length})
-          </Button>
-        </div>}
         <Card className="rounded-xl shadow-sm overflow-hidden">
           <CardContent className="p-0">
             <div className="overflow-x-auto">
@@ -1319,7 +1314,12 @@ export default function Movimentacoes() {
         canEdit={canEditDates}
         onClose={() => setRelatorioMov(null)}
       />}
-      {loteOpen && canEditDates && <RelatorioLoteDialog items={aptosLote.map(m => ({ id: m.id, nome: m.empresas?.nome ?? "Sem empresa", periodo: m.periodo, destinatarios: relatoriosMap.get(m.id)?.destinatarios ?? "" }))} onClose={() => setLoteOpen(false)} />}
+      {loteOpen && canEditDates && <RelatorioLoteDialog
+        items={aptosLote.map(m => ({ id: m.id, nome: m.empresas?.nome ?? "Sem empresa", periodo: m.periodo, destinatarios: relatoriosMap.get(m.id)?.destinatarios ?? "" }))}
+        resumo={loteResumo}
+        contexto={contextoLote}
+        onClose={() => setLoteOpen(false)} />}
+      {prepararResultado && <PrepararRelatoriosDialog resultado={prepararResultado} contexto={contextoLote} onClose={() => setPrepararResultado(null)} />}
 
       <Dialog open={dashboardOpen} onOpenChange={setDashboardOpen}>
         <DialogContent className="max-w-[95vw] w-full h-[90vh] p-0 overflow-hidden flex flex-col">
