@@ -365,6 +365,13 @@
       "when": 1792776341192,
       "tag": "0051_nfse_central_vincular_identidade_versoes",
       "breakpoints": true
+    },
+    {
+      "idx": 52,
+      "version": "7",
+      "when": 1793024821083,
+      "tag": "0052_controle_manual_relatorios_movimentacoes",
+      "breakpoints": true
     }
   ]
 }

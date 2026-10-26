@@ -3998,6 +3998,47 @@ export type Database = {
           },
         ]
       }
+      movimentacao_relatorios: {
+        Row: {
+          atualizado_em: string
+          atualizado_por: string
+          confirmacao: string
+          data_envio: string | null
+          destinatarios: string
+          movimentacao_id: string
+          observacoes: string
+          status: string
+        }
+        Insert: {
+          atualizado_em?: string
+          atualizado_por?: string
+          confirmacao?: string
+          data_envio?: string | null
+          destinatarios?: string
+          movimentacao_id: string
+          observacoes?: string
+          status?: string
+        }
+        Update: {
+          atualizado_em?: string
+          atualizado_por?: string
+          confirmacao?: string
+          data_envio?: string | null
+          destinatarios?: string
+          movimentacao_id?: string
+          observacoes?: string
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "movimentacao_relatorios_movimentacao_id_fkey"
+            columns: ["movimentacao_id"]
+            isOneToOne: true
+            referencedRelation: "movimentacoes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       movimentacoes: {
         Row: {
           created_at: string
