@@ -1129,6 +1129,7 @@ export type Database = {
       }
       config_email_remetente_usuario: {
         Row: {
+          assinatura_path: string | null
           atualizado_em: string
           email_remetente: string
           email_resposta: string | null
@@ -1136,6 +1137,7 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          assinatura_path?: string | null
           atualizado_em?: string
           email_remetente: string
           email_resposta?: string | null
@@ -1143,6 +1145,7 @@ export type Database = {
           user_id: string
         }
         Update: {
+          assinatura_path?: string | null
           atualizado_em?: string
           email_remetente?: string
           email_resposta?: string | null

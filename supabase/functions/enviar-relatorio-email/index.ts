@@ -58,7 +58,7 @@ Deno.serve(async (req) => {
 
     // Remetente: o próprio cadastro do usuário (perfil Cadastro) ou o remetente geral.
     const { data: proprio } = await admin.from("config_email_remetente_usuario")
-      .select("nome_remetente, email_remetente, email_resposta").eq("user_id", u.user.id).maybeSingle();
+      .select("nome_remetente, email_remetente, email_resposta, assinatura_path").eq("user_id", u.user.id).maybeSingle();
     const { data: geral } = await admin.from("config_email_relatorios")
       .select("nome_remetente, email_remetente, email_resposta").eq("id", 1).maybeSingle();
     const rem = (papeis.includes("comum") && proprio) ? proprio : geral;
@@ -75,12 +75,23 @@ Deno.serve(async (req) => {
     const competencia = mes ? `${MESES[Number(mes) - 1]}/${ano}` : "";
     const assunto = `RELATORIOS PARA CONFERENCIA EMPRESA ${codigo} - ${nome}`.replace(/\s+/g, " ").trim();
     const texto = `Prezados,\n\nSegue em anexo o relatório de vidas da empresa ${codigo} - ${nome}${competencia ? `, referente a ${competencia}` : ""}, para conferência.\n\nPedimos, por gentileza, que confiram as informações e nos confirmem por este e-mail se está tudo correto ou se há alguma divergência.\n\nAtenciosamente,\n${nomeRem}\nSamel`;
-    const assinatura = await Deno.readFile(new URL("./assinatura-samel.png", import.meta.url));
+    // Assinatura: a da pessoa que enviou (quando cadastrada); senão, a padrão da Samel.
+    let assinatura: Uint8Array | null = null;
+    let assinaturaMime = "image/png";
+    const pathProprio = (papeis.includes("comum") && proprio?.assinatura_path) ? String(proprio.assinatura_path) : null;
+    if (pathProprio && /^[0-9a-f-]{36}\.(png|jpg)$/.test(pathProprio)) {
+      const { data: blob } = await admin.storage.from("assinaturas-email").download(pathProprio);
+      if (blob) {
+        assinatura = new Uint8Array(await blob.arrayBuffer());
+        assinaturaMime = pathProprio.endsWith(".jpg") ? "image/jpeg" : "image/png";
+      }
+    }
+    if (!assinatura) assinatura = await Deno.readFile(new URL("./assinatura-samel.png", import.meta.url));
     const html = `<div style="font-family:Arial,sans-serif;font-size:14px;color:#222">${texto.split("\n").map(l => l ? esc(l) : "").join("<br>")}<br><img src="cid:assinatura-samel" alt="Assinatura Samel" style="max-width:460px;margin-top:16px"></div>`;
 
     await enviarSmtp({
       fromNome: nomeRem, fromEmail, replyTo, para: destinatarios, assunto, html, texto, anexos,
-      inline: [{ cid: "assinatura-samel", nome: "assinatura-samel.png", mime: "image/png", conteudo: assinatura }],
+      inline: [{ cid: "assinatura-samel", nome: "assinatura.png", mime: assinaturaMime, conteudo: assinatura }],
     });
 
     const hoje = hojeManaus();

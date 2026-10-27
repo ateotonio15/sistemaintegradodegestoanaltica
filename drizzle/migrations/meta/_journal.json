@@ -407,6 +407,13 @@
       "when": 1793107924697,
       "tag": "0057_reajustes_sync_token_cron",
       "breakpoints": true
+    },
+    {
+      "idx": 58,
+      "version": "7",
+      "when": 1793111299879,
+      "tag": "0058_assinatura_email_usuario",
+      "breakpoints": true
     }
   ]
 }
