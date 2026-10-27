@@ -114,9 +114,9 @@ Deno.serve(async (req) => {
     }
     if (!assinatura) assinatura = Uint8Array.from(atob(ASSINATURA_PADRAO_B64), (c) => c.charCodeAt(0));
     // Resumo (última página do relatório) vai no corpo, entre o texto e a assinatura.
-    const imgResumo = resumoPng ? `<img src="cid:resumo-relatorio" alt="Resumo do relatório" style="max-width:760px;margin-top:8px;display:block">` : "";
+    const imgResumo = resumoPng ? `<img src="cid:resumo-relatorio" width="760" alt="Resumo do relatório" style="width:760px;max-width:100%;height:auto;margin-top:8px;display:block">` : "";
     const paragrafos = texto.split("\n").filter(Boolean).map(l => `<p style="margin:0 0 12px">${esc(l)}</p>`).join("");
-    const html = `<div style="font-family:Arial,sans-serif;font-size:14px;color:#222">${paragrafos}${imgResumo}<p style="margin:20px 0 12px">Permanecerei à disposição.</p><p style="margin:0 0 8px">Cordialmente,</p><img src="cid:assinatura-samel" alt="Assinatura Samel" style="max-width:540px"></div>`;
+    const html = `<div style="font-family:Arial,sans-serif;font-size:14px;color:#222">${paragrafos}${imgResumo}<p style="margin:20px 0 12px">Permanecerei à disposição.</p><p style="margin:0 0 8px">Cordialmente,</p><img src="cid:assinatura-samel" width="540" alt="Assinatura Samel" style="width:540px;max-width:100%;height:auto"></div>`;
     const textoCompleto = [texto, "", ...fechamento].join("\n");
 
     await enviarSmtp({
