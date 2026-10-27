@@ -2862,6 +2862,30 @@ export async function analisarExcelFinanceiroPorCnpj(
           b.inclusoes = { quantidade: b.inclusoes.quantidade + q, total: b.inclusoes.total + v };
         });
       }
+    } else if (
+      blocos.length === 1 &&
+      linhasPrincipaisTemRetroativa &&
+      deltaT > 0.001 &&
+      Math.abs(extraRetroTotal - jaRetroTotal) > 0.01 &&
+      totalDeclaradoResumoConfere(wb, somarTotalFaturamento(blocos[0]) + extraRetroTotal)
+    ) {
+      // As abas dedicadas ("RETROATIVO JUNHO") trazem cobranças adicionais às
+      // linhas retroativas do relatório principal: o "Total" declarado no
+      // RESUMO só fecha somando as duas. Sem essa prova, continuam detalhamento.
+      const b = blocos[0];
+      const det = [
+        ...(b.retroativas?.mesesDetalhe ?? []),
+        ...(scaleDetalhe(1) ?? []),
+      ];
+      b.retroativas = {
+        quantidade: (b.retroativas?.quantidade ?? 0) + extraRetroQtd,
+        total: (b.retroativas?.total ?? 0) + extraRetroTotal,
+        meses: mesesArr,
+        mesesDetalhe: scaleDetalhe(1),
+      };
+      b.retroativasReajuste = { quantidade: extraRetroQtd, total: extraRetroTotal, meses: mesesArr, mesesDetalhe: scaleDetalhe(1) };
+      b.inclusoes = { quantidade: b.inclusoes.quantidade + extraRetroQtd, total: b.inclusoes.total + extraRetroTotal };
+      void det;
     } else if (mesesArr.length) {
       blocos.forEach((b) => {
         if (b.retroativas) {
