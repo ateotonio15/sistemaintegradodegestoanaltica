@@ -11,6 +11,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, Di
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { STATUS_RELATORIO, CONFIRMACOES_RELATORIO, RELATORIO_VAZIO, validarRegistroRelatorio, type RegistroRelatorio } from "@/lib/movimentacao-relatorio";
+import { RELATORIO_BUCKET, RELATORIO_TABELA } from "@/lib/relatorio-arquivos";
+import { gerarResumoUltimaPaginaPdf } from "@/lib/relatorio-resumo-pdf";
 
 function hojeLocalISO(): string {
   const d = new Date();
