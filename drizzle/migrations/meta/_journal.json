@@ -414,6 +414,13 @@
       "when": 1793111299879,
       "tag": "0058_assinatura_email_usuario",
       "breakpoints": true
+    },
+    {
+      "idx": 59,
+      "version": "7",
+      "when": 1793112160817,
+      "tag": "0059_arquivos_relatorio_movimentacao",
+      "breakpoints": true
     }
   ]
 }
