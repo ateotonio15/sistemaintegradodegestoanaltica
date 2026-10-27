@@ -108,6 +108,7 @@ export function RelatorioManualDialog({ movimentacaoId, nome, contexto, registro
           </Select>
         </div>
         <div className="space-y-2"><Label htmlFor="relatorio-destinatarios">Destinatários</Label><Textarea id="relatorio-destinatarios" value={form.destinatarios} disabled={!canEdit || save.isPending} onChange={e => setForm(f => ({ ...f, destinatarios: e.target.value }))} /></div>
+        <div className="space-y-2"><Label htmlFor="relatorio-copia">Com cópia (Cc)</Label><Textarea id="relatorio-copia" value={copia} disabled={!canEdit || save.isPending} placeholder="E-mails que recebem uma cópia visível (opcional)" onChange={e => setCopia(e.target.value)} /></div>
         <div className="space-y-2"><Label htmlFor="relatorio-data">Data de Envio</Label><Input id="relatorio-data" type="date" disabled={!canEdit || save.isPending} value={form.data_envio ?? ""} onChange={e => setForm(f => ({ ...f, data_envio: e.target.value || null }))} /></div>
         <div className="space-y-2"><Label htmlFor="relatorio-confirmacao">Confirmação da Empresa</Label>
           <Select disabled={!canEdit || save.isPending} value={form.confirmacao} onValueChange={confirmacao => setForm(f => ({ ...f, confirmacao, status: confirmacao !== "Aguardando" ? confirmacao : ["Conferido pela empresa", "Divergência informada"].includes(f.status) ? "Enviado" : f.status }))}>

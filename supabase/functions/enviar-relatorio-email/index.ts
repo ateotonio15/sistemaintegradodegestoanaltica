@@ -123,6 +123,8 @@ Deno.serve(async (req) => {
 
     try { await enviarSmtp({
       fromNome: nomeRem, fromEmail, replyTo, para: destinatarios,
+      // Cópia visível escolhida na tela; a empresa vê quem está em cópia.
+      cc: cc ?? [],
       // Cópia oculta para quem enviou, para o Cadastro guardar o e-mail enviado.
       bcc: [...new Set([fromEmail, replyTo].filter((e): e is string => !!e && /@/.test(e)))], assunto, html, texto: textoCompleto, anexos,
       inline: [
