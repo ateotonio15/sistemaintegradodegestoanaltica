@@ -90,6 +90,7 @@ export default function Reajustes() {
         .from("empresas")
         .select("id,nome,codigo_contrato,status_empresa,data_implantacao,responsavel_user_id,responsavel_contrato,valor_enfermaria_centavos,valor_apartamento_centavos,faixas_etarias,contrato_faixa_etaria")
         .eq("status_empresa", "Ativa")
+        .eq("isento_reajuste", false)
         .order("nome");
       if (error) throw error;
       return data as any[];

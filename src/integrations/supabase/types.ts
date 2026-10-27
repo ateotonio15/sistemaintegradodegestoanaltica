@@ -2377,6 +2377,7 @@ export type Database = {
           faixas_etarias: Json | null
           grupo_contrato: string | null
           id: string
+          isento_reajuste: boolean
           motivo_suspensao: string | null
           nao_faturado_financeiro: boolean
           nao_reajustado: boolean
@@ -2445,6 +2446,7 @@ export type Database = {
           faixas_etarias?: Json | null
           grupo_contrato?: string | null
           id?: string
+          isento_reajuste?: boolean
           motivo_suspensao?: string | null
           nao_faturado_financeiro?: boolean
           nao_reajustado?: boolean
@@ -2513,6 +2515,7 @@ export type Database = {
           faixas_etarias?: Json | null
           grupo_contrato?: string | null
           id?: string
+          isento_reajuste?: boolean
           motivo_suspensao?: string | null
           nao_faturado_financeiro?: boolean
           nao_reajustado?: boolean

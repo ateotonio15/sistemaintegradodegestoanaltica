@@ -13,11 +13,15 @@ import {
   fetchReajustesOperadora, calcularFaixas, modalidadePlano, parseDataReajuste,
   type ReajusteContratoApi, type FaixaCalc,
 } from "@/lib/reajustesOperadoraApi";
+import {
+  type SituacaoReajusteOperadora, empresaIsentaReajuste,
+  classificarReajusteOperadora, podeImportarReajusteOperadora,
+} from "@/lib/reajuste-isento";
 
-type Situacao = "novo" | "registrado" | "nao_encontrado";
+type Situacao = SituacaoReajusteOperadora;
 interface Linha {
   api: ReajusteContratoApi;
-  empresa?: { id: string; nome: string };
+  empresa?: { id: string; nome: string; isento?: boolean };
   ano: number; mes: number; data: string;
   enf: FaixaCalc[]; apt: FaixaCalc[];
   situacao: Situacao;
@@ -51,14 +55,14 @@ export function ImportarReajustesOperadoraDialog({ open, onOpenChange }: { open:
         };
         const [api, empData, reaData] = await Promise.all([
           fetchReajustesOperadora(),
-          fetchAll("empresas", "id,nome,codigo_contrato"),
+          fetchAll("empresas", "id,nome,codigo_contrato,isento_reajuste"),
           fetchAll("reajustes_anuais", "empresa_id,ano"),
         ]);
         const empRes = { data: empData }; const reaRes = { data: reaData };
-        const porContrato = new Map<string, { id: string; nome: string }>();
+        const porContrato = new Map<string, { id: string; nome: string; isento: boolean }>();
         (empRes.data ?? []).forEach((e: any) => {
           const c = String(e.codigo_contrato ?? "").trim().replace(/^0+/, "");
-          if (c) porContrato.set(c, { id: e.id, nome: e.nome });
+          if (c) porContrato.set(c, { id: e.id, nome: e.nome, isento: empresaIsentaReajuste(e) });
         });
         const existentes = new Set((reaRes.data ?? []).map((r: any) => `${r.empresa_id}|${r.ano}`));
         const out: Linha[] = [];
@@ -74,7 +78,11 @@ export function ImportarReajustesOperadoraDialog({ open, onOpenChange }: { open:
           }
           out.push({
             api: a, empresa: emp, ...d, enf, apt,
-            situacao: !emp ? "nao_encontrado" : existentes.has(`${emp.id}|${d.ano}`) ? "registrado" : "novo",
+            situacao: classificarReajusteOperadora({
+              empresaId: emp?.id ?? null,
+              isento: !!emp?.isento,
+              jaRegistrado: existentes.has(`${emp?.id}|${d.ano}`),
+            }),
           });
         }
         out.sort((x, y) => x.situacao.localeCompare(y.situacao) || x.data.localeCompare(y.data));
@@ -90,7 +98,7 @@ export function ImportarReajustesOperadoraDialog({ open, onOpenChange }: { open:
     if (!q) return linhas;
     return linhas.filter((l) => l.api.NM_CONTRATO.toLowerCase().includes(q) || String(l.api.NR_CONTRATO).includes(q));
   }, [linhas, busca]);
-  const novos = linhas.filter((l) => l.situacao === "novo");
+  const novos = linhas.filter((l) => podeImportarReajusteOperadora(l.situacao));
 
   const importar = async () => {
     setSaving(true);
@@ -164,6 +172,7 @@ export function ImportarReajustesOperadoraDialog({ open, onOpenChange }: { open:
   const badge = (s: Situacao) =>
     s === "novo" ? <Badge className="bg-primary/15 text-primary border-primary/30">Novo</Badge>
     : s === "registrado" ? <Badge variant="secondary">Já registrado</Badge>
+    : s === "isento" ? <Badge variant="outline" className="text-muted-foreground">Isento de reajuste</Badge>
     : <Badge variant="destructive">Contrato não encontrado</Badge>;
 
   const faixasTxt = (fs: FaixaCalc[]) => fs.length === 0 ? "—" : fs.map((f) =>
@@ -189,6 +198,7 @@ export function ImportarReajustesOperadoraDialog({ open, onOpenChange }: { open:
               <span>Novos: <b>{novos.length}</b></span>
               <span>Já registrados: <b>{linhas.filter((l) => l.situacao === "registrado").length}</b></span>
               <span>Não encontrados: <b>{linhas.filter((l) => l.situacao === "nao_encontrado").length}</b></span>
+              <span>Isentos: <b>{linhas.filter((l) => l.situacao === "isento").length}</b></span>
             </div>
             <div className="flex-1 overflow-auto space-y-2 pr-1">
               {filtradas.map((l) => (
