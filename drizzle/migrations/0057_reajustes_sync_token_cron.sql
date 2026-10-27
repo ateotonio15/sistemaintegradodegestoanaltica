@@ -1,0 +1,3 @@
+INSERT INTO public.config_sync (chave, valor) VALUES ('sync_reajustes_token', encode(extensions.gen_random_bytes(32),'hex')) ON CONFLICT (chave) DO NOTHING;
+SELECT cron.unschedule('reajustes-operadora-sync-diario');
+SELECT cron.schedule('reajustes-operadora-sync-diario', '0 * * * *', $$SELECT net.http_post(url := 'https://gdojlriuewowyomypwzl.supabase.co/functions/v1/reajustes-operadora-sync', headers := jsonb_build_object('Content-Type','application/json','x-sync-token',(SELECT valor FROM public.config_sync WHERE chave='sync_reajustes_token')), body := '{}'::jsonb, timeout_milliseconds := 120000);$$);
