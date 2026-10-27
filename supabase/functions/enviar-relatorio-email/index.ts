@@ -113,7 +113,7 @@ Deno.serve(async (req) => {
     }
     if (!assinatura) assinatura = await Deno.readFile(new URL("./assinatura-samel.png", import.meta.url));
     // Resumo (última página do relatório) vai no corpo, entre o texto e a assinatura.
-    const imgResumo = resumoPng ? `<br><img src="cid:resumo-relatorio" alt="Resumo do relatório" style="max-width:640px;margin-top:12px;border:1px solid #ccc">` : "";
+    const imgResumo = resumoPng ? `<img src="cid:resumo-relatorio" alt="Resumo do relatório" style="max-width:760px;margin-top:8px;display:block">` : "";
     const paragrafos = texto.split("\n").filter(Boolean).map(l => `<p style="margin:0 0 12px">${esc(l)}</p>`).join("");
     const html = `<div style="font-family:Arial,sans-serif;font-size:14px;color:#222">${paragrafos}${imgResumo}<p style="margin:20px 0 12px">Permanecerei à disposição.</p><p style="margin:0 0 8px">Cordialmente,</p><img src="cid:assinatura-samel" alt="Assinatura Samel" style="max-width:540px"></div>`;
     const textoCompleto = [texto, "", ...fechamento].join("\n");
