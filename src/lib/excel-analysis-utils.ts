@@ -1,5 +1,6 @@
 import ExcelJS from "exceljs";
 import { getForceGroupByNamePatterns } from "@/lib/regras-empresariais";
+import { somarTotalFaturamento } from "@/lib/faturamento-totais";
 
 export interface CategoriaResultado {
   beneficiarios: number;
@@ -1407,6 +1408,28 @@ function parseCoparticipacaoPivotTipoCobranca(
 /**
  * Lê a aba RESUMO do workbook (se existir) e retorna as linhas como matriz.
  */
+/**
+ * Confere se a aba RESUMO declara um "Total" geral (linha cujo rótulo é só
+ * "Total") igual ao valor esperado. Usado como prova antes de somar abas de
+ * retroativo dedicadas às linhas retroativas do relatório principal.
+ */
+function totalDeclaradoResumoConfere(wb: ExcelJS.Workbook, esperado: number): boolean {
+  const rows = lerRowsAbaResumo(wb);
+  if (!rows) return false;
+  for (const r of rows) {
+    const i = (r || []).findIndex((c) => norm(c) === "total");
+    if (i < 0) continue;
+    for (let c = i + 1; c < r.length; c++) {
+      const n = toNumber(r[c]);
+      if (!isNaN(n)) {
+        if (Math.abs(n - esperado) < 0.01) return true;
+        break;
+      }
+    }
+  }
+  return false;
+}
+
 function lerRowsAbaResumo(wb: ExcelJS.Workbook): unknown[][] | null {
   const ws = wb.worksheets.find((s) => norm(s.name).includes("resumo"));
   if (!ws) return null;
@@ -2795,6 +2818,8 @@ export async function analisarExcelFinanceiroPorCnpj(
     return null;
   };
 
+  const detalheSomaT = detalheArr.reduce((s, d) => s + d.total, 0);
+  const detalheSomaQ = detalheArr.reduce((s, d) => s + d.quantidade, 0);
   const scaleDetalhe = (w: number): RetroativaMesDetalhe[] | undefined =>
     detalheArr.length
       ? detalheArr.map((d) => ({ mes: d.mes, quantidade: Math.round(d.quantidade * w), total: d.total * w }))
@@ -2862,6 +2887,27 @@ export async function analisarExcelFinanceiroPorCnpj(
           b.inclusoes = { quantidade: b.inclusoes.quantidade + q, total: b.inclusoes.total + v };
         });
       }
+    } else if (
+      blocos.length === 1 &&
+      linhasPrincipaisTemRetroativa &&
+      detalheArr.length > 0 &&
+      detalheSomaT > 0.001 &&
+      Math.abs(detalheSomaT - jaRetroTotal) > 0.01 &&
+      totalDeclaradoResumoConfere(wb, somarTotalFaturamento(blocos[0]) + detalheSomaT)
+    ) {
+      // As abas dedicadas ("RETROATIVO JUNHO") trazem cobranças adicionais às
+      // linhas retroativas do relatório principal: o "Total" declarado no
+      // RESUMO só fecha somando as duas. Sem essa prova, continuam detalhamento.
+      const b = blocos[0];
+      b.retroativasBeneficiarios = b.retroativas ? { ...b.retroativas } : undefined;
+      b.retroativas = {
+        quantidade: (b.retroativas?.quantidade ?? 0) + detalheSomaQ,
+        total: (b.retroativas?.total ?? 0) + detalheSomaT,
+        meses: mesesArr,
+        mesesDetalhe: scaleDetalhe(1),
+      };
+      b.retroativasReajuste = { quantidade: detalheSomaQ, total: detalheSomaT, meses: mesesArr, mesesDetalhe: scaleDetalhe(1) };
+      b.inclusoes = { quantidade: b.inclusoes.quantidade + detalheSomaQ, total: b.inclusoes.total + detalheSomaT };
     } else if (mesesArr.length) {
       blocos.forEach((b) => {
         if (b.retroativas) {
