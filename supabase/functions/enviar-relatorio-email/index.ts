@@ -47,7 +47,8 @@ Deno.serve(async (req) => {
 
     const parsed = Body.safeParse(await req.json());
     if (!parsed.success) return json({ error: "Dados inválidos", detalhes: parsed.error.flatten().fieldErrors }, 400);
-    const { movimentacao_id, destinatarios, anexo_ids } = parsed.data;
+    const { movimentacao_id, destinatarios, anexo_ids, resumo_png_base64 } = parsed.data;
+    const resumoPng = decodificarPng(resumo_png_base64);
 
     // Leituras com a sessão do usuário: respeitam as permissões existentes.
     const { data: mov } = await userClient.from("movimentacoes")
@@ -100,11 +101,16 @@ Deno.serve(async (req) => {
       }
     }
     if (!assinatura) assinatura = await Deno.readFile(new URL("./assinatura-samel.png", import.meta.url));
-    const html = `<div style="font-family:Arial,sans-serif;font-size:14px;color:#222">${texto.split("\n").map(l => l ? esc(l) : "").join("<br>")}<br><img src="cid:assinatura-samel" alt="Assinatura Samel" style="max-width:460px;margin-top:16px"></div>`;
+    // Resumo (última página do relatório) vai no corpo, entre o texto e a assinatura.
+    const imgResumo = resumoPng ? `<br><img src="cid:resumo-relatorio" alt="Resumo do relatório" style="max-width:640px;margin-top:12px;border:1px solid #ccc">` : "";
+    const html = `<div style="font-family:Arial,sans-serif;font-size:14px;color:#222">${texto.split("\n").map(l => l ? esc(l) : "").join("<br>")}${imgResumo}<br><img src="cid:assinatura-samel" alt="Assinatura Samel" style="max-width:460px;margin-top:16px"></div>`;
 
     await enviarSmtp({
       fromNome: nomeRem, fromEmail, replyTo, para: destinatarios, assunto, html, texto, anexos,
-      inline: [{ cid: "assinatura-samel", nome: "assinatura.png", mime: assinaturaMime, conteudo: assinatura }],
+      inline: [
+        ...(resumoPng ? [{ cid: "resumo-relatorio", nome: "resumo-relatorio.png", mime: "image/png", conteudo: resumoPng }] : []),
+        { cid: "assinatura-samel", nome: "assinatura.png", mime: assinaturaMime, conteudo: assinatura },
+      ],
     });
 
     const hoje = hojeManaus();
