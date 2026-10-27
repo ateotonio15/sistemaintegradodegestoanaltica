@@ -66,7 +66,8 @@ export function AlertaReajustesPendentes() {
         supabase
           .from("empresas")
           .select("id,nome,codigo_contrato,data_implantacao,responsavel_user_id")
-          .eq("status_empresa", "Ativa"),
+          .eq("status_empresa", "Ativa")
+          .eq("isento_reajuste", false),
         supabase
           .from("reajustes_anuais")
           .select("empresa_id,ano,data_aplicacao,percentual,valor_antigo_centavos,valor_reajustado_centavos,meses_retroativos,status_reajuste")
