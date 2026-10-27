@@ -58,7 +58,23 @@ export function montarMime(m: Mensagem): string {
   return linhas.join("\r\n");
 }
 
+/** Envia com novas tentativas quando o servidor responde erro temporário (códigos 4xx). */
 export async function enviarSmtp(m: Mensagem): Promise<void> {
+  for (let tentativa = 1; ; tentativa++) {
+    try { return await enviarSmtpUmaVez(m); }
+    catch (e) {
+      const msg = e instanceof Error ? e.message : String(e);
+      const temporario = /:\s*4\d\d[\s-]/.test(msg) || /\(\w+\): 4\d\d/.test(msg);
+      if (!temporario || tentativa >= 3) {
+        if (temporario) throw new Error("O servidor de e-mail da Samel está com instabilidade temporária e não aceitou a mensagem. Tente novamente em alguns minutos. Detalhe: " + msg);
+        throw e;
+      }
+      await new Promise((r) => setTimeout(r, 4000 * tentativa));
+    }
+  }
+}
+
+async function enviarSmtpUmaVez(m: Mensagem): Promise<void> {
   const host = Deno.env.get("SMTP_HOST")!, port = Number(Deno.env.get("SMTP_PORT") ?? 587);
   const user = Deno.env.get("SMTP_USER")!, pass = Deno.env.get("SMTP_PASSWORD")!;
   let conn: Deno.Conn = await Deno.connect({ hostname: host, port });
