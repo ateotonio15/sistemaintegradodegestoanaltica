@@ -7,7 +7,20 @@ const Body = z.object({
   movimentacao_id: z.string().uuid(),
   destinatarios: z.array(z.string().email()).min(1).max(20),
   anexo_ids: z.array(z.string().uuid()).min(1).max(10),
+  // Opcional: PNG (base64) da última página do relatório, embutido no corpo do e-mail.
+  resumo_png_base64: z.string().max(4_200_000).optional(),
 });
+
+const PNG_MAGIC = [0x89, 0x50, 0x4e, 0x47];
+function decodificarPng(b64: string | undefined): Uint8Array | null {
+  if (!b64 || !/^[A-Za-z0-9+/=\s]+$/.test(b64)) return null;
+  try {
+    const bytes = Uint8Array.from(atob(b64), c => c.charCodeAt(0));
+    if (!bytes.length || bytes.length > 3_200_000) return null;
+    if (!PNG_MAGIC.every((v, i) => bytes[i] === v)) return null;
+    return bytes;
+  } catch { return null; }
+}
 
 const json = (d: unknown, status = 200) =>
   new Response(JSON.stringify(d), { status, headers: { ...corsHeaders, "Content-Type": "application/json" } });
