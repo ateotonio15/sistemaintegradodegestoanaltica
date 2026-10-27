@@ -13,8 +13,12 @@ import {
   fetchReajustesOperadora, calcularFaixas, modalidadePlano, parseDataReajuste,
   type ReajusteContratoApi, type FaixaCalc,
 } from "@/lib/reajustesOperadoraApi";
+import {
+  type SituacaoReajusteOperadora, empresaIsentaReajuste,
+  classificarReajusteOperadora, podeImportarReajusteOperadora,
+} from "@/lib/reajuste-isento";
 
-type Situacao = "novo" | "registrado" | "nao_encontrado" | "isento";
+type Situacao = SituacaoReajusteOperadora;
 interface Linha {
   api: ReajusteContratoApi;
   empresa?: { id: string; nome: string; isento?: boolean };
@@ -58,7 +62,7 @@ export function ImportarReajustesOperadoraDialog({ open, onOpenChange }: { open:
         const porContrato = new Map<string, { id: string; nome: string; isento: boolean }>();
         (empRes.data ?? []).forEach((e: any) => {
           const c = String(e.codigo_contrato ?? "").trim().replace(/^0+/, "");
-          if (c) porContrato.set(c, { id: e.id, nome: e.nome, isento: !!e.isento_reajuste });
+          if (c) porContrato.set(c, { id: e.id, nome: e.nome, isento: empresaIsentaReajuste(e) });
         });
         const existentes = new Set((reaRes.data ?? []).map((r: any) => `${r.empresa_id}|${r.ano}`));
         const out: Linha[] = [];
@@ -74,7 +78,11 @@ export function ImportarReajustesOperadoraDialog({ open, onOpenChange }: { open:
           }
           out.push({
             api: a, empresa: emp, ...d, enf, apt,
-            situacao: !emp ? "nao_encontrado" : emp.isento ? "isento" : existentes.has(`${emp.id}|${d.ano}`) ? "registrado" : "novo",
+            situacao: classificarReajusteOperadora({
+              empresaId: emp?.id ?? null,
+              isento: !!emp?.isento,
+              jaRegistrado: existentes.has(`${emp?.id}|${d.ano}`),
+            }),
           });
         }
         out.sort((x, y) => x.situacao.localeCompare(y.situacao) || x.data.localeCompare(y.data));
@@ -90,7 +98,7 @@ export function ImportarReajustesOperadoraDialog({ open, onOpenChange }: { open:
     if (!q) return linhas;
     return linhas.filter((l) => l.api.NM_CONTRATO.toLowerCase().includes(q) || String(l.api.NR_CONTRATO).includes(q));
   }, [linhas, busca]);
-  const novos = linhas.filter((l) => l.situacao === "novo");
+  const novos = linhas.filter((l) => podeImportarReajusteOperadora(l.situacao));
 
   const importar = async () => {
     setSaving(true);
