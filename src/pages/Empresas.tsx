@@ -1839,6 +1839,20 @@ export default function Empresas() {
                               </span>
                             </div>
                           </div>
+                          <div className="space-y-2">
+                            <Label className="text-sm font-medium">Isento de reajuste</Label>
+                            <div className="flex items-center gap-3 h-10 px-3 rounded-lg border bg-background">
+                              <Switch
+                                checked={!!(form as any).isento_reajuste}
+                                onCheckedChange={(v) => setForm({ ...form, isento_reajuste: v } as any)}
+                              />
+                              <span className="text-sm text-muted-foreground">
+                                {(form as any).isento_reajuste
+                                  ? "Sim — não aparece em Reajustes nem é importado da operadora (ex.: permuta)"
+                                  : "Não"}
+                              </span>
+                            </div>
+                          </div>
                           <div className="space-y-2 sm:col-span-2">
                             <Label className="text-sm font-medium">Observação padrão (financeiro)</Label>
                             <Textarea

@@ -58,9 +58,14 @@ Deno.serve(async (req) => {
       }
       return all;
     };
-    const [emps, reas] = await Promise.all([fetchAll("empresas", "id,codigo_contrato"), fetchAll("reajustes_anuais", "empresa_id,ano")]);
+    const [emps, reas] = await Promise.all([fetchAll("empresas", "id,codigo_contrato,isento_reajuste"), fetchAll("reajustes_anuais", "empresa_id,ano")]);
     const porContrato = new Map<string, string>();
-    emps.forEach((e) => { const c = String(e.codigo_contrato ?? "").trim().replace(/^0+/, ""); if (c) porContrato.set(c, e.id); });
+    const isentos = new Set<string>();
+    emps.forEach((e) => {
+      const c = String(e.codigo_contrato ?? "").trim().replace(/^0+/, "");
+      if (e.isento_reajuste) isentos.add(e.id);
+      if (c) porContrato.set(c, e.id);
+    });
     const existentes = new Set(reas.map((x) => `${x.empresa_id}|${x.ano}`));
 
     let importados = 0; const falhas: string[] = [];
@@ -69,7 +74,7 @@ Deno.serve(async (req) => {
       if (!m) continue;
       const ano = +m[1], mes = +m[2], data = `${m[1]}-${m[2]}-${m[3]}`;
       const empId = porContrato.get(String(a.NR_CONTRATO).replace(/^0+/, ""));
-      if (!empId || existentes.has(`${empId}|${ano}`)) continue;
+      if (!empId || isentos.has(empId) || existentes.has(`${empId}|${ano}`)) continue;
       const enf: any[] = [], apt: any[] = [];
       for (const p of a.PLANOS ?? []) {
         const md = modalidade(p.NM_FANTASIA);
