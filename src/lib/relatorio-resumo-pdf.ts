@@ -49,16 +49,25 @@ function recortarConteudo(canvas: HTMLCanvasElement, ctx: CanvasRenderingContext
       if (claroVizinho(y - 3) || claroVizinho(y + 3)) linMoldura[y] = 1;
     }
   }
-  let minX = w, minY = h, maxX = -1, maxY = -1;
+  // Linhas com conteúdo (fora da moldura).
+  const temConteudo = new Uint8Array(h);
   for (let y = 0; y < h; y++) {
     if (linMoldura[y]) continue;
-    for (let x = 0; x < w; x++) {
-      if (colMoldura[x]) continue;
-      if (escuro(x, y)) {
-        if (x < minX) minX = x; if (x > maxX) maxX = x;
-        if (y < minY) minY = y; if (y > maxY) maxY = y;
-      }
-    }
+    for (let x = 0; x < w; x++) if (!colMoldura[x] && escuro(x, y)) { temConteudo[y] = 1; break; }
+  }
+  // Pega só o bloco de cima: para no primeiro espaço em branco grande
+  // (assim o rodapé "Impresso em / Página" fica de fora).
+  const gapMax = Math.round(h * 0.08);
+  let minY = -1, maxY = -1, vazio = 0;
+  for (let y = 0; y < h; y++) {
+    if (temConteudo[y]) { if (minY < 0) minY = y; maxY = y; vazio = 0; }
+    else if (minY >= 0 && ++vazio > gapMax) break;
+  }
+  if (maxY < 0) return canvas;
+  let minX = w, maxX = -1;
+  for (let y = minY; y <= maxY; y++) {
+    if (linMoldura[y]) continue;
+    for (let x = 0; x < w; x++) if (!colMoldura[x] && escuro(x, y)) { if (x < minX) minX = x; if (x > maxX) maxX = x; }
   }
   if (maxX < 0) return canvas;
   minX = Math.max(0, minX - margem); minY = Math.max(0, minY - margem);
