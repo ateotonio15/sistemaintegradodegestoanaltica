@@ -65,6 +65,8 @@ Deno.serve(async (req) => {
     const contaSmtp = Deno.env.get("SMTP_USER")!;
     const nomeRem = rem?.nome_remetente || "Samel";
     const replyTo = rem?.email_resposta || rem?.email_remetente || null;
+    // Remetente visível: e-mail da pessoa que enviou (quando cadastrado); senão, a conta SMTP.
+    const fromEmail = rem?.email_remetente || contaSmtp;
 
     const emp = (mov as any).empresas ?? {};
     const nome = String(emp.nome ?? "").toUpperCase();
@@ -75,7 +77,7 @@ Deno.serve(async (req) => {
     const texto = `Prezados,\n\nSegue em anexo o relatório de vidas da empresa ${codigo} - ${nome}${competencia ? `, referente a ${competencia}` : ""}, para conferência.\n\nPedimos, por gentileza, que confiram as informações e nos confirmem por este e-mail se está tudo correto ou se há alguma divergência.\n\nAtenciosamente,\n${nomeRem}\nSamel`;
     const html = `<div style="font-family:Arial,sans-serif;font-size:14px;color:#222">${texto.split("\n").map(l => l ? esc(l) : "").join("<br>")}</div>`;
 
-    await enviarSmtp({ fromNome: nomeRem, fromEmail: contaSmtp, replyTo, para: destinatarios, assunto, html, texto, anexos });
+    await enviarSmtp({ fromNome: nomeRem, fromEmail, replyTo, para: destinatarios, assunto, html, texto, anexos });
 
     const hoje = hojeManaus();
     const { error: errRel } = await userClient.from("movimentacao_relatorios").upsert({
