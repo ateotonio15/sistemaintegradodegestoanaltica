@@ -2823,6 +2823,7 @@ export async function analisarExcelFinanceiroPorCnpj(
       ? detalheArr.map((d) => ({ mes: d.mes, quantidade: Math.round(d.quantidade * w), total: d.total * w }))
       : undefined;
 
+console.log("DBG", extraRetroQtd, extraRetroTotal, blocos.length, mesesArr);
   if ((extraRetroQtd !== 0 || Math.abs(extraRetroTotal) > 0.001) && blocos.length > 0) {
     const jaRetroTotal = blocos.reduce((s, b) => s + (b.retroativas?.total ?? 0), 0);
     const jaRetroQtd = blocos.reduce((s, b) => s + (b.retroativas?.quantidade ?? 0), 0);
