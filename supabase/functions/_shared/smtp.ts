@@ -3,7 +3,7 @@ export interface Anexo { nome: string; mime: string; conteudo: Uint8Array }
 export interface ImagemInline { cid: string; nome: string; mime: string; conteudo: Uint8Array }
 export interface Mensagem {
   fromNome: string; fromEmail: string; replyTo?: string | null;
-  para: string[]; cc?: string[]; assunto: string; html: string; texto: string; anexos: Anexo[];
+  para: string[]; cc?: string[]; bcc?: string[]; assunto: string; html: string; texto: string; anexos: Anexo[];
   inline?: ImagemInline[];
 }
 
@@ -88,7 +88,7 @@ export async function enviarSmtp(m: Mensagem): Promise<void> {
     await cmd("EHLO samel.com.br", "250");
     await cmd("AUTH PLAIN " + btoa("\0" + user + "\0" + pass), "235");
     await cmd(`MAIL FROM:<${user}>`, "250");
-    for (const r of [...m.para, ...(m.cc ?? [])]) await cmd(`RCPT TO:<${r}>`, "25");
+    for (const r of [...new Set([...m.para, ...(m.cc ?? []), ...(m.bcc ?? [])])]) await cmd(`RCPT TO:<${r}>`, "25");
     await cmd("DATA", "354");
     const corpo = montarMime(m).replace(/\r\n\./g, "\r\n..");
     const bytes = enc.encode(corpo + "\r\n.\r\n");
