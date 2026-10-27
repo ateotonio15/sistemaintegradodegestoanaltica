@@ -1,5 +1,6 @@
 import ExcelJS from "exceljs";
 import { getForceGroupByNamePatterns } from "@/lib/regras-empresariais";
+import { somarTotalFaturamento } from "@/lib/faturamento-totais";
 
 export interface CategoriaResultado {
   beneficiarios: number;
