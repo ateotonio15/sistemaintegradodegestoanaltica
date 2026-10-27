@@ -19,8 +19,35 @@ async function renderizarPagina(doc: any, escala: number): Promise<string> {
   const ctx = canvas.getContext("2d");
   if (!ctx) throw new Error("Canvas indisponível");
   await pagina.render({ canvasContext: ctx, viewport }).promise;
-  const dataUrl = canvas.toDataURL("image/png");
+  const recortado = recortarConteudo(canvas, ctx, Math.round(12 * escala));
+  const dataUrl = recortado.toDataURL("image/png");
   return dataUrl.split(",")[1] ?? "";
+}
+
+/** Recorta apenas a área com informações, removendo o espaço em branco da página. */
+function recortarConteudo(canvas: HTMLCanvasElement, ctx: CanvasRenderingContext2D, margem: number): HTMLCanvasElement {
+  const { width: w, height: h } = canvas;
+  const px = ctx.getImageData(0, 0, w, h).data;
+  let minX = w, minY = h, maxX = -1, maxY = -1;
+  for (let y = 0; y < h; y++) {
+    for (let x = 0; x < w; x++) {
+      const i = (y * w + x) * 4;
+      if (px[i + 3] > 0 && (px[i] < 235 || px[i + 1] < 235 || px[i + 2] < 235)) {
+        if (x < minX) minX = x; if (x > maxX) maxX = x;
+        if (y < minY) minY = y; if (y > maxY) maxY = y;
+      }
+    }
+  }
+  if (maxX < 0) return canvas;
+  minX = Math.max(0, minX - margem); minY = Math.max(0, minY - margem);
+  maxX = Math.min(w - 1, maxX + margem); maxY = Math.min(h - 1, maxY + margem);
+  const out = document.createElement("canvas");
+  out.width = maxX - minX + 1; out.height = maxY - minY + 1;
+  const octx = out.getContext("2d");
+  if (!octx) return canvas;
+  octx.fillStyle = "#ffffff"; octx.fillRect(0, 0, out.width, out.height);
+  octx.drawImage(canvas, minX, minY, out.width, out.height, 0, 0, out.width, out.height);
+  return out;
 }
 
 /**
