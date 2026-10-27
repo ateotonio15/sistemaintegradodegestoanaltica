@@ -1,8 +1,10 @@
 // Cliente SMTP mínimo (STARTTLS + AUTH PLAIN) para o servidor da Samel.
 export interface Anexo { nome: string; mime: string; conteudo: Uint8Array }
+export interface ImagemInline { cid: string; nome: string; mime: string; conteudo: Uint8Array }
 export interface Mensagem {
   fromNome: string; fromEmail: string; replyTo?: string | null;
   para: string[]; cc?: string[]; assunto: string; html: string; texto: string; anexos: Anexo[];
+  inline?: ImagemInline[];
 }
 
 const enc = new TextEncoder();
@@ -19,6 +21,8 @@ const cabecalho = (t: string) => `=?UTF-8?B?${btoa(String.fromCharCode(...enc.en
 export function montarMime(m: Mensagem): string {
   const b = "samel_" + crypto.randomUUID().replace(/-/g, "");
   const alt = "alt_" + crypto.randomUUID().replace(/-/g, "");
+  const rel = "rel_" + crypto.randomUUID().replace(/-/g, "");
+  const temInline = (m.inline?.length ?? 0) > 0;
   const linhas = [
     `From: ${cabecalho(m.fromNome)} <${m.fromEmail}>`,
     `To: ${m.para.join(", ")}`,
@@ -29,11 +33,23 @@ export function montarMime(m: Mensagem): string {
     `Message-ID: <${crypto.randomUUID()}@${m.fromEmail.split("@")[1]}>`,
     "MIME-Version: 1.0",
     `Content-Type: multipart/mixed; boundary="${b}"`, "",
-    `--${b}`, `Content-Type: multipart/alternative; boundary="${alt}"`, "",
+  ];
+  if (temInline) {
+    linhas.push(`--${b}`, `Content-Type: multipart/related; boundary="${rel}"`, "",
+      `--${rel}`, `Content-Type: multipart/alternative; boundary="${alt}"`, "");
+  } else {
+    linhas.push(`--${b}`, `Content-Type: multipart/alternative; boundary="${alt}"`, "");
+  }
+  linhas.push(
     `--${alt}`, "Content-Type: text/plain; charset=UTF-8", "Content-Transfer-Encoding: base64", "", b64txt(m.texto),
     `--${alt}`, "Content-Type: text/html; charset=UTF-8", "Content-Transfer-Encoding: base64", "", b64txt(m.html),
     `--${alt}--`,
-  ];
+  );
+  for (const img of m.inline ?? []) {
+    linhas.push(`--${rel}`, `Content-Type: ${img.mime}; name="${img.nome}"`, "Content-Transfer-Encoding: base64",
+      `Content-ID: <${img.cid}>`, `Content-Disposition: inline; filename="${img.nome}"`, "", b64(img.conteudo));
+  }
+  if (temInline) linhas.push(`--${rel}--`);
   for (const a of m.anexos) {
     linhas.push(`--${b}`, `Content-Type: ${a.mime}; name="${cabecalho(a.nome)}"`, "Content-Transfer-Encoding: base64",
       `Content-Disposition: attachment; filename="${cabecalho(a.nome)}"`, "", b64(a.conteudo));
