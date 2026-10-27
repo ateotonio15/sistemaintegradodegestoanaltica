@@ -2818,12 +2818,13 @@ export async function analisarExcelFinanceiroPorCnpj(
     return null;
   };
 
+  const detalheSomaT = detalheArr.reduce((s, d) => s + d.total, 0);
+  const detalheSomaQ = detalheArr.reduce((s, d) => s + d.quantidade, 0);
   const scaleDetalhe = (w: number): RetroativaMesDetalhe[] | undefined =>
     detalheArr.length
       ? detalheArr.map((d) => ({ mes: d.mes, quantidade: Math.round(d.quantidade * w), total: d.total * w }))
       : undefined;
 
-console.log("DBG", extraRetroQtd, extraRetroTotal, blocos.length, mesesArr);
   if ((extraRetroQtd !== 0 || Math.abs(extraRetroTotal) > 0.001) && blocos.length > 0) {
     const jaRetroTotal = blocos.reduce((s, b) => s + (b.retroativas?.total ?? 0), 0);
     const jaRetroQtd = blocos.reduce((s, b) => s + (b.retroativas?.quantidade ?? 0), 0);
@@ -2889,22 +2890,24 @@ console.log("DBG", extraRetroQtd, extraRetroTotal, blocos.length, mesesArr);
     } else if (
       blocos.length === 1 &&
       linhasPrincipaisTemRetroativa &&
-      deltaT > 0.001 &&
-      Math.abs(extraRetroTotal - jaRetroTotal) > 0.01 &&
-      totalDeclaradoResumoConfere(wb, somarTotalFaturamento(blocos[0]) + extraRetroTotal)
+      detalheArr.length > 0 &&
+      detalheSomaT > 0.001 &&
+      Math.abs(detalheSomaT - jaRetroTotal) > 0.01 &&
+      totalDeclaradoResumoConfere(wb, somarTotalFaturamento(blocos[0]) + detalheSomaT)
     ) {
       // As abas dedicadas ("RETROATIVO JUNHO") trazem cobranças adicionais às
       // linhas retroativas do relatório principal: o "Total" declarado no
       // RESUMO só fecha somando as duas. Sem essa prova, continuam detalhamento.
       const b = blocos[0];
+      b.retroativasBeneficiarios = b.retroativas ? { ...b.retroativas } : undefined;
       b.retroativas = {
-        quantidade: (b.retroativas?.quantidade ?? 0) + extraRetroQtd,
-        total: (b.retroativas?.total ?? 0) + extraRetroTotal,
+        quantidade: (b.retroativas?.quantidade ?? 0) + detalheSomaQ,
+        total: (b.retroativas?.total ?? 0) + detalheSomaT,
         meses: mesesArr,
         mesesDetalhe: scaleDetalhe(1),
       };
-      b.retroativasReajuste = { quantidade: extraRetroQtd, total: extraRetroTotal, meses: mesesArr, mesesDetalhe: scaleDetalhe(1) };
-      b.inclusoes = { quantidade: b.inclusoes.quantidade + extraRetroQtd, total: b.inclusoes.total + extraRetroTotal };
+      b.retroativasReajuste = { quantidade: detalheSomaQ, total: detalheSomaT, meses: mesesArr, mesesDetalhe: scaleDetalhe(1) };
+      b.inclusoes = { quantidade: b.inclusoes.quantidade + detalheSomaQ, total: b.inclusoes.total + detalheSomaT };
     } else if (mesesArr.length) {
       blocos.forEach((b) => {
         if (b.retroativas) {
