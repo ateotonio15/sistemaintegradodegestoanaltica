@@ -14,10 +14,10 @@ import {
   type ReajusteContratoApi, type FaixaCalc,
 } from "@/lib/reajustesOperadoraApi";
 
-type Situacao = "novo" | "registrado" | "nao_encontrado";
+type Situacao = "novo" | "registrado" | "nao_encontrado" | "isento";
 interface Linha {
   api: ReajusteContratoApi;
-  empresa?: { id: string; nome: string };
+  empresa?: { id: string; nome: string; isento?: boolean };
   ano: number; mes: number; data: string;
   enf: FaixaCalc[]; apt: FaixaCalc[];
   situacao: Situacao;
@@ -51,14 +51,14 @@ export function ImportarReajustesOperadoraDialog({ open, onOpenChange }: { open:
         };
         const [api, empData, reaData] = await Promise.all([
           fetchReajustesOperadora(),
-          fetchAll("empresas", "id,nome,codigo_contrato"),
+          fetchAll("empresas", "id,nome,codigo_contrato,isento_reajuste"),
           fetchAll("reajustes_anuais", "empresa_id,ano"),
         ]);
         const empRes = { data: empData }; const reaRes = { data: reaData };
-        const porContrato = new Map<string, { id: string; nome: string }>();
+        const porContrato = new Map<string, { id: string; nome: string; isento: boolean }>();
         (empRes.data ?? []).forEach((e: any) => {
           const c = String(e.codigo_contrato ?? "").trim().replace(/^0+/, "");
-          if (c) porContrato.set(c, { id: e.id, nome: e.nome });
+          if (c) porContrato.set(c, { id: e.id, nome: e.nome, isento: !!e.isento_reajuste });
         });
         const existentes = new Set((reaRes.data ?? []).map((r: any) => `${r.empresa_id}|${r.ano}`));
         const out: Linha[] = [];
@@ -74,7 +74,7 @@ export function ImportarReajustesOperadoraDialog({ open, onOpenChange }: { open:
           }
           out.push({
             api: a, empresa: emp, ...d, enf, apt,
-            situacao: !emp ? "nao_encontrado" : existentes.has(`${emp.id}|${d.ano}`) ? "registrado" : "novo",
+            situacao: !emp ? "nao_encontrado" : emp.isento ? "isento" : existentes.has(`${emp.id}|${d.ano}`) ? "registrado" : "novo",
           });
         }
         out.sort((x, y) => x.situacao.localeCompare(y.situacao) || x.data.localeCompare(y.data));
