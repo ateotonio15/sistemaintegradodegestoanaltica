@@ -1,4 +1,5 @@
 # Architecture rules
+- Life-report email files use a separate movement-scoped table and private bucket, never operational attachments; uploading them must not update lives, dates, status, or financial analysis.
 - Global surgery events are verified by one scheduled server-only fixed-upstream scan, deduplicated by demand/booking/date, and exposed through demand-inheriting RLS only to admin/executivo/executivo_externo; per-user read state feeds the existing bell/cards, never complaint resolution. Deep links temporarily isolate and focus the authorized row without erasing saved filters.
 - Operational movement billing status and note-date lookups use only normal financial entries in the shared RPC, excluding first-month entries before attachment sharing and ranking so an initial invoice cannot imply a movement closing.
 - Report sender settings store only nonsecret metadata in a singleton admin-RLS table; the settings form never verifies domains or enables delivery, which require the workspace email setup separately.
