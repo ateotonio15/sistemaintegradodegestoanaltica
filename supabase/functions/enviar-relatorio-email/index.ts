@@ -2,6 +2,7 @@ import { createClient } from "npm:@supabase/supabase-js@2";
 import { corsHeaders } from "npm:@supabase/supabase-js@2/cors";
 import { z } from "npm:zod@3";
 import { enviarSmtp, type Anexo } from "../_shared/smtp.ts";
+import { dataCorteMovimentacao } from "../_shared/data-corte.ts";
 
 const Body = z.object({
   movimentacao_id: z.string().uuid(),
@@ -25,7 +26,6 @@ function decodificarPng(b64: string | undefined): Uint8Array | null {
 const json = (d: unknown, status = 200) =>
   new Response(JSON.stringify(d), { status, headers: { ...corsHeaders, "Content-Type": "application/json" } });
 
-const MESES = ["JANEIRO","FEVEREIRO","MARÇO","ABRIL","MAIO","JUNHO","JULHO","AGOSTO","SETEMBRO","OUTUBRO","NOVEMBRO","DEZEMBRO"];
 const esc = (s: string) => s.replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]!));
 
 function hojeManaus(): string {
@@ -85,10 +85,24 @@ Deno.serve(async (req) => {
     const emp = (mov as any).empresas ?? {};
     const nome = String(emp.nome ?? "").toUpperCase();
     const codigo = emp.codigo_contrato ?? "";
-    const [ano, mes] = String(mov.mes_referencia ?? "").split("-");
-    const competencia = mes ? `${MESES[Number(mes) - 1]}/${ano}` : "";
+    const corte = dataCorteMovimentacao(mov.periodo, mov.mes_referencia);
+    const prazo = corte ? `até o dia ${corte}` : "até a data de corte";
     const assunto = `RELATORIOS PARA CONFERENCIA EMPRESA ${codigo} - ${nome}`.replace(/\s+/g, " ").trim();
-    const texto = `Prezados,\n\nSegue em anexo o relatório de vidas da empresa ${codigo} - ${nome}${competencia ? `, referente a ${competencia}` : ""}, para conferência.\n\nPedimos, por gentileza, que confiram as informações e nos confirmem por este e-mail se está tudo correto ou se há alguma divergência.\n\nAtenciosamente,\n${nomeRem}\nSamel`;
+    const texto = [
+      "Prezados!",
+      "",
+      "Segue, em anexo, o relatório atualizado de beneficiários para conferência e validação do faturamento.",
+      "",
+      `Caso identifiquem alguma divergência, solicito que nos informem ${prazo}, para que possamos realizar os ajustes necessários antes da emissão da Nota Fiscal.`,
+      "",
+      "Ressalto que a conferência dentro do prazo é fundamental para evitar cobranças indevidas. Após a data de corte, a Nota Fiscal será emitida automaticamente com base no relatório encaminhado.",
+      "",
+      "Peço, por gentileza, que confirmem o recebimento e a validação do relatório. Na ausência de manifestação até o prazo informado, o faturamento seguirá normalmente.",
+      "",
+      "Agradeço pela atenção e colaboração.",
+      "",
+      nomeRem,
+    ].join("\n");
     // Assinatura: a da pessoa que enviou (quando cadastrada); senão, a padrão da Samel.
     let assinatura: Uint8Array | null = null;
     let assinaturaMime = "image/png";
