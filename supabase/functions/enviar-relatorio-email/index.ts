@@ -119,7 +119,7 @@ Deno.serve(async (req) => {
     const html = `<div style="font-family:Arial,sans-serif;font-size:14px;color:#222">${paragrafos}${imgResumo}<p style="margin:20px 0 12px">Permanecerei à disposição.</p><p style="margin:0 0 8px">Cordialmente,</p><img src="cid:assinatura-samel" width="540" alt="Assinatura Samel" style="width:540px;max-width:100%;height:auto"></div>`;
     const textoCompleto = [texto, "", ...fechamento].join("\n");
 
-    await enviarSmtp({
+    try { await enviarSmtp({
       fromNome: nomeRem, fromEmail, replyTo, para: destinatarios,
       // Cópia oculta para quem enviou, para o Cadastro guardar o e-mail enviado.
       bcc: [...new Set([fromEmail, replyTo].filter((e): e is string => !!e && /@/.test(e)))], assunto, html, texto: textoCompleto, anexos,
@@ -128,6 +128,10 @@ Deno.serve(async (req) => {
         { cid: "assinatura-samel", nome: "assinatura.png", mime: assinaturaMime, conteudo: assinatura },
       ],
     });
+    } catch (e) {
+      // Falha do servidor de e-mail: devolve a mensagem para a tela mostrar o aviso, sem quebrar a página.
+      return json({ error: e instanceof Error ? e.message : String(e), falha_envio: true }, 200);
+    }
 
     const hoje = hojeManaus();
     const { error: errRel } = await userClient.from("movimentacao_relatorios").upsert({
