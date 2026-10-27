@@ -51,6 +51,7 @@ import PlantoesRelatorios from "./pages/PlantoesRelatorios";
 import PlantoesDashboard from "./pages/PlantoesDashboard";
 import UberCorridas from "./pages/UberCorridas";
 import UberDashboard from "./pages/UberDashboard";
+import UberPassageiros from "./pages/UberPassageiros";
 import SaudeEmpresasLista from "./modules/saude-empresas/pages/SaudeEmpresasLista";
 import SaudeEmpresaAcoes from "./modules/saude-empresas/pages/SaudeEmpresaAcoes";
 import SaudeAcaoTriagens from "./modules/saude-empresas/pages/SaudeAcaoTriagens";
@@ -294,6 +295,7 @@ const AppRoutes = () => (
 
       <Route path="/uber" element={<UberCorridas />} />
       <Route path="/uber/dashboard" element={<UberDashboard />} />
+      <Route path="/uber/passageiros" element={<UberPassageiros />} />
 
       <Route element={<RoleGate allow={["admin", "enfermeira", "tec_enfermagem", "executivo", "coordenadora", "diretora", "diretora_saude"]} />}>
         <Route path="/saude-empresas" element={<SaudeEmpresasLista />} />

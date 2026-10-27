@@ -128,6 +128,13 @@ const INTELIGENCIA_SECTIONS: InteligenciaSection[] = [
         icon: BarChart3,
         to: "/uber/dashboard",
       },
+      {
+        slug: "uber-passageiros",
+        label: "Passageiros Uber",
+        description: "Cadastro de passageiros, setor, endereço e WhatsApp",
+        icon: Users,
+        to: "/uber/passageiros",
+      },
     ],
   },
   {

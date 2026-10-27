@@ -428,6 +428,13 @@
       "when": 1793130715385,
       "tag": "0060_add_isento_reajuste_to_empresas",
       "breakpoints": true
+    },
+    {
+      "idx": 61,
+      "version": "7",
+      "when": 1793143763336,
+      "tag": "0061_create_uber_passageiros",
+      "breakpoints": true
     }
   ]
 }

@@ -9,6 +9,7 @@ export interface UberCorrida {
   data: string;
   horario: string | null;
   colaborador: string;
+  passageiro_id: string | null;
   origem: string | null;
   destino: string | null;
   motivo: string | null;
