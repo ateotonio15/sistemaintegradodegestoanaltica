@@ -4143,6 +4143,47 @@ export type Database = {
           },
         ]
       }
+      movimentacao_relatorio_arquivos: {
+        Row: {
+          created_at: string
+          id: string
+          mime_type: string | null
+          movimentacao_id: string
+          nome_arquivo: string
+          storage_path: string
+          tamanho_bytes: number
+          uploaded_by: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          mime_type?: string | null
+          movimentacao_id: string
+          nome_arquivo: string
+          storage_path: string
+          tamanho_bytes: number
+          uploaded_by?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          mime_type?: string | null
+          movimentacao_id?: string
+          nome_arquivo?: string
+          storage_path?: string
+          tamanho_bytes?: number
+          uploaded_by?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "movimentacao_relatorio_arquivos_movimentacao_id_fkey"
+            columns: ["movimentacao_id"]
+            isOneToOne: false
+            referencedRelation: "movimentacoes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       movimentacao_relatorios: {
         Row: {
           atualizado_em: string
