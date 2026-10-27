@@ -1,5 +1,9 @@
 # Roadmap — Primeiro pacote financeiro
 
+## Arquivos próprios dos relatórios — pedido atual
+- [ ] Permitir anexar PDF e Excel no controle de relatório, separados dos anexos de "Editar Movimentação".
+- [ ] Usar esses arquivos no envio e conferir isolamento, permissões e fluxo de upload.
+
 ## Avisos globais de cirurgia — 26/10
 - [x] Verificação única por minuto no servidor, deduplicação por reclamação/agendamento/data e leitura protegida por perfil e acesso à reclamação; nenhuma reclamação alterada.
 - [x] Sino existente, indicadores dos cards e atalho com destaque da linha, preservando filtros salvos; fluxo autenticado com aviso simulado e ciência interceptada conferido sem gravações fictícias.
