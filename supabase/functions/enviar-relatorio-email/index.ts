@@ -41,14 +41,14 @@ Deno.serve(async (req) => {
       .select("id, mes_referencia, periodo, data_envio_empresa, empresas(nome, codigo_contrato)")
       .eq("id", movimentacao_id).maybeSingle();
     if (!mov) return json({ error: "Movimentação não encontrada" }, 404);
-    const { data: anexosRows } = await userClient.from("anexos_movimentacao")
+    const { data: anexosRows } = await userClient.from("movimentacao_relatorio_arquivos")
       .select("id, nome_arquivo, storage_path, mime_type").eq("movimentacao_id", movimentacao_id).in("id", anexo_ids);
     if (!anexosRows || anexosRows.length !== anexo_ids.length) return json({ error: "Anexo não encontrado nesta movimentação" }, 400);
 
     const anexos: Anexo[] = [];
     let total = 0;
     for (const a of anexosRows) {
-      const { data: blob, error } = await admin.storage.from("anexos-movimentacoes").download(a.storage_path);
+      const { data: blob, error } = await admin.storage.from("relatorios-movimentacoes").download(a.storage_path);
       if (error || !blob) return json({ error: `Não foi possível ler o arquivo "${a.nome_arquivo}"` }, 500);
       const bytes = new Uint8Array(await blob.arrayBuffer());
       total += bytes.length;

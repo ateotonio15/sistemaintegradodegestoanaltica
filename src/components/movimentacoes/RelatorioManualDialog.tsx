@@ -1,7 +1,7 @@
 import { useState } from "react";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { Send } from "lucide-react";
-import { Checkbox } from "@/components/ui/checkbox";
+import { RelatorioArquivos } from "./RelatorioArquivos";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -52,15 +52,7 @@ export function RelatorioManualDialog({ movimentacaoId, nome, contexto, registro
     },
     onError: (e: Error) => toast({ title: "Não foi possível salvar", description: e.message, variant: "destructive" }),
   });
-  const anexosQ = useQuery({
-    queryKey: ["relatorio-anexos-email", movimentacaoId],
-    enabled: canEdit,
-    queryFn: async () => {
-      const { data, error } = await supabase.from("anexos_movimentacao").select("id, nome_arquivo").eq("movimentacao_id", movimentacaoId).order("created_at", { ascending: false });
-      if (error) throw error;
-      return (data ?? []).filter(a => /\.(pdf|xlsx|xlsm|xls)$/i.test(a.nome_arquivo));
-    },
-  });
+  const [arquivosOcupados, setArquivosOcupados] = useState(false);
   const [selecionados, setSelecionados] = useState<string[]>([]);
   const enviarEmail = useMutation({
     mutationFn: async () => {
@@ -85,7 +77,7 @@ export function RelatorioManualDialog({ movimentacaoId, nome, contexto, registro
     },
     onError: (e: Error) => toast({ title: "Não foi possível enviar o e-mail", description: e.message, variant: "destructive" }),
   });
-  const ocupado = save.isPending || enviarEmail.isPending;
+  const ocupado = save.isPending || enviarEmail.isPending || arquivosOcupados;
   return <Dialog open onOpenChange={open => { if (!open && !ocupado) onClose(); }}>
     <DialogContent className="sm:max-w-[560px] max-h-[90vh] overflow-y-auto">
       <DialogHeader><DialogTitle>Relatório de vidas — registro manual</DialogTitle><DialogDescription>{nome} · {contexto}</DialogDescription></DialogHeader>
@@ -103,18 +95,12 @@ export function RelatorioManualDialog({ movimentacaoId, nome, contexto, registro
           </Select>
         </div>
         <div className="space-y-2"><Label htmlFor="relatorio-observacoes">Observações do relatório</Label><Textarea id="relatorio-observacoes" disabled={!canEdit || save.isPending} value={form.observacoes} onChange={e => setForm(f => ({ ...f, observacoes: e.target.value }))} /></div>
-        {canEdit && <div className="space-y-2 rounded-md border p-3">
-          <Label>Arquivos para anexar no e-mail</Label>
-          {anexosQ.isLoading ? <p className="text-sm text-muted-foreground">Carregando arquivos...</p>
-            : !anexosQ.data?.length ? <p className="text-sm text-muted-foreground">Nenhum PDF ou Excel anexado nesta movimentação.</p>
-            : anexosQ.data.map(a => <label key={a.id} className="flex items-center gap-2 text-sm">
-                <Checkbox checked={selecionados.includes(a.id)} disabled={ocupado} onCheckedChange={v => setSelecionados(s => v ? [...s, a.id] : s.filter(x => x !== a.id))} />
-                <span className="break-all">{a.nome_arquivo}</span>
-              </label>)}
-          <Button type="button" className="w-full" disabled={ocupado || !selecionados.length} onClick={() => enviarEmail.mutate()}>
+        <div className="space-y-2 rounded-md border p-3">
+          <RelatorioArquivos movimentacaoId={movimentacaoId} canEdit={canEdit} ocupado={ocupado} selecionados={selecionados} onSelecionados={setSelecionados} onBusy={setArquivosOcupados} />
+          {canEdit && <Button type="button" className="w-full" disabled={ocupado || !selecionados.length} onClick={() => enviarEmail.mutate()}>
             <Send className="mr-2 h-4 w-4" />{enviarEmail.isPending ? "Enviando e-mail..." : "Enviar por e-mail"}
-          </Button>
-        </div>}
+          </Button>}
+        </div>
         <DialogFooter><Button type="button" variant="outline" onClick={onClose} disabled={ocupado}>Fechar</Button>{canEdit && <Button type="submit" variant="outline" disabled={ocupado}>{save.isPending ? "Salvando..." : "Salvar registro manual"}</Button>}</DialogFooter>
       </form>
     </DialogContent>
