@@ -65,6 +65,8 @@ Deno.serve(async (req) => {
     const contaSmtp = Deno.env.get("SMTP_USER")!;
     const nomeRem = rem?.nome_remetente || "Samel";
     const replyTo = rem?.email_resposta || rem?.email_remetente || null;
+    // Remetente visível: e-mail da pessoa que enviou (quando cadastrado); senão, a conta SMTP.
+    const fromEmail = rem?.email_remetente || contaSmtp;
 
     const emp = (mov as any).empresas ?? {};
     const nome = String(emp.nome ?? "").toUpperCase();
