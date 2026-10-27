@@ -164,6 +164,7 @@ export function ImportarReajustesOperadoraDialog({ open, onOpenChange }: { open:
   const badge = (s: Situacao) =>
     s === "novo" ? <Badge className="bg-primary/15 text-primary border-primary/30">Novo</Badge>
     : s === "registrado" ? <Badge variant="secondary">Já registrado</Badge>
+    : s === "isento" ? <Badge variant="outline" className="text-muted-foreground">Isento de reajuste</Badge>
     : <Badge variant="destructive">Contrato não encontrado</Badge>;
 
   const faixasTxt = (fs: FaixaCalc[]) => fs.length === 0 ? "—" : fs.map((f) =>
@@ -189,6 +190,7 @@ export function ImportarReajustesOperadoraDialog({ open, onOpenChange }: { open:
               <span>Novos: <b>{novos.length}</b></span>
               <span>Já registrados: <b>{linhas.filter((l) => l.situacao === "registrado").length}</b></span>
               <span>Não encontrados: <b>{linhas.filter((l) => l.situacao === "nao_encontrado").length}</b></span>
+              <span>Isentos: <b>{linhas.filter((l) => l.situacao === "isento").length}</b></span>
             </div>
             <div className="flex-1 overflow-auto space-y-2 pr-1">
               {filtradas.map((l) => (
