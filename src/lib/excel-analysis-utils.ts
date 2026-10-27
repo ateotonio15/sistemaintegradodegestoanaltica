@@ -1407,6 +1407,28 @@ function parseCoparticipacaoPivotTipoCobranca(
 /**
  * Lê a aba RESUMO do workbook (se existir) e retorna as linhas como matriz.
  */
+/**
+ * Confere se a aba RESUMO declara um "Total" geral (linha cujo rótulo é só
+ * "Total") igual ao valor esperado. Usado como prova antes de somar abas de
+ * retroativo dedicadas às linhas retroativas do relatório principal.
+ */
+function totalDeclaradoResumoConfere(wb: ExcelJS.Workbook, esperado: number): boolean {
+  const rows = lerRowsAbaResumo(wb);
+  if (!rows) return false;
+  for (const r of rows) {
+    const i = (r || []).findIndex((c) => norm(c) === "total");
+    if (i < 0) continue;
+    for (let c = i + 1; c < r.length; c++) {
+      const n = toNumber(r[c]);
+      if (!isNaN(n)) {
+        if (Math.abs(n - esperado) < 0.01) return true;
+        break;
+      }
+    }
+  }
+  return false;
+}
+
 function lerRowsAbaResumo(wb: ExcelJS.Workbook): unknown[][] | null {
   const ws = wb.worksheets.find((s) => norm(s.name).includes("resumo"));
   if (!ws) return null;
@@ -2873,10 +2895,6 @@ export async function analisarExcelFinanceiroPorCnpj(
       // linhas retroativas do relatório principal: o "Total" declarado no
       // RESUMO só fecha somando as duas. Sem essa prova, continuam detalhamento.
       const b = blocos[0];
-      const det = [
-        ...(b.retroativas?.mesesDetalhe ?? []),
-        ...(scaleDetalhe(1) ?? []),
-      ];
       b.retroativas = {
         quantidade: (b.retroativas?.quantidade ?? 0) + extraRetroQtd,
         total: (b.retroativas?.total ?? 0) + extraRetroTotal,
@@ -2885,7 +2903,6 @@ export async function analisarExcelFinanceiroPorCnpj(
       };
       b.retroativasReajuste = { quantidade: extraRetroQtd, total: extraRetroTotal, meses: mesesArr, mesesDetalhe: scaleDetalhe(1) };
       b.inclusoes = { quantidade: b.inclusoes.quantidade + extraRetroQtd, total: b.inclusoes.total + extraRetroTotal };
-      void det;
     } else if (mesesArr.length) {
       blocos.forEach((b) => {
         if (b.retroativas) {
