@@ -78,7 +78,10 @@ Deno.serve(async (req) => {
     const assinatura = await Deno.readFile(new URL("./assinatura-samel.png", import.meta.url));
     const html = `<div style="font-family:Arial,sans-serif;font-size:14px;color:#222">${texto.split("\n").map(l => l ? esc(l) : "").join("<br>")}<br><img src="cid:assinatura-samel" alt="Assinatura Samel" style="max-width:460px;margin-top:16px"></div>`;
 
-    await enviarSmtp({ fromNome: nomeRem, fromEmail, replyTo, para: destinatarios, assunto, html, texto, anexos });
+    await enviarSmtp({
+      fromNome: nomeRem, fromEmail, replyTo, para: destinatarios, assunto, html, texto, anexos,
+      inline: [{ cid: "assinatura-samel", nome: "assinatura-samel.png", mime: "image/png", conteudo: assinatura }],
+    });
 
     const hoje = hojeManaus();
     const { error: errRel } = await userClient.from("movimentacao_relatorios").upsert({
