@@ -27,9 +27,11 @@ export function RelatorioArquivos({ movimentacaoId, canEdit, ocupado, selecionad
   const upload = useMutation({ mutationFn: async (files: File[]) => {
     if (!canEdit || !user) throw new Error("Sem permissão para anexar relatórios.");
     onBusy(true);
+    const novos = [...selecionados];
     for (const file of files) {
       const id = await anexarArquivoRelatorio(movimentacaoId, user.id, file);
-      onSelecionados([...selecionados, id]);
+      novos.push(id);
+      onSelecionados([...novos]);
     }
   }, onSuccess: () => toast({ title: "Relatórios anexados" }),
   onError: (e: Error) => toast({ title: "Não foi possível anexar", description: e.message, variant: "destructive" }),
