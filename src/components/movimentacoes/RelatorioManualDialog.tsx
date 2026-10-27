@@ -11,6 +11,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, Di
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { STATUS_RELATORIO, CONFIRMACOES_RELATORIO, RELATORIO_VAZIO, validarRegistroRelatorio, type RegistroRelatorio } from "@/lib/movimentacao-relatorio";
+import { RELATORIO_BUCKET, RELATORIO_TABELA } from "@/lib/relatorio-arquivos";
+import { gerarResumoUltimaPaginaPdf } from "@/lib/relatorio-resumo-pdf";
 
 function hojeLocalISO(): string {
   const d = new Date();
@@ -61,7 +63,21 @@ export function RelatorioManualDialog({ movimentacaoId, nome, contexto, registro
       const invalido = emails.find(e => !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e));
       if (invalido) throw new Error(`E-mail inválido: ${invalido}`);
       if (!selecionados.length) throw new Error("Selecione ao menos um arquivo para anexar.");
-      const { data, error } = await supabase.functions.invoke("enviar-relatorio-email", { body: { movimentacao_id: movimentacaoId, destinatarios: emails, anexo_ids: selecionados } });
+      // Resumo visual: última página do primeiro PDF selecionado, embutida no corpo do e-mail.
+      // Qualquer falha aqui não pode impedir o envio.
+      let resumo_png_base64: string | null = null;
+      try {
+        const { data: rows } = await supabase.from(RELATORIO_TABELA).select("id, nome_arquivo, storage_path").eq("movimentacao_id", movimentacaoId).in("id", selecionados);
+        const pdf = (rows ?? []).find(r => /\.pdf$/i.test(r.nome_arquivo));
+        if (pdf) {
+          const { data: signed } = await supabase.storage.from(RELATORIO_BUCKET).createSignedUrl(pdf.storage_path, 60);
+          if (signed?.signedUrl) {
+            const buf = await (await fetch(signed.signedUrl)).arrayBuffer();
+            resumo_png_base64 = await gerarResumoUltimaPaginaPdf(new Uint8Array(buf));
+          }
+        }
+      } catch { /* segue sem a imagem */ }
+      const { data, error } = await supabase.functions.invoke("enviar-relatorio-email", { body: { movimentacao_id: movimentacaoId, destinatarios: emails, anexo_ids: selecionados, ...(resumo_png_base64 ? { resumo_png_base64 } : {}) } });
       if (error) {
         const ctx = (error as { context?: Response }).context;
         const msg = ctx ? (await ctx.json().catch(() => null))?.error : null;
