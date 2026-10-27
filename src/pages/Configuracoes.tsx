@@ -25,6 +25,7 @@ import {
 import { cn } from "@/lib/utils";
 import { systemVersion, lastSystemUpdate } from "@/config/system";
 import { EmailRelatoriosForm } from "@/components/configuracoes/EmailRelatoriosForm";
+import { MeuRemetenteForm } from "@/components/configuracoes/MeuRemetenteForm";
 
 const TEMAS: { value: ThemeMode; label: string; icon: typeof Sun }[] = [
   { value: "light", label: "Modo Claro", icon: Sun },
@@ -220,6 +221,7 @@ export default function Configuracoes() {
       </header>
 
       <EmailRelatoriosForm />
+      <MeuRemetenteForm />
 
       {/* 1. Aparência e Preferências */}
       <section className="space-y-4">
