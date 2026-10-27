@@ -421,6 +421,13 @@
       "when": 1793112160817,
       "tag": "0059_arquivos_relatorio_movimentacao",
       "breakpoints": true
+    },
+    {
+      "idx": 60,
+      "version": "7",
+      "when": 1793130715385,
+      "tag": "0060_add_isento_reajuste_to_empresas",
+      "breakpoints": true
     }
   ]
 }

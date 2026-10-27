@@ -1,0 +1,2 @@
+ALTER TABLE public.empresas ADD COLUMN IF NOT EXISTS isento_reajuste boolean NOT NULL DEFAULT false;
+COMMENT ON COLUMN public.empresas.isento_reajuste IS 'Contrato isento de reajuste anual (ex.: permuta). Não entra na tela de Reajustes nem na sincronização da operadora.';
