@@ -49,7 +49,7 @@ async function limiteInferiorPorTexto(pagina: any, viewport: any, escala: number
     const corpo = itens.filter((it) => it.y < topoRodape);
     if (!corpo.length) return null;
     const ultimo = Math.max(...corpo.map((it) => it.y));
-    return Math.min(viewport.height - 1, ultimo + 12 * escala);
+    return Math.min(viewport.height - 1, ultimo + 18 * escala);
   } catch {
     return null;
   }
