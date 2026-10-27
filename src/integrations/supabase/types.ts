@@ -5793,6 +5793,7 @@ export type Database = {
           motivo: string | null
           observacao: string | null
           origem: string | null
+          passageiro_id: string | null
           reembolso: number | null
           responsavel: string | null
           tem_reembolso: boolean
@@ -5816,6 +5817,7 @@ export type Database = {
           motivo?: string | null
           observacao?: string | null
           origem?: string | null
+          passageiro_id?: string | null
           reembolso?: number | null
           responsavel?: string | null
           tem_reembolso?: boolean
@@ -5839,6 +5841,7 @@ export type Database = {
           motivo?: string | null
           observacao?: string | null
           origem?: string | null
+          passageiro_id?: string | null
           reembolso?: number | null
           responsavel?: string | null
           tem_reembolso?: boolean
@@ -5846,6 +5849,57 @@ export type Database = {
           updated_at?: string
           valor?: number | null
           valor_reembolso?: number
+        }
+        Relationships: []
+      }
+      uber_passageiros: {
+        Row: {
+          ativo: boolean
+          created_at: string
+          created_by: string | null
+          endereco: string
+          id: string
+          motivo_padrao: string | null
+          nome: string
+          origem_padrao: string | null
+          setor: string
+          tem_corrida_padrao: boolean
+          tipo_padrao: string | null
+          updated_at: string
+          usar_endereco_origem: boolean
+          whatsapp: string
+        }
+        Insert: {
+          ativo?: boolean
+          created_at?: string
+          created_by?: string | null
+          endereco: string
+          id?: string
+          motivo_padrao?: string | null
+          nome: string
+          origem_padrao?: string | null
+          setor: string
+          tem_corrida_padrao?: boolean
+          tipo_padrao?: string | null
+          updated_at?: string
+          usar_endereco_origem?: boolean
+          whatsapp: string
+        }
+        Update: {
+          ativo?: boolean
+          created_at?: string
+          created_by?: string | null
+          endereco?: string
+          id?: string
+          motivo_padrao?: string | null
+          nome?: string
+          origem_padrao?: string | null
+          setor?: string
+          tem_corrida_padrao?: boolean
+          tipo_padrao?: string | null
+          updated_at?: string
+          usar_endereco_origem?: boolean
+          whatsapp?: string
         }
         Relationships: []
       }
