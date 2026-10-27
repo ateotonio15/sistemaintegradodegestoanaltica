@@ -120,7 +120,9 @@ Deno.serve(async (req) => {
     const html = `<div style="font-family:Arial,sans-serif;font-size:14px;color:#222">${texto.split("\n").map(l => l ? esc(l) : "").join("<br>")}${imgResumo}<br><img src="cid:assinatura-samel" alt="Assinatura Samel" style="max-width:460px;margin-top:16px"></div>`;
 
     await enviarSmtp({
-      fromNome: nomeRem, fromEmail, replyTo, para: destinatarios, assunto, html, texto, anexos,
+      fromNome: nomeRem, fromEmail, replyTo, para: destinatarios,
+      // Cópia oculta para quem enviou, para o Cadastro guardar o e-mail enviado.
+      bcc: [...new Set([fromEmail, replyTo].filter((e): e is string => !!e && /@/.test(e)))], assunto, html, texto, anexos,
       inline: [
         ...(resumoPng ? [{ cid: "resumo-relatorio", nome: "resumo-relatorio.png", mime: "image/png", conteudo: resumoPng }] : []),
         { cid: "assinatura-samel", nome: "assinatura.png", mime: assinaturaMime, conteudo: assinatura },
