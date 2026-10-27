@@ -1,3 +1,4 @@
+import { ASSINATURA_PADRAO_B64 } from "./assinatura-padrao.ts";
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { corsHeaders } from "npm:@supabase/supabase-js@2/cors";
 import { z } from "npm:zod@3";
@@ -111,7 +112,7 @@ Deno.serve(async (req) => {
         assinaturaMime = pathProprio.endsWith(".jpg") ? "image/jpeg" : "image/png";
       }
     }
-    if (!assinatura) assinatura = await Deno.readFile(new URL("./assinatura-samel.png", import.meta.url));
+    if (!assinatura) assinatura = Uint8Array.from(atob(ASSINATURA_PADRAO_B64), (c) => c.charCodeAt(0));
     // Resumo (última página do relatório) vai no corpo, entre o texto e a assinatura.
     const imgResumo = resumoPng ? `<img src="cid:resumo-relatorio" alt="Resumo do relatório" style="max-width:760px;margin-top:8px;display:block">` : "";
     const paragrafos = texto.split("\n").filter(Boolean).map(l => `<p style="margin:0 0 12px">${esc(l)}</p>`).join("");
