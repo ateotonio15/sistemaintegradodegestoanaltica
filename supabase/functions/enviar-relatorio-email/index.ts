@@ -8,6 +8,8 @@ import { dataCorteMovimentacao } from "../_shared/data-corte.ts";
 const Body = z.object({
   movimentacao_id: z.string().uuid(),
   destinatarios: z.array(z.string().email()).min(1).max(20),
+  // Opcional: cópia visível (Cc) escolhida na hora do envio.
+  cc: z.array(z.string().email()).max(20).optional(),
   anexo_ids: z.array(z.string().uuid()).min(1).max(10),
   // Opcional: PNG (base64) da última página do relatório, embutido no corpo do e-mail.
   resumo_png_base64: z.string().max(4_200_000).optional(),
@@ -48,7 +50,7 @@ Deno.serve(async (req) => {
 
     const parsed = Body.safeParse(await req.json());
     if (!parsed.success) return json({ error: "Dados inválidos", detalhes: parsed.error.flatten().fieldErrors }, 400);
-    const { movimentacao_id, destinatarios, anexo_ids, resumo_png_base64 } = parsed.data;
+    const { movimentacao_id, destinatarios, cc, anexo_ids, resumo_png_base64 } = parsed.data;
     const resumoPng = decodificarPng(resumo_png_base64);
 
     // Leituras com a sessão do usuário: respeitam as permissões existentes.
@@ -121,6 +123,8 @@ Deno.serve(async (req) => {
 
     try { await enviarSmtp({
       fromNome: nomeRem, fromEmail, replyTo, para: destinatarios,
+      // Cópia visível escolhida na tela; a empresa vê quem está em cópia.
+      cc: cc ?? [],
       // Cópia oculta para quem enviou, para o Cadastro guardar o e-mail enviado.
       bcc: [...new Set([fromEmail, replyTo].filter((e): e is string => !!e && /@/.test(e)))], assunto, html, texto: textoCompleto, anexos,
       inline: [

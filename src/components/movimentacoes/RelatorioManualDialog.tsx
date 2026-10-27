@@ -56,12 +56,16 @@ export function RelatorioManualDialog({ movimentacaoId, nome, contexto, registro
   });
   const [arquivosOcupados, setArquivosOcupados] = useState(false);
   const [selecionados, setSelecionados] = useState<string[]>([]);
+  const [copia, setCopia] = useState("");
   const enviarEmail = useMutation({
     mutationFn: async () => {
       const emails = form.destinatarios.split(/[,;\s]+/).map(e => e.trim()).filter(Boolean);
       if (!emails.length) throw new Error("Informe ao menos um destinatário.");
       const invalido = emails.find(e => !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e));
       if (invalido) throw new Error(`E-mail inválido: ${invalido}`);
+      const emailsCopia = copia.split(/[,;\s]+/).map(e => e.trim()).filter(Boolean);
+      const invalidoCopia = emailsCopia.find(e => !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e));
+      if (invalidoCopia) throw new Error(`E-mail inválido em "Com cópia": ${invalidoCopia}`);
       if (!selecionados.length) throw new Error("Selecione ao menos um arquivo para anexar.");
       // Resumo visual: última página do primeiro PDF selecionado, embutida no corpo do e-mail.
       // Qualquer falha aqui não pode impedir o envio.
@@ -77,7 +81,7 @@ export function RelatorioManualDialog({ movimentacaoId, nome, contexto, registro
           }
         }
       } catch { /* segue sem a imagem */ }
-      const { data, error } = await supabase.functions.invoke("enviar-relatorio-email", { body: { movimentacao_id: movimentacaoId, destinatarios: emails, anexo_ids: selecionados, ...(resumo_png_base64 ? { resumo_png_base64 } : {}) } });
+      const { data, error } = await supabase.functions.invoke("enviar-relatorio-email", { body: { movimentacao_id: movimentacaoId, destinatarios: emails, ...(emailsCopia.length ? { cc: emailsCopia } : {}), anexo_ids: selecionados, ...(resumo_png_base64 ? { resumo_png_base64 } : {}) } });
       if (error) {
         const ctx = (error as { context?: Response }).context;
         const msg = ctx ? (await ctx.json().catch(() => null))?.error : null;
@@ -104,6 +108,7 @@ export function RelatorioManualDialog({ movimentacaoId, nome, contexto, registro
           </Select>
         </div>
         <div className="space-y-2"><Label htmlFor="relatorio-destinatarios">Destinatários</Label><Textarea id="relatorio-destinatarios" value={form.destinatarios} disabled={!canEdit || save.isPending} onChange={e => setForm(f => ({ ...f, destinatarios: e.target.value }))} /></div>
+        <div className="space-y-2"><Label htmlFor="relatorio-copia">Com cópia (Cc)</Label><Textarea id="relatorio-copia" value={copia} disabled={!canEdit || save.isPending} placeholder="E-mails que recebem uma cópia visível (opcional)" onChange={e => setCopia(e.target.value)} /></div>
         <div className="space-y-2"><Label htmlFor="relatorio-data">Data de Envio</Label><Input id="relatorio-data" type="date" disabled={!canEdit || save.isPending} value={form.data_envio ?? ""} onChange={e => setForm(f => ({ ...f, data_envio: e.target.value || null }))} /></div>
         <div className="space-y-2"><Label htmlFor="relatorio-confirmacao">Confirmação da Empresa</Label>
           <Select disabled={!canEdit || save.isPending} value={form.confirmacao} onValueChange={confirmacao => setForm(f => ({ ...f, confirmacao, status: confirmacao !== "Aguardando" ? confirmacao : ["Conferido pela empresa", "Divergência informada"].includes(f.status) ? "Enviado" : f.status }))}>
