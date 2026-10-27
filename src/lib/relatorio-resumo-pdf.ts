@@ -19,9 +19,69 @@ async function renderizarPagina(doc: any, escala: number): Promise<string> {
   const ctx = canvas.getContext("2d");
   if (!ctx) throw new Error("Canvas indisponível");
   await pagina.render({ canvasContext: ctx, viewport }).promise;
-  const recortado = recortarConteudo(canvas, ctx, Math.round(12 * escala));
+  const limite = await limiteInferiorPorTexto(pagina, viewport, escala);
+  const recortado = limite != null
+    ? recortarAteLimite(canvas, ctx, limite, Math.round(8 * escala))
+    : recortarConteudo(canvas, ctx, Math.round(12 * escala));
   const dataUrl = recortado.toDataURL("image/png");
   return dataUrl.split(",")[1] ?? "";
+}
+
+const RODAPE = /impresso\s+em|p[áa]gina\s*\d/i;
+
+/**
+ * Usa o texto do PDF para achar onde terminam as informações (ex.: linha
+ * "Coletivo Empresarial Master"), ignorando o rodapé "Impresso em / Página".
+ * Retorna a coordenada Y (em pixels do canvas) do fim do recorte, ou null.
+ */
+async function limiteInferiorPorTexto(pagina: any, viewport: any, escala: number): Promise<number | null> {
+  try {
+    const conteudo = await pagina.getTextContent();
+    const itens = (conteudo.items as any[])
+      .filter((it) => typeof it.str === "string" && it.str.trim())
+      .map((it) => {
+        const [, y] = viewport.convertToViewportPoint(it.transform[4], it.transform[5]);
+        return { str: it.str as string, y: y as number };
+      });
+    if (!itens.length) return null;
+    const rodape = itens.filter((it) => RODAPE.test(it.str));
+    const topoRodape = rodape.length ? Math.min(...rodape.map((it) => it.y)) - 14 * escala : Infinity;
+    const corpo = itens.filter((it) => it.y < topoRodape);
+    if (!corpo.length) return null;
+    const ultimo = Math.max(...corpo.map((it) => it.y));
+    return Math.min(viewport.height - 1, ultimo + 18 * escala);
+  } catch {
+    return null;
+  }
+}
+
+/** Recorta do topo da página até o limite, cortando sobras brancas nas laterais e no topo. */
+function recortarAteLimite(canvas: HTMLCanvasElement, ctx: CanvasRenderingContext2D, limite: number, margem: number): HTMLCanvasElement {
+  const w = canvas.width;
+  const maxY = Math.max(1, Math.min(canvas.height - 1, Math.round(limite)));
+  const px = ctx.getImageData(0, 0, w, maxY + 1).data;
+  const escuro = (x: number, y: number) => {
+    const i = (y * w + x) * 4;
+    return px[i + 3] > 0 && (px[i] < 235 || px[i + 1] < 235 || px[i + 2] < 235);
+  };
+  let minY = -1, minX = w, maxX = -1;
+  for (let y = 0; y <= maxY; y++) {
+    for (let x = 0; x < w; x++) {
+      if (!escuro(x, y)) continue;
+      if (minY < 0) minY = y;
+      if (x < minX) minX = x;
+      if (x > maxX) maxX = x;
+    }
+  }
+  if (minY < 0 || maxX < 0) return canvas;
+  minX = Math.max(0, minX - margem); minY = Math.max(0, minY - margem); maxX = Math.min(w - 1, maxX + margem);
+  const out = document.createElement("canvas");
+  out.width = maxX - minX + 1; out.height = maxY - minY + 1;
+  const octx = out.getContext("2d");
+  if (!octx) return canvas;
+  octx.fillStyle = "#ffffff"; octx.fillRect(0, 0, out.width, out.height);
+  octx.drawImage(canvas, minX, minY, out.width, out.height, 0, 0, out.width, out.height);
+  return out;
 }
 
 /** Recorta apenas a área com informações, removendo o espaço em branco da página. */
