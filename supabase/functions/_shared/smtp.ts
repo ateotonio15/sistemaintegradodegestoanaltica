@@ -1,8 +1,10 @@
 // Cliente SMTP mínimo (STARTTLS + AUTH PLAIN) para o servidor da Samel.
 export interface Anexo { nome: string; mime: string; conteudo: Uint8Array }
+export interface ImagemInline { cid: string; nome: string; mime: string; conteudo: Uint8Array }
 export interface Mensagem {
   fromNome: string; fromEmail: string; replyTo?: string | null;
   para: string[]; cc?: string[]; assunto: string; html: string; texto: string; anexos: Anexo[];
+  inline?: ImagemInline[];
 }
 
 const enc = new TextEncoder();
