@@ -1127,6 +1127,30 @@ export type Database = {
         }
         Relationships: []
       }
+      config_email_remetente_usuario: {
+        Row: {
+          atualizado_em: string
+          email_remetente: string
+          email_resposta: string | null
+          nome_remetente: string
+          user_id: string
+        }
+        Insert: {
+          atualizado_em?: string
+          email_remetente: string
+          email_resposta?: string | null
+          nome_remetente: string
+          user_id: string
+        }
+        Update: {
+          atualizado_em?: string
+          email_remetente?: string
+          email_resposta?: string | null
+          nome_remetente?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       config_sync: {
         Row: {
           chave: string
