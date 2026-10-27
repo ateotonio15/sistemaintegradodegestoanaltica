@@ -16,3 +16,13 @@ export function validarConfigEmail(dados: ConfigEmailRelatorios): string | null 
   if (dados.email_resposta.trim() && !valido.test(dados.email_resposta.trim())) return "Informe um e-mail para respostas válido.";
   return null;
 }
+export type RemetenteUsuario = { nome_remetente: string; email_remetente: string; email_resposta: string };
+
+/** Remetente individual do perfil Cadastro: sempre um endereço @samel.com.br. */
+export function validarRemetenteUsuario(dados: RemetenteUsuario): string | null {
+  if (!dados.nome_remetente.trim()) return "Informe o nome do remetente.";
+  if (!/^[^\s@]+@samel\.com\.br$/i.test(dados.email_remetente.trim())) return "Use seu e-mail @samel.com.br.";
+  const resp = dados.email_resposta.trim();
+  if (resp && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(resp)) return "Informe um e-mail para respostas válido.";
+  return null;
+}
