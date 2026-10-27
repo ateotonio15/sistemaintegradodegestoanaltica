@@ -8,6 +8,8 @@ import { dataCorteMovimentacao } from "../_shared/data-corte.ts";
 const Body = z.object({
   movimentacao_id: z.string().uuid(),
   destinatarios: z.array(z.string().email()).min(1).max(20),
+  // Opcional: cópia visível (Cc) escolhida na hora do envio.
+  cc: z.array(z.string().email()).max(20).optional(),
   anexo_ids: z.array(z.string().uuid()).min(1).max(10),
   // Opcional: PNG (base64) da última página do relatório, embutido no corpo do e-mail.
   resumo_png_base64: z.string().max(4_200_000).optional(),
