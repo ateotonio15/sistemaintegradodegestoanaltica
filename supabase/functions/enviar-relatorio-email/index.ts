@@ -91,7 +91,7 @@ Deno.serve(async (req) => {
 
     await enviarSmtp({
       fromNome: nomeRem, fromEmail, replyTo, para: destinatarios, assunto, html, texto, anexos,
-      inline: [{ cid: "assinatura-samel", nome: "assinatura-samel.png", mime: "image/png", conteudo: assinatura }],
+      inline: [{ cid: "assinatura-samel", nome: "assinatura.png", mime: assinaturaMime, conteudo: assinatura }],
     });
 
     const hoje = hojeManaus();
