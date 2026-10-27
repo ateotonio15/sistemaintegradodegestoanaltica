@@ -98,11 +98,8 @@ Deno.serve(async (req) => {
       "Ressalto que a conferência dentro do prazo é fundamental para evitar cobranças indevidas. Após a data de corte, a Nota Fiscal será emitida automaticamente com base no relatório encaminhado.",
       "",
       "Peço, por gentileza, que confirmem o recebimento e a validação do relatório. Na ausência de manifestação até o prazo informado, o faturamento seguirá normalmente.",
-      "",
-      "Agradeço pela atenção e colaboração.",
-      "",
-      nomeRem,
     ].join("\n");
+    const fechamento = ["Permanecerei à disposição.", "", "Cordialmente,"];
     // Assinatura: a da pessoa que enviou (quando cadastrada); senão, a padrão da Samel.
     let assinatura: Uint8Array | null = null;
     let assinaturaMime = "image/png";
@@ -116,13 +113,15 @@ Deno.serve(async (req) => {
     }
     if (!assinatura) assinatura = await Deno.readFile(new URL("./assinatura-samel.png", import.meta.url));
     // Resumo (última página do relatório) vai no corpo, entre o texto e a assinatura.
-    const imgResumo = resumoPng ? `<br><img src="cid:resumo-relatorio" alt="Resumo do relatório" style="max-width:640px;margin-top:12px;border:1px solid #ccc">` : "";
-    const html = `<div style="font-family:Arial,sans-serif;font-size:14px;color:#222">${texto.split("\n").map(l => l ? esc(l) : "").join("<br>")}${imgResumo}<br><img src="cid:assinatura-samel" alt="Assinatura Samel" style="max-width:460px;margin-top:16px"></div>`;
+    const imgResumo = resumoPng ? `<img src="cid:resumo-relatorio" alt="Resumo do relatório" style="max-width:760px;margin-top:8px;display:block">` : "";
+    const paragrafos = texto.split("\n").filter(Boolean).map(l => `<p style="margin:0 0 12px">${esc(l)}</p>`).join("");
+    const html = `<div style="font-family:Arial,sans-serif;font-size:14px;color:#222">${paragrafos}${imgResumo}<p style="margin:20px 0 12px">Permanecerei à disposição.</p><p style="margin:0 0 8px">Cordialmente,</p><img src="cid:assinatura-samel" alt="Assinatura Samel" style="max-width:540px"></div>`;
+    const textoCompleto = [texto, "", ...fechamento].join("\n");
 
     await enviarSmtp({
       fromNome: nomeRem, fromEmail, replyTo, para: destinatarios,
       // Cópia oculta para quem enviou, para o Cadastro guardar o e-mail enviado.
-      bcc: [...new Set([fromEmail, replyTo].filter((e): e is string => !!e && /@/.test(e)))], assunto, html, texto, anexos,
+      bcc: [...new Set([fromEmail, replyTo].filter((e): e is string => !!e && /@/.test(e)))], assunto, html, texto: textoCompleto, anexos,
       inline: [
         ...(resumoPng ? [{ cid: "resumo-relatorio", nome: "resumo-relatorio.png", mime: "image/png", conteudo: resumoPng }] : []),
         { cid: "assinatura-samel", nome: "assinatura.png", mime: assinaturaMime, conteudo: assinatura },
