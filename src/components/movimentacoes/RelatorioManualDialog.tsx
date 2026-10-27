@@ -81,7 +81,7 @@ export function RelatorioManualDialog({ movimentacaoId, nome, contexto, registro
           }
         }
       } catch { /* segue sem a imagem */ }
-      const { data, error } = await supabase.functions.invoke("enviar-relatorio-email", { body: { movimentacao_id: movimentacaoId, destinatarios: emails, anexo_ids: selecionados, ...(resumo_png_base64 ? { resumo_png_base64 } : {}) } });
+      const { data, error } = await supabase.functions.invoke("enviar-relatorio-email", { body: { movimentacao_id: movimentacaoId, destinatarios: emails, ...(emailsCopia.length ? { cc: emailsCopia } : {}), anexo_ids: selecionados, ...(resumo_png_base64 ? { resumo_png_base64 } : {}) } });
       if (error) {
         const ctx = (error as { context?: Response }).context;
         const msg = ctx ? (await ctx.json().catch(() => null))?.error : null;

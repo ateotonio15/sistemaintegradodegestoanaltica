@@ -50,7 +50,7 @@ Deno.serve(async (req) => {
 
     const parsed = Body.safeParse(await req.json());
     if (!parsed.success) return json({ error: "Dados inválidos", detalhes: parsed.error.flatten().fieldErrors }, 400);
-    const { movimentacao_id, destinatarios, anexo_ids, resumo_png_base64 } = parsed.data;
+    const { movimentacao_id, destinatarios, cc, anexo_ids, resumo_png_base64 } = parsed.data;
     const resumoPng = decodificarPng(resumo_png_base64);
 
     // Leituras com a sessão do usuário: respeitam as permissões existentes.
