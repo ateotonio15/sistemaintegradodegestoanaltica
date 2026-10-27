@@ -28,11 +28,33 @@ async function renderizarPagina(doc: any, escala: number): Promise<string> {
 function recortarConteudo(canvas: HTMLCanvasElement, ctx: CanvasRenderingContext2D, margem: number): HTMLCanvasElement {
   const { width: w, height: h } = canvas;
   const px = ctx.getImageData(0, 0, w, h).data;
+  const escuro = (x: number, y: number) => {
+    const i = (y * w + x) * 4;
+    return px[i + 3] > 0 && (px[i] < 235 || px[i + 1] < 235 || px[i + 2] < 235);
+  };
+  // Ignora a moldura da página: colunas/linhas quase inteiramente escuras (bordas finas).
+  const colMoldura = new Uint8Array(w);
+  for (let x = 0; x < w; x++) {
+    let n = 0; for (let y = 0; y < h; y++) if (escuro(x, y)) n++;
+    if (n > h * 0.6) colMoldura[x] = 1;
+  }
+  const linMoldura = new Uint8Array(h);
+  for (let y = 0; y < h; y++) {
+    let n = 0, cont = 0;
+    for (let x = 0; x < w; x++) if (!colMoldura[x] && escuro(x, y)) n++;
+    for (let x = 0; x < w; x++) if (!colMoldura[x]) cont++;
+    // linha fina de borda (não faixa cinza com texto): checa se a linha de cima ou de baixo é clara
+    if (cont && n > cont * 0.9) {
+      const claroVizinho = (yy: number) => { if (yy < 0 || yy >= h) return true; let k = 0; for (let x = 0; x < w; x += 4) if (!colMoldura[x] && escuro(x, yy)) k++; return k < (cont / 4) * 0.5; };
+      if (claroVizinho(y - 3) || claroVizinho(y + 3)) linMoldura[y] = 1;
+    }
+  }
   let minX = w, minY = h, maxX = -1, maxY = -1;
   for (let y = 0; y < h; y++) {
+    if (linMoldura[y]) continue;
     for (let x = 0; x < w; x++) {
-      const i = (y * w + x) * 4;
-      if (px[i + 3] > 0 && (px[i] < 235 || px[i + 1] < 235 || px[i + 2] < 235)) {
+      if (colMoldura[x]) continue;
+      if (escuro(x, y)) {
         if (x < minX) minX = x; if (x > maxX) maxX = x;
         if (y < minY) minY = y; if (y > maxY) maxY = y;
       }
