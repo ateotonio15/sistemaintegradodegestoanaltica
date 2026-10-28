@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { Download, Loader2, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { gerarRelatoriosPortal, validarArquivoContrato, type ArquivoPortal } from "@/services/portalEmpresaRelatorios";
+import { PortalPdfPreview } from "./PortalPdfPreview";
 
 export function RelatoriosPortal({ contrato, nome, onArquivos, onBusy }: {
   contrato: string | null; nome: string; onArquivos: (arquivos: ArquivoPortal[]) => void; onBusy: (busy: boolean) => void;
@@ -35,7 +36,7 @@ export function RelatoriosPortal({ contrato, nome, onArquivos, onBusy }: {
   return <div className="space-y-3">
     {gerando && <p role="status" className="flex items-center gap-2 text-sm"><Loader2 className="h-4 w-4 shrink-0 animate-spin" />Gerando relatório do contrato #{contrato} ({nome})...</p>}
     {erro && <div role="alert" className="space-y-2"><p className="text-sm text-destructive">{erro}</p><Button type="button" variant="outline" onClick={() => setTentativa(t => t + 1)}><RefreshCw className="mr-2 h-4 w-4" />Tentar novamente</Button></div>}
-    {urlPdf && <iframe title={`Relatório de vidas — ${nome} — contrato #${contrato}`} src={urlPdf} className="h-[420px] w-full border border-border" />}
+    {urlPdf && arquivos.filter(a => a.tipo === "pdf").map(a => <PortalPdfPreview key={a.job_id} blob={a.blob} />)}
     <div className="flex flex-wrap gap-2">{arquivos.map(a => <Button type="button" variant="outline" key={a.tipo} onClick={() => baixar(a)}><Download className="mr-2 h-4 w-4" />{a.tipo === "pdf" ? "Baixar PDF de vidas ativas" : "Baixar Excel de mensalidades"}</Button>)}</div>
   </div>;
 }

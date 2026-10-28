@@ -24,5 +24,12 @@ export async function gerarRelatorioPortal(contrato: unknown, tipo: TipoRelatori
 }
 export async function gerarRelatoriosPortal(contrato: unknown, signal: AbortSignal): Promise<ArquivoPortal[]> {
   // Cada chamada tem seu próprio trabalho e contrato; não há cache compartilhado entre empresas.
-  return Promise.all([gerarRelatorioPortal(contrato, "pdf", signal), gerarRelatorioPortal(contrato, "xlsx", signal)]);
+  const controller = new AbortController();
+  const cancelar = () => controller.abort();
+  signal.throwIfAborted();
+  signal.addEventListener("abort", cancelar, { once: true });
+  try {
+    return await Promise.all([gerarRelatorioPortal(contrato, "pdf", controller.signal), gerarRelatorioPortal(contrato, "xlsx", controller.signal)]);
+  } catch (e) { controller.abort(); throw e; }
+  finally { signal.removeEventListener("abort", cancelar); }
 }
