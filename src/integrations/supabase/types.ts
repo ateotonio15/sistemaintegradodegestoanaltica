@@ -4230,6 +4230,7 @@ export type Database = {
       }
       movimentacoes: {
         Row: {
+          cc_email: string | null
           created_at: string
           data_envio_empresa: string | null
           data_envio_financeiro: string | null
@@ -4245,6 +4246,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          cc_email?: string | null
           created_at?: string
           data_envio_empresa?: string | null
           data_envio_financeiro?: string | null
@@ -4260,6 +4262,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          cc_email?: string | null
           created_at?: string
           data_envio_empresa?: string | null
           data_envio_financeiro?: string | null
