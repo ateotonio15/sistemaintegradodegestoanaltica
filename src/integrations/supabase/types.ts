@@ -4191,6 +4191,7 @@ export type Database = {
         Row: {
           atualizado_em: string
           atualizado_por: string
+          cc: string
           confirmacao: string
           data_envio: string | null
           destinatarios: string
@@ -4201,6 +4202,7 @@ export type Database = {
         Insert: {
           atualizado_em?: string
           atualizado_por?: string
+          cc?: string
           confirmacao?: string
           data_envio?: string | null
           destinatarios?: string
@@ -4211,6 +4213,7 @@ export type Database = {
         Update: {
           atualizado_em?: string
           atualizado_por?: string
+          cc?: string
           confirmacao?: string
           data_envio?: string | null
           destinatarios?: string
