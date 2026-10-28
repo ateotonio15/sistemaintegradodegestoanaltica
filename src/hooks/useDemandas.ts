@@ -86,8 +86,9 @@ export function useDeleteDemanda() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await supabase.from("demandas").delete().eq("id", id);
+      const { data, error } = await supabase.from("demandas").delete().eq("id", id).select("id");
       if (error) throw error;
+      if (!data || data.length === 0) throw new Error("Você não tem permissão para excluir esta reclamação.");
     },
     onSuccess: () => { qc.invalidateQueries({ queryKey: QK_DEMANDAS }); qc.invalidateQueries({ queryKey: ["plantoes_atendimentos"] }); qc.invalidateQueries({ queryKey: ["plantoes"] }); },
   });
