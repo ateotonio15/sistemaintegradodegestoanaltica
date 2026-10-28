@@ -315,6 +315,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const signOut = async () => {
     clearSessionNamespace("financeiro");
+    // Limpa o cache em memória para que o próximo usuário do mesmo navegador
+    // nunca veja dados da sessão anterior (ex.: avisos de saúde).
+    queryClient.clear();
     try { localStorage.removeItem(SIMULACAO_STORAGE_KEY); } catch { /* ignore */ }
     setSimulatedRoleState(null);
     await supabase.auth.signOut();
