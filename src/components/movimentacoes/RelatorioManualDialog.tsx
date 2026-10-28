@@ -76,7 +76,7 @@ export function RelatorioManualDialog({ movimentacaoId, nome, contrato, contexto
     onError: (e: Error) => toast({ title: "Não foi possível enviar o e-mail", description: e.message, variant: "destructive" }),
   });
   const ocupado = save.isPending || enviarEmail.isPending || arquivosOcupados;
-  return <Dialog open onOpenChange={open => { if (!open && !ocupado) onClose(); }}>
+  return <Dialog open onOpenChange={open => { if (!open && !save.isPending && !enviarEmail.isPending) onClose(); }}>
     <DialogContent className="sm:max-w-[860px] max-h-[90vh] overflow-y-auto">
       <DialogHeader><DialogTitle>{statusInicial ? "Enviar relatório" : "Visualizar relatório"}</DialogTitle><DialogDescription>{contexto}</DialogDescription></DialogHeader>
       <p className="break-words font-semibold">Empresa: {nome} | Contrato: #{contrato ?? "Não informado"}</p>
@@ -101,7 +101,7 @@ export function RelatorioManualDialog({ movimentacaoId, nome, contrato, contexto
             <Send className="mr-2 h-4 w-4" />{enviarEmail.isPending ? "Enviando e-mail..." : "Enviar por e-mail"}
           </Button>}
         </div>
-        <DialogFooter><Button type="button" variant="outline" onClick={onClose} disabled={ocupado}>Fechar</Button>{canEdit && <Button type="submit" variant="outline" disabled={ocupado}>{save.isPending ? "Salvando..." : "Salvar registro manual"}</Button>}</DialogFooter>
+        <DialogFooter><Button type="button" variant="outline" onClick={onClose} disabled={save.isPending || enviarEmail.isPending}>Fechar</Button>{canEdit && <Button type="submit" variant="outline" disabled={ocupado}>{save.isPending ? "Salvando..." : "Salvar registro manual"}</Button>}</DialogFooter>
       </form>
     </DialogContent>
   </Dialog>;

@@ -46,12 +46,13 @@ describe("relatórios vinculados exclusivamente ao contrato da linha", () => {
   });
   it("cancela polling anterior antes de qualquer download", async () => {
     const controller = new AbortController();
-    const fetchMock = vi.fn().mockResolvedValue(resposta({ success: true, job_id: "job-antigo", status: "processando" }));
+    const fetchMock = vi.fn().mockImplementation(async () => resposta({ success: true, job_id: "job-antigo", status: "processando" }));
     vi.stubGlobal("fetch", fetchMock);
     const promise = gerarRelatorioPortal("2192", "pdf", controller.signal);
+    const rejeicao = expect(promise).rejects.toThrow();
     await new Promise(resolve => setTimeout(resolve, 20));
     controller.abort();
-    await expect(promise).rejects.toThrow();
+    await rejeicao;
     expect(fetchMock.mock.calls.some(([url]) => String(url).endsWith("/download"))).toBe(false);
   });
   it("rejeita resposta de outro job mesmo com contrato igual", async () => {
