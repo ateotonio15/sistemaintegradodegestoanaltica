@@ -11,7 +11,7 @@ const arquivos = [
 beforeEach(() => { vi.clearAllMocks(); mocks.resumo.mockResolvedValue(null); mocks.invoke.mockResolvedValue({ data: { ok: true, registro_salvo: true }, error: null }); });
 it("envia somente referências dos dois trabalhos de 2490 para nova validação no servidor", async () => {
   await enviarRelatoriosPortal({ movimentacaoId: "mov-adata", contrato: "2490", destinatarios: ["rh@example.com"], arquivos, lote: true });
-  expect(mocks.invoke).toHaveBeenCalledWith("enviar-relatorio-email", { body: { movimentacao_id: "mov-adata", destinatarios: ["rh@example.com"], cc: [], lote: true, portal_jobs: [{ job_id: "pdf-2490", nr_contrato: 2490, tipo: "pdf" }, { job_id: "excel-2490", nr_contrato: 2490, tipo: "xlsx" }] } });
+  expect(mocks.invoke).toHaveBeenCalledWith("enviar-relatorio-email", { body: { movimentacao_id: "mov-adata", destinatarios: ["rh@example.com"], cc: [], lote: true, portal_jobs: [{ job_id: "pdf-2490", nr_contrato: 2490, tipo: "pdf" }, { job_id: "excel-2490", nr_contrato: 2490, tipo: "xlsx" }], grupo_jobs: [] } });
 });
 it("não invoca envio quando arquivo do contrato 2490 é apresentado na linha 2192", async () => {
   await expect(enviarRelatoriosPortal({ movimentacaoId: "mov-2192", contrato: "2192", destinatarios: ["rh@example.com"], arquivos })).rejects.toThrow("bloqueado");
