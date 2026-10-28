@@ -37,6 +37,7 @@ export function RelatorioManualDialog({ movimentacaoId, nome, contrato, contexto
       if (erro) throw new Error(erro);
       const { error } = await supabase.from("movimentacao_relatorios").upsert({
         movimentacao_id: movimentacaoId, status: form.status, destinatarios: form.destinatarios.trim(),
+        cc: form.cc.trim(),
         data_envio: form.data_envio, confirmacao: form.confirmacao, observacoes: form.observacoes.trim(),
       }, { onConflict: "movimentacao_id" });
       if (error) throw error;
@@ -62,7 +63,7 @@ export function RelatorioManualDialog({ movimentacaoId, nome, contrato, contexto
       if (!emails.length) throw new Error("Informe ao menos um destinatário.");
       const invalido = emails.find(e => !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e));
       if (invalido) throw new Error(`E-mail inválido: ${invalido}`);
-      const emailsCopia = copia.split(/[,;\s]+/).map(e => e.trim()).filter(Boolean);
+      const emailsCopia = form.cc.split(/[,;\s]+/).map(e => e.trim()).filter(Boolean);
       const invalidoCopia = emailsCopia.find(e => !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e));
       if (invalidoCopia) throw new Error(`E-mail inválido em "Com cópia": ${invalidoCopia}`);
       return enviarRelatoriosPortal({ movimentacaoId, contrato, destinatarios: emails, cc: emailsCopia, arquivos });
@@ -87,7 +88,7 @@ export function RelatorioManualDialog({ movimentacaoId, nome, contrato, contexto
           </Select>
         </div>
         <div className="space-y-2"><Label htmlFor="relatorio-destinatarios">Destinatários</Label><Textarea id="relatorio-destinatarios" value={form.destinatarios} disabled={!canEdit || save.isPending} onChange={e => setForm(f => ({ ...f, destinatarios: e.target.value }))} /></div>
-        <div className="space-y-2"><Label htmlFor="relatorio-copia">Com cópia (Cc)</Label><Textarea id="relatorio-copia" value={copia} disabled={!canEdit || save.isPending} placeholder="E-mails que recebem uma cópia visível (opcional)" onChange={e => setCopia(e.target.value)} /></div>
+        <div className="space-y-2"><Label htmlFor="relatorio-copia">Com cópia (Cc)</Label><Textarea id="relatorio-copia" value={form.cc} disabled={!canEdit || save.isPending} placeholder="E-mails que recebem uma cópia visível (opcional)" onChange={e => setForm(f => ({ ...f, cc: e.target.value }))} /></div>
         <div className="space-y-2"><Label htmlFor="relatorio-data">Data de Envio</Label><Input id="relatorio-data" type="date" disabled={!canEdit || save.isPending} value={form.data_envio ?? ""} onChange={e => setForm(f => ({ ...f, data_envio: e.target.value || null }))} /></div>
         <div className="space-y-2"><Label htmlFor="relatorio-confirmacao">Confirmação da Empresa</Label>
           <Select disabled={!canEdit || save.isPending} value={form.confirmacao} onValueChange={confirmacao => setForm(f => ({ ...f, confirmacao, status: confirmacao !== "Aguardando" ? confirmacao : ["Conferido pela empresa", "Divergência informada"].includes(f.status) ? "Enviado" : f.status }))}>
@@ -96,7 +97,7 @@ export function RelatorioManualDialog({ movimentacaoId, nome, contrato, contexto
         </div>
         <div className="space-y-2"><Label htmlFor="relatorio-observacoes">Observações do relatório</Label><Textarea id="relatorio-observacoes" disabled={!canEdit || save.isPending} value={form.observacoes} onChange={e => setForm(f => ({ ...f, observacoes: e.target.value }))} /></div>
         <div className="space-y-2 rounded-md border p-3">
-          {canEdit && <Button type="button" className="w-full" disabled={ocupado || arquivos.length !== 2} onClick={() => { if (window.confirm(`Enviar os relatórios?\nEmpresa: ${nome} | Contrato: #${contrato}\nDestinatários: ${form.destinatarios}${copia ? `\nCom cópia (Cc): ${copia}` : ""}`)) enviarEmail.mutate(); }}>
+          {canEdit && <Button type="button" className="w-full" disabled={ocupado || arquivos.length !== 2} onClick={() => { if (window.confirm(`Enviar os relatórios?\nEmpresa: ${nome} | Contrato: #${contrato}\nDestinatários: ${form.destinatarios}${form.cc.trim() ? `\nCom cópia (Cc): ${form.cc}` : ""}`)) enviarEmail.mutate(); }}>
             <Send className="mr-2 h-4 w-4" />{enviarEmail.isPending ? "Enviando e-mail..." : "Enviar por e-mail"}
           </Button>}
         </div>
