@@ -1,5 +1,10 @@
 # Roadmap — Primeiro pacote financeiro
 
+## Portal Empresa — relatórios reais por contrato (28/10)
+- [ ] Integrar fila assíncrona, PDF/Excel e visualização com contrato travado e cancelamento ao trocar a linha.
+- [ ] Integrar preparação e envio real individual/em lote, com validação do contrato também no servidor.
+- [ ] Testar isolamento, divergências e consulta real sem enviar e-mails da operação.
+
 ## Arquivos próprios dos relatórios — pedido atual
 - [x] Permitir anexar PDF e Excel no controle de relatório, separados dos anexos de "Editar Movimentação"; tabela e armazenamento privados próprios, preservando os arquivos antigos.
 - [x] Envio atualizado para arquivos exclusivos do relatório; 14 testes aprovados, upload/reabertura e isolamento conferidos em sessão autenticada com gravação interceptada. Nenhum envio real realizado; persistência real não exercitada.
