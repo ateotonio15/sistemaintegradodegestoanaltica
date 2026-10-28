@@ -315,7 +315,8 @@ export function AppLayout({ children }: { children?: React.ReactNode }) {
   const canSeeSaude = !!user && (isEnfermeira || isAdmin);
 
   const { data: notifSaude = [] } = useQuery({
-    queryKey: ["notificacoes-saude"],
+    // Chave por usuário: evita reutilizar o cache de outro perfil no mesmo navegador.
+    queryKey: ["notificacoes-saude", user?.id],
     queryFn: async () => {
       const { data, error } = await supabase
         .from("notificacoes_saude" as any)
@@ -353,9 +354,12 @@ export function AppLayout({ children }: { children?: React.ReactNode }) {
   }, [user, canSeeSaude, queryClient]);
 
   const pendingSaude = useMemo(() => {
+    // Dupla proteção: mesmo com cache em memória de outra sessão, o perfil
+    // sem permissão (ex.: executivo_externo) nunca renderiza avisos de saúde.
+    if (!canSeeSaude) return [];
     const lidasSet = new Set(lidasSaudeIds);
     return notifSaude.filter((n) => !lidasSet.has(n.id)).slice(0, 30);
-  }, [notifSaude, lidasSaudeIds]);
+  }, [notifSaude, lidasSaudeIds, canSeeSaude]);
 
   const markSaudeAsRead = useCallback(async (id: string) => {
     if (!user) return;
