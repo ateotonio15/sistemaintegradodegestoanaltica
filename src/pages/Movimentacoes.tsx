@@ -41,6 +41,7 @@ import { AnexosMovimentacao } from "@/components/movimentacoes/AnexosMovimentaca
 import { sincronizarEnvioDosAnexos } from "@/lib/movimentacao-envio-anexos";
 import { AnexosMovimentacaoDialog } from "@/components/movimentacoes/AnexosMovimentacaoDialog";
 import { useEmpresaGrupoMap } from "@/hooks/useGrupoFinanceiro";
+import { papelGrupoRelatorio } from "@/lib/relatorio-grupo";
 import { GrupoTag } from "@/components/financeiro/GrupoTag";
 import { RelatorioManualDialog } from "@/components/movimentacoes/RelatorioManualDialog";
 import { RELATORIO_VAZIO, classificarPreparacao, relatorioFinalizado, resumoEnvioRelatorios, resumoLoteEnvio, selecionarLoteRelatorios } from "@/lib/movimentacao-relatorio";
@@ -598,8 +599,10 @@ export default function Movimentacoes() {
     return rows;
   }, [movimentacoes, filterPeriodo, filterStatus, filterResponsavel, somentePendentes, verSomenteSemEmpresa, searchTerm, respContratoOf]);
 
-  const aptosLote = selecionarLoteRelatorios(filtered, relatoriosMap, filterMes, PERIODOS);
-  const movsDoMes = useMemo(() => filtered.filter(m => m.empresa_id && m.mes_referencia === filterMes), [filtered, filterMes]);
+  // Contratos de grupo que não são o principal vão no e-mail do principal: ficam fora do preparo e do lote.
+  const ehMembroGrupo = (empresaId: string | null | undefined) => papelGrupoRelatorio(empresaId, empresaId ? empresaGrupoMap?.get(empresaId) : null) === "membro";
+  const aptosLote = selecionarLoteRelatorios(filtered, relatoriosMap, filterMes, PERIODOS).filter(m => !ehMembroGrupo(m.empresa_id));
+  const movsDoMes = useMemo(() => filtered.filter(m => m.empresa_id && m.mes_referencia === filterMes && !(papelGrupoRelatorio(m.empresa_id, empresaGrupoMap?.get(m.empresa_id)) === "membro")), [filtered, filterMes, empresaGrupoMap]);
   const loteResumo = useMemo(() => resumoLoteEnvio(movsDoMes, relatoriosMap), [movsDoMes, relatoriosMap]);
   const contextoLote = `${formatMesReferencia(filterMes)} · ${filterPeriodo === "all" ? "todos os períodos" : `Período ${filterPeriodo}`}`;
 
@@ -1313,7 +1316,11 @@ export default function Movimentacoes() {
                                   <DropdownMenuItem onClick={() => { setRelatorioStatusInicial(undefined); setRelatorioMov(m); }}>
                                     <Eye className="mr-2 h-4 w-4" /> Visualizar relatório
                                   </DropdownMenuItem>
-                                  {!relatorioFinalizado(relatorio) ? (
+                                  {papelGrupoRelatorio(m.empresa_id, grupoLinha) === "membro" ? (
+                                    <DropdownMenuItem disabled>
+                                      <Send className="mr-2 h-4 w-4" /> Enviado pelo contrato principal do grupo
+                                    </DropdownMenuItem>
+                                  ) : !relatorioFinalizado(relatorio) ? (
                                     <DropdownMenuItem onClick={() => { setRelatorioStatusInicial("Enviado"); setRelatorioMov(m); }}>
                                       <Send className="mr-2 h-4 w-4" /> Enviar
                                     </DropdownMenuItem>
@@ -1349,6 +1356,7 @@ export default function Movimentacoes() {
       {relatorioMov && <RelatorioManualDialog
         key={`${relatorioMov.id}-${relatorioStatusInicial ?? "ver"}`}
         movimentacaoId={relatorioMov.id}
+        empresaId={relatorioMov.empresa_id ?? null}
         nome={relatorioMov.empresas?.nome ?? "Sem empresa"}
         contrato={relatorioMov.empresas?.codigo_contrato ?? null}
         contexto={`${formatMesReferencia(relatorioMov.mes_referencia)} · ${relatorioMov.periodo ?? "—"}`}
@@ -1359,7 +1367,7 @@ export default function Movimentacoes() {
         onClose={() => setRelatorioMov(null)}
       />}
       {loteOpen && canEditDates && <RelatorioLoteDialog
-        items={aptosLote.map(m => ({ id: m.id, nome: m.empresas?.nome ?? "Sem empresa", contrato: m.empresas?.codigo_contrato ?? null, periodo: m.periodo, destinatarios: relatoriosMap.get(m.id)?.destinatarios ?? "", cc: relatoriosMap.get(m.id)?.cc ?? "" }))}
+        items={aptosLote.map(m => ({ id: m.id, empresaId: m.empresa_id ?? null, nome: m.empresas?.nome ?? "Sem empresa", contrato: m.empresas?.codigo_contrato ?? null, periodo: m.periodo, destinatarios: relatoriosMap.get(m.id)?.destinatarios ?? "", cc: relatoriosMap.get(m.id)?.cc ?? "" }))}
         resumo={loteResumo}
         contexto={contextoLote}
         onClose={() => setLoteOpen(false)} />}

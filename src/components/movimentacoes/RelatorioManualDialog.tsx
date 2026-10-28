@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Send } from "lucide-react";
 import { RelatoriosPortal } from "./RelatoriosPortal";
 import { supabase } from "@/integrations/supabase/client";
@@ -12,15 +12,15 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { useToast } from "@/hooks/use-toast";
 import { STATUS_RELATORIO, CONFIRMACOES_RELATORIO, RELATORIO_VAZIO, validarRegistroRelatorio, type RegistroRelatorio } from "@/lib/movimentacao-relatorio";
 import type { ArquivoPortal } from "@/services/portalEmpresaRelatorios";
-import { enviarRelatoriosPortal } from "@/services/enviarRelatoriosPortal";
+import { enviarRelatoriosPortal, buscarGrupoRelatorio } from "@/services/enviarRelatoriosPortal";
 
 function hojeLocalISO(): string {
   const d = new Date();
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 }
 
-export function RelatorioManualDialog({ movimentacaoId, nome, contrato, contexto, registro, statusInicial, dataEnvioEmpresa, canEdit, onClose }: {
-  movimentacaoId: string; nome: string; contrato: string | null; contexto: string; registro?: RegistroRelatorio; statusInicial?: string; dataEnvioEmpresa?: string | null; canEdit: boolean; onClose: () => void;
+export function RelatorioManualDialog({ movimentacaoId, empresaId = null, nome, contrato, contexto, registro, statusInicial, dataEnvioEmpresa, canEdit, onClose }: {
+  movimentacaoId: string; empresaId?: string | null; nome: string; contrato: string | null; contexto: string; registro?: RegistroRelatorio; statusInicial?: string; dataEnvioEmpresa?: string | null; canEdit: boolean; onClose: () => void;
 }) {
   const [form, setForm] = useState<RegistroRelatorio>(() => {
     const base = { ...(registro ?? RELATORIO_VAZIO), ...(statusInicial ? { status: statusInicial } : {}) };
@@ -57,6 +57,9 @@ export function RelatorioManualDialog({ movimentacaoId, nome, contrato, contexto
   });
   const [arquivosOcupados, setArquivosOcupados] = useState(false);
   const [arquivos, setArquivos] = useState<ArquivoPortal[]>([]);
+  const [progresso, setProgresso] = useState("");
+  const grupo = useQuery({ queryKey: ["relatorio-grupo", empresaId, contrato], queryFn: () => buscarGrupoRelatorio(empresaId, contrato), enabled: !!empresaId });
+  const ehMembro = grupo.data?.papel === "membro";
   const enviarEmail = useMutation({
     mutationFn: async () => {
       const emails = form.destinatarios.split(/[,;\s]+/).map(e => e.trim()).filter(Boolean);
@@ -66,13 +69,14 @@ export function RelatorioManualDialog({ movimentacaoId, nome, contrato, contexto
       const emailsCopia = form.cc.split(/[,;\s]+/).map(e => e.trim()).filter(Boolean);
       const invalidoCopia = emailsCopia.find(e => !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e));
       if (invalidoCopia) throw new Error(`E-mail inválido em "Com cópia": ${invalidoCopia}`);
-      return enviarRelatoriosPortal({ movimentacaoId, contrato, destinatarios: emails, cc: emailsCopia, arquivos });
+      return enviarRelatoriosPortal({ movimentacaoId, empresaId, onProgresso: setProgresso, contrato, destinatarios: emails, cc: emailsCopia, arquivos });
     },
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: ["movimentacao-relatorios"] });
       await queryClient.invalidateQueries({ queryKey: ["movimentacoes"] });
       toast({ title: "E-mail enviado", description: "O relatório foi enviado e registrado como \"Enviado\"." }); onClose();
     },
+    onSettled: () => setProgresso(""),
     onError: (e: Error) => toast({ title: "Não foi possível enviar o e-mail", description: e.message, variant: "destructive" }),
   });
   const ocupado = save.isPending || enviarEmail.isPending || arquivosOcupados;
@@ -80,6 +84,8 @@ export function RelatorioManualDialog({ movimentacaoId, nome, contrato, contexto
     <DialogContent className="sm:max-w-[860px] max-h-[90vh] overflow-y-auto">
       <DialogHeader><DialogTitle>{statusInicial ? "Enviar relatório" : "Visualizar relatório"}</DialogTitle><DialogDescription>{contexto}</DialogDescription></DialogHeader>
       <p className="break-words font-semibold">Empresa: {nome} | Contrato: #{contrato ?? "Não informado"}</p>
+      {grupo.data?.papel === "principal" && grupo.data.contratos.length > 0 && <p className="rounded-md border p-3 text-sm">Contrato principal do grupo "{grupo.data.nomeGrupo}". O e-mail também leva o PDF e o Excel dos contratos: {grupo.data.contratos.map(c => `#${c}`).join(", ")}.</p>}
+      {ehMembro && <p className="rounded-md border border-warning p-3 text-sm">Este contrato faz parte do grupo "{grupo.data?.nomeGrupo}". O relatório dele vai no e-mail do contrato principal.</p>}
       <RelatoriosPortal contrato={contrato} nome={nome} onArquivos={setArquivos} onBusy={setArquivosOcupados} />
       <form className="space-y-4" onSubmit={e => { e.preventDefault(); save.mutate(); }}>
         <div className="space-y-2"><Label htmlFor="relatorio-status">Status do Relatório</Label>
@@ -97,7 +103,8 @@ export function RelatorioManualDialog({ movimentacaoId, nome, contrato, contexto
         </div>
         <div className="space-y-2"><Label htmlFor="relatorio-observacoes">Observações do relatório</Label><Textarea id="relatorio-observacoes" disabled={!canEdit || save.isPending} value={form.observacoes} onChange={e => setForm(f => ({ ...f, observacoes: e.target.value }))} /></div>
         <div className="space-y-2 rounded-md border p-3">
-          {canEdit && <Button type="button" className="w-full" disabled={ocupado || arquivos.length !== 2} onClick={() => { if (window.confirm(`Enviar os relatórios?\nEmpresa: ${nome} | Contrato: #${contrato}\nDestinatários: ${form.destinatarios}${form.cc.trim() ? `\nCom cópia (Cc): ${form.cc}` : ""}`)) enviarEmail.mutate(); }}>
+          {progresso && <p role="status" className="text-sm">{progresso}</p>}
+          {canEdit && !ehMembro && <Button type="button" className="w-full" disabled={ocupado || grupo.isLoading || arquivos.length !== 2} onClick={() => { if (window.confirm(`Enviar os relatórios?\nEmpresa: ${nome} | Contrato: #${contrato}\nDestinatários: ${form.destinatarios}${form.cc.trim() ? `\nCom cópia (Cc): ${form.cc}` : ""}${grupo.data?.contratos.length ? `\nContratos do grupo junto: ${grupo.data.contratos.map(c => `#${c}`).join(", ")}` : ""}`)) enviarEmail.mutate(); }}>
             <Send className="mr-2 h-4 w-4" />{enviarEmail.isPending ? "Enviando e-mail..." : "Enviar por e-mail"}
           </Button>}
         </div>
