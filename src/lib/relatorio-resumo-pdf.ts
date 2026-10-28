@@ -50,9 +50,17 @@ async function limiteInferiorPorTexto(pagina: any, viewport: any, escala: number
     if (!corpo.length) return null;
     const ultimo = Math.max(...corpo.map((it) => it.y));
     return Math.min(viewport.height - 1, ultimo + 18 * escala);
-  } catch {
+  } catch (e) {
+    if (e instanceof Error && e.message.startsWith("A última página")) throw e;
     return null;
   }
+}
+
+/** Confere se o texto da página traz "CONTRATO : <número>" igual ao esperado. */
+export function ultimaPaginaDoContrato(texto: string, contrato: string | number): boolean {
+  const esperado = String(contrato).replace(/\D/g, "").replace(/^0+/, "");
+  const achados = [...texto.matchAll(/CONTRATO\s*:?\s*(\d+)/gi)].map((m) => m[1].replace(/^0+/, ""));
+  return achados.length > 0 && achados.every((n) => n === esperado);
 }
 
 /** Recorta do topo da página até o limite, cortando sobras brancas nas laterais e no topo. */
@@ -145,16 +153,29 @@ function recortarConteudo(canvas: HTMLCanvasElement, ctx: CanvasRenderingContext
  * Renderiza a última página do PDF e retorna o PNG em base64.
  * Retorna null quando não é possível renderizar (o envio segue sem a imagem).
  */
-export async function gerarResumoUltimaPaginaPdf(bytes: Uint8Array): Promise<string | null> {
+export async function gerarResumoUltimaPaginaPdf(bytes: Uint8Array, contratoEsperado?: string | number | null): Promise<string | null> {
   try {
-    const doc = await (pdfjsLib as any).getDocument({ data: bytes }).promise;
+    const doc = await (pdfjsLib as any).getDocument({ data: bytes.slice() }).promise;
     if (!doc.numPages) return null;
+    if (contratoEsperado != null && String(contratoEsperado).trim()) {
+      const pagina = await doc.getPage(doc.numPages);
+      const texto = ((await pagina.getTextContent()).items as any[]).map((i) => i.str ?? "").join(" ");
+      if (!ultimaPaginaDoContrato(texto, contratoEsperado)) throw new Error("A última página do PDF não é do contrato selecionado.");
+    }
     // Tenta em alta resolução; se passar do limite, refaz em resolução menor.
     let b64 = await renderizarPagina(doc, 2);
     if (b64.length > RESUMO_PDF_MAX_B64) b64 = await renderizarPagina(doc, 1.2);
     if (b64.length > RESUMO_PDF_MAX_B64) return null;
     return b64 || null;
-  } catch {
+  } catch (e) {
+    if (e instanceof Error && e.message.startsWith("A última página")) throw e;
     return null;
   }
+}
+
+/** Confere se o texto da página traz "CONTRATO : <número>" igual ao esperado. */
+export function ultimaPaginaDoContrato(texto: string, contrato: string | number): boolean {
+  const esperado = String(contrato).replace(/\D/g, "").replace(/^0+/, "");
+  const achados = [...texto.matchAll(/CONTRATO\s*:?\s*(\d+)/gi)].map((m) => m[1].replace(/^0+/, ""));
+  return achados.length > 0 && achados.every((n) => n === esperado);
 }

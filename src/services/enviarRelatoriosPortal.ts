@@ -9,7 +9,8 @@ export async function enviarRelatoriosPortal({ movimentacaoId, contrato, destina
   arquivos.forEach(a => validarArquivoContrato(contrato, a, a.nome_arquivo));
   let resumo_png_base64: string | null = null;
   const pdf = arquivos.find(a => a.tipo === "pdf");
-  try { if (pdf) resumo_png_base64 = await gerarResumoUltimaPaginaPdf(new Uint8Array(await pdf.blob.arrayBuffer())); } catch { /* envio preservado sem resumo */ }
+  // Resumo gerado do PDF desta empresa; se a última página for de outro contrato, o envio é bloqueado.
+  if (pdf) resumo_png_base64 = await gerarResumoUltimaPaginaPdf(new Uint8Array(await pdf.blob.arrayBuffer()), contrato);
   // Apenas referências de trabalhos: o servidor consulta o contrato cadastrado e baixa os arquivos novamente.
   const { data, error } = await supabase.functions.invoke("enviar-relatorio-email", { body: {
     movimentacao_id: movimentacaoId, destinatarios, cc, lote,

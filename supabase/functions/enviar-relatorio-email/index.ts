@@ -138,7 +138,7 @@ Deno.serve(async (req) => {
       // Cópia oculta para quem enviou, para o Cadastro guardar o e-mail enviado.
       bcc: [...new Set([fromEmail, replyTo].filter((e): e is string => !!e && /@/.test(e)))], assunto, html, texto: textoCompleto, anexos,
       inline: [
-        ...(resumoPng ? [{ cid: cidResumo, nome: `resumo-contrato-${empresaContrato ?? "relatorio"}.png`, mime: "image/png", conteudo: resumoPng }] : []),
+        ...(resumoPng ? [{ cid: cidResumo, nome: `resumo-contrato-${contrato}.png`, mime: "image/png", conteudo: resumoPng }] : []),
         { cid: "assinatura-samel", nome: "assinatura.png", mime: assinaturaMime, conteudo: assinatura },
       ],
     });
