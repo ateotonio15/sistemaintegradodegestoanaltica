@@ -630,7 +630,7 @@ export default function Movimentacoes() {
         } else semDestinatario++;
         lote.push({
           movimentacao_id: m.id, status,
-          destinatarios, data_envio: null, confirmacao: "Aguardando", observacoes: existente?.observacoes ?? "",
+          destinatarios, cc: existente?.cc ?? "", data_envio: null, confirmacao: "Aguardando", observacoes: existente?.observacoes ?? "",
         });
       }
       for (let i = 0; i < lote.length; i += 100) {
@@ -1359,7 +1359,7 @@ export default function Movimentacoes() {
         onClose={() => setRelatorioMov(null)}
       />}
       {loteOpen && canEditDates && <RelatorioLoteDialog
-        items={aptosLote.map(m => ({ id: m.id, nome: m.empresas?.nome ?? "Sem empresa", contrato: m.empresas?.codigo_contrato ?? null, periodo: m.periodo, destinatarios: relatoriosMap.get(m.id)?.destinatarios ?? "" }))}
+        items={aptosLote.map(m => ({ id: m.id, nome: m.empresas?.nome ?? "Sem empresa", contrato: m.empresas?.codigo_contrato ?? null, periodo: m.periodo, destinatarios: relatoriosMap.get(m.id)?.destinatarios ?? "", cc: relatoriosMap.get(m.id)?.cc ?? "" }))}
         resumo={loteResumo}
         contexto={contextoLote}
         onClose={() => setLoteOpen(false)} />}

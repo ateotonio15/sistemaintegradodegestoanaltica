@@ -8,7 +8,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, Di
 import { useToast } from "@/hooks/use-toast";
 
 export function RelatorioLoteDialog({ items, resumo, contexto, onClose }: {
-  items: { id: string; nome: string; contrato: string | null; periodo: string; destinatarios: string }[];
+  items: { id: string; nome: string; contrato: string | null; periodo: string; destinatarios: string; cc: string }[];
   resumo: { selecionadas: number; prontas: number; semDestinatario: number; comErro: number };
   contexto: string;
   onClose: () => void;
@@ -25,11 +25,11 @@ export function RelatorioLoteDialog({ items, resumo, contexto, onClose }: {
       for (const item of lote) {
         setProgresso(`Gerando e enviando: Empresa: ${item.nome} | Contrato: #${item.contrato}`);
         try {
-          const { data: registro, error } = await supabase.from("movimentacao_relatorios").select("status, confirmacao, destinatarios").eq("movimentacao_id", item.id).maybeSingle();
-          if (error || registro?.status !== "Pronto para envio" || registro.confirmacao !== "Aguardando" || registro.destinatarios !== item.destinatarios) throw new Error("Registro alterado. Prepare os relatórios novamente.");
+          const { data: registro, error } = await supabase.from("movimentacao_relatorios").select("status, confirmacao, destinatarios, cc").eq("movimentacao_id", item.id).maybeSingle();
+          if (error || registro?.status !== "Pronto para envio" || registro.confirmacao !== "Aguardando" || registro.destinatarios !== item.destinatarios || (registro.cc ?? "") !== item.cc) throw new Error("Registro alterado. Prepare os relatórios novamente.");
           const controller = new AbortController();
           const arquivos = await gerarRelatoriosPortal(item.contrato, controller.signal);
-          await enviarRelatoriosPortal({ movimentacaoId: item.id, contrato: item.contrato, destinatarios: item.destinatarios.split(/[,;\s]+/).filter(Boolean), arquivos, lote: true });
+          await enviarRelatoriosPortal({ movimentacaoId: item.id, contrato: item.contrato, destinatarios: item.destinatarios.split(/[,;\s]+/).filter(Boolean), cc: item.cc.split(/[,;\s]+/).filter(Boolean), arquivos, lote: true });
           enviados++;
           setResultados(r => [...r, { id: item.id, mensagem: "E-mail enviado", erro: false }]);
         } catch (e) {
