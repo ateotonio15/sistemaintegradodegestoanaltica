@@ -12,6 +12,8 @@ const Body = z.object({
   // Opcional: cópia visível (Cc) escolhida na hora do envio.
   cc: z.array(z.string().email()).max(20).optional(),
   portal_jobs: z.array(z.object({ job_id: z.string().regex(/^[A-Za-z0-9_-]{1,160}$/), nr_contrato: z.number().int().positive(), tipo: z.enum(["pdf", "xlsx"]) })).length(2),
+  // Relatórios dos demais contratos do grupo financeiro (somente quando esta é a linha do contrato principal).
+  grupo_jobs: z.array(z.object({ job_id: z.string().regex(/^[A-Za-z0-9_-]{1,160}$/), nr_contrato: z.number().int().positive(), tipo: z.enum(["pdf", "xlsx"]) })).max(60).optional(),
   lote: z.boolean().optional(),
   // Opcional: PNG (base64) da última página do relatório, embutido no corpo do e-mail.
   resumo_png_base64: z.string().max(4_200_000).optional(),
@@ -53,16 +55,39 @@ Deno.serve(async (req) => {
     const parsed = Body.safeParse(await req.json());
     if (!parsed.success) return json({ error: "Dados inválidos", detalhes: parsed.error.flatten().fieldErrors }, 400);
     const { movimentacao_id, destinatarios, cc, portal_jobs, lote, resumo_png_base64 } = parsed.data;
+    const grupo_jobs = parsed.data.grupo_jobs ?? [];
     const resumoPng = decodificarPng(resumo_png_base64);
 
     // Leituras com a sessão do usuário: respeitam as permissões existentes.
     const { data: mov } = await userClient.from("movimentacoes")
-      .select("id, mes_referencia, periodo, data_envio_empresa, empresas(nome, codigo_contrato)")
+      .select("id, empresa_id, mes_referencia, periodo, data_envio_empresa, empresas(nome, codigo_contrato)")
       .eq("id", movimentacao_id).maybeSingle();
     if (!mov) return json({ error: "Movimentação não encontrada" }, 404);
     const empContrato = (mov as any).empresas;
     const contrato = validarContratoPortal(empContrato?.codigo_contrato);
     if (new Set(portal_jobs.map(j => j.tipo)).size !== 2 || portal_jobs.some(j => j.nr_contrato !== contrato)) return json({ error: "Relatório bloqueado: contrato diferente da empresa selecionada." }, 400);
+
+    // Grupo financeiro: só o contrato principal envia; ele leva PDF e Excel de todos os contratos ativos do grupo.
+    const { data: vinculo } = await userClient.from("grupos_financeiros_contratos")
+      .select("grupo_id, grupos_financeiros(nome_grupo, status, contrato_principal_empresa_id)")
+      .eq("empresa_id", (mov as any).empresa_id).eq("ativo", true).maybeSingle();
+    const grupo = (vinculo as any)?.grupos_financeiros;
+    const principalId = grupo?.status === "Ativo" ? grupo.contrato_principal_empresa_id : null;
+    const membros: { empresa_id: string; contrato: number }[] = [];
+    if (principalId && principalId !== (mov as any).empresa_id) {
+      return json({ error: `Este contrato faz parte do grupo "${grupo.nome_grupo}". O relatório vai no e-mail do contrato principal.` }, 409);
+    }
+    if (principalId) {
+      const { data: lista } = await userClient.from("grupos_financeiros_contratos")
+        .select("empresa_id, empresas(codigo_contrato)").eq("grupo_id", (vinculo as any).grupo_id).eq("ativo", true);
+      for (const m of (lista as any[]) ?? []) {
+        if (m.empresa_id === principalId) continue;
+        membros.push({ empresa_id: m.empresa_id, contrato: validarContratoPortal(m?.empresas?.codigo_contrato) });
+      }
+    }
+    const esperado = membros.flatMap(m => [`${m.contrato}:pdf`, `${m.contrato}:xlsx`]).sort();
+    const recebido = grupo_jobs.map(j => `${j.nr_contrato}:${j.tipo}`).sort();
+    if (JSON.stringify(esperado) !== JSON.stringify(recebido)) return json({ error: "Os contratos do grupo mudaram. Abra o relatório novamente." }, 409);
     if (lote) {
       const { data: registro, error } = await userClient.from("movimentacao_relatorios").select("status, confirmacao, destinatarios, cc").eq("movimentacao_id", movimentacao_id).maybeSingle();
       if (error || registro?.status !== "Pronto para envio" || registro.confirmacao !== "Aguardando" || !registro.destinatarios?.trim()) return json({ error: "Este relatório não está mais pronto para envio." }, 409);
@@ -74,13 +99,14 @@ Deno.serve(async (req) => {
     }
     const anexos: Anexo[] = [];
     let total = 0;
-    for (const job of portal_jobs) {
-      const arquivo = await baixarRelatorioPortal(contrato, job, AbortSignal.timeout(60_000));
+    // Cada arquivo é baixado de novo e conferido pelo número do próprio contrato.
+    for (const job of [...portal_jobs, ...grupo_jobs]) {
+      const arquivo = await baixarRelatorioPortal(job.nr_contrato, job, AbortSignal.timeout(60_000));
       const bytes = new Uint8Array(await arquivo.blob.arrayBuffer());
       total += bytes.length;
       anexos.push({ nome: arquivo.nome_arquivo, mime: RELATORIOS_PORTAL[job.tipo].mime, conteudo: bytes });
     }
-    if (total > 15 * 1024 * 1024) return json({ error: "Os anexos passam de 15 MB" }, 400);
+    if (total > 15 * 1024 * 1024) return json({ error: "Os anexos do grupo passam de 15 MB" }, 400);
 
     // Remetente: o próprio cadastro do usuário (perfil Cadastro) ou o remetente geral.
     const { data: proprio } = await admin.from("config_email_remetente_usuario")
