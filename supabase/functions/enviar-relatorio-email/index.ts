@@ -188,7 +188,12 @@ Deno.serve(async (req) => {
         movimentacao_id: m.id, status: "Enviado", destinatarios: destinatarios.join(", "), cc: (cc ?? []).join(", "), data_envio: hoje, confirmacao: "Aguardando",
         observacoes: `Enviado junto com o contrato principal #${contrato}`,
       }));
-      if (linhas.length) await userClient.from("movimentacao_relatorios").upsert(linhas, { onConflict: "movimentacao_id" });
+      if (linhas.length) {
+        await userClient.from("movimentacao_relatorios").upsert(linhas, { onConflict: "movimentacao_id" });
+        // O e-mail do principal também é o envio à empresa dos contratos do grupo: preenche só se estiver vazio.
+        await userClient.from("movimentacoes").update({ data_envio_empresa: hoje })
+          .in("id", linhas.map(l => l.movimentacao_id)).is("data_envio_empresa", null);
+      }
     }
     if (!mov.data_envio_empresa) {
       await userClient.from("movimentacoes").update({ data_envio_empresa: hoje }).eq("id", movimentacao_id).is("data_envio_empresa", null);
