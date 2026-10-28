@@ -20,7 +20,7 @@ describe("controle manual independente do relatório", () => {
     expect(RELATORIO_VAZIO).toMatchObject({ status: "Não gerado", data_envio: null, confirmacao: "Aguardando" });
     expect(validarRegistroRelatorio(RELATORIO_VAZIO)).toBeNull();
   });
-  it("aceita todos os nove estados solicitados", () => {
+  it("aceita todos os estados de registro existentes", () => {
     expect(STATUS_RELATORIO).toHaveLength(9);
     for (const status of STATUS_RELATORIO) {
       const confirmacao = ["Conferido pela empresa", "Divergência informada"].includes(status) ? status : "Aguardando";

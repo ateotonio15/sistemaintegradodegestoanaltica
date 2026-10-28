@@ -4,13 +4,15 @@ import { corsHeaders } from "npm:@supabase/supabase-js@2/cors";
 import { z } from "npm:zod@3";
 import { enviarSmtp, type Anexo } from "../_shared/smtp.ts";
 import { dataCorteMovimentacao } from "../_shared/data-corte.ts";
+import { baixarRelatorioPortal, validarContratoPortal, RELATORIOS_PORTAL } from "../_shared/portal-empresa-relatorios.ts";
 
 const Body = z.object({
   movimentacao_id: z.string().uuid(),
   destinatarios: z.array(z.string().email()).min(1).max(20),
   // Opcional: cópia visível (Cc) escolhida na hora do envio.
   cc: z.array(z.string().email()).max(20).optional(),
-  anexo_ids: z.array(z.string().uuid()).min(1).max(10),
+  portal_jobs: z.array(z.object({ job_id: z.string().regex(/^[A-Za-z0-9_-]{1,160}$/), nr_contrato: z.number().int().positive(), tipo: z.enum(["pdf", "xlsx"]) })).length(2),
+  lote: z.boolean().optional(),
   // Opcional: PNG (base64) da última página do relatório, embutido no corpo do e-mail.
   resumo_png_base64: z.string().max(4_200_000).optional(),
 });
@@ -29,7 +31,7 @@ function decodificarPng(b64: string | undefined): Uint8Array | null {
 const json = (d: unknown, status = 200) =>
   new Response(JSON.stringify(d), { status, headers: { ...corsHeaders, "Content-Type": "application/json" } });
 
-const esc = (s: string) => s.replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]!));
+const esc = (s: string) => s.replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c] ?? c));
 
 function hojeManaus(): string {
   return new Intl.DateTimeFormat("en-CA", { timeZone: "America/Manaus" }).format(new Date());
@@ -50,7 +52,7 @@ Deno.serve(async (req) => {
 
     const parsed = Body.safeParse(await req.json());
     if (!parsed.success) return json({ error: "Dados inválidos", detalhes: parsed.error.flatten().fieldErrors }, 400);
-    const { movimentacao_id, destinatarios, cc, anexo_ids, resumo_png_base64 } = parsed.data;
+    const { movimentacao_id, destinatarios, cc, portal_jobs, lote, resumo_png_base64 } = parsed.data;
     const resumoPng = decodificarPng(resumo_png_base64);
 
     // Leituras com a sessão do usuário: respeitam as permissões existentes.
@@ -58,18 +60,22 @@ Deno.serve(async (req) => {
       .select("id, mes_referencia, periodo, data_envio_empresa, empresas(nome, codigo_contrato)")
       .eq("id", movimentacao_id).maybeSingle();
     if (!mov) return json({ error: "Movimentação não encontrada" }, 404);
-    const { data: anexosRows } = await userClient.from("movimentacao_relatorio_arquivos")
-      .select("id, nome_arquivo, storage_path, mime_type").eq("movimentacao_id", movimentacao_id).in("id", anexo_ids);
-    if (!anexosRows || anexosRows.length !== anexo_ids.length) return json({ error: "Anexo não encontrado nesta movimentação" }, 400);
-
+    const empContrato = (mov as any).empresas;
+    const contrato = validarContratoPortal(empContrato?.codigo_contrato);
+    if (new Set(portal_jobs.map(j => j.tipo)).size !== 2 || portal_jobs.some(j => j.nr_contrato !== contrato)) return json({ error: "Relatório bloqueado: contrato diferente da empresa selecionada." }, 400);
+    if (lote) {
+      const { data: registro, error } = await userClient.from("movimentacao_relatorios").select("status, confirmacao, destinatarios").eq("movimentacao_id", movimentacao_id).maybeSingle();
+      if (error || registro?.status !== "Pronto para envio" || registro.confirmacao !== "Aguardando" || !registro.destinatarios?.trim()) return json({ error: "Este relatório não está mais pronto para envio." }, 409);
+      const emails = registro.destinatarios.split(/[,;\s]+/).filter(Boolean).map((e: string) => e.toLowerCase()).sort();
+      if (JSON.stringify(emails) !== JSON.stringify(destinatarios.map(e => e.toLowerCase()).sort())) return json({ error: "Os destinatários do lote foram alterados. Prepare novamente." }, 409);
+    }
     const anexos: Anexo[] = [];
     let total = 0;
-    for (const a of anexosRows) {
-      const { data: blob, error } = await admin.storage.from("relatorios-movimentacoes").download(a.storage_path);
-      if (error || !blob) return json({ error: `Não foi possível ler o arquivo "${a.nome_arquivo}"` }, 500);
-      const bytes = new Uint8Array(await blob.arrayBuffer());
+    for (const job of portal_jobs) {
+      const arquivo = await baixarRelatorioPortal(contrato, job, AbortSignal.timeout(60_000));
+      const bytes = new Uint8Array(await arquivo.blob.arrayBuffer());
       total += bytes.length;
-      anexos.push({ nome: a.nome_arquivo, mime: a.mime_type || "application/octet-stream", conteudo: bytes });
+      anexos.push({ nome: arquivo.nome_arquivo, mime: RELATORIOS_PORTAL[job.tipo].mime, conteudo: bytes });
     }
     if (total > 15 * 1024 * 1024) return json({ error: "Os anexos passam de 15 MB" }, 400);
 
@@ -121,6 +127,9 @@ Deno.serve(async (req) => {
     const html = `<div style="font-family:Arial,sans-serif;font-size:14px;color:#222">${paragrafos}${imgResumo}<p style="margin:20px 0 12px">Permanecerei à disposição.</p><p style="margin:0 0 8px">Cordialmente,</p><img src="cid:assinatura-samel" width="540" alt="Assinatura Samel" style="width:540px;max-width:100%;height:auto"></div>`;
     const textoCompleto = [texto, "", ...fechamento].join("\n");
 
+    // Reconfere imediatamente antes do SMTP: alteração de contrato durante download bloqueia o envio.
+    const { data: atual, error: erroAtual } = await userClient.from("movimentacoes").select("empresas(codigo_contrato)").eq("id", movimentacao_id).maybeSingle();
+    if (erroAtual || validarContratoPortal((atual as any)?.empresas?.codigo_contrato) !== contrato) return json({ error: "O contrato da empresa foi alterado. Abra o relatório novamente." }, 409);
     try { await enviarSmtp({
       fromNome: nomeRem, fromEmail, replyTo, para: destinatarios,
       // Cópia visível escolhida na tela; a empresa vê quem está em cópia.

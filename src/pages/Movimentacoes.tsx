@@ -47,6 +47,7 @@ import { RELATORIO_VAZIO, classificarPreparacao, relatorioFinalizado, resumoEnvi
 import { RelatorioStatusBadge } from "@/components/movimentacoes/RelatorioStatusBadge";
 import { RelatorioLoteDialog } from "@/components/movimentacoes/RelatorioLoteDialog";
 import { PrepararRelatoriosDialog, type ResultadoPreparacao } from "@/components/movimentacoes/PrepararRelatoriosDialog";
+import { gerarRelatoriosPortal } from "@/services/portalEmpresaRelatorios";
 
 
 import DashboardAdministradoras from "@/pages/DashboardAdministradoras";
@@ -113,6 +114,7 @@ export default function Movimentacoes() {
   const [relatorioStatusInicial, setRelatorioStatusInicial] = useState<string | undefined>(undefined);
   const [loteOpen, setLoteOpen] = useState(false);
   const [prepararResultado, setPrepararResultado] = useState<ResultadoPreparacao | null>(null);
+  const [preparandoContrato, setPreparandoContrato] = useState("");
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const { user, isAdmin, isExecutivo, role, isViewOnly } = useAuth();
@@ -604,23 +606,30 @@ export default function Movimentacoes() {
   const prepararRelatorios = useMutation({
     mutationFn: async (): Promise<ResultadoPreparacao> => {
       const semEmpresa = filtered.filter(m => !m.empresa_id && m.mes_referencia === filterMes).length;
-      const empresaIds = [...new Set(movsDoMes.map(m => m.empresa_id!))];
+      const empresaIds = [...new Set(movsDoMes.flatMap(m => m.empresa_id ? [m.empresa_id] : []))];
       const emails = new Map<string, string>();
       for (let i = 0; i < empresaIds.length; i += 100) {
         const { data, error } = await supabase.from("empresas").select("id, email_empresa, email_financeiro_cliente").in("id", empresaIds.slice(i, i + 100));
         if (error) throw error;
         for (const e of data ?? []) emails.set(e.id, [e.email_empresa, e.email_financeiro_cliente].filter(Boolean).join("; "));
       }
-      let prontas = 0, semDestinatario = 0;
+      let prontas = 0, semDestinatario = 0, comErro = semEmpresa;
       const lote: TablesInsert<"movimentacao_relatorios">[] = [];
       for (const m of movsDoMes) {
         const existente = relatoriosMap.get(m.id);
-        const destinatarios = emails.get(m.empresa_id!) || existente?.destinatarios || "";
+        const destinatarios = emails.get(m.empresa_id) || existente?.destinatarios || "";
         const classe = classificarPreparacao(existente, destinatarios);
         if (classe === "final") continue;
-        if (classe === "pronto") prontas++; else semDestinatario++;
+        let status = "Sem destinatário";
+        if (classe === "pronto") {
+          setPreparandoContrato(`Gerando relatório do contrato #${m.empresas?.codigo_contrato} (${m.empresas?.nome})...`);
+          try {
+            await gerarRelatoriosPortal(m.empresas?.codigo_contrato, new AbortController().signal);
+            status = "Pronto para envio"; prontas++;
+          } catch { status = "Erro no envio"; comErro++; }
+        } else semDestinatario++;
         lote.push({
-          movimentacao_id: m.id, status: classe === "pronto" ? "Pronto para envio" : "Sem destinatário",
+          movimentacao_id: m.id, status,
           destinatarios, data_envio: null, confirmacao: "Aguardando", observacoes: existente?.observacoes ?? "",
         });
       }
@@ -628,13 +637,14 @@ export default function Movimentacoes() {
         const { error } = await supabase.from("movimentacao_relatorios").upsert(lote.slice(i, i + 100), { onConflict: "movimentacao_id" });
         if (error) throw error;
       }
-      return { encontradas: movsDoMes.length, prontas, semDestinatario, comErro: semEmpresa };
+      return { encontradas: movsDoMes.length, prontas, semDestinatario, comErro };
     },
     onSuccess: async resultado => {
       await queryClient.invalidateQueries({ queryKey: ["movimentacao-relatorios"] });
       setPrepararResultado(resultado);
     },
     onError: (e: Error) => toast({ title: "Não foi possível preparar os relatórios", description: e.message, variant: "destructive" }),
+    onSettled: () => setPreparandoContrato(""),
   });
   useEffect(() => { setLoteOpen(false); setPrepararResultado(null); }, [filterMes, filterPeriodo, filterStatus, filterResponsavel, somentePendentes, verSomenteSemEmpresa, searchTerm]);
 
@@ -1340,6 +1350,7 @@ export default function Movimentacoes() {
         key={`${relatorioMov.id}-${relatorioStatusInicial ?? "ver"}`}
         movimentacaoId={relatorioMov.id}
         nome={relatorioMov.empresas?.nome ?? "Sem empresa"}
+        contrato={relatorioMov.empresas?.codigo_contrato ?? null}
         contexto={`${formatMesReferencia(relatorioMov.mes_referencia)} · ${relatorioMov.periodo ?? "—"}`}
         registro={relatoriosMap.get(relatorioMov.id)}
         statusInicial={relatorioStatusInicial}
@@ -1348,11 +1359,12 @@ export default function Movimentacoes() {
         onClose={() => setRelatorioMov(null)}
       />}
       {loteOpen && canEditDates && <RelatorioLoteDialog
-        items={aptosLote.map(m => ({ id: m.id, nome: m.empresas?.nome ?? "Sem empresa", periodo: m.periodo, destinatarios: relatoriosMap.get(m.id)?.destinatarios ?? "" }))}
+        items={aptosLote.map(m => ({ id: m.id, nome: m.empresas?.nome ?? "Sem empresa", contrato: m.empresas?.codigo_contrato ?? null, periodo: m.periodo, destinatarios: relatoriosMap.get(m.id)?.destinatarios ?? "" }))}
         resumo={loteResumo}
         contexto={contextoLote}
         onClose={() => setLoteOpen(false)} />}
       {prepararResultado && <PrepararRelatoriosDialog resultado={prepararResultado} contexto={contextoLote} onClose={() => setPrepararResultado(null)} />}
+      {preparandoContrato && <p role="status" className="fixed bottom-4 left-4 z-50 max-w-[90vw] border border-border bg-background p-3 text-sm text-foreground shadow-sm">{preparandoContrato}</p>}
 
       <Dialog open={dashboardOpen} onOpenChange={setDashboardOpen}>
         <DialogContent className="max-w-[95vw] w-full h-[90vh] p-0 overflow-hidden flex flex-col">
