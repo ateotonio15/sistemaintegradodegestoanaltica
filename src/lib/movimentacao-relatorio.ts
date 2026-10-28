@@ -3,11 +3,12 @@ export const CONFIRMACOES_RELATORIO = ["Aguardando", "Conferido pela empresa", "
 export type RegistroRelatorio = {
   status: string;
   destinatarios: string;
+  cc: string;
   data_envio: string | null;
   confirmacao: string;
   observacoes: string;
 };
-export const RELATORIO_VAZIO: RegistroRelatorio = { status: "Não gerado", destinatarios: "", data_envio: null, confirmacao: "Aguardando", observacoes: "" };
+export const RELATORIO_VAZIO: RegistroRelatorio = { status: "Não gerado", destinatarios: "", cc: "", data_envio: null, confirmacao: "Aguardando", observacoes: "" };
 export function relatorioAptoParaEnvio(registro?: RegistroRelatorio): boolean {
   return registro?.status === "Pronto para envio" && !!registro.destinatarios.trim() && registro.confirmacao === "Aguardando";
 }

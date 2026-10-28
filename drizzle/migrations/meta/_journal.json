@@ -442,6 +442,20 @@
       "when": 1793188255408,
       "tag": "0062_executivo_delete_own_demandas",
       "breakpoints": true
+    },
+    {
+      "idx": 63,
+      "version": "7",
+      "when": 1793208879124,
+      "tag": "0063_movimentacoes_cc_email",
+      "breakpoints": true
+    },
+    {
+      "idx": 64,
+      "version": "7",
+      "when": 1793208944553,
+      "tag": "0064_movimentacao_relatorios_cc",
+      "breakpoints": true
     }
   ]
 }
