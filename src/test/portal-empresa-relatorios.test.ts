@@ -60,3 +60,10 @@ describe("relatórios vinculados exclusivamente ao contrato da linha", () => {
     await expect(baixarRelatorioPortal(2192, job)).rejects.toThrow("outra geração");
   });
 });
+import { ultimaPaginaDoContrato } from "@/lib/relatorio-resumo-contrato";
+describe("resumo da última página", () => {
+  it("aceita só o contrato da linha", () => {
+    expect(ultimaPaginaDoContrato("CONTRATANTE : AMAZONAS CONTRATO : 2192", "2192")).toBe(true);
+    expect(ultimaPaginaDoContrato("CONTRATANTE : ADATA CONTRATO : 2490", "2192")).toBe(false);
+  });
+});

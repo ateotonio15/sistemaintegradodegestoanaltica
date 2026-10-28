@@ -122,7 +122,8 @@ Deno.serve(async (req) => {
     }
     if (!assinatura) assinatura = Uint8Array.from(atob(ASSINATURA_PADRAO_B64), (c) => c.charCodeAt(0));
     // Resumo (última página do relatório) vai no corpo, entre o texto e a assinatura.
-    const imgResumo = resumoPng ? `<img src="cid:resumo-relatorio" width="760" alt="Resumo do relatório" style="width:760px;max-width:100%;height:auto;margin-top:8px;display:block">` : "";
+    const cidResumo = `resumo-${crypto.randomUUID()}@samel`;
+    const imgResumo = resumoPng ? `<img src="cid:${cidResumo}" width="760" alt="Resumo do relatório" style="width:760px;max-width:100%;height:auto;margin-top:8px;display:block">` : "";
     const paragrafos = texto.split("\n").filter(Boolean).map(l => `<p style="margin:0 0 12px">${esc(l)}</p>`).join("");
     const html = `<div style="font-family:Arial,sans-serif;font-size:14px;color:#222">${paragrafos}${imgResumo}<p style="margin:20px 0 12px">Permanecerei à disposição.</p><p style="margin:0 0 8px">Cordialmente,</p><img src="cid:assinatura-samel" width="540" alt="Assinatura Samel" style="width:540px;max-width:100%;height:auto"></div>`;
     const textoCompleto = [texto, "", ...fechamento].join("\n");
@@ -137,7 +138,7 @@ Deno.serve(async (req) => {
       // Cópia oculta para quem enviou, para o Cadastro guardar o e-mail enviado.
       bcc: [...new Set([fromEmail, replyTo].filter((e): e is string => !!e && /@/.test(e)))], assunto, html, texto: textoCompleto, anexos,
       inline: [
-        ...(resumoPng ? [{ cid: "resumo-relatorio", nome: "resumo-relatorio.png", mime: "image/png", conteudo: resumoPng }] : []),
+        ...(resumoPng ? [{ cid: cidResumo, nome: `resumo-contrato-${contrato}.png`, mime: "image/png", conteudo: resumoPng }] : []),
         { cid: "assinatura-samel", nome: "assinatura.png", mime: assinaturaMime, conteudo: assinatura },
       ],
     });
