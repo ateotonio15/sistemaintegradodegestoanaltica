@@ -64,10 +64,13 @@ Deno.serve(async (req) => {
     const contrato = validarContratoPortal(empContrato?.codigo_contrato);
     if (new Set(portal_jobs.map(j => j.tipo)).size !== 2 || portal_jobs.some(j => j.nr_contrato !== contrato)) return json({ error: "Relatório bloqueado: contrato diferente da empresa selecionada." }, 400);
     if (lote) {
-      const { data: registro, error } = await userClient.from("movimentacao_relatorios").select("status, confirmacao, destinatarios").eq("movimentacao_id", movimentacao_id).maybeSingle();
+      const { data: registro, error } = await userClient.from("movimentacao_relatorios").select("status, confirmacao, destinatarios, cc").eq("movimentacao_id", movimentacao_id).maybeSingle();
       if (error || registro?.status !== "Pronto para envio" || registro.confirmacao !== "Aguardando" || !registro.destinatarios?.trim()) return json({ error: "Este relatório não está mais pronto para envio." }, 409);
       const emails = registro.destinatarios.split(/[,;\s]+/).filter(Boolean).map((e: string) => e.toLowerCase()).sort();
       if (JSON.stringify(emails) !== JSON.stringify(destinatarios.map(e => e.toLowerCase()).sort())) return json({ error: "Os destinatários do lote foram alterados. Prepare novamente." }, 409);
+      const ccSalvo = (registro.cc ?? "").split(/[,;\s]+/).filter(Boolean).map((e: string) => e.toLowerCase()).sort();
+      const ccEnviado = (cc ?? []).map(e => e.toLowerCase()).sort();
+      if (JSON.stringify(ccSalvo) !== JSON.stringify(ccEnviado)) return json({ error: "Os e-mails em cópia do lote foram alterados. Prepare novamente." }, 409);
     }
     const anexos: Anexo[] = [];
     let total = 0;
@@ -149,7 +152,7 @@ Deno.serve(async (req) => {
 
     const hoje = hojeManaus();
     const { error: errRel } = await userClient.from("movimentacao_relatorios").upsert({
-      movimentacao_id, status: "Enviado", destinatarios: destinatarios.join(", "), data_envio: hoje, confirmacao: "Aguardando",
+      movimentacao_id, status: "Enviado", destinatarios: destinatarios.join(", "), cc: (cc ?? []).join(", "), data_envio: hoje, confirmacao: "Aguardando",
     }, { onConflict: "movimentacao_id" });
     if (!mov.data_envio_empresa) {
       await userClient.from("movimentacoes").update({ data_envio_empresa: hoje }).eq("id", movimentacao_id).is("data_envio_empresa", null);
