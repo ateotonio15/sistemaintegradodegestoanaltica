@@ -180,6 +180,16 @@ Deno.serve(async (req) => {
     const { error: errRel } = await userClient.from("movimentacao_relatorios").upsert({
       movimentacao_id, status: "Enviado", destinatarios: destinatarios.join(", "), cc: (cc ?? []).join(", "), data_envio: hoje, confirmacao: "Aguardando",
     }, { onConflict: "movimentacao_id" });
+    // Contratos do grupo: registro marcado como enviado junto com o principal (mesmo mês), sem alterar datas operacionais.
+    if (membros.length) {
+      const { data: movsGrupo } = await userClient.from("movimentacoes").select("id")
+        .in("empresa_id", membros.map(m => m.empresa_id)).eq("mes_referencia", mov.mes_referencia);
+      const linhas = ((movsGrupo as any[]) ?? []).map(m => ({
+        movimentacao_id: m.id, status: "Enviado", destinatarios: destinatarios.join(", "), cc: (cc ?? []).join(", "), data_envio: hoje, confirmacao: "Aguardando",
+        observacoes: `Enviado junto com o contrato principal #${contrato}`,
+      }));
+      if (linhas.length) await userClient.from("movimentacao_relatorios").upsert(linhas, { onConflict: "movimentacao_id" });
+    }
     if (!mov.data_envio_empresa) {
       await userClient.from("movimentacoes").update({ data_envio_empresa: hoje }).eq("id", movimentacao_id).is("data_envio_empresa", null);
     }
