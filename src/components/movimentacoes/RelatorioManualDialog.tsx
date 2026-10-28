@@ -56,7 +56,6 @@ export function RelatorioManualDialog({ movimentacaoId, nome, contrato, contexto
   });
   const [arquivosOcupados, setArquivosOcupados] = useState(false);
   const [arquivos, setArquivos] = useState<ArquivoPortal[]>([]);
-  const [copia, setCopia] = useState("");
   const enviarEmail = useMutation({
     mutationFn: async () => {
       const emails = form.destinatarios.split(/[,;\s]+/).map(e => e.trim()).filter(Boolean);
