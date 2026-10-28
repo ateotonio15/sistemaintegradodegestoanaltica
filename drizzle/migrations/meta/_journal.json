@@ -435,6 +435,13 @@
       "when": 1793143763336,
       "tag": "0061_create_uber_passageiros",
       "breakpoints": true
+    },
+    {
+      "idx": 62,
+      "version": "7",
+      "when": 1793188255408,
+      "tag": "0062_executivo_delete_own_demandas",
+      "breakpoints": true
     }
   ]
 }

@@ -1,0 +1,1 @@
+CREATE POLICY "Executivo can delete own demandas" ON public.demandas FOR DELETE TO authenticated USING (public.has_role(auth.uid(), 'executivo'::app_role) AND public.demanda_can_edit(executiva));
