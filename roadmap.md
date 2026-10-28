@@ -1,9 +1,9 @@
 # Roadmap — Primeiro pacote financeiro
 
 ## Portal Empresa — relatórios reais por contrato (28/10)
-- [ ] Integrar fila assíncrona, PDF/Excel e visualização com contrato travado e cancelamento ao trocar a linha.
-- [ ] Integrar preparação e envio real individual/em lote, com validação do contrato também no servidor.
-- [ ] Testar isolamento, divergências e consulta real sem enviar e-mails da operação.
+- [x] Integrar fila assíncrona, PDF/Excel e visualização com contrato travado e cancelamento ao trocar a linha; PDF real ADATA 2490 (44 páginas) e Excel baixados, troca para 2192 limpa arquivos anteriores.
+- [x] Integrar preparação e envio real individual/em lote, com validação do contrato também no servidor; envia somente após confirmação, e marca Enviado apenas após SMTP aceito.
+- [x] Testar isolamento, divergências e consulta real sem enviar e-mails da operação; bloqueio real do servidor HTTP 400 ao apresentar trabalhos 2192 na movimentação 2490, tela sem erros. Entrega real de e-mail e gravação do lote não exercitadas para não disparar mensagens da operação.
 
 ## Arquivos próprios dos relatórios — pedido atual
 - [x] Permitir anexar PDF e Excel no controle de relatório, separados dos anexos de "Editar Movimentação"; tabela e armazenamento privados próprios, preservando os arquivos antigos.
