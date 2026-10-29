@@ -299,7 +299,7 @@ export default function PainelTvFinanceiro() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("empresas")
-        .select("id, nome, codigo_contrato, exige_po_pc, aguarda_faturamento_excel")
+        .select("id, nome, codigo_contrato, exige_po_pc, aguarda_faturamento_excel, status_empresa, data_rescisao, contrato_suspenso, nao_faturado_financeiro")
         .in("id", empresaIds);
       if (error) throw error;
       const m: Record<string, any> = {};
@@ -441,7 +441,14 @@ export default function PainelTvFinanceiro() {
   const rows: Row[] = useMemo(() => {
     const nowD = new Date();
     const currentYM = `${nowD.getFullYear()}-${String(nowD.getMonth() + 1).padStart(2, "0")}`;
-    return (fin as any[]).map((f) => {
+    // Mesmo critério da aba Faturamento: oculta empresas inativas, rescindidas,
+    // suspensas ou marcadas como "não faturado pelo financeiro".
+    return (fin as any[]).filter((f) => {
+      const e = (empresasMap as any)[f.empresa_id];
+      if (!e) return true;
+      if (e.nao_faturado_financeiro) return false;
+      return (e.status_empresa ?? "Ativa") === "Ativa" && !e.data_rescisao && !e.contrato_suspenso;
+    }).map((f) => {
       const emp = (empresasMap as any)[f.empresa_id];
       const anexos = (anexosMap as any)[f.id] || [];
       const envioOp = !!(envioOpMap as any)[`${f.empresa_id}|${f.mes_referencia}|${f.periodo}`];
