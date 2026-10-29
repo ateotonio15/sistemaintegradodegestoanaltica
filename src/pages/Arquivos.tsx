@@ -42,10 +42,12 @@ import {
   ShieldCheck,
   CheckCircle2,
   Loader2,
+  Pencil,
 } from "lucide-react";
 import { toast } from "sonner";
 import { formatDateBR } from "@/lib/date-utils";
 import { UploadArquivoDialog } from "@/components/arquivos/UploadArquivoDialog";
+import { EditarArquivoDialog } from "@/components/arquivos/EditarArquivoDialog";
 import { ArquivoPreviewInline } from "@/components/arquivos/ArquivoPreviewInline";
 import { useAuth } from "@/hooks/useAuth";
 import { compLabel, formatBytes, tipoArquivo } from "@/lib/arquivos-utils";
@@ -158,6 +160,7 @@ export default function Arquivos() {
   const [selectedEmpresaId, setSelectedEmpresaId] = useState<string | null>(null);
   const [selectedArquivoId, setSelectedArquivoId] = useState<string | null>(null);
   const [confirmDelete, setConfirmDelete] = useState<ArquivoRow | null>(null);
+  const [editando, setEditando] = useState<ArquivoRow | null>(null);
   const [categoriaFiltro, setCategoriaFiltro] = useState<string | null>(null);
 
   function openUpload(empresaId?: string) {
@@ -1053,6 +1056,9 @@ export default function Arquivos() {
                   )}
                   {canEditFinanceiro && !selectedArquivo.lanc && (
                     <>
+                      <Button variant="outline" className="flex-1 gap-2" onClick={() => setEditando(resolverAporte(selectedArquivo))}>
+                        <Pencil className="h-4 w-4" /> Editar
+                      </Button>
                       <Button variant="outline" className="flex-1 gap-2" onClick={() => openUpload(selectedArquivo.empresa_id)}>
                         <Upload className="h-4 w-4" /> Substituir
                       </Button>
@@ -1094,6 +1100,12 @@ export default function Arquivos() {
           </div>
         </div>
       </div>
+
+      <EditarArquivoDialog
+        arquivo={editando}
+        categorias={CATEGORIAS}
+        onOpenChange={(v) => !v && setEditando(null)}
+      />
 
       <UploadArquivoDialog
         open={uploadOpen}
