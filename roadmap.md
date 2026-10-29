@@ -1,6 +1,7 @@
 # Roadmap — Primeiro pacote financeiro
 
 ## Consulta de relatório — 29/10
+- [x] Buscar apenas o PDF de vidas pela integração existente, mostrar busca/disponibilidade/ausência e nova tentativa, sem gerar arquivo local nem alterar movimentações. Data exibida apenas quando fornecida em Last-Modified; 15 testes aprovados, PDF real visualizado/baixado e ausência simulada recuperada com nova tentativa.
 - [x] Simplificar somente "Visualizar relatório", mantendo geração e envio existentes.
 - [x] Consulta autenticada do contrato 2171 sem campos editáveis, PDF real aberto e baixado, campos de envio preservados e 31 testes aprovados; nenhum e-mail enviado ou histórico alterado.
 
