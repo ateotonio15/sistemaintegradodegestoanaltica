@@ -1,8 +1,8 @@
 # Roadmap — Primeiro pacote financeiro
 
 ## Cartório 3 Ofício — primeira movimentação
-- [ ] Conferir e corrigir a primeira competência do contrato 2548 para novembro/2026, preservando a movimentação de outubro e os anexos.
-- [ ] Validar ausência em outubro e regra de implantação após o corte.
+- [x] Corrigida a primeira competência do contrato 2548 para novembro/2026; dois registros de movimentação preservados, sem excluir anexos nem alterar cobranças.
+- [x] Dez testes aprovados; tela autenticada confirmou ausência em outubro e presença em novembro, com filtro comum à lista, resumo e geração local; verificação automática sem erros.
 
 ## Consulta de relatório — 29/10
 - [x] Exibir PDF e Excel independentemente, aceitar XLS/XLSX e manter arquivos identificados quando o carregamento falhar.
