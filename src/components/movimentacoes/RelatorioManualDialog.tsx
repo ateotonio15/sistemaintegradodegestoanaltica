@@ -13,15 +13,17 @@ import { useToast } from "@/hooks/use-toast";
 import { STATUS_RELATORIO, CONFIRMACOES_RELATORIO, RELATORIO_VAZIO, validarRegistroRelatorio, type RegistroRelatorio } from "@/lib/movimentacao-relatorio";
 import type { ArquivoPortal } from "@/services/portalEmpresaRelatorios";
 import { enviarRelatoriosPortal, buscarGrupoRelatorio } from "@/services/enviarRelatoriosPortal";
+import { formatDateBR } from "@/lib/date-utils";
 
 function hojeLocalISO(): string {
   const d = new Date();
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 }
 
-export function RelatorioManualDialog({ movimentacaoId, empresaId = null, nome, contrato, contexto, registro, statusInicial, dataEnvioEmpresa, canEdit, onClose }: {
-  movimentacaoId: string; empresaId?: string | null; nome: string; contrato: string | null; contexto: string; registro?: RegistroRelatorio; statusInicial?: string; dataEnvioEmpresa?: string | null; canEdit: boolean; onClose: () => void;
+export function RelatorioManualDialog({ movimentacaoId, empresaId = null, nome, contrato, contexto, competencia, periodo, registro, statusInicial, dataEnvioEmpresa, canEdit, onClose }: {
+  movimentacaoId: string; empresaId?: string | null; nome: string; contrato: string | null; contexto: string; competencia: string; periodo: string | null; registro?: RegistroRelatorio; statusInicial?: string; dataEnvioEmpresa?: string | null; canEdit: boolean; onClose: () => void;
 }) {
+  const somenteConsulta = !statusInicial;
   const [form, setForm] = useState<RegistroRelatorio>(() => {
     const base = { ...(registro ?? RELATORIO_VAZIO), ...(statusInicial ? { status: statusInicial } : {}) };
     // Reutiliza a data já existente da coluna "Envio Empresa"; só sugere hoje quando não há nenhuma.
@@ -58,7 +60,7 @@ export function RelatorioManualDialog({ movimentacaoId, empresaId = null, nome, 
   const [arquivosOcupados, setArquivosOcupados] = useState(false);
   const [arquivos, setArquivos] = useState<ArquivoPortal[]>([]);
   const [progresso, setProgresso] = useState("");
-  const grupo = useQuery({ queryKey: ["relatorio-grupo", empresaId, contrato], queryFn: () => buscarGrupoRelatorio(empresaId, contrato), enabled: !!empresaId });
+  const grupo = useQuery({ queryKey: ["relatorio-grupo", empresaId, contrato], queryFn: () => buscarGrupoRelatorio(empresaId, contrato), enabled: !!empresaId && !somenteConsulta });
   const ehMembro = grupo.data?.papel === "membro";
   const enviarEmail = useMutation({
     mutationFn: async () => {
@@ -80,6 +82,20 @@ export function RelatorioManualDialog({ movimentacaoId, empresaId = null, nome, 
     onError: (e: Error) => toast({ title: "Não foi possível enviar o e-mail", description: e.message, variant: "destructive" }),
   });
   const ocupado = save.isPending || enviarEmail.isPending || arquivosOcupados;
+  if (somenteConsulta) return <Dialog open onOpenChange={open => { if (!open) onClose(); }}>
+    <DialogContent className="sm:max-w-[860px] max-h-[90vh] overflow-y-auto">
+      <DialogHeader><DialogTitle>Visualizar relatório</DialogTitle><DialogDescription>{contexto}</DialogDescription></DialogHeader>
+      <dl className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+        <div className="space-y-1 sm:col-span-2"><dt className="text-xs font-medium uppercase text-muted-foreground">Empresa</dt><dd className="break-words font-semibold">{nome}</dd></div>
+        <div className="space-y-1"><dt className="text-xs font-medium uppercase text-muted-foreground">Contrato</dt><dd>{contrato ?? "Não informado"}</dd></div>
+        <div className="space-y-1"><dt className="text-xs font-medium uppercase text-muted-foreground">Competência</dt><dd>{competencia}</dd></div>
+        <div className="space-y-1"><dt className="text-xs font-medium uppercase text-muted-foreground">Período</dt><dd>{periodo ?? "—"}</dd></div>
+        <div className="space-y-1"><dt className="text-xs font-medium uppercase text-muted-foreground">Data do envio para a empresa</dt><dd>{formatDateBR(dataEnvioEmpresa || registro?.data_envio)}</dd></div>
+      </dl>
+      <div className="border-t border-border pt-4"><RelatoriosPortal contrato={contrato} nome={nome} onArquivos={setArquivos} onBusy={setArquivosOcupados} somenteConsulta /></div>
+      <DialogFooter><Button type="button" variant="outline" onClick={onClose}>Fechar</Button></DialogFooter>
+    </DialogContent>
+  </Dialog>;
   return <Dialog open onOpenChange={open => { if (!open && !save.isPending && !enviarEmail.isPending) onClose(); }}>
     <DialogContent className="sm:max-w-[860px] max-h-[90vh] overflow-y-auto">
       <DialogHeader><DialogTitle>{statusInicial ? "Enviar relatório" : "Visualizar relatório"}</DialogTitle><DialogDescription>{contexto}</DialogDescription></DialogHeader>
