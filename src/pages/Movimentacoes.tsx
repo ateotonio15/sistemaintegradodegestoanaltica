@@ -30,6 +30,7 @@ import {
   isPrioridadeAlertaIntenso,
 } from "@/lib/movimentacao-utils";
 import { formatDateBR } from "@/lib/date-utils";
+import { permiteCompetenciaMovimentacao } from "@/lib/movimentacao-primeira-competencia";
 import {
   statusFinanceiroColor,
   labelStatusFinanceiro,
@@ -163,10 +164,7 @@ export default function Movimentacoes() {
       for (const e of (emps ?? []) as any[]) {
         if (e.status_empresa === "Inativa") continue;
         if (jaTem.has(e.id)) continue;
-        if (
-          e.status_implantacao === "aguardando_primeiro_fechamento" &&
-          (!e.primeira_competencia_financeira || filterMes < e.primeira_competencia_financeira)
-        ) continue;
+        if (!permiteCompetenciaMovimentacao(e, filterMes)) continue;
 
         const tipo = e.tipo_movimentacao ?? "Fechada";
         let periodo: string | null = null;
@@ -576,9 +574,7 @@ export default function Movimentacoes() {
     const rows = movimentacoes.filter((m) => {
       if ((m.empresas as any)?.status_empresa === "Inativa") return false;
       // Esconde contratos recém implantados antes da primeira competência válida
-      const statusImpl = (m.empresas as any)?.status_implantacao;
-      const primComp = (m.empresas as any)?.primeira_competencia_financeira as string | null | undefined;
-      if (statusImpl === "aguardando_primeiro_fechamento" && (!primComp || m.mes_referencia < primComp)) return false;
+      if (!permiteCompetenciaMovimentacao(m.empresas, m.mes_referencia)) return false;
       if (verSomenteSemEmpresa) return !m.empresas;
       const status = calcularStatus(m);
       if (filterPeriodo !== "all" && m.periodo !== filterPeriodo) return false;
@@ -1140,9 +1136,7 @@ export default function Movimentacoes() {
               {PERIODOS.map((p) => {
                 const items = movimentacoes.filter((m) => {
                   if ((m.empresas as any)?.status_empresa === "Inativa") return false;
-                  const statusImpl = (m.empresas as any)?.status_implantacao;
-                  const primComp = (m.empresas as any)?.primeira_competencia_financeira as string | null | undefined;
-                  if (statusImpl === "aguardando_primeiro_fechamento" && (!primComp || m.mes_referencia < primComp)) return false;
+                  if (!permiteCompetenciaMovimentacao(m.empresas, m.mes_referencia)) return false;
                   return m.periodo === p;
                 });
                 const done = items.filter((m) => calcularStatus(m) === "Enviado ao financeiro").length;
