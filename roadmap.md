@@ -1,6 +1,7 @@
 # Roadmap — Primeiro pacote financeiro
 
 ## Cartório 3 Ofício — primeira movimentação
+- [ ] Aplicar ao "Dashboard Geral" o limite da primeira competência e conferir os gráficos de outubro, sem apagar a movimentação preservada.
 - [x] Corrigida a primeira competência do contrato 2548 para novembro/2026; dois registros de movimentação preservados, sem excluir anexos nem alterar cobranças.
 - [x] Dez testes aprovados; tela autenticada confirmou ausência em outubro e presença em novembro, com filtro comum à lista, resumo e geração local; verificação automática sem erros.
 
