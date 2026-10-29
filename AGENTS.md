@@ -1,5 +1,5 @@
 # Architecture rules
-- Movement list, period summaries and local provisioning share the first-competence lower-bound helper regardless of activation status, so activation cannot expose earlier months; preserve historical rows instead of deleting them.
+- Movement list, period summaries and local provisioning share the first-competence lower bound; dashboard_movimentacoes mirrors it for all charts regardless of activation status. Preserve historical rows instead of deleting them.
 - Life-report email files use a separate movement-scoped table and private bucket, never operational attachments; uploading them must not update lives, dates, status, or financial analysis.
 - Global surgery events are verified by one scheduled server-only fixed-upstream scan, deduplicated by demand/booking/date, and exposed through demand-inheriting RLS only to admin/executivo/executivo_externo; per-user read state feeds the existing bell/cards, never complaint resolution. Deep links temporarily isolate and focus the authorized row without erasing saved filters.
 - Operational movement billing status and note-date lookups use only normal financial entries in the shared RPC, excluding first-month entries before attachment sharing and ranking so an initial invoice cannot imply a movement closing.
