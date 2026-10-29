@@ -5,7 +5,7 @@ export const RELATORIOS_PORTAL = {
 } as const;
 export type TipoRelatorioPortal = keyof typeof RELATORIOS_PORTAL;
 export type JobRelatorioPortal = { job_id: string; nr_contrato: number; tipo: TipoRelatorioPortal };
-export type ArquivoPortal = JobRelatorioPortal & { nome_arquivo: string; blob: Blob };
+export type ArquivoPortal = JobRelatorioPortal & { nome_arquivo: string; blob: Blob; atualizado_em?: string };
 
 export function validarContratoPortal(valor: unknown): number {
   if ((typeof valor !== "string" && typeof valor !== "number") || !/^\d+$/.test(String(valor).trim())) throw new Error("CÓD. CONTRATO inválido na empresa selecionada.");
@@ -58,5 +58,7 @@ export async function baixarRelatorioPortal(contrato: unknown, job: JobRelatorio
   const bytes = new Uint8Array(await blob.slice(0, 5).arrayBuffer());
   const valido = job.tipo === "pdf" ? String.fromCharCode(...bytes) === "%PDF-" : bytes[0] === 0x50 && bytes[1] === 0x4b;
   if (!valido) throw new Error("O conteúdo recebido não é um relatório válido.");
-  return { ...job, nome_arquivo: data.nome_arquivo, blob: new Blob([blob], { type: RELATORIOS_PORTAL[job.tipo].mime }) };
+  const ultimaAtualizacao = response.headers.get("Last-Modified");
+  const atualizado_em = ultimaAtualizacao && Number.isFinite(Date.parse(ultimaAtualizacao)) ? ultimaAtualizacao : undefined;
+  return { ...job, nome_arquivo: data.nome_arquivo, blob: new Blob([blob], { type: RELATORIOS_PORTAL[job.tipo].mime }), ...(atualizado_em ? { atualizado_em } : {}) };
 }

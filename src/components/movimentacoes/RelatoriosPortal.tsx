@@ -1,8 +1,9 @@
 import { useEffect, useState } from "react";
-import { Download, Eye, Loader2, RefreshCw } from "lucide-react";
+import { Check, Download, Eye, Loader2, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { gerarRelatoriosPortal, validarArquivoContrato, type ArquivoPortal } from "@/services/portalEmpresaRelatorios";
+import { gerarRelatorioPortal, gerarRelatoriosPortal, validarArquivoContrato, type ArquivoPortal } from "@/services/portalEmpresaRelatorios";
 import { PortalPdfPreview } from "./PortalPdfPreview";
+import { formatDateBR } from "@/lib/date-utils";
 
 export function RelatoriosPortal({ contrato, nome, onArquivos, onBusy, somenteConsulta = false }: {
   contrato: string | null; nome: string; onArquivos: (arquivos: ArquivoPortal[]) => void; onBusy: (busy: boolean) => void; somenteConsulta?: boolean;
@@ -17,7 +18,10 @@ export function RelatoriosPortal({ contrato, nome, onArquivos, onBusy, somenteCo
     const controller = new AbortController();
     let url = "";
     setArquivos([]); setUrlPdf(""); setErro(""); setGerando(true); setVisualizando(false); onArquivos([]); onBusy(true);
-    gerarRelatoriosPortal(contrato, controller.signal).then(result => {
+    const busca = somenteConsulta
+      ? gerarRelatorioPortal(contrato, "pdf", controller.signal).then(pdf => [pdf])
+      : gerarRelatoriosPortal(contrato, controller.signal);
+    busca.then(result => {
       controller.signal.throwIfAborted();
       result.forEach(a => validarArquivoContrato(contrato, a, a.nome_arquivo));
       const pdf = result.find(a => a.tipo === "pdf");
@@ -27,7 +31,7 @@ export function RelatoriosPortal({ contrato, nome, onArquivos, onBusy, somenteCo
       if (!controller.signal.aborted) setErro(e instanceof Error ? e.message : "Não foi possível gerar os relatórios.");
     }).finally(() => { if (!controller.signal.aborted) { setGerando(false); onBusy(false); } });
     return () => { controller.abort(); if (url) URL.revokeObjectURL(url); };
-  }, [contrato, nome, tentativa, onArquivos, onBusy]);
+  }, [contrato, nome, tentativa, onArquivos, onBusy, somenteConsulta]);
   function baixar(a: ArquivoPortal) {
     validarArquivoContrato(contrato, a, a.nome_arquivo);
     const url = URL.createObjectURL(a.blob);
@@ -35,14 +39,27 @@ export function RelatoriosPortal({ contrato, nome, onArquivos, onBusy, somenteCo
     setTimeout(() => URL.revokeObjectURL(url), 1000);
   }
   const pdf = arquivos.find(a => a.tipo === "pdf");
+  if (somenteConsulta) return <div className="space-y-3">
+    <p className="text-xs font-medium uppercase text-muted-foreground">Relatório de vidas</p>
+    {gerando ? <p role="status" className="flex items-center gap-2 text-sm"><Loader2 className="h-4 w-4 shrink-0 animate-spin" />Buscando relatório de vidas...</p>
+      : pdf ? <>
+        <p role="status" className="flex items-center gap-2 text-sm text-primary"><Check className="h-4 w-4 shrink-0" />Relatório disponível</p>
+        <p className="break-all text-sm">{pdf.nome_arquivo}</p>
+        {pdf.atualizado_em && <p className="text-sm text-muted-foreground">Data de atualização: {formatDateBR(pdf.atualizado_em)}</p>}
+        {visualizando && <PortalPdfPreview key={pdf.job_id} blob={pdf.blob} />}
+        <div className="flex flex-wrap gap-2">
+          <Button type="button" variant="outline" onClick={() => setVisualizando(true)}><Eye className="mr-2 h-4 w-4" />Visualizar</Button>
+          <Button type="button" variant="outline" onClick={() => baixar(pdf)}><Download className="mr-2 h-4 w-4" />Baixar</Button>
+        </div>
+      </> : <div className="space-y-3">
+        <p role="status" className="text-sm text-muted-foreground">Relatório não disponível para este contrato.</p>
+        <Button type="button" variant="outline" onClick={() => setTentativa(t => t + 1)}><RefreshCw className="mr-2 h-4 w-4" />Tentar novamente</Button>
+      </div>}
+  </div>;
   return <div className="space-y-3">
-    {somenteConsulta && <div className="space-y-1"><p className="text-xs font-medium uppercase text-muted-foreground">Relatório de vidas</p><p className="break-all text-sm">{pdf?.nome_arquivo ?? (gerando ? "Carregando..." : "Indisponível")}</p></div>}
     {gerando && <p role="status" className="flex items-center gap-2 text-sm"><Loader2 className="h-4 w-4 shrink-0 animate-spin" />Gerando relatório do contrato #{contrato} ({nome})...</p>}
     {erro && <div role="alert" className="space-y-2"><p className="text-sm text-destructive">{erro}</p><Button type="button" variant="outline" onClick={() => setTentativa(t => t + 1)}><RefreshCw className="mr-2 h-4 w-4" />Tentar novamente</Button></div>}
-    {urlPdf && (!somenteConsulta || visualizando) && arquivos.filter(a => a.tipo === "pdf").map(a => <PortalPdfPreview key={a.job_id} blob={a.blob} />)}
-    {somenteConsulta ? <div className="flex flex-wrap gap-2">
-      <Button type="button" variant="outline" disabled={!pdf || gerando} onClick={() => setVisualizando(true)}><Eye className="mr-2 h-4 w-4" />Visualizar relatório</Button>
-      <Button type="button" variant="outline" disabled={!pdf || gerando} onClick={() => { if (pdf) baixar(pdf); }}><Download className="mr-2 h-4 w-4" />Baixar relatório</Button>
-    </div> : <div className="flex flex-wrap gap-2">{arquivos.map(a => <Button type="button" variant="outline" key={a.tipo} onClick={() => baixar(a)}><Download className="mr-2 h-4 w-4" />{a.tipo === "pdf" ? "Baixar PDF de vidas ativas" : "Baixar Excel de mensalidades"}</Button>)}</div>}
+    {urlPdf && arquivos.filter(a => a.tipo === "pdf").map(a => <PortalPdfPreview key={a.job_id} blob={a.blob} />)}
+    <div className="flex flex-wrap gap-2">{arquivos.map(a => <Button type="button" variant="outline" key={a.tipo} onClick={() => baixar(a)}><Download className="mr-2 h-4 w-4" />{a.tipo === "pdf" ? "Baixar PDF de vidas ativas" : "Baixar Excel de mensalidades"}</Button>)}</div>
   </div>;
 }

@@ -7,6 +7,15 @@ afterEach(() => { vi.unstubAllGlobals(); vi.useRealTimers(); });
 const job = { job_id: "job-2192", nr_contrato: 2192, tipo: "xlsx" as const };
 const resposta = (data: unknown) => new Response(JSON.stringify(data), { headers: { "Content-Type": "application/json" } });
 describe("relatórios vinculados exclusivamente ao contrato da linha", () => {
+  it("usa a data de atualização fornecida pela API e não inventa uma quando ausente", async () => {
+    for (const ultimaAtualizacao of ["Thu, 29 Oct 2026 14:40:00 GMT", null]) {
+      vi.stubGlobal("fetch", vi.fn(async (url: string) => url.endsWith("/download")
+        ? new Response(new Uint8Array([0x50, 0x4b, 3, 4]), { headers: ultimaAtualizacao ? { "Last-Modified": ultimaAtualizacao } : {} })
+        : resposta({ success: true, job_id: job.job_id, status: "concluido", nome_arquivo: "Mensalidades_Contrato_2192_20261029.xlsx" })));
+      const arquivo = await baixarRelatorioPortal(2192, job);
+      expect(arquivo.atualizado_em).toBe(ultimaAtualizacao ?? undefined);
+    }
+  });
   it("aceita somente inteiro positivo de CÓD. CONTRATO", () => {
     expect(validarContratoPortal("2490")).toBe(2490);
     for (const valor of [null, "", 0, -1, "2192abc", 2.5, "2e3", true]) expect(() => validarContratoPortal(valor)).toThrow();
