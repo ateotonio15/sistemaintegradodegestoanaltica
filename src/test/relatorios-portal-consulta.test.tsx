@@ -1,10 +1,13 @@
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { cleanup, render, waitFor } from "@testing-library/react";
 import { RelatoriosPortal } from "@/components/movimentacoes/RelatoriosPortal";
 import { gerarRelatorioPortal, gerarRelatoriosPortal } from "@/services/portalEmpresaRelatorios";
 
 vi.mock("@/services/portalEmpresaRelatorios", () => ({ gerarRelatorioPortal: vi.fn(), gerarRelatoriosPortal: vi.fn(), validarArquivoContrato: vi.fn() }));
 vi.mock("@/components/movimentacoes/PortalPdfPreview", () => ({ PortalPdfPreview: () => null }));
+beforeEach(() => { vi.stubGlobal("AbortController", class extends AbortController {
+  constructor() { super(); this.signal.throwIfAborted = () => { if (this.signal.aborted) throw new Error("Abortado"); }; }
+}); });
 afterEach(() => { cleanup(); vi.resetAllMocks(); vi.unstubAllGlobals(); });
 
 describe("consulta de relatório pela integração existente", () => {

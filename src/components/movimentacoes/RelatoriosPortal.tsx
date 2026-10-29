@@ -3,6 +3,7 @@ import { Check, Download, Eye, Loader2, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { gerarRelatorioPortal, gerarRelatoriosPortal, validarArquivoContrato, type ArquivoPortal } from "@/services/portalEmpresaRelatorios";
 import { PortalPdfPreview } from "./PortalPdfPreview";
+import { formatDateBR } from "@/lib/date-utils";
 
 export function RelatoriosPortal({ contrato, nome, onArquivos, onBusy, somenteConsulta = false }: {
   contrato: string | null; nome: string; onArquivos: (arquivos: ArquivoPortal[]) => void; onBusy: (busy: boolean) => void; somenteConsulta?: boolean;
@@ -44,6 +45,7 @@ export function RelatoriosPortal({ contrato, nome, onArquivos, onBusy, somenteCo
       : pdf ? <>
         <p role="status" className="flex items-center gap-2 text-sm text-primary"><Check className="h-4 w-4 shrink-0" />Relatório disponível</p>
         <p className="break-all text-sm">{pdf.nome_arquivo}</p>
+        {pdf.atualizado_em && <p className="text-sm text-muted-foreground">Data de atualização: {formatDateBR(pdf.atualizado_em)}</p>}
         {visualizando && <PortalPdfPreview key={pdf.job_id} blob={pdf.blob} />}
         <div className="flex flex-wrap gap-2">
           <Button type="button" variant="outline" onClick={() => setVisualizando(true)}><Eye className="mr-2 h-4 w-4" />Visualizar</Button>
