@@ -39,22 +39,28 @@ export function RelatoriosPortal({ contrato, nome, onArquivos, onBusy, somenteCo
     setTimeout(() => URL.revokeObjectURL(url), 1000);
   }
   const pdf = arquivos.find(a => a.tipo === "pdf");
+  const excel = arquivos.find(a => a.tipo === "xlsx");
   if (somenteConsulta) return <div className="space-y-3">
     <p className="text-xs font-medium uppercase text-muted-foreground">Relatório de vidas</p>
     {gerando ? <p role="status" className="flex items-center gap-2 text-sm"><Loader2 className="h-4 w-4 shrink-0 animate-spin" />Buscando relatório de vidas...</p>
       : pdf ? <>
         <p role="status" className="flex items-center gap-2 text-sm text-primary"><Check className="h-4 w-4 shrink-0" />Relatório disponível</p>
+        <p className="text-xs font-medium text-muted-foreground">PDF</p>
         <p className="break-all text-sm">{pdf.nome_arquivo}</p>
         {pdf.atualizado_em && <p className="text-sm text-muted-foreground">Data de atualização: {formatDateBR(pdf.atualizado_em)}</p>}
         {visualizando && <PortalPdfPreview key={pdf.job_id} blob={pdf.blob} />}
-        <div className="flex flex-wrap gap-2">
-          <Button type="button" variant="outline" onClick={() => setVisualizando(true)}><Eye className="mr-2 h-4 w-4" />Visualizar</Button>
-          <Button type="button" variant="outline" onClick={() => baixar(pdf)}><Download className="mr-2 h-4 w-4" />Baixar</Button>
+        <div className="flex flex-wrap gap-3 pt-1">
+          <Button type="button" className="h-11 w-full border border-primary/40 px-5 sm:w-auto" onClick={() => setVisualizando(true)}><Eye />Visualizar PDF</Button>
+          <Button type="button" variant="outline" className="h-11 w-full border-primary/30 bg-primary/10 px-5 text-foreground hover:border-primary/60 hover:bg-primary/20 hover:text-foreground sm:w-auto" onClick={() => baixar(pdf)}><Download />Baixar PDF</Button>
         </div>
       </> : <div className="space-y-3">
         <p role="status" className="text-sm text-muted-foreground">Relatório não disponível para este contrato.</p>
         <Button type="button" variant="outline" onClick={() => setTentativa(t => t + 1)}><RefreshCw className="mr-2 h-4 w-4" />Tentar novamente</Button>
       </div>}
+    {excel && <div className="space-y-3 border-t border-border pt-4">
+      <div className="space-y-1"><p className="text-xs font-medium uppercase text-muted-foreground">OPS - Mensalidades</p><p className="text-xs font-medium text-muted-foreground">Excel (.xlsx)</p><p className="break-all text-sm">{excel.nome_arquivo}</p></div>
+      <Button type="button" className="h-11 w-full border border-primary/40 px-5 sm:w-auto" onClick={() => baixar(excel)}><Download />Baixar Excel</Button>
+    </div>}
   </div>;
   return <div className="space-y-3">
     {gerando && <p role="status" className="flex items-center gap-2 text-sm"><Loader2 className="h-4 w-4 shrink-0 animate-spin" />Gerando relatório do contrato #{contrato} ({nome})...</p>}
