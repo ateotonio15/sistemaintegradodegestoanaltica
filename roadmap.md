@@ -1,5 +1,9 @@
 # Roadmap — Primeiro pacote financeiro
 
+## Consulta de relatório — 29/10
+- [ ] Simplificar somente "Visualizar relatório", mantendo geração e envio existentes.
+- [ ] Conferir consulta, visualização e download sem alterar dados da operação.
+
 ## Portal Empresa — relatórios reais por contrato (28/10)
 - [x] Integrar fila assíncrona, PDF/Excel e visualização com contrato travado e cancelamento ao trocar a linha; PDF real ADATA 2490 (44 páginas) e Excel baixados, troca para 2192 limpa arquivos anteriores.
 - [x] Integrar preparação e envio real individual/em lote, com validação do contrato também no servidor; envia somente após confirmação, e marca Enviado apenas após SMTP aceito.
