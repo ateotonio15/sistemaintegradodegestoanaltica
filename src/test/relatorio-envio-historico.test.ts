@@ -31,4 +31,10 @@ describe("histórico confirmado de envio", () => {
   it("sem data e sem eventos não declara envio", () => {
     expect(resumoEnviosRelatorio([], null).data).toBeNull();
   });
+  it("mantém a data antiga no histórico quando ocorre novo envio em outro dia", () => {
+    const resumo = resumoEnviosRelatorio([{ id: "novo", enviado_em: "2026-10-29T12:15:00Z", nome_remetente: "Teotonio Junior" }], "2026-10-27");
+    expect(resumo.quantidade).toBe(2);
+    expect(resumo.envios[0]).toEqual({ id: "envio-empresa-legado", enviado_em: "2026-10-27", nome_remetente: null });
+    expect(resumo.ultimo?.id).toBe("novo");
+  });
 });
