@@ -13,7 +13,7 @@ import { useToast } from "@/hooks/use-toast";
 import { STATUS_RELATORIO, CONFIRMACOES_RELATORIO, RELATORIO_VAZIO, validarRegistroRelatorio, type RegistroRelatorio } from "@/lib/movimentacao-relatorio";
 import type { ArquivoPortal } from "@/services/portalEmpresaRelatorios";
 import { enviarRelatoriosPortal, buscarGrupoRelatorio } from "@/services/enviarRelatoriosPortal";
-import { formatDateBR } from "@/lib/date-utils";
+import { HistoricoEnvioRelatorio } from "./HistoricoEnvioRelatorio";
 
 function hojeLocalISO(): string {
   const d = new Date();
@@ -90,8 +90,8 @@ export function RelatorioManualDialog({ movimentacaoId, empresaId = null, nome, 
         <div className="space-y-1"><dt className="text-xs font-medium uppercase text-muted-foreground">Contrato</dt><dd>{contrato ?? "Não informado"}</dd></div>
         <div className="space-y-1"><dt className="text-xs font-medium uppercase text-muted-foreground">Competência</dt><dd>{competencia}</dd></div>
         <div className="space-y-1"><dt className="text-xs font-medium uppercase text-muted-foreground">Período</dt><dd>{periodo ?? "—"}</dd></div>
-        <div className="space-y-1"><dt className="text-xs font-medium uppercase text-muted-foreground">Data do envio para a empresa</dt><dd>{formatDateBR(dataEnvioEmpresa || registro?.data_envio)}</dd></div>
       </dl>
+      <HistoricoEnvioRelatorio movimentacaoId={movimentacaoId} dataEnvioEmpresa={dataEnvioEmpresa || registro?.data_envio} />
       <div className="border-t border-border pt-4"><RelatoriosPortal contrato={contrato} nome={nome} onArquivos={setArquivos} onBusy={setArquivosOcupados} somenteConsulta /></div>
       <DialogFooter><Button type="button" variant="outline" onClick={onClose}>Fechar</Button></DialogFooter>
     </DialogContent>

@@ -4187,6 +4187,36 @@ export type Database = {
           },
         ]
       }
+      movimentacao_relatorio_envios: {
+        Row: {
+          enviado_em: string
+          enviado_por: string
+          envio_id: string
+          id: string
+          movimentacao_id: string
+          nome_remetente: string | null
+          principal_movimentacao_id: string
+        }
+        Insert: {
+          enviado_em?: string
+          enviado_por: string
+          envio_id: string
+          id?: string
+          movimentacao_id: string
+          nome_remetente?: string | null
+          principal_movimentacao_id: string
+        }
+        Update: {
+          enviado_em?: string
+          enviado_por?: string
+          envio_id?: string
+          id?: string
+          movimentacao_id?: string
+          nome_remetente?: string | null
+          principal_movimentacao_id?: string
+        }
+        Relationships: []
+      }
       movimentacao_relatorios: {
         Row: {
           atualizado_em: string
@@ -6836,6 +6866,19 @@ export type Database = {
       reatribuir_ferias_empresa: {
         Args: { p_fce_id: string; p_new_user_id: string }
         Returns: Json
+      }
+      registrar_envio_relatorio_concluido: {
+        Args: {
+          p_cc: string
+          p_contrato: string
+          p_destinatarios: string
+          p_envio_id: string
+          p_movimentacoes: string[]
+          p_nome: string
+          p_principal: string
+          p_usuario: string
+        }
+        Returns: undefined
       }
       registrar_movimentacao_processo:
         | {

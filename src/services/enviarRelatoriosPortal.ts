@@ -54,6 +54,6 @@ export async function enviarRelatoriosPortal({ movimentacaoId, empresaId, contra
     throw new Error(msg || error.message);
   }
   if (!data?.ok) throw new Error(data?.error || "Não foi possível enviar o e-mail.");
-  if (!data.registro_salvo) throw new Error("E-mail enviado, mas o registro não foi salvo. Confira antes de reenviar.");
+  if (!data.registro_salvo) throw new Error(data.aviso || "E-mail enviado, mas o registro não foi salvo. Confira antes de reenviar.");
   return data;
 }

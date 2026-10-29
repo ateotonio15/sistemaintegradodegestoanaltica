@@ -1,6 +1,8 @@
 # Roadmap — Primeiro pacote financeiro
 
 ## Consulta de relatório — 29/10
+- [x] Registrar histórico imutável só após sucesso do e-mail e exibir último envio, remetente e reenvios sem inventar dados antigos; gravação atômica por grupo e ID idempotente, data operacional mantida.
+- [x] Testes de sucesso/falha e preservação aprovados; consulta autenticada de data antiga real e histórico simulado conferida, permissões de escrita/exclusão bloqueadas no banco e função publicada. Não realizado envio real para evitar mensagens da operação; novos históricos reais dependem do próximo envio.
 - [x] Buscar apenas o PDF de vidas pela integração existente, mostrar busca/disponibilidade/ausência e nova tentativa, sem gerar arquivo local nem alterar movimentações. Data exibida apenas quando fornecida em Last-Modified; 15 testes aprovados, PDF real visualizado/baixado e ausência simulada recuperada com nova tentativa.
 - [x] Simplificar somente "Visualizar relatório", mantendo geração e envio existentes.
 - [x] Consulta autenticada do contrato 2171 sem campos editáveis, PDF real aberto e baixado, campos de envio preservados e 31 testes aprovados; nenhum e-mail enviado ou histórico alterado.

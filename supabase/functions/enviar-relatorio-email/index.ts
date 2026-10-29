@@ -5,6 +5,7 @@ import { z } from "npm:zod@3";
 import { enviarSmtp, type Anexo } from "../_shared/smtp.ts";
 import { dataCorteMovimentacao } from "../_shared/data-corte.ts";
 import { baixarRelatorioPortal, validarContratoPortal, RELATORIOS_PORTAL } from "../_shared/portal-empresa-relatorios.ts";
+import { concluirEnvioRelatorio } from "../_shared/registrar-envio-relatorio.ts";
 
 const Body = z.object({
   movimentacao_id: z.string().uuid(),
@@ -160,7 +161,18 @@ Deno.serve(async (req) => {
     // Reconfere imediatamente antes do SMTP: alteração de contrato durante download bloqueia o envio.
     const { data: atual, error: erroAtual } = await userClient.from("movimentacoes").select("empresas(codigo_contrato)").eq("id", movimentacao_id).maybeSingle();
     if (erroAtual || validarContratoPortal((atual as any)?.empresas?.codigo_contrato) !== contrato) return json({ error: "O contrato da empresa foi alterado. Abra o relatório novamente." }, 409);
-    try { await enviarSmtp({
+    const movimentacoesEnviadas = [movimentacao_id];
+    if (membros.length) {
+      const { data: movsGrupo, error: erroGrupo } = await userClient.from("movimentacoes").select("id")
+        .in("empresa_id", membros.map(m => m.empresa_id)).eq("mes_referencia", mov.mes_referencia);
+      if (erroGrupo) throw erroGrupo;
+      movimentacoesEnviadas.push(...(movsGrupo ?? []).map(m => m.id));
+    }
+    const { data: perfil } = await admin.from("profiles").select("display_name").eq("user_id", u.user.id).maybeSingle();
+    const envioId = crypto.randomUUID();
+    let smtpConcluido = false;
+    let erroRegistro: string | undefined;
+    try { await concluirEnvioRelatorio(async () => { await enviarSmtp({
       fromNome: nomeRem, fromEmail, replyTo, para: destinatarios,
       // Cópia visível escolhida na tela; a empresa vê quem está em cópia.
       cc: cc ?? [],
@@ -170,35 +182,26 @@ Deno.serve(async (req) => {
         ...(resumoPng ? [{ cid: cidResumo, nome: `resumo-contrato-${contrato}.png`, mime: "image/png", conteudo: resumoPng }] : []),
         { cid: "assinatura-samel", nome: "assinatura.png", mime: assinaturaMime, conteudo: assinatura },
       ],
+    }); smtpConcluido = true; }, async () => {
+      // Uma transação grava histórico e resumo; retry usa o mesmo ID e nunca reenvia o e-mail.
+      for (let tentativa = 0; tentativa < 3; tentativa++) {
+        const { error } = await admin.rpc("registrar_envio_relatorio_concluido", {
+          p_envio_id: envioId, p_principal: movimentacao_id, p_movimentacoes: movimentacoesEnviadas,
+          p_usuario: u.user.id, p_nome: perfil?.display_name ?? "", p_destinatarios: destinatarios.join(", "),
+          p_cc: (cc ?? []).join(", "), p_contrato: String(contrato),
+        });
+        if (!error) return;
+        erroRegistro = "O e-mail foi enviado, mas não foi possível registrar o histórico. Não reenvie apenas para corrigir o registro.";
+      }
+      throw new Error(erroRegistro);
     });
     } catch (e) {
+      if (smtpConcluido) return json({ ok: true, enviado_em: hojeManaus(), registro_salvo: false, aviso: erroRegistro }, 200);
       // Falha do servidor de e-mail: devolve a mensagem para a tela mostrar o aviso, sem quebrar a página.
       return json({ error: e instanceof Error ? e.message : String(e), falha_envio: true }, 200);
     }
 
-    const hoje = hojeManaus();
-    const { error: errRel } = await userClient.from("movimentacao_relatorios").upsert({
-      movimentacao_id, status: "Enviado", destinatarios: destinatarios.join(", "), cc: (cc ?? []).join(", "), data_envio: hoje, confirmacao: "Aguardando",
-    }, { onConflict: "movimentacao_id" });
-    // Contratos do grupo: registro marcado como enviado junto com o principal (mesmo mês), sem alterar datas operacionais.
-    if (membros.length) {
-      const { data: movsGrupo } = await userClient.from("movimentacoes").select("id")
-        .in("empresa_id", membros.map(m => m.empresa_id)).eq("mes_referencia", mov.mes_referencia);
-      const linhas = ((movsGrupo as any[]) ?? []).map(m => ({
-        movimentacao_id: m.id, status: "Enviado", destinatarios: destinatarios.join(", "), cc: (cc ?? []).join(", "), data_envio: hoje, confirmacao: "Aguardando",
-        observacoes: `Enviado junto com o contrato principal #${contrato}`,
-      }));
-      if (linhas.length) {
-        await userClient.from("movimentacao_relatorios").upsert(linhas, { onConflict: "movimentacao_id" });
-        // O e-mail do principal também é o envio à empresa dos contratos do grupo: preenche só se estiver vazio.
-        await userClient.from("movimentacoes").update({ data_envio_empresa: hoje })
-          .in("id", linhas.map(l => l.movimentacao_id)).is("data_envio_empresa", null);
-      }
-    }
-    if (!mov.data_envio_empresa) {
-      await userClient.from("movimentacoes").update({ data_envio_empresa: hoje }).eq("id", movimentacao_id).is("data_envio_empresa", null);
-    }
-    return json({ ok: true, enviado_em: hoje, registro_salvo: !errRel, aviso: errRel?.message });
+    return json({ ok: true, enviado_em: hojeManaus(), registro_salvo: true });
   } catch (e) {
     return json({ error: e instanceof Error ? e.message : String(e) }, 500);
   }
