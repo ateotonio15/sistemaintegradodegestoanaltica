@@ -1,6 +1,8 @@
 # Roadmap — Primeiro pacote financeiro
 
 ## Consulta de relatório — 29/10
+- [x] Exibir PDF e Excel independentemente, aceitar XLS/XLSX e manter arquivos identificados quando o carregamento falhar.
+- [x] 19 testes aprovados; PDF e Excel reais do contrato 2171 baixados, ambos os blocos conferidos, falhas de download simuladas mantêm os nomes e nova tentativa; nenhum e-mail enviado.
 - [x] Registrar histórico imutável só após sucesso do e-mail e exibir último envio, remetente e reenvios sem inventar dados antigos; gravação atômica por grupo e ID idempotente, data operacional mantida.
 - [x] Testes de sucesso/falha e preservação aprovados; consulta autenticada de data antiga real e histórico simulado conferida, permissões de escrita/exclusão bloqueadas no banco e função publicada. Não realizado envio real para evitar mensagens da operação; novos históricos reais dependem do próximo envio.
 - [x] Buscar apenas o PDF de vidas pela integração existente, mostrar busca/disponibilidade/ausência e nova tentativa, sem gerar arquivo local nem alterar movimentações. Data exibida apenas quando fornecida em Last-Modified; 15 testes aprovados, PDF real visualizado/baixado e ausência simulada recuperada com nova tentativa.

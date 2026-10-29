@@ -1,5 +1,5 @@
 import { iniciarRelatorioPortal, consultarRelatorioPortal, baixarRelatorioPortal, validarContratoPortal, type ArquivoPortal, type TipoRelatorioPortal } from "../../supabase/functions/_shared/portal-empresa-relatorios";
-export { validarContratoPortal, validarArquivoContrato } from "../../supabase/functions/_shared/portal-empresa-relatorios";
+export { validarContratoPortal, validarArquivoContrato, ErroCarregarArquivoPortal } from "../../supabase/functions/_shared/portal-empresa-relatorios";
 export type { ArquivoPortal, JobRelatorioPortal } from "../../supabase/functions/_shared/portal-empresa-relatorios";
 
 function esperar(signal: AbortSignal): Promise<void> {

@@ -6,6 +6,12 @@ export const RELATORIOS_PORTAL = {
 export type TipoRelatorioPortal = keyof typeof RELATORIOS_PORTAL;
 export type JobRelatorioPortal = { job_id: string; nr_contrato: number; tipo: TipoRelatorioPortal };
 export type ArquivoPortal = JobRelatorioPortal & { nome_arquivo: string; blob: Blob; atualizado_em?: string };
+export class ErroCarregarArquivoPortal extends Error {
+  constructor(public arquivo: JobRelatorioPortal & { nome_arquivo: string }) {
+    super("Arquivo disponível, mas ocorreu erro ao carregar.");
+    this.name = "ErroCarregarArquivoPortal";
+  }
+}
 
 export function validarContratoPortal(valor: unknown): number {
   if ((typeof valor !== "string" && typeof valor !== "number") || !/^\d+$/.test(String(valor).trim())) throw new Error("CÓD. CONTRATO inválido na empresa selecionada.");
@@ -16,7 +22,8 @@ export function validarContratoPortal(valor: unknown): number {
 export function validarArquivoContrato(contrato: unknown, job: JobRelatorioPortal, nome: string): void {
   const numero = validarContratoPortal(contrato);
   const marcadores = [...nome.matchAll(/_Contrato_(\d+)_/g)];
-  if (job.nr_contrato !== numero || marcadores.length !== 1 || marcadores[0][1] !== String(numero) || !nome.toLowerCase().endsWith(`.${job.tipo}`) || /[\r\n/\\]/.test(nome)) {
+  const extensaoValida = job.tipo === "pdf" ? /\.pdf$/i.test(nome) : /\.xlsx?$/i.test(nome);
+  if (job.nr_contrato !== numero || marcadores.length !== 1 || marcadores[0][1] !== String(numero) || !extensaoValida || /[\r\n/\\]/.test(nome)) {
     throw new Error(`Relatório bloqueado: o arquivo não pertence ao contrato #${numero} da empresa selecionada.`);
   }
 }
@@ -51,14 +58,22 @@ export async function baixarRelatorioPortal(contrato: unknown, job: JobRelatorio
   const data = await consultarRelatorioPortal(job, signal);
   if (data.status !== "concluido" || !data.nome_arquivo) throw new Error("O relatório ainda está sendo gerado.");
   validarArquivoContrato(contrato, job, data.nome_arquivo);
+  try {
   const response = await fetch(`${PORTAL_URL}/api/relatorios-async/${validarJobId(job.job_id)}/download`, { signal });
   if (!response.ok) throw new Error("Não foi possível baixar o relatório.");
   const blob = await response.blob();
   if (!blob.size || blob.size > 15 * 1024 * 1024) throw new Error("Relatório vazio ou maior que 15 MB.");
-  const bytes = new Uint8Array(await blob.slice(0, 5).arrayBuffer());
-  const valido = job.tipo === "pdf" ? String.fromCharCode(...bytes) === "%PDF-" : bytes[0] === 0x50 && bytes[1] === 0x4b;
+  const bytes = new Uint8Array(await blob.slice(0, 8).arrayBuffer());
+  const xls = /\.xls$/i.test(data.nome_arquivo);
+  const valido = job.tipo === "pdf" ? String.fromCharCode(...bytes.slice(0, 5)) === "%PDF-"
+    : xls ? [0xd0, 0xcf, 0x11, 0xe0, 0xa1, 0xb1, 0x1a, 0xe1].every((v, i) => bytes[i] === v)
+    : bytes[0] === 0x50 && bytes[1] === 0x4b;
   if (!valido) throw new Error("O conteúdo recebido não é um relatório válido.");
   const ultimaAtualizacao = response.headers.get("Last-Modified");
   const atualizado_em = ultimaAtualizacao && Number.isFinite(Date.parse(ultimaAtualizacao)) ? ultimaAtualizacao : undefined;
-  return { ...job, nome_arquivo: data.nome_arquivo, blob: new Blob([blob], { type: RELATORIOS_PORTAL[job.tipo].mime }), ...(atualizado_em ? { atualizado_em } : {}) };
+  return { ...job, nome_arquivo: data.nome_arquivo, blob: new Blob([blob], { type: xls ? "application/vnd.ms-excel" : RELATORIOS_PORTAL[job.tipo].mime }), ...(atualizado_em ? { atualizado_em } : {}) };
+  } catch (erro) {
+    if (signal?.aborted) throw erro;
+    throw new ErroCarregarArquivoPortal({ ...job, nome_arquivo: data.nome_arquivo });
+  }
 }

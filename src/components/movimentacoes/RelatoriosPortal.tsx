@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { Check, Download, Eye, Loader2, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { gerarRelatorioPortal, gerarRelatoriosPortal, validarArquivoContrato, type ArquivoPortal } from "@/services/portalEmpresaRelatorios";
+import { gerarRelatorioPortal, gerarRelatoriosPortal, validarArquivoContrato, ErroCarregarArquivoPortal, type ArquivoPortal } from "@/services/portalEmpresaRelatorios";
 import { PortalPdfPreview } from "./PortalPdfPreview";
 import { formatDateBR } from "@/lib/date-utils";
 
@@ -14,12 +14,17 @@ export function RelatoriosPortal({ contrato, nome, onArquivos, onBusy, somenteCo
   const [gerando, setGerando] = useState(true);
   const [tentativa, setTentativa] = useState(0);
   const [visualizando, setVisualizando] = useState(false);
+  const [falhasArquivos, setFalhasArquivos] = useState<ErroCarregarArquivoPortal[]>([]);
   useEffect(() => {
     const controller = new AbortController();
     let url = "";
-    setArquivos([]); setUrlPdf(""); setErro(""); setGerando(true); setVisualizando(false); onArquivos([]); onBusy(true);
+    setArquivos([]); setFalhasArquivos([]); setUrlPdf(""); setErro(""); setGerando(true); setVisualizando(false); onArquivos([]); onBusy(true);
     const busca = somenteConsulta
-      ? gerarRelatorioPortal(contrato, "pdf", controller.signal).then(pdf => [pdf])
+      ? Promise.allSettled([gerarRelatorioPortal(contrato, "pdf", controller.signal), gerarRelatorioPortal(contrato, "xlsx", controller.signal)]).then(resultados => {
+        controller.signal.throwIfAborted();
+        setFalhasArquivos(resultados.flatMap(r => r.status === "rejected" && r.reason instanceof ErroCarregarArquivoPortal ? [r.reason] : []));
+        return resultados.flatMap(r => r.status === "fulfilled" ? [r.value] : []);
+      })
       : gerarRelatoriosPortal(contrato, controller.signal);
     busca.then(result => {
       controller.signal.throwIfAborted();
@@ -38,29 +43,30 @@ export function RelatoriosPortal({ contrato, nome, onArquivos, onBusy, somenteCo
     const link = document.createElement("a"); link.href = url; link.download = a.nome_arquivo; link.click();
     setTimeout(() => URL.revokeObjectURL(url), 1000);
   }
-  const pdf = arquivos.find(a => a.tipo === "pdf");
-  const excel = arquivos.find(a => a.tipo === "xlsx");
   if (somenteConsulta) return <div className="space-y-3">
-    <p className="text-xs font-medium uppercase text-muted-foreground">Relatório de vidas</p>
     {gerando ? <p role="status" className="flex items-center gap-2 text-sm"><Loader2 className="h-4 w-4 shrink-0 animate-spin" />Buscando relatório de vidas...</p>
-      : pdf ? <>
+      : <>{arquivos.map(arquivo => <div key={arquivo.job_id} className="space-y-3 border-b border-border pb-4 last:border-b-0 last:pb-0">
+        <p className="text-xs font-medium uppercase text-muted-foreground">{arquivo.tipo === "pdf" ? "Relatório de Vidas" : "OPS - Mensalidades"}</p>
         <p role="status" className="flex items-center gap-2 text-sm text-primary"><Check className="h-4 w-4 shrink-0" />Relatório disponível</p>
-        <p className="text-xs font-medium text-muted-foreground">PDF</p>
-        <p className="break-all text-sm">{pdf.nome_arquivo}</p>
-        {pdf.atualizado_em && <p className="text-sm text-muted-foreground">Data de atualização: {formatDateBR(pdf.atualizado_em)}</p>}
-        {visualizando && <PortalPdfPreview key={pdf.job_id} blob={pdf.blob} />}
+        <p className="text-xs font-medium text-muted-foreground">{arquivo.tipo === "pdf" ? "PDF" : `Excel (${arquivo.nome_arquivo.toLowerCase().endsWith(".xls") ? ".xls" : ".xlsx"})`}</p>
+        <p className="break-all text-sm">{arquivo.nome_arquivo}</p>
+        {arquivo.atualizado_em && <p className="text-sm text-muted-foreground">Data de atualização: {formatDateBR(arquivo.atualizado_em)}</p>}
+        {arquivo.tipo === "pdf" && visualizando && <PortalPdfPreview key={arquivo.job_id} blob={arquivo.blob} />}
         <div className="flex flex-wrap gap-3 pt-1">
-          <Button type="button" className="h-11 w-full border border-primary/40 px-5 sm:w-auto" onClick={() => setVisualizando(true)}><Eye />Visualizar PDF</Button>
-          <Button type="button" variant="outline" className="h-11 w-full border-primary/30 bg-primary/10 px-5 text-foreground hover:border-primary/60 hover:bg-primary/20 hover:text-foreground sm:w-auto" onClick={() => baixar(pdf)}><Download />Baixar PDF</Button>
+          {arquivo.tipo === "pdf" && <Button type="button" className="h-11 w-full border border-primary/40 px-5 sm:w-auto" onClick={() => setVisualizando(true)}><Eye />Visualizar PDF</Button>}
+          <Button type="button" variant={arquivo.tipo === "pdf" ? "outline" : "default"} className={arquivo.tipo === "pdf" ? "h-11 w-full border-primary/30 bg-primary/10 px-5 text-foreground hover:border-primary/60 hover:bg-primary/20 hover:text-foreground sm:w-auto" : "h-11 w-full border border-primary/40 px-5 sm:w-auto"} onClick={() => baixar(arquivo)}><Download />{arquivo.tipo === "pdf" ? "Baixar PDF" : "Baixar Excel"}</Button>
         </div>
-      </> : <div className="space-y-3">
+      </div>)}
+      {falhasArquivos.map(falha => <div key={falha.arquivo.job_id} className="space-y-2 border-t border-border pt-4">
+        <p className="text-xs font-medium uppercase text-muted-foreground">{falha.arquivo.tipo === "pdf" ? "Relatório de Vidas · PDF" : "OPS - Mensalidades · Excel"}</p>
+        <p className="break-all text-sm">{falha.arquivo.nome_arquivo}</p>
+        <p role="status" className="text-sm text-muted-foreground">Arquivo disponível, mas ocorreu erro ao carregar.</p>
+        <Button type="button" variant="outline" onClick={() => setTentativa(t => t + 1)}><RefreshCw />Tentar novamente</Button>
+      </div>)}
+      {!arquivos.length && !falhasArquivos.length && <div className="space-y-3">
         <p role="status" className="text-sm text-muted-foreground">Relatório não disponível para este contrato.</p>
         <Button type="button" variant="outline" onClick={() => setTentativa(t => t + 1)}><RefreshCw className="mr-2 h-4 w-4" />Tentar novamente</Button>
-      </div>}
-    {excel && <div className="space-y-3 border-t border-border pt-4">
-      <div className="space-y-1"><p className="text-xs font-medium uppercase text-muted-foreground">OPS - Mensalidades</p><p className="text-xs font-medium text-muted-foreground">Excel (.xlsx)</p><p className="break-all text-sm">{excel.nome_arquivo}</p></div>
-      <Button type="button" className="h-11 w-full border border-primary/40 px-5 sm:w-auto" onClick={() => baixar(excel)}><Download />Baixar Excel</Button>
-    </div>}
+      </div>}</>}
   </div>;
   return <div className="space-y-3">
     {gerando && <p role="status" className="flex items-center gap-2 text-sm"><Loader2 className="h-4 w-4 shrink-0 animate-spin" />Gerando relatório do contrato #{contrato} ({nome})...</p>}
