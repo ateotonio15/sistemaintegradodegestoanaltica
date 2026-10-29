@@ -1360,6 +1360,8 @@ export default function Movimentacoes() {
         nome={relatorioMov.empresas?.nome ?? "Sem empresa"}
         contrato={relatorioMov.empresas?.codigo_contrato ?? null}
         contexto={`${formatMesReferencia(relatorioMov.mes_referencia)} · ${relatorioMov.periodo ?? "—"}`}
+        competencia={formatMesReferencia(relatorioMov.mes_referencia)}
+        periodo={relatorioMov.periodo ?? null}
         registro={relatoriosMap.get(relatorioMov.id)}
         statusInicial={relatorioStatusInicial}
         dataEnvioEmpresa={relatorioMov.data_envio_empresa ?? null}
