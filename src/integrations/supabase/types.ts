@@ -2590,10 +2590,13 @@ export type Database = {
           mime_type: string | null
           movimentacao_id: string
           nome_arquivo: string
+          origem: string
           periodo: string | null
+          status: string
           storage_path: string
           tamanho_bytes: number | null
           tipo_relatorio: string
+          versao: number
         }
         Insert: {
           bucket?: string
@@ -2608,10 +2611,13 @@ export type Database = {
           mime_type?: string | null
           movimentacao_id: string
           nome_arquivo: string
+          origem?: string
           periodo?: string | null
+          status?: string
           storage_path: string
           tamanho_bytes?: number | null
           tipo_relatorio: string
+          versao?: number
         }
         Update: {
           bucket?: string
@@ -2626,10 +2632,13 @@ export type Database = {
           mime_type?: string | null
           movimentacao_id?: string
           nome_arquivo?: string
+          origem?: string
           periodo?: string | null
+          status?: string
           storage_path?: string
           tamanho_bytes?: number | null
           tipo_relatorio?: string
+          versao?: number
         }
         Relationships: []
       }
