@@ -1,5 +1,9 @@
 # Roadmap — Primeiro pacote financeiro
 
+## Preparar fechamento
+- [ ] Buscar/anexar documentos esperados, mostrar resumo e permitir tentar novamente ou continuar sem bloqueio novo; "Concluir" reutiliza o salvamento atual.
+- [ ] Registrar importações e continuação com pendências em histórico protegido; testar e conferir sem alterar registros operacionais de teste.
+
 ## Importar arquivos em Editar Movimentação
 - [x] Identificação por nome/formato/contrato/tipo, competência explicitamente de destino e geração somente quando informada no nome; prévia reutilizada para PDF/imagens. 35 testes aprovados; sessão autenticada com arquivos reais confirmou aviso de 1 ignorado e prévia PDF. Gravações interceptadas, sem dados de teste na operação. Integração atual só disponibiliza PDF e XLS/XLSX, não há catálogo de outros formatos nem filtro histórico.
 - [x] Adicionar busca de PDF/Excel pela integração existente e anexação à movimentação salva, preservando o envio manual e o salvamento; mês/período identificam o destino, pois a API atual consulta somente por contrato.
