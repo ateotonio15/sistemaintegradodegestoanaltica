@@ -97,6 +97,19 @@ const emptyForm = {
   tipo_movimentacao: null as string | null,
 };
 
+/** Título numerado de seção dentro da janela de movimentação (só organização visual). */
+function SecaoModal({ numero, titulo }: { numero: number; titulo: string }) {
+  return (
+    <div className="flex items-center gap-2 pt-1">
+      <span className="inline-flex h-5 w-5 shrink-0 items-center justify-center rounded-md bg-primary/10 text-primary text-[11px] font-bold">
+        {numero}
+      </span>
+      <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">{titulo}</span>
+      <div className="h-px flex-1 bg-border/60" />
+    </div>
+  );
+}
+
 export default function Movimentacoes() {
   const [activeTab, setActiveTab] = useState<"empresas" | "administradoras">("empresas");
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -897,12 +910,14 @@ export default function Movimentacoes() {
                 <Button className="rounded-lg"><Plus className="mr-2 h-4 w-4" />Nova Movimentação</Button>
               </DialogTrigger>}
               <DialogContent className="sm:max-w-lg w-[95vw] max-h-[92dvh] rounded-xl flex flex-col overflow-hidden p-0">
-                <DialogHeader className="px-6 pt-6 pb-3 border-b border-border/50 shrink-0">
+                 <DialogHeader className="px-6 pt-6 pb-3 border-b border-border/50 shrink-0">
                   <DialogTitle>{editingId ? "Editar Movimentação" : "Nova Movimentação"}</DialogTitle>
                 </DialogHeader>
                 <form onSubmit={(e) => { e.preventDefault(); upsert.mutate(form); }} className="flex min-h-0 flex-1 flex-col">
                   <div className="flex-1 min-h-0 overflow-y-auto px-6 py-4 space-y-5">
 
+                  {/* Seção 1 — Dados principais */}
+                  <SecaoModal numero={1} titulo="Dados principais" />
                   <div className="grid gap-4 sm:grid-cols-2">
                     <div className="space-y-2">
                       <Label className="text-sm font-medium">Empresa *</Label>
@@ -936,8 +951,13 @@ export default function Movimentacoes() {
                         </Select>
                       )}
                     </div>
+                  </div>
+
+                  {/* Seção 2 — Datas e responsável */}
+                  <SecaoModal numero={2} titulo="Datas e responsável" />
+                  <div className="grid gap-4 sm:grid-cols-2">
                     <div className="space-y-2">
-                      <Label className="text-sm font-medium">Responsável</Label>
+                       <Label className="text-sm font-medium">Responsável</Label>
                       <Input value={form.responsavel_movimentacao ?? ""} onChange={(e) => setForm({ ...form, responsavel_movimentacao: e.target.value })} disabled={!canEdit && !!editingId} className="rounded-lg" />
                     </div>
                     <div className="space-y-2">
@@ -967,9 +987,12 @@ export default function Movimentacoes() {
                         )}
                       </div>
                     </div>
-                  </div>
+                   </div>
+
+                  {/* Seção 3 — Observações */}
+                  <SecaoModal numero={3} titulo="Observações" />
                   <div className="space-y-3">
-                    <Label className="text-sm font-medium">Observações</Label>
+                    <Label className="text-sm font-medium">Observações anteriores</Label>
 
                     {form.observacoes?.trim() ? (
                       <div className="space-y-2 max-h-56 overflow-y-auto pr-1">
@@ -1013,21 +1036,27 @@ export default function Movimentacoes() {
                       </div>
                     )}
 
-                    <div className="rounded-xl border border-border/60 bg-muted/30 p-1">
-                      <Textarea
-                        value={novaObservacao}
-                        onChange={(e) => setNovaObservacao(e.target.value)}
-                        disabled={formEhSecundarioGrupo}
-                        placeholder={formEhSecundarioGrupo ? "Gerenciado pelo contrato principal do grupo" : "Adicionar nova observação (as anteriores não podem ser alteradas)"}
-                        className="min-h-[90px] resize-y border-0 bg-transparent shadow-none focus-visible:ring-0 focus-visible:ring-offset-0 text-sm placeholder:text-muted-foreground/70"
-                      />
+                    <div className="space-y-2">
+                      <Label className="text-sm font-medium">Nova observação</Label>
+                      <div className="rounded-xl border border-border/60 bg-muted/30 p-1">
+                        <Textarea
+                          value={novaObservacao}
+                          onChange={(e) => setNovaObservacao(e.target.value)}
+                           disabled={formEhSecundarioGrupo}
+                          placeholder={formEhSecundarioGrupo ? "Gerenciado pelo contrato principal do grupo" : "Adicionar nova observação (as anteriores não podem ser alteradas)"}
+                          className="min-h-[90px] resize-y border-0 bg-transparent shadow-none focus-visible:ring-0 focus-visible:ring-offset-0 text-sm placeholder:text-muted-foreground/70"
+                        />
+                      </div>
                     </div>
 
                   </div>
 
 
+                  {/* Seção 4 — Anexos e fechamento */}
+                  <SecaoModal numero={4} titulo="Anexos e fechamento" />
+                  <div className="rounded-xl border border-border/60 bg-card p-3 space-y-3 shadow-sm">
                   {grupoForm && grupoPrincipalId && (
-                    <div className={`rounded-lg border px-3 py-2 text-[11px] ${formEhSecundarioGrupo ? "border-warning/40 bg-warning/5 text-warning" : "border-info/40 bg-info/5 text-info"}`}>
+                     <div className={`rounded-lg border px-3 py-2 text-[11px] ${formEhSecundarioGrupo ? "border-warning/40 bg-warning/5 text-warning" : "border-info/40 bg-info/5 text-info"}`}>
                       {formEhSecundarioGrupo
                         ? `Contrato do grupo "${grupoForm.nome_grupo}". Datas, observações e anexos são gerenciados pelo contrato principal${nomeContratoPrincipal ? ` (${nomeContratoPrincipal})` : ""}.`
                         : formEhPrincipalGrupo
@@ -1037,13 +1066,14 @@ export default function Movimentacoes() {
                   )}
 
                   <AnexosMovimentacao
-                    movimentacaoId={editingId}
+                     movimentacaoId={editingId}
                     empresaId={form.empresa_id || null}
                     mes={form.mes_referencia}
                     periodo={form.periodo}
                     required={!!form.data_envio_financeiro}
                     onConcluir={() => { if (!upsert.isPending) upsert.mutate(form); }}
                   />
+                  </div>
                   </div>
 
 

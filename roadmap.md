@@ -159,3 +159,6 @@
 - [x] Identidade fiscal lida do PDF (chave, número, prestador, tomador, emissão) e regra de nova versão de PDF; 36 testes do servidor.
 - [ ] Validar a leitura da identidade num PDF real da Central: depende de uma entrega real em homologação.
 - [ ] Homologação com a Distribuidora Lopes: movimentação 2026-10 é a única em “Faturado”, mas tem taxa de adesão (R$ 1.024,39), que o SIGA não lê na nota → seria inconclusiva; depende de decisão sobre essa categoria.
+
+## Editar Movimentação — reorganização visual — 30/10
+- [x] Janela dividida em 4 seções numeradas (1 Dados principais, 2 Datas e responsável, 3 Observações, 4 Anexos e fechamento); observações anteriores em leitura com "Nova observação" separada; anexos em bloco independente com contagem e botões; rodapé fixo com Cancelar/Salvar. Sem mudança de regras, campos, integrações ou salvamento. Build OK e janela conferida no navegador com as 4 seções renderizadas.
