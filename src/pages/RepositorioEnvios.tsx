@@ -217,6 +217,12 @@ export default function RepositorioEnvios() {
     [arquivosTodosPorEmpresa, selectedEmpresaId],
   );
 
+  // Histórico de envios da empresa: uma linha por e-mail, respeitando os filtros do topo.
+  const historicoEnvios = useMemo(
+    () => agruparHistoricoEnvios(filtrarArquivos(arquivosTodosEmpresa, filtros)),
+    [arquivosTodosEmpresa, filtros],
+  );
+
   // Auto-seleciona a versão atual mais recente quando muda de empresa.
   useEffect(() => {
     if (arquivosTodosEmpresa.length === 0) {
