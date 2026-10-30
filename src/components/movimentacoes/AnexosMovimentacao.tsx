@@ -15,7 +15,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { Paperclip, Upload, FileText, Download, Trash2, AlertCircle, Users, Eye } from "lucide-react";
+import { Paperclip, Upload, FileText, FileSpreadsheet, Download, Trash2, AlertCircle, Users, Eye } from "lucide-react";
 import {
   ACCEPTED_FILE_TYPES,
   ACCEPTED_MIME_TYPES,
@@ -32,7 +32,6 @@ import { ImportarDoRepositorioButton } from "./ImportarDoRepositorioButton";
 import type { ArquivoPortal } from "@/services/portalEmpresaRelatorios";
 import { identificarAnexoImportado, mesmoAnexoImportado } from "@/lib/anexo-importacao";
 import { PreviewArquivoDialog } from "@/components/arquivos/PreviewArquivoDialog";
-import { HistoricoFechamento } from "./HistoricoFechamento";
 
 
 interface Props {
@@ -434,7 +433,7 @@ export function AnexosMovimentacao({ movimentacaoId, empresaId, mes, periodo, re
   const showRequiredWarn = required && anexos.length === 0;
 
   return (
-    <div className={`min-w-0 max-w-full rounded-lg border p-3 space-y-3 overflow-hidden ${showRequiredWarn ? "border-warning/50 bg-warning/5" : "border-border"}`}>
+    <div className="min-w-0 max-w-full space-y-3 overflow-hidden">
       <div className="flex items-center gap-2 text-sm font-medium">
         <Paperclip className="h-4 w-4 text-info" />
         Anexos {required && <span className="text-destructive">*</span>}
@@ -444,8 +443,6 @@ export function AnexosMovimentacao({ movimentacaoId, empresaId, mes, periodo, re
       <div className="flex min-w-0 flex-wrap items-center gap-2">
          <ImportarDoRepositorioButton movimentacaoId={movimentacaoId} empresaId={empresaId} mes={mes} periodo={periodo}
           disabled={uploading || importando || !!pendente} onBusy={setImportandoRepositorio} onImportar={importarArquivo} />
-         <ImportarArquivosButton movimentacaoId={movimentacaoId} empresaId={empresaId} mes={mes} periodo={periodo}
-          disabled={uploading || importandoRepositorio || !!pendente} onBusy={setImportando} onImportar={importarArquivo} onConcluir={onConcluir} />
         <label className={`cursor-pointer ${!movimentacaoId || uploading || importando || importandoRepositorio ? "opacity-50 pointer-events-none" : ""}`}>
           <input
             type="file"
@@ -488,12 +485,12 @@ export function AnexosMovimentacao({ movimentacaoId, empresaId, mes, periodo, re
         </p>
       )}
 
-      {anexos.length === 0 && movimentacaoId && !showRequiredWarn ? (
+      {anexos.length === 0 ? (
         <p className="text-xs text-muted-foreground text-center py-3">
           Nenhum anexo adicionado.
         </p>
       ) : (
-        <ul className="min-w-0 max-w-full space-y-2">
+        <ul aria-label="Arquivos anexados" className="min-w-0 max-w-full space-y-2">
           {anexos.map((a) => {
             const ext = (a.nome_arquivo.split(".").pop() || "").toLowerCase();
             const info = identificarAnexoImportado(a.nome_arquivo);
@@ -504,17 +501,15 @@ export function AnexosMovimentacao({ movimentacaoId, empresaId, mes, periodo, re
                 key={a.id}
                 className="flex min-w-0 max-w-full items-start gap-2.5 rounded-lg border border-border/60 bg-card px-3 py-2.5"
               >
-                 <FileText className="h-4 w-4 text-muted-foreground shrink-0 mt-0.5" />
+                 {isExcel ? <FileSpreadsheet className="h-4 w-4 text-muted-foreground shrink-0 mt-0.5" /> : <FileText className="h-4 w-4 text-muted-foreground shrink-0 mt-0.5" />}
                 <div className="min-w-0 flex-1">
-                <span className="block truncate text-sm font-medium" title={a.nome_arquivo}>{a.nome_arquivo}</span>
+                <span className="block break-words text-sm font-medium" title={a.nome_arquivo}>{info.tipo === "Outros" ? a.nome_arquivo : info.tipo}</span>
                 <p className="text-[11px] text-muted-foreground mt-0.5">
-                  {info.tipo === "Outros" ? tipoArquivo(ext) : info.tipo} · {ext.toUpperCase()} · {formatBytes(a.tamanho_bytes)}
+                  {isExcel ? "Excel" : ext.toUpperCase()}
                 </p>
                 <p className="text-[11px] text-muted-foreground">
-                  {a.repositorio_envio_id ? "Repositório de Envios" : origemAutomatica ? "Importado automaticamente" : "Anexado manualmente"} · {formatDateBR(a.created_at)}
+                  {a.repositorio_envio_id ? "Importado do Repositório de Envios" : origemAutomatica ? "Importado automaticamente" : "Anexado manualmente"}
                 </p>
-                {info.contrato && <p className="text-[11px] text-muted-foreground">Contrato: {info.contrato} · Competência da movimentação: {formatMes(mes ?? null) || "não informada"}</p>}
-                {info.geradoEm && <p className="text-[11px] text-muted-foreground">Geração informada no nome: {info.geradoEm}</p>}
                   {a.do_grupo && (
                     <span
                       className="mt-1 inline-flex items-center gap-1 rounded-full border border-info/40 bg-info/10 px-1.5 py-0.5 text-[10px] font-medium text-info align-middle"
@@ -528,7 +523,7 @@ export function AnexosMovimentacao({ movimentacaoId, empresaId, mes, periodo, re
                 <div className="flex shrink-0 items-center gap-1">
                 {["pdf", "png", "jpg", "jpeg", "webp", "gif"].includes(ext) && <Button type="button" variant="ghost" size="icon" className="h-7 w-7" title="Visualizar" aria-label={`Visualizar ${a.nome_arquivo}`} onClick={() => setPreview(a)}><Eye className="h-3.5 w-3.5" /></Button>}
                  {isExcel ? (
-                  <Button variant="ghost" size="icon" className="h-7 w-7 shrink-0 text-info hover:text-info" title="Extrair Vidas Ativas" onClick={() => handleExtrairVidas(a.storage_path, a.nome_arquivo)}>
+                  <Button type="button" variant="ghost" size="icon" className="h-7 w-7 shrink-0 text-info hover:text-info" title="Extrair Vidas Ativas" onClick={() => handleExtrairVidas(a.storage_path, a.nome_arquivo)}>
                     <Users className="h-3.5 w-3.5" />
                   </Button>
                 ) : <span />}
@@ -567,7 +562,10 @@ export function AnexosMovimentacao({ movimentacaoId, empresaId, mes, periodo, re
         </ul>
       )}
 
-      <HistoricoFechamento movimentacaoId={movimentacaoId} />
+      <div className="border-t border-border/40 pt-3">
+        <ImportarArquivosButton compacto movimentacaoId={movimentacaoId} empresaId={empresaId} mes={mes} periodo={periodo}
+          disabled={uploading || importandoRepositorio || !!pendente} onBusy={setImportando} onImportar={importarArquivo} onConcluir={onConcluir} />
+      </div>
       {preview && <PreviewArquivoDialog open onOpenChange={open => { if (!open) setPreview(null); }} bucket={STORAGE_BUCKET} storagePath={preview.storage_path} nomeArquivo={preview.nome_arquivo} mimeType={preview.mime_type} />}
       <AlertDialog
         open={!!pendente}
