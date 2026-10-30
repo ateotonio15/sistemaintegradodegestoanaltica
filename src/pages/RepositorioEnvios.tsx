@@ -195,7 +195,7 @@ export default function RepositorioEnvios() {
 
   const arquivosEmpresa = useMemo(() => {
     if (!selectedEmpresaId) return [];
-    const list = arquivosPorEmpresa.get(selectedEmpresaId) ?? [];
+    const list = filtrarArquivos(arquivosPorEmpresa.get(selectedEmpresaId) ?? [], filtros);
     const q = searchArquivo.trim().toLowerCase();
     return list
       .filter((a) => {
@@ -207,7 +207,7 @@ export default function RepositorioEnvios() {
           .includes(q);
       })
       .sort((a, b) => b.enviado_em.localeCompare(a.enviado_em));
-  }, [arquivosPorEmpresa, selectedEmpresaId, searchArquivo]);
+  }, [arquivosPorEmpresa, selectedEmpresaId, searchArquivo, filtros]);
 
   const grupos = useMemo(() => agruparEnvios(arquivosEmpresa), [arquivosEmpresa]);
 
