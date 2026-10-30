@@ -1,8 +1,8 @@
 # Roadmap — Primeiro pacote financeiro
 
 ## Importar arquivos em Editar Movimentação
-- [ ] Adicionar busca de PDF/Excel pela integração existente e anexação à movimentação salva, preservando o envio manual e o salvamento.
-- [ ] Conferir contrato e contexto, tratar indisponibilidade e duplicatas, testar e verificar a tela sem alterar dados da operação.
+- [x] Adicionar busca de PDF/Excel pela integração existente e anexação à movimentação salva, preservando o envio manual e o salvamento; mês/período identificam o destino, pois a API atual consulta somente por contrato.
+- [x] 19 testes aprovados e tela autenticada conferida com PDF/Excel reais do contrato 2171; gravações de anexos interceptadas, sem anexos de teste na operação. Contexto divergente/cancelado bloqueado; repetição do mesmo nome/conteúdo não duplica. Persistência real não exercitada.
 
 ## Cartório 3 Ofício — primeira movimentação
 - [x] Aplicado ao "Dashboard Geral" o limite da primeira competência em todos os gráficos da consulta comum; 14 testes aprovados, outubro 01-05 confirmado com 42 em vez de 43 e nenhum fora do prazo, sem apagar registros.
