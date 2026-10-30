@@ -171,21 +171,31 @@ export default function RepositorioEnvios() {
 
   const grupos = useMemo(() => agruparEnvios(arquivosEmpresa), [arquivosEmpresa]);
 
-  // Auto-seleciona o arquivo mais recente quando muda de empresa.
+  // Todas as versões da empresa selecionada (inclui as substituídas, para o histórico).
+  const arquivosTodosEmpresa = useMemo(
+    () => (selectedEmpresaId ? arquivosTodosPorEmpresa.get(selectedEmpresaId) ?? [] : []),
+    [arquivosTodosPorEmpresa, selectedEmpresaId],
+  );
+
+  // Auto-seleciona a versão atual mais recente quando muda de empresa.
   useEffect(() => {
-    if (arquivosEmpresa.length === 0) {
+    if (arquivosTodosEmpresa.length === 0) {
       setSelectedArquivoId(null);
       return;
     }
-    if (!selectedArquivoId || !arquivosEmpresa.find((a) => a.id === selectedArquivoId)) {
-      setSelectedArquivoId(arquivosEmpresa[0].id);
+    if (!selectedArquivoId || !arquivosTodosEmpresa.find((a) => a.id === selectedArquivoId)) {
+      setSelectedArquivoId(arquivosEmpresa[0]?.id ?? arquivosTodosEmpresa[0].id);
     }
-  }, [arquivosEmpresa, selectedArquivoId]);
+  }, [arquivosTodosEmpresa, arquivosEmpresa, selectedArquivoId]);
 
   const selectedEmpresa = selectedEmpresaId ? empresasMap.get(selectedEmpresaId) ?? null : null;
   const selectedArquivo = selectedArquivoId
-    ? arquivosEmpresa.find((a) => a.id === selectedArquivoId) ?? null
+    ? arquivosTodosEmpresa.find((a) => a.id === selectedArquivoId) ?? null
     : null;
+  const versoes = useMemo(
+    () => (selectedArquivo ? versoesDoDocumento(arquivosTodosEmpresa, selectedArquivo) : []),
+    [arquivosTodosEmpresa, selectedArquivo],
+  );
 
   async function handleDownload(a: ArquivoEnvio) {
     try {
