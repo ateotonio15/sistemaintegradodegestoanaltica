@@ -1363,6 +1363,7 @@ export default function Movimentacoes() {
                                   )}
                                 </DropdownMenuContent>
                               </DropdownMenu>
+                              )}
                             </div>
                           </TableCell>
                           )}
