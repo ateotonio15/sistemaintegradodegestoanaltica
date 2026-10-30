@@ -107,7 +107,22 @@ export default function RepositorioEnvios() {
     return m;
   }, [empresas]);
 
+  // Listagem principal: só a versão atual de cada documento. As substituídas
+  // continuam guardadas e aparecem no "Histórico de versões" da prévia.
+  const arquivosAtuais = useMemo(() => apenasAtuais(arquivos), [arquivos]);
+
   const arquivosPorEmpresa = useMemo(() => {
+    const m = new Map<string, ArquivoEnvio[]>();
+    for (const a of arquivosAtuais) {
+      const arr = m.get(a.empresa_id) ?? [];
+      arr.push(a);
+      m.set(a.empresa_id, arr);
+    }
+    return m;
+  }, [arquivosAtuais]);
+
+  // Todas as versões (atuais e substituídas), para o histórico de versões.
+  const arquivosTodosPorEmpresa = useMemo(() => {
     const m = new Map<string, ArquivoEnvio[]>();
     for (const a of arquivos) {
       const arr = m.get(a.empresa_id) ?? [];
@@ -117,7 +132,7 @@ export default function RepositorioEnvios() {
     return m;
   }, [arquivos]);
 
-  const totalEnvios = useMemo(() => new Set(arquivos.map((a) => a.envio_id)).size, [arquivos]);
+  const totalEnvios = useMemo(() => new Set(arquivosAtuais.map((a) => a.envio_id)).size, [arquivosAtuais]);
 
   // Lista de empresas: busca por nome, contrato ou CNPJ; quem tem arquivos vem primeiro.
   const empresasList = useMemo(() => {
