@@ -424,7 +424,7 @@ export default function RepositorioEnvios() {
                       <div className="text-xs text-muted-foreground mt-0.5">
                         {resumoEnviosEmpresa(
                           e.total,
-                          new Set((arquivosPorEmpresa.get(e.id) ?? []).map((a) => a.envio_id)).size,
+                          new Set((arquivosPorEmpresa.get(e.id) ?? []).filter(a => !ehImportacaoFechamento(a)).map((a) => a.envio_id)).size,
                         )}
                       </div>
                     </div>
