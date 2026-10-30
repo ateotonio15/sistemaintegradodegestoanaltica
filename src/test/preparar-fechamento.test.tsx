@@ -10,8 +10,13 @@ vi.mock("@/integrations/supabase/client", () => ({ supabase: { from: (table: str
     ? { empresa_id: "empresa", mes_referencia: "2026-10", periodo: "05-10" }
     : { codigo_contrato: "2487", nome: "SABIN" }, error: null }) }) }),
 }) } }));
-beforeEach(() => vi.clearAllMocks());
-afterEach(cleanup);
+beforeEach(() => {
+  vi.clearAllMocks();
+  vi.stubGlobal("AbortController", class extends AbortController {
+    constructor() { super(); this.signal.throwIfAborted = () => { if (this.signal.aborted) throw new Error("Cancelado"); }; }
+  });
+});
+afterEach(() => { cleanup(); vi.unstubAllGlobals(); });
 it("permite continuar sem Excel e registra a pendência antes do salvamento existente", async () => {
   vi.mocked(importarArquivosMovimentacao).mockResolvedValue({ encontrados: 1, anexados: 1, ignorados: 0, falhas: 1, documentos: [{ tipo: "pdf", disponivel: true }, { tipo: "xlsx", disponivel: false }] });
   insert.mockResolvedValue({ error: null });
