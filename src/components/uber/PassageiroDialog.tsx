@@ -7,6 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Switch } from "@/components/ui/switch";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useUpsertPassageiro } from "@/hooks/useUberPassageiros";
+import { useUberFuncoes } from "@/hooks/useUberFuncoes";
 import {
   UBER_MOTIVOS,
   UBER_TIPOS_PADRAO,
@@ -28,6 +29,7 @@ const VAZIO: PassageiroForm = {
   setor: "",
   endereco: "",
   whatsapp: "",
+  funcao_id: null,
   ativo: true,
   tem_corrida_padrao: false,
   usar_endereco_origem: true,
@@ -38,6 +40,7 @@ const VAZIO: PassageiroForm = {
 
 export function PassageiroDialog({ open, onOpenChange, passageiro }: Props) {
   const upsert = useUpsertPassageiro();
+  const { data: funcoes = [] } = useUberFuncoes();
   const [form, setForm] = useState<PassageiroForm>(VAZIO);
 
   useEffect(() => {
@@ -75,6 +78,18 @@ export function PassageiroDialog({ open, onOpenChange, passageiro }: Props) {
           <div>
             <Label>WhatsApp *</Label>
             <Input value={form.whatsapp ?? ""} onChange={(e) => set("whatsapp", e.target.value)} placeholder="(92) 99999-9999" />
+          </div>
+          <div>
+            <Label>Função</Label>
+            <Select value={form.funcao_id ?? "__nenhuma"} onValueChange={(v) => set("funcao_id", v === "__nenhuma" ? null : v)}>
+              <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="__nenhuma">Sem função</SelectItem>
+                {funcoes.filter((f) => f.ativo || f.id === form.funcao_id).map((f) => (
+                  <SelectItem key={f.id} value={f.id}>{f.nome}{f.ativo ? "" : " (inativa)"}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
           <div className="sm:col-span-2">
             <Label>Endereço *</Label>

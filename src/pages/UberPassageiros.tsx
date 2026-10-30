@@ -6,9 +6,11 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
-import { Users, Plus, Pencil, Trash2, Search, Car, BarChart3 } from "lucide-react";
+import { Users, Plus, Pencil, Trash2, Search, Car, BarChart3, Tags } from "lucide-react";
 import { useUberPassageiros, useDeletePassageiro } from "@/hooks/useUberPassageiros";
 import { PassageiroDialog } from "@/components/uber/PassageiroDialog";
+import { FuncoesDialog } from "@/components/uber/FuncoesDialog";
+import { useUberFuncoes } from "@/hooks/useUberFuncoes";
 import { resumoCorridaPadrao, type UberPassageiro } from "@/lib/uber-passageiros";
 import { useAuth } from "@/hooks/useAuth";
 
@@ -17,6 +19,9 @@ export default function UberPassageiros() {
   const canManage = !!user && !isViewOnly && !isVendas;
   const { data: passageiros = [], isLoading } = useUberPassageiros();
   const del = useDeletePassageiro();
+  const { data: funcoes = [] } = useUberFuncoes();
+  const nomeFuncao = useMemo(() => new Map(funcoes.map((f) => [f.id, f.nome])), [funcoes]);
+  const [funcoesOpen, setFuncoesOpen] = useState(false);
 
   const [search, setSearch] = useState("");
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -27,9 +32,9 @@ export default function UberPassageiros() {
     const q = search.trim().toLowerCase();
     if (!q) return passageiros;
     return passageiros.filter((p) =>
-      `${p.nome} ${p.setor} ${p.whatsapp}`.toLowerCase().includes(q),
+      `${p.nome} ${p.setor} ${p.funcao_id ? nomeFuncao.get(p.funcao_id) ?? "" : ""} ${p.whatsapp}`.toLowerCase().includes(q),
     );
-  }, [passageiros, search]);
+  }, [passageiros, search, nomeFuncao]);
 
   return (
     <div className="container mx-auto p-4 lg:p-6 space-y-4">
@@ -51,6 +56,11 @@ export default function UberPassageiros() {
             <Link to="/uber/dashboard"><BarChart3 className="h-4 w-4 mr-1" />Dashboard</Link>
           </Button>
           {canManage && (
+            <Button variant="outline" size="sm" onClick={() => setFuncoesOpen(true)}>
+              <Tags className="h-4 w-4 mr-1" />Funções
+            </Button>
+          )}
+          {canManage && (
             <Button size="sm" onClick={() => { setEdit(null); setDialogOpen(true); }}>
               <Plus className="h-4 w-4 mr-1" />Novo passageiro
             </Button>
@@ -63,7 +73,7 @@ export default function UberPassageiros() {
           <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
           <Input
             className="pl-8"
-            placeholder="Buscar por nome, setor ou WhatsApp..."
+            placeholder="Buscar por nome, setor, função ou WhatsApp..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
           />
@@ -75,7 +85,7 @@ export default function UberPassageiros() {
           <TableHeader>
             <TableRow>
               <TableHead>Nome</TableHead>
-              <TableHead>Setor</TableHead>
+              <TableHead>Setor e função</TableHead>
               <TableHead>Endereço</TableHead>
               <TableHead>WhatsApp</TableHead>
               <TableHead>Corrida padrão</TableHead>
@@ -103,7 +113,12 @@ export default function UberPassageiros() {
             {filtered.map((p) => (
               <TableRow key={p.id}>
                 <TableCell className="font-medium">{p.nome}</TableCell>
-                <TableCell>{p.setor}</TableCell>
+                <TableCell>
+                  <div>{p.setor}</div>
+                  {p.funcao_id && nomeFuncao.get(p.funcao_id) && (
+                    <div className="text-xs text-muted-foreground">{nomeFuncao.get(p.funcao_id)}</div>
+                  )}
+                </TableCell>
                 <TableCell className="max-w-[260px] truncate" title={p.endereco}>{p.endereco}</TableCell>
                 <TableCell>{p.whatsapp}</TableCell>
                 <TableCell>{resumoCorridaPadrao(p)}</TableCell>
@@ -140,6 +155,7 @@ export default function UberPassageiros() {
         </Table>
       </Card>
 
+      <FuncoesDialog open={funcoesOpen} onOpenChange={setFuncoesOpen} />
       <PassageiroDialog open={dialogOpen} onOpenChange={setDialogOpen} passageiro={edit} />
 
       <AlertDialog open={!!toDel} onOpenChange={(v) => { if (!v) setToDel(null); }}>
