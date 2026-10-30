@@ -221,12 +221,36 @@ Deno.serve(async (req) => {
       throw new Error(erroRegistro);
     });
     } catch (e) {
-      if (smtpConcluido) return json({ ok: true, enviado_em: hojeManaus(), registro_salvo: false, aviso: erroRegistro }, 200);
+      if (smtpConcluido) return json({ ok: true, enviado_em: hojeManaus(), registro_salvo: false, arquivo_salvo: false, aviso: erroRegistro }, 200);
       // Falha do servidor de e-mail: devolve a mensagem para a tela mostrar o aviso, sem quebrar a página.
       return json({ error: e instanceof Error ? e.message : String(e), falha_envio: true }, 200);
     }
 
-    return json({ ok: true, enviado_em: hojeManaus(), registro_salvo: true });
+    // E-mail enviado e histórico gravado: arquiva os arquivos no Repositório de Envios.
+    // Falha aqui não reenvia, não desfaz e não esconde um envio já concluído.
+    let arquivoSalvo = false;
+    try {
+      const itens = montarItensEnvio(anexosEnviados, destinoPorContrato, envioId);
+      const bytes = bytesPorCaminho(anexosEnviados, destinoPorContrato, envioId);
+      const gravados: typeof itens = [];
+      for (const item of itens) {
+        const conteudo = bytes.get(item.storage_path);
+        if (!conteudo) continue;
+        const { error } = await admin.storage.from(BUCKET_ENVIOS)
+          .upload(item.storage_path, conteudo, { contentType: item.mime_type || "application/octet-stream", upsert: false });
+        if (error) continue;
+        gravados.push(item);
+      }
+      if (gravados.length) {
+        const { error } = await admin.rpc("registrar_envio_empresa_arquivos", {
+          p_envio_id: envioId, p_usuario: u.user.id, p_nome: perfil?.display_name ?? "", p_itens: gravados,
+        });
+        if (error) throw error;
+      }
+      arquivoSalvo = gravados.length > 0;
+    } catch { arquivoSalvo = false; }
+
+    return json({ ok: true, enviado_em: hojeManaus(), registro_salvo: true, arquivo_salvo: arquivoSalvo });
   } catch (e) {
     return json({ error: e instanceof Error ? e.message : String(e) }, 500);
   }
