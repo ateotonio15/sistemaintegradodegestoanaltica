@@ -377,6 +377,7 @@ export type Database = {
           mime_type: string | null
           movimentacao_id: string
           nome_arquivo: string
+          origem_importacao: string | null
           storage_path: string
           tamanho_bytes: number | null
           uploaded_by: string | null
@@ -388,6 +389,7 @@ export type Database = {
           mime_type?: string | null
           movimentacao_id: string
           nome_arquivo: string
+          origem_importacao?: string | null
           storage_path: string
           tamanho_bytes?: number | null
           uploaded_by?: string | null
@@ -399,6 +401,7 @@ export type Database = {
           mime_type?: string | null
           movimentacao_id?: string
           nome_arquivo?: string
+          origem_importacao?: string | null
           storage_path?: string
           tamanho_bytes?: number | null
           uploaded_by?: string | null
@@ -4105,6 +4108,57 @@ export type Database = {
           transportadora?: string | null
           uf?: string | null
           updated_at?: string
+        }
+        Relationships: []
+      }
+      movimentacao_fechamento_historico: {
+        Row: {
+          anexo_id: string | null
+          competencia: string
+          contrato: string
+          criado_em: string
+          evento: string
+          id: string
+          movimentacao_id: string
+          nome_arquivo: string | null
+          origem: string
+          pendencias: string[]
+          periodo: string | null
+          tipo_relatorio: string | null
+          usuario_id: string
+          usuario_nome: string
+        }
+        Insert: {
+          anexo_id?: string | null
+          competencia?: string
+          contrato?: string
+          criado_em?: string
+          evento: string
+          id?: string
+          movimentacao_id: string
+          nome_arquivo?: string | null
+          origem?: string
+          pendencias?: string[]
+          periodo?: string | null
+          tipo_relatorio?: string | null
+          usuario_id?: string
+          usuario_nome?: string
+        }
+        Update: {
+          anexo_id?: string | null
+          competencia?: string
+          contrato?: string
+          criado_em?: string
+          evento?: string
+          id?: string
+          movimentacao_id?: string
+          nome_arquivo?: string | null
+          origem?: string
+          pendencias?: string[]
+          periodo?: string | null
+          tipo_relatorio?: string | null
+          usuario_id?: string
+          usuario_nome?: string
         }
         Relationships: []
       }
