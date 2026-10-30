@@ -133,9 +133,11 @@ export default function Movimentacoes() {
   const [preparandoContrato, setPreparandoContrato] = useState("");
   const { toast } = useToast();
   const queryClient = useQueryClient();
-  const { user, isAdmin, isExecutivo, role, isViewOnly } = useAuth();
+  const { user, isAdmin, isExecutivo, isExecutivoExterno, role, isViewOnly } = useAuth();
   const canEdit = !isViewOnly && isAdmin;
   const canEditDates = !isViewOnly && (isAdmin || role === "comum" || role === "administradoras");
+  // Executivo externo abre a janela somente para "Importar do Repositório" (sem editar campos nem salvar).
+  const canImportarRepositorio = canEditDates || (!isViewOnly && isExecutivoExterno);
   const [gerandoMov, setGerandoMov] = useState(false);
   const [novaObservacao, setNovaObservacao] = useState("");
   const { data: empresaGrupoMap } = useEmpresaGrupoMap();

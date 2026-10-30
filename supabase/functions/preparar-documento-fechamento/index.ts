@@ -30,7 +30,7 @@ Deno.serve(async req => {
     const body = parsed.data;
     const { data: roles, error: rolesError } = await admin.from("user_roles").select("role").eq("user_id", usuario.user.id);
     if (rolesError) throw rolesError;
-    if (!(roles ?? []).some(r => ["admin", "comum", "administradoras", "financeiro"].includes(r.role))) return json({ error: "Sem permissão para preparar fechamento." }, 403);
+    if (!(roles ?? []).some(r => ["admin", "comum", "administradoras", "financeiro", "executivo_externo"].includes(r.role))) return json({ error: "Sem permissão para preparar fechamento." }, 403);
     const { data: mov, error: movError } = await client.from("movimentacoes")
       .select("empresa_id, mes_referencia, periodo, empresas(codigo_contrato)")
       .eq("id", body.movimentacao_id).single();
