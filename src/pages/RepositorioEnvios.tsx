@@ -15,6 +15,7 @@ import {
   File as FileIcon,
   Image as ImageIcon,
   FolderArchive,
+  History,
 } from "lucide-react";
 import { toast } from "sonner";
 import { ArquivoPreviewInline } from "@/components/arquivos/ArquivoPreviewInline";
@@ -22,9 +23,11 @@ import { compLabel, formatBytes, tipoArquivo } from "@/lib/arquivos-utils";
 import { cn } from "@/lib/utils";
 import {
   agruparEnvios,
+  apenasAtuais,
   extensaoDe,
   formatarDataHoraEnvio,
   resumoEnviosEmpresa,
+  versoesDoDocumento,
   type ArquivoEnvio,
 } from "@/lib/repositorio-envios";
 
