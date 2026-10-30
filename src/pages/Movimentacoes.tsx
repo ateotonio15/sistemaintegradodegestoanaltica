@@ -914,7 +914,7 @@ export default function Movimentacoes() {
                   <DialogTitle>{editingId ? "Editar Movimentação" : "Nova Movimentação"}</DialogTitle>
                 </DialogHeader>
                 <form onSubmit={(e) => { e.preventDefault(); upsert.mutate(form); }} className="flex min-h-0 flex-1 flex-col">
-                  <div className="flex-1 min-h-0 overflow-y-auto px-6 py-4 space-y-5">
+                  <div className="flex-1 min-h-0 overflow-y-auto px-6 py-4 space-y-6">
 
                   {/* Seção 1 — Dados principais */}
                   <SecaoModal numero={1} titulo="Dados principais" />
@@ -992,7 +992,7 @@ export default function Movimentacoes() {
                   {/* Seção 3 — Observações */}
                   <SecaoModal numero={3} titulo="Observações" />
                   <div className="space-y-3">
-                    <Label className="text-sm font-medium">Observações anteriores</Label>
+                    <Label className="text-xs font-medium text-muted-foreground">Observações anteriores</Label>
 
                     {form.observacoes?.trim() ? (
                       <div className="space-y-2 max-h-56 overflow-y-auto pr-1">
@@ -1037,7 +1037,7 @@ export default function Movimentacoes() {
                     )}
 
                     <div className="space-y-2">
-                      <Label className="text-sm font-medium">Nova observação</Label>
+                      <Label className="text-xs font-medium text-muted-foreground">Nova observação</Label>
                       <div className="rounded-xl border border-border/60 bg-muted/30 p-1">
                         <Textarea
                           value={novaObservacao}
