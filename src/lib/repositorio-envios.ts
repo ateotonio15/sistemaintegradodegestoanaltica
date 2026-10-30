@@ -20,6 +20,9 @@ export type ArquivoEnvio = {
   enviado_por: string | null;
   enviado_nome: string | null;
   enviado_em: string;
+  origem: string;
+  versao: number;
+  status: string;
 };
 
 export type GrupoPeriodo = { periodo: string | null; arquivos: ArquivoEnvio[] };
