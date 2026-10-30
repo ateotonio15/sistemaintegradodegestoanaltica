@@ -39,6 +39,7 @@ import {
 
 import { PrioridadeBadge } from "@/components/prioridade/PrioridadeBadge";
 import { AnexosMovimentacao } from "@/components/movimentacoes/AnexosMovimentacao";
+import { HistoricoFechamento } from "@/components/movimentacoes/HistoricoFechamento";
 import { sincronizarEnvioDosAnexos } from "@/lib/movimentacao-envio-anexos";
 import { AnexosMovimentacaoDialog } from "@/components/movimentacoes/AnexosMovimentacaoDialog";
 import { useEmpresaGrupoMap } from "@/hooks/useGrupoFinanceiro";
@@ -912,6 +913,7 @@ export default function Movimentacoes() {
               <DialogContent className="sm:max-w-xl w-[95vw] max-h-[92dvh] rounded-xl flex flex-col overflow-hidden p-0">
                  <DialogHeader className="px-6 pt-5 pb-4 border-b border-border/40 shrink-0">
                   <DialogTitle>{editingId ? "Editar Movimentação" : "Nova Movimentação"}</DialogTitle>
+                  <HistoricoFechamento key={editingId} movimentacaoId={editingId} />
                 </DialogHeader>
                 <form onSubmit={(e) => { e.preventDefault(); upsert.mutate(form); }} className="flex min-h-0 flex-1 flex-col">
                   <div className="flex-1 min-h-0 overflow-y-auto scroll-smooth px-6 py-5 space-y-7">
@@ -1054,7 +1056,7 @@ export default function Movimentacoes() {
 
                   {/* Seção 4 — Anexos e fechamento */}
                   <SecaoModal numero={4} titulo="Anexos e fechamento" />
-                  <div className="rounded-xl border border-border/60 bg-card p-3 space-y-3 shadow-sm">
+                  <div className="space-y-3">
                   {grupoForm && grupoPrincipalId && (
                      <div className={`rounded-lg border px-3 py-2 text-[11px] ${formEhSecundarioGrupo ? "border-warning/40 bg-warning/5 text-warning" : "border-info/40 bg-info/5 text-info"}`}>
                       {formEhSecundarioGrupo

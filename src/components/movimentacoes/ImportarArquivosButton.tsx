@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
-import { CloudDownload, Loader2, ClipboardCheck, Check, AlertTriangle } from "lucide-react";
+import { CloudDownload, Loader2, ClipboardCheck, Check, AlertTriangle, MoreHorizontal } from "lucide-react";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { importarArquivosMovimentacao } from "@/services/importarArquivosMovimentacao";
@@ -16,9 +17,10 @@ interface Props {
   onImportar: (arquivo: ArquivoPortal, signal: AbortSignal) => Promise<"ignorado" | void>;
   onBusy: (busy: boolean) => void;
   onConcluir?: () => void;
+  compacto?: boolean;
 }
 
-export function ImportarArquivosButton({ movimentacaoId, empresaId, mes, periodo, disabled, onImportar, onBusy, onConcluir }: Props) {
+export function ImportarArquivosButton({ movimentacaoId, empresaId, mes, periodo, disabled, onImportar, onBusy, onConcluir, compacto = false }: Props) {
   const queryClient = useQueryClient();
   const [busy, setBusy] = useState(false);
   const [mensagem, setMensagem] = useState("");
@@ -91,11 +93,12 @@ export function ImportarArquivosButton({ movimentacaoId, empresaId, mes, periodo
 
   return <div className="min-w-0 space-y-1">
     <div className="flex flex-wrap gap-2">
-    <Button type="button" variant="outline" size="sm" disabled={disabled || busy || !movimentacaoId || !empresaId} onClick={() => importar()}>
+    {!compacto && <Button type="button" variant="outline" size="sm" disabled={disabled || busy || !movimentacaoId || !empresaId} onClick={() => importar()}>
       {busy ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <CloudDownload className="h-3.5 w-3.5" />}
       Importar arquivos
-    </Button>
+    </Button>}
     {onConcluir && <Button type="button" variant="outline" size="sm" disabled={disabled || busy || !movimentacaoId || !empresaId} onClick={() => importar(true)}><ClipboardCheck className="h-3.5 w-3.5" />Preparar fechamento</Button>}
+    {compacto && <DropdownMenu><DropdownMenuTrigger asChild><Button type="button" variant="ghost" size="icon" className="h-9 w-9" title="Outras ações de anexos" aria-label="Outras ações de anexos" disabled={disabled || busy || !movimentacaoId || !empresaId}><MoreHorizontal className="h-4 w-4" /></Button></DropdownMenuTrigger><DropdownMenuContent align="end"><DropdownMenuItem onSelect={() => importar()}><CloudDownload className="mr-2 h-4 w-4" />Importar arquivos</DropdownMenuItem></DropdownMenuContent></DropdownMenu>}
     </div>
     {mensagem && <p role="status" className="text-xs text-muted-foreground break-words">{mensagem}</p>}
     <Dialog open={!!resumo} onOpenChange={open => { if (!open && !registrando) setResumo(null); }}>
