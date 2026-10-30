@@ -5,6 +5,13 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
   Send,
   Search,
   Building2,
@@ -16,6 +23,8 @@ import {
   Image as ImageIcon,
   FolderArchive,
   History,
+  FilterX,
+  Mail,
 } from "lucide-react";
 import { toast } from "sonner";
 import { ArquivoPreviewInline } from "@/components/arquivos/ArquivoPreviewInline";
@@ -23,12 +32,16 @@ import { compLabel, formatBytes, tipoArquivo } from "@/lib/arquivos-utils";
 import { cn } from "@/lib/utils";
 import {
   agruparEnvios,
+  agruparHistoricoEnvios,
   apenasAtuais,
   extensaoDe,
+  FILTROS_VAZIOS,
+  filtrarArquivos,
   formatarDataHoraEnvio,
   resumoEnviosEmpresa,
   versoesDoDocumento,
   type ArquivoEnvio,
+  type FiltrosEnvios,
 } from "@/lib/repositorio-envios";
 
 interface Empresa {
@@ -63,6 +76,8 @@ export default function RepositorioEnvios() {
   const [searchArquivo, setSearchArquivo] = useState("");
   const [selectedEmpresaId, setSelectedEmpresaId] = useState<string | null>(null);
   const [selectedArquivoId, setSelectedArquivoId] = useState<string | null>(null);
+  const [filtros, setFiltros] = useState<FiltrosEnvios>(FILTROS_VAZIOS);
+  const [abaArquivos, setAbaArquivos] = useState<"arquivos" | "historico">("arquivos");
 
   const { data: empresas = [] } = useQuery({
     queryKey: ["envios-empresas-list"],
@@ -132,7 +147,32 @@ export default function RepositorioEnvios() {
     return m;
   }, [arquivos]);
 
-  const totalEnvios = useMemo(() => new Set(arquivosAtuais.map((a) => a.envio_id)).size, [arquivosAtuais]);
+  const totalEnvios = useMemo(() => new Set(arquivos.map((a) => a.envio_id)).size, [arquivos]);
+  const totalSubstituidos = useMemo(() => arquivos.filter((a) => a.status !== "Atual").length, [arquivos]);
+
+  // Opções dos filtros do topo, montadas a partir do que já foi enviado.
+  const opcoesFiltros = useMemo(() => {
+    const comps = new Set<string>();
+    const periodos = new Set<string>();
+    const categorias = new Set<string>();
+    const responsaveis = new Set<string>();
+    for (const a of arquivos) {
+      if (a.competencia) comps.add(a.competencia);
+      if (a.periodo) periodos.add(a.periodo);
+      if (a.tipo_relatorio) categorias.add(a.tipo_relatorio);
+      if (a.enviado_nome) responsaveis.add(a.enviado_nome);
+    }
+    const ord = (s: Set<string>) => [...s].sort((a, b) => a.localeCompare(b));
+    return {
+      competencias: ord(comps).reverse(),
+      periodos: ord(periodos),
+      categorias: ord(categorias),
+      responsaveis: ord(responsaveis),
+      tipos: ["PDF", "Excel", "Imagem", "Outros"],
+    };
+  }, [arquivos]);
+
+  const filtrosAtivos = useMemo(() => Object.values(filtros).some((v) => v !== null), [filtros]);
 
   // Lista de empresas: busca por nome, contrato ou CNPJ; quem tem arquivos vem primeiro.
   const empresasList = useMemo(() => {
@@ -155,7 +195,7 @@ export default function RepositorioEnvios() {
 
   const arquivosEmpresa = useMemo(() => {
     if (!selectedEmpresaId) return [];
-    const list = arquivosPorEmpresa.get(selectedEmpresaId) ?? [];
+    const list = filtrarArquivos(arquivosPorEmpresa.get(selectedEmpresaId) ?? [], filtros);
     const q = searchArquivo.trim().toLowerCase();
     return list
       .filter((a) => {
@@ -167,7 +207,7 @@ export default function RepositorioEnvios() {
           .includes(q);
       })
       .sort((a, b) => b.enviado_em.localeCompare(a.enviado_em));
-  }, [arquivosPorEmpresa, selectedEmpresaId, searchArquivo]);
+  }, [arquivosPorEmpresa, selectedEmpresaId, searchArquivo, filtros]);
 
   const grupos = useMemo(() => agruparEnvios(arquivosEmpresa), [arquivosEmpresa]);
 
@@ -175,6 +215,12 @@ export default function RepositorioEnvios() {
   const arquivosTodosEmpresa = useMemo(
     () => (selectedEmpresaId ? arquivosTodosPorEmpresa.get(selectedEmpresaId) ?? [] : []),
     [arquivosTodosPorEmpresa, selectedEmpresaId],
+  );
+
+  // Histórico de envios da empresa: uma linha por e-mail, respeitando os filtros do topo.
+  const historicoEnvios = useMemo(
+    () => agruparHistoricoEnvios(filtrarArquivos(arquivosTodosEmpresa, filtros)),
+    [arquivosTodosEmpresa, filtros],
   );
 
   // Auto-seleciona a versão atual mais recente quando muda de empresa.
@@ -218,22 +264,119 @@ export default function RepositorioEnvios() {
     <div className="p-4 md:p-6 space-y-4">
       <header className="relative overflow-hidden rounded-2xl border bg-gradient-to-br from-primary/10 via-primary/[0.04] to-transparent p-4 md:p-5">
         <div className="pointer-events-none absolute -top-16 -right-16 h-56 w-56 rounded-full bg-primary/10 blur-3xl" />
-        <div className="relative flex items-center gap-4">
+        <div className="relative flex flex-wrap items-center gap-4">
           <div className="h-11 w-11 rounded-xl bg-primary/15 text-primary flex items-center justify-center ring-1 ring-primary/20 shadow-sm">
             <Send className="h-5 w-5" />
           </div>
-          <div>
+          <div className="min-w-0">
             <h1 className="text-xl md:text-2xl font-bold tracking-tight">Repositório de Envios</h1>
             <p className="text-xs text-muted-foreground mt-0.5">
-              <span className="font-semibold text-foreground">{arquivosPorEmpresa.size}</span> empresas com arquivos
-              <span className="mx-1.5 text-muted-foreground/50">·</span>
-              <span className="font-semibold text-foreground">{arquivosAtuais.length}</span> arquivos
-              <span className="mx-1.5 text-muted-foreground/50">·</span>
-              <span className="font-semibold text-foreground">{totalEnvios}</span> envios
+              Alimentado automaticamente pelos e-mails enviados na aba Movimentações.
             </p>
+          </div>
+          <div className="ml-auto flex flex-wrap gap-2">
+            {[
+              { rotulo: "Empresas com arquivos", valor: arquivosPorEmpresa.size },
+              { rotulo: "Arquivos atuais", valor: arquivosAtuais.length },
+              { rotulo: "Arquivos substituídos", valor: totalSubstituidos },
+              { rotulo: "Envios realizados", valor: totalEnvios },
+            ].map((k) => (
+              <div
+                key={k.rotulo}
+                className="rounded-xl border border-border/60 bg-card/80 px-3 py-2 text-center shadow-sm min-w-[110px]"
+              >
+                <div className="text-lg font-bold leading-tight">{k.valor}</div>
+                <div className="text-[10px] uppercase tracking-wide text-muted-foreground">{k.rotulo}</div>
+              </div>
+            ))}
           </div>
         </div>
       </header>
+
+      {/* Filtros do topo: valem para a lista de arquivos e para o histórico de envios. */}
+      <div className="flex flex-wrap items-center gap-2 rounded-xl border border-border/60 bg-card px-3 py-2.5 shadow-sm">
+        <Select
+          value={filtros.competencia ?? "todas"}
+          onValueChange={(v) => setFiltros((f) => ({ ...f, competencia: v === "todas" ? null : v }))}
+        >
+          <SelectTrigger className="h-8 w-[150px] text-xs">
+            <SelectValue placeholder="Competência" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="todas">Todas as competências</SelectItem>
+            {opcoesFiltros.competencias.map((c) => (
+              <SelectItem key={c} value={c}>{compLabel(c)}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        <Select
+          value={filtros.periodo ?? "todos"}
+          onValueChange={(v) => setFiltros((f) => ({ ...f, periodo: v === "todos" ? null : v }))}
+        >
+          <SelectTrigger className="h-8 w-[130px] text-xs">
+            <SelectValue placeholder="Período" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="todos">Todos os períodos</SelectItem>
+            {opcoesFiltros.periodos.map((p) => (
+              <SelectItem key={p} value={p}>{p}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        <Select
+          value={filtros.categoria ?? "todas"}
+          onValueChange={(v) => setFiltros((f) => ({ ...f, categoria: v === "todas" ? null : v }))}
+        >
+          <SelectTrigger className="h-8 w-[170px] text-xs">
+            <SelectValue placeholder="Categoria" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="todas">Todas as categorias</SelectItem>
+            {opcoesFiltros.categorias.map((c) => (
+              <SelectItem key={c} value={c}>{c}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        <Select
+          value={filtros.responsavel ?? "todos"}
+          onValueChange={(v) => setFiltros((f) => ({ ...f, responsavel: v === "todos" ? null : v }))}
+        >
+          <SelectTrigger className="h-8 w-[160px] text-xs">
+            <SelectValue placeholder="Responsável" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="todos">Todos os responsáveis</SelectItem>
+            {opcoesFiltros.responsaveis.map((r) => (
+              <SelectItem key={r} value={r}>{r}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        <Select
+          value={filtros.tipoArquivo ?? "todos"}
+          onValueChange={(v) => setFiltros((f) => ({ ...f, tipoArquivo: v === "todos" ? null : v }))}
+        >
+          <SelectTrigger className="h-8 w-[140px] text-xs">
+            <SelectValue placeholder="Tipo de arquivo" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="todos">Todos os tipos</SelectItem>
+            {opcoesFiltros.tipos.map((t) => (
+              <SelectItem key={t} value={t}>{t}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        {filtrosAtivos && (
+          <Button
+            size="sm"
+            variant="ghost"
+            className="h-8 gap-1.5 text-xs text-muted-foreground"
+            onClick={() => setFiltros(FILTROS_VAZIOS)}
+          >
+            <FilterX className="h-3.5 w-3.5" />
+            Limpar filtros
+          </Button>
+        )}
+      </div>
 
       {/* Grid 3 colunas: Empresas | Arquivos | Prévia */}
       <div className="grid grid-cols-1 lg:grid-cols-[320px_minmax(380px,440px)_minmax(0,1fr)] gap-4 h-[calc(100vh-180px)] min-h-[600px]">
@@ -305,19 +448,37 @@ export default function RepositorioEnvios() {
                 </Badge>
               )}
             </div>
-            <p className="text-xs text-muted-foreground mb-3">
-              {arquivosEmpresa.length} arquivo{arquivosEmpresa.length === 1 ? "" : "s"} enviado
-              {arquivosEmpresa.length === 1 ? "" : "s"}
-            </p>
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <Input
-                placeholder="Buscar arquivos..."
-                value={searchArquivo}
-                onChange={(e) => setSearchArquivo(e.target.value)}
-                className="pl-9 h-9 text-sm"
-              />
+            <div className="flex items-center gap-1 mb-3 rounded-lg bg-muted/60 p-1">
+              <button
+                onClick={() => setAbaArquivos("arquivos")}
+                className={cn(
+                  "flex-1 rounded-md px-2 py-1.5 text-xs font-medium transition-colors",
+                  abaArquivos === "arquivos" ? "bg-card shadow-sm text-foreground" : "text-muted-foreground hover:text-foreground",
+                )}
+              >
+                Arquivos ({arquivosEmpresa.length})
+              </button>
+              <button
+                onClick={() => setAbaArquivos("historico")}
+                className={cn(
+                  "flex-1 rounded-md px-2 py-1.5 text-xs font-medium transition-colors",
+                  abaArquivos === "historico" ? "bg-card shadow-sm text-foreground" : "text-muted-foreground hover:text-foreground",
+                )}
+              >
+                Histórico de Envios ({historicoEnvios.length})
+              </button>
             </div>
+            {abaArquivos === "arquivos" && (
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Input
+                  placeholder="Buscar arquivos..."
+                  value={searchArquivo}
+                  onChange={(e) => setSearchArquivo(e.target.value)}
+                  className="pl-9 h-9 text-sm"
+                />
+              </div>
+            )}
           </div>
           <div className="flex-1 overflow-y-auto">
             {isLoading ? (
@@ -327,6 +488,44 @@ export default function RepositorioEnvios() {
                 <Building2 className="h-10 w-10 mx-auto text-muted-foreground/40" />
                 <p>Escolha uma empresa para ver os arquivos enviados.</p>
               </div>
+            ) : abaArquivos === "historico" ? (
+              historicoEnvios.length === 0 ? (
+                <div className="text-center text-sm text-muted-foreground py-12 px-4 space-y-3">
+                  <Mail className="h-10 w-10 mx-auto text-muted-foreground/40" />
+                  <p>Nenhum envio registrado para esta empresa.</p>
+                </div>
+              ) : (
+                <div className="divide-y">
+                  {historicoEnvios.map((envio) => (
+                    <div key={envio.envio_id} className="px-4 py-3.5 space-y-1.5">
+                      <div className="flex items-center justify-between gap-2">
+                        <span className="text-sm font-medium">{formatarDataHoraEnvio(envio.enviado_em)}</span>
+                        <Badge variant="outline" className="h-5 text-[10px] px-1.5 shrink-0">
+                          {envio.total} arquivo{envio.total === 1 ? "" : "s"} enviado{envio.total === 1 ? "" : "s"}
+                        </Badge>
+                      </div>
+                      <div className="text-xs text-muted-foreground">
+                        {compLabel(envio.competencia)}
+                        {envio.periodo ? ` | ${envio.periodo}` : ""}
+                      </div>
+                      <div className="flex flex-wrap gap-1">
+                        {envio.tipos.map((t) => (
+                          <Badge
+                            key={t}
+                            variant="outline"
+                            className={cn("h-5 text-[10px] px-1.5 font-medium border", tipoChipClass(t))}
+                          >
+                            {t}
+                          </Badge>
+                        ))}
+                      </div>
+                      {envio.enviado_nome && (
+                        <div className="text-xs text-muted-foreground">Enviado por {envio.enviado_nome}</div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )
             ) : arquivosEmpresa.length === 0 ? (
               <div className="text-center text-sm text-muted-foreground py-12 px-4 space-y-3">
                 <FolderArchive className="h-10 w-10 mx-auto text-muted-foreground/40" />

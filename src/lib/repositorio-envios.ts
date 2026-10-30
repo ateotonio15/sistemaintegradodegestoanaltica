@@ -114,3 +114,79 @@ export function resumoEnviosEmpresa(totalArquivos: number, totalEnvios: number):
   if (totalEnvios <= 1) return arquivos;
   return `${arquivos} · ${totalEnvios} envios`;
 }
+
+/** Filtros do topo da tela. `null` = sem filtro naquele campo. */
+export type FiltrosEnvios = {
+  competencia: string | null;
+  periodo: string | null;
+  categoria: string | null;
+  responsavel: string | null;
+  tipoArquivo: string | null; // PDF | Excel | Imagem | Outros
+};
+
+export const FILTROS_VAZIOS: FiltrosEnvios = {
+  competencia: null,
+  periodo: null,
+  categoria: null,
+  responsavel: null,
+  tipoArquivo: null,
+};
+
+/** Rótulo do tipo de arquivo pela extensão (mesma regra do ícone da lista). */
+export function tipoArquivoEnvio(a: ArquivoEnvio): string {
+  const ext = extensaoDe(a.nome_arquivo);
+  if (ext === "pdf") return "PDF";
+  if (ext && ["xls", "xlsx", "csv"].includes(ext)) return "Excel";
+  if (ext && ["png", "jpg", "jpeg", "webp", "gif"].includes(ext)) return "Imagem";
+  return "Outros";
+}
+
+/** Aplica os filtros do topo; campos vazios não restringem nada. */
+export function filtrarArquivos(arquivos: ArquivoEnvio[], f: FiltrosEnvios): ArquivoEnvio[] {
+  return arquivos.filter((a) => {
+    if (f.competencia && a.competencia !== f.competencia) return false;
+    if (f.periodo && (a.periodo ?? "") !== f.periodo) return false;
+    if (f.categoria && a.tipo_relatorio !== f.categoria) return false;
+    if (f.responsavel && (a.enviado_nome ?? "") !== f.responsavel) return false;
+    if (f.tipoArquivo && tipoArquivoEnvio(a) !== f.tipoArquivo) return false;
+    return true;
+  });
+}
+
+export type EnvioResumo = {
+  envio_id: string;
+  enviado_em: string;
+  enviado_nome: string | null;
+  competencia: string;
+  periodo: string | null;
+  total: number;
+  tipos: string[];
+};
+
+/**
+ * Histórico de envios de uma empresa: uma linha por e-mail enviado, do mais
+ * recente para o mais antigo, com os arquivos que saíram naquele envio.
+ */
+export function agruparHistoricoEnvios(arquivos: ArquivoEnvio[]): EnvioResumo[] {
+  const porEnvio = new Map<string, ArquivoEnvio[]>();
+  for (const a of arquivos) {
+    const lista = porEnvio.get(a.envio_id) ?? [];
+    lista.push(a);
+    porEnvio.set(a.envio_id, lista);
+  }
+  return Array.from(porEnvio.entries())
+    .map(([envio_id, lista]) => {
+      const ordenada = [...lista].sort((x, y) => y.enviado_em.localeCompare(x.enviado_em));
+      const primeiro = ordenada[0];
+      return {
+        envio_id,
+        enviado_em: primeiro.enviado_em,
+        enviado_nome: primeiro.enviado_nome,
+        competencia: primeiro.competencia,
+        periodo: primeiro.periodo,
+        total: ordenada.length,
+        tipos: [...new Set(ordenada.map((a) => a.tipo_relatorio))],
+      };
+    })
+    .sort((a, b) => b.enviado_em.localeCompare(a.enviado_em));
+}
