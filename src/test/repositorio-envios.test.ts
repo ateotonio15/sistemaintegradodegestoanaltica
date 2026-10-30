@@ -33,6 +33,9 @@ function arquivo(parte: Partial<ArquivoEnvio>): ArquivoEnvio {
     enviado_por: parte.enviado_por ?? "u1",
     enviado_nome: parte.enviado_nome ?? "Junior Vieira",
     enviado_em: parte.enviado_em ?? "2026-10-27T18:30:00Z",
+    origem: parte.origem ?? "Envio automático por e-mail",
+    versao: parte.versao ?? 1,
+    status: parte.status ?? "Enviado",
   };
 }
 
