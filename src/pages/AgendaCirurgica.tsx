@@ -113,8 +113,8 @@ export default function AgendaCirurgica() {
 
       <Card className="p-4">
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-          <div><label className="text-xs text-muted-foreground">Data início</label><Input type="date" value={form.ini} onChange={set("ini")} disabled={form.ignorar_datas} className={form.ignorar_datas ? "opacity-50" : ""} /></div>
-          <div><label className="text-xs text-muted-foreground">Data fim</label><Input type="date" value={form.fim} onChange={set("fim")} disabled={form.ignorar_datas} className={form.ignorar_datas ? "opacity-50" : ""} /></div>
+          <div><label className="text-xs text-muted-foreground">Data início</label><Input type="date" value={form.ini} onChange={set("ini")} disabled={form.ignorar_datas} className={form.ignorar_datas ? "bg-muted/60 text-muted-foreground border-dashed opacity-70" : ""} /></div>
+          <div><label className="text-xs text-muted-foreground">Data fim</label><Input type="date" value={form.fim} onChange={set("fim")} disabled={form.ignorar_datas} className={form.ignorar_datas ? "bg-muted/60 text-muted-foreground border-dashed opacity-70" : ""} /></div>
           <div><label className="text-xs text-muted-foreground">Paciente</label><Input value={form.nm_paciente} onChange={set("nm_paciente")} placeholder="Nome do paciente" /></div>
           <div><label className="text-xs text-muted-foreground">Empresa</label><Input value={form.nm_empresa} onChange={set("nm_empresa")} placeholder="Nome da empresa" /></div>
           <div><label className="text-xs text-muted-foreground">Status</label><Input value={form.ie_status_agenda} onChange={set("ie_status_agenda")} placeholder="Ex.: N" /></div>
