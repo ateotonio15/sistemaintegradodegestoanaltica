@@ -15,6 +15,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useUpsertCorrida, type UberCorrida } from "@/hooks/useUberCorridas";
 import { useAuth } from "@/hooks/useAuth";
 import { useUberPassageiros } from "@/hooks/useUberPassageiros";
+import { useUberFuncoes } from "@/hooks/useUberFuncoes";
 import { UBER_MOTIVOS, origemSugeridaPeloPadrao, montarCorridaVolta, encontrarPassageiroPorNome } from "@/lib/uber-passageiros";
 import { toast } from "sonner";
 
@@ -121,6 +122,8 @@ export function CorridaDialog({ open, onOpenChange, corrida }: Props) {
   const [colabOpen, setColabOpen] = useState(false);
   const [avisoPadrao, setAvisoPadrao] = useState<string | null>(null);
   const { data: passageiros = [] } = useUberPassageiros();
+  const { data: funcoes = [] } = useUberFuncoes();
+  const nomeFuncao = useMemo(() => new Map(funcoes.map((f) => [f.id, f.nome])), [funcoes]);
   const passageirosAtivos = useMemo(() => passageiros.filter((p) => p.ativo), [passageiros]);
 
   const { data: empresas = [] } = useQuery({
@@ -281,7 +284,7 @@ export function CorridaDialog({ open, onOpenChange, corrida }: Props) {
               </PopoverTrigger>
               <PopoverContent className="w-[--radix-popover-trigger-width] p-0" align="start">
                 <Command>
-                  <CommandInput placeholder="Buscar passageiro por nome ou setor..." />
+                  <CommandInput placeholder="Buscar passageiro por nome, setor ou função..." />
                   <CommandList>
                     <CommandEmpty>
                       Passageiro não encontrado. Cadastre-o em Passageiros Uber.
@@ -290,7 +293,7 @@ export function CorridaDialog({ open, onOpenChange, corrida }: Props) {
                       {passageirosAtivos.map((p) => (
                         <CommandItem
                           key={p.id}
-                          value={`${p.nome} ${p.setor}`}
+                          value={`${p.nome} ${p.setor} ${p.funcao_id ? nomeFuncao.get(p.funcao_id) ?? "" : ""} ${p.id}`}
                           onSelect={() => {
                             setForm((prev) => {
                               const next: Partial<UberCorrida> = { ...prev, colaborador: p.nome, passageiro_id: p.id };
@@ -298,6 +301,10 @@ export function CorridaDialog({ open, onOpenChange, corrida }: Props) {
                                 next.origem = origemSugeridaPeloPadrao(p) ?? prev.origem;
                                 next.tipo = p.tipo_padrao ?? prev.tipo;
                                 next.motivo = p.motivo_padrao ?? prev.motivo;
+                              } else {
+                                next.origem = null;
+                                next.tipo = null;
+                                next.motivo = null;
                               }
                               return next;
                             });
@@ -310,7 +317,7 @@ export function CorridaDialog({ open, onOpenChange, corrida }: Props) {
                           }}
                         >
                           <Check className={cn("mr-2 h-4 w-4 shrink-0", form.passageiro_id === p.id ? "opacity-100" : "opacity-0")} />
-                          <span className="truncate">{p.nome} <span className="text-muted-foreground">— {p.setor}</span></span>
+                          <span className="truncate">{p.nome} <span className="text-muted-foreground">— {p.setor}{p.funcao_id && nomeFuncao.get(p.funcao_id) ? ` · ${nomeFuncao.get(p.funcao_id)}` : ""}</span></span>
                         </CommandItem>
                       ))}
                     </CommandGroup>
