@@ -992,7 +992,7 @@ export default function Movimentacoes() {
                   {/* Seção 3 — Observações */}
                   <SecaoModal numero={3} titulo="Observações" />
                   <div className="space-y-3">
-                    <Label className="text-xs font-medium text-muted-foreground">Observações anteriores</Label>
+                    <Label className="text-xs font-medium text-muted-foreground">Histórico de observações</Label>
 
                     {form.observacoes?.trim() ? (
                       <div className="space-y-2 max-h-56 overflow-y-auto pr-1">
@@ -1038,7 +1038,7 @@ export default function Movimentacoes() {
 
                     <div className="space-y-2">
                       <Label className="text-xs font-medium text-muted-foreground">Nova observação</Label>
-                      <div className="rounded-xl border border-border/60 bg-muted/30 p-1">
+                      <div className="rounded-xl border border-border/50 bg-muted/20 p-1">
                         <Textarea
                           value={novaObservacao}
                           onChange={(e) => setNovaObservacao(e.target.value)}
