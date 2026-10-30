@@ -453,6 +453,18 @@ export default function RepositorioEnvios() {
                     <span className="text-muted-foreground">Tamanho: </span>
                     <span className="font-medium">{formatBytes(selectedArquivo.tamanho_bytes)}</span>
                   </div>
+                  <div className="min-w-0">
+                    <span className="text-muted-foreground">Origem: </span>
+                    <span className="font-medium">{selectedArquivo.origem || "—"}</span>
+                  </div>
+                  <div className="min-w-0">
+                    <span className="text-muted-foreground">Versão: </span>
+                    <span className="font-medium">{selectedArquivo.versao}</span>
+                  </div>
+                  <div className="min-w-0">
+                    <span className="text-muted-foreground">Status: </span>
+                    <span className="font-medium">{selectedArquivo.status || "—"}</span>
+                  </div>
                 </div>
               </>
             ) : (
