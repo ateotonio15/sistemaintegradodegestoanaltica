@@ -1333,10 +1333,11 @@ export default function Movimentacoes() {
                               rotulo={carregandoRelatorios ? "Carregando..." : "Indisponível"}
                             />
                           </TableCell>
-                          {canEditDates && (
+                          {canImportarRepositorio && (
                           <TableCell>
                             <div className="flex gap-1">
                               <Button variant="ghost" size="icon" onClick={() => openEdit(m)} className="rounded-lg hover:bg-primary/10"><Pencil className="h-4 w-4 text-primary" /></Button>
+                              {canEditDates && (
                               <DropdownMenu>
                                 <DropdownMenuTrigger asChild>
                                   <Button variant="ghost" size="icon" className="rounded-lg hover:bg-primary/10" aria-label={`Ações do relatório de ${m.empresas?.nome ?? "empresa"}`}>
