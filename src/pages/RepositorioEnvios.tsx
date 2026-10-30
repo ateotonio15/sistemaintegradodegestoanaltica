@@ -373,6 +373,11 @@ export default function RepositorioEnvios() {
                                     </Badge>
                                     <span>Enviado em {formatarDataHoraEnvio(a.enviado_em)}</span>
                                     {a.enviado_nome && <span>· {a.enviado_nome}</span>}
+                                    {a.versao > 1 && (
+                                      <Badge variant="outline" className="h-5 text-[10px] px-1.5 font-medium">
+                                        v{a.versao}
+                                      </Badge>
+                                    )}
                                   </div>
                                 </div>
                               </div>
