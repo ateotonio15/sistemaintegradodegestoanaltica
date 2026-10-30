@@ -5,6 +5,13 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
   Send,
   Search,
   Building2,
@@ -16,6 +23,8 @@ import {
   Image as ImageIcon,
   FolderArchive,
   History,
+  FilterX,
+  Mail,
 } from "lucide-react";
 import { toast } from "sonner";
 import { ArquivoPreviewInline } from "@/components/arquivos/ArquivoPreviewInline";
@@ -23,12 +32,16 @@ import { compLabel, formatBytes, tipoArquivo } from "@/lib/arquivos-utils";
 import { cn } from "@/lib/utils";
 import {
   agruparEnvios,
+  agruparHistoricoEnvios,
   apenasAtuais,
   extensaoDe,
+  FILTROS_VAZIOS,
+  filtrarArquivos,
   formatarDataHoraEnvio,
   resumoEnviosEmpresa,
   versoesDoDocumento,
   type ArquivoEnvio,
+  type FiltrosEnvios,
 } from "@/lib/repositorio-envios";
 
 interface Empresa {
