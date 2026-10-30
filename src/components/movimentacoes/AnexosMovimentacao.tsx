@@ -445,6 +445,7 @@ export function AnexosMovimentacao({ movimentacaoId, empresaId, mes, periodo, re
       <div className="flex min-w-0 flex-wrap items-center gap-2">
          <ImportarDoRepositorioButton movimentacaoId={movimentacaoId} empresaId={empresaId} mes={mes} periodo={periodo}
           disabled={uploading || importando || !!pendente} onBusy={setImportandoRepositorio} onImportar={importarArquivo} />
+        {!somenteImportarRepositorio && (
         <label className={`cursor-pointer ${!movimentacaoId || uploading || importando || importandoRepositorio ? "opacity-50 pointer-events-none" : ""}`}>
           <input
             type="file"
