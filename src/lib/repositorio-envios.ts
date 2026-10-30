@@ -80,7 +80,11 @@ export function chaveDocumento(a: ArquivoEnvio): string {
 
 /** A listagem principal mostra somente a versão atual de cada documento. */
 export function apenasAtuais(arquivos: ArquivoEnvio[]): ArquivoEnvio[] {
-  return arquivos.filter((a) => a.status === "Atual");
+  return arquivos.filter((a) => a.status.toLowerCase() === "atual");
+}
+
+export function ehImportacaoFechamento(a: ArquivoEnvio): boolean {
+  return a.origem === "Importação para fechamento";
 }
 
 /** Todas as versões do mesmo documento, da mais nova para a mais antiga. */
@@ -170,6 +174,7 @@ export type EnvioResumo = {
 export function agruparHistoricoEnvios(arquivos: ArquivoEnvio[]): EnvioResumo[] {
   const porEnvio = new Map<string, ArquivoEnvio[]>();
   for (const a of arquivos) {
+    if (ehImportacaoFechamento(a)) continue;
     const lista = porEnvio.get(a.envio_id) ?? [];
     lista.push(a);
     porEnvio.set(a.envio_id, lista);

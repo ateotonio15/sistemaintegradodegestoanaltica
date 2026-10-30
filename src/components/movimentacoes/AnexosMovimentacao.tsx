@@ -507,7 +507,7 @@ export function AnexosMovimentacao({ movimentacaoId, empresaId, mes, periodo, re
                   {info.tipo === "Outros" ? tipoArquivo(ext) : info.tipo} · {ext.toUpperCase()} · {formatBytes(a.tamanho_bytes)}
                 </p>
                 <p className="text-[11px] text-muted-foreground">
-                  {origemAutomatica ? "Importado automaticamente" : "Anexado manualmente"} · {formatDateBR(a.created_at)}
+                  {a.repositorio_envio_id ? "Repositório de Envios" : origemAutomatica ? "Importado automaticamente" : "Anexado manualmente"} · {formatDateBR(a.created_at)}
                 </p>
                 {info.contrato && <p className="text-[11px] text-muted-foreground">Contrato: {info.contrato} · Competência da movimentação: {formatMes(mes ?? null) || "não informada"}</p>}
                 {info.geradoEm && <p className="text-[11px] text-muted-foreground">Geração informada no nome: {info.geradoEm}</p>}

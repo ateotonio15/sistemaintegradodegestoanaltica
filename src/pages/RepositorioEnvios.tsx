@@ -35,6 +35,7 @@ import {
   agruparHistoricoEnvios,
   apenasAtuais,
   extensaoDe,
+  ehImportacaoFechamento,
   FILTROS_VAZIOS,
   filtrarArquivos,
   formatarDataHoraEnvio,
@@ -147,7 +148,7 @@ export default function RepositorioEnvios() {
     return m;
   }, [arquivos]);
 
-  const totalEnvios = useMemo(() => new Set(arquivos.map((a) => a.envio_id)).size, [arquivos]);
+  const totalEnvios = useMemo(() => new Set(arquivos.filter(a => !ehImportacaoFechamento(a)).map((a) => a.envio_id)).size, [arquivos]);
   const totalSubstituidos = useMemo(() => arquivos.filter((a) => a.status !== "Atual").length, [arquivos]);
 
   // Opções dos filtros do topo, montadas a partir do que já foi enviado.
@@ -598,7 +599,7 @@ export default function RepositorioEnvios() {
                                     >
                                       {tipoArquivo(ext)}
                                     </Badge>
-                                    <span>Enviado em {formatarDataHoraEnvio(a.enviado_em)}</span>
+                                    <span>{ehImportacaoFechamento(a) ? "Importado em" : "Enviado em"} {formatarDataHoraEnvio(a.enviado_em)}</span>
                                     {a.enviado_nome && <span>· {a.enviado_nome}</span>}
                                     {a.versao > 1 && (
                                       <Badge variant="outline" className="h-5 text-[10px] px-1.5 font-medium">
@@ -670,11 +671,11 @@ export default function RepositorioEnvios() {
                     <span className="font-medium">{selectedArquivo.tipo_relatorio}</span>
                   </div>
                   <div className="min-w-0">
-                    <span className="text-muted-foreground">Enviado por: </span>
+                    <span className="text-muted-foreground">{ehImportacaoFechamento(selectedArquivo) ? "Importado por: " : "Enviado por: "}</span>
                     <span className="font-medium">{selectedArquivo.enviado_nome || "—"}</span>
                   </div>
                   <div className="min-w-0">
-                    <span className="text-muted-foreground">Data e hora do envio: </span>
+                    <span className="text-muted-foreground">{ehImportacaoFechamento(selectedArquivo) ? "Data e hora da importação: " : "Data e hora do envio: "}</span>
                     <span className="font-medium">{formatarDataHoraEnvio(selectedArquivo.enviado_em)}</span>
                   </div>
                   <div className="min-w-0">

@@ -1,6 +1,9 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { importarArquivosMovimentacao } from "@/services/importarArquivosMovimentacao";
 import { gerarRelatorioPortal, type ArquivoPortal } from "@/services/portalEmpresaRelatorios";
+import { consultarDocumentoFechamento } from "@/services/documentosFechamento";
+
+vi.mock("@/services/documentosFechamento", () => ({ consultarDocumentoFechamento: vi.fn() }));
 
 vi.mock("@/services/portalEmpresaRelatorios", async original => ({
   ...await original<typeof import("@/services/portalEmpresaRelatorios")>(), gerarRelatorioPortal: vi.fn(),
@@ -18,6 +21,39 @@ beforeEach(() => {
 });
 afterEach(() => vi.unstubAllGlobals());
 describe("importação de arquivos na movimentação", () => {
+  it("no fechamento usa a versão atual v2 do repositório sem gerar relatórios", async () => {
+    vi.mocked(consultarDocumentoFechamento).mockImplementation(async (_, tipo) => ({ ...arquivo(tipo), repositorio_envio_id: `atual-${tipo}`, versao_repositorio: 2 }));
+    const anexar = vi.fn();
+    const resultado = await importarArquivosMovimentacao(contexto, new AbortController().signal, anexar, vi.fn(), true);
+    expect(gerarRelatorioPortal).not.toHaveBeenCalled();
+    expect(anexar.mock.calls.map(([a]) => a.versao_repositorio)).toEqual([2, 2]);
+    expect(resultado.anexados).toBe(2);
+    expect(consultarDocumentoFechamento).toHaveBeenCalledWith(contexto, "pdf", expect.any(AbortSignal));
+  });
+  it("busca somente o Excel ausente e registra antes de anexar", async () => {
+    vi.mocked(consultarDocumentoFechamento).mockImplementation(async (_, tipo, __, job) => tipo === "pdf" || job ? arquivo(tipo) : null);
+    vi.mocked(gerarRelatorioPortal).mockImplementation(async (_, tipo) => arquivo(tipo));
+    const anexar = vi.fn();
+    await importarArquivosMovimentacao(contexto, new AbortController().signal, anexar, vi.fn(), true);
+    expect(gerarRelatorioPortal).toHaveBeenCalledTimes(1);
+    expect(gerarRelatorioPortal).toHaveBeenCalledWith(2171, "xlsx", expect.any(AbortSignal));
+    expect(consultarDocumentoFechamento).toHaveBeenCalledWith(contexto, "xlsx", expect.any(AbortSignal), "job-xlsx");
+    expect(consultarDocumentoFechamento.mock.invocationCallOrder[2]).toBeLessThan(anexar.mock.invocationCallOrder[0]);
+  });
+  it("erro no repositório não dispara nova geração", async () => {
+    vi.mocked(consultarDocumentoFechamento).mockRejectedValue(new Error("Sem acesso"));
+    const resultado = await importarArquivosMovimentacao(contexto, new AbortController().signal, vi.fn(), vi.fn(), true);
+    expect(gerarRelatorioPortal).not.toHaveBeenCalled();
+    expect(resultado.falhas).toBe(2);
+  });
+  it("documento obtido mas não registrado fica pendente e não é anexado", async () => {
+    vi.mocked(consultarDocumentoFechamento).mockImplementation(async (_, __, ___, job) => { if (job) throw new Error("Falha ao registrar"); return null; });
+    vi.mocked(gerarRelatorioPortal).mockImplementation(async (_, tipo) => arquivo(tipo));
+    const anexar = vi.fn();
+    const resultado = await importarArquivosMovimentacao(contexto, new AbortController().signal, anexar, vi.fn(), true);
+    expect(anexar).not.toHaveBeenCalled();
+    expect(resultado.documentos.every(d => !d.disponivel)).toBe(true);
+  });
   it("busca PDF e Excel do contrato e anexa ambos sem download no computador", async () => {
     vi.mocked(gerarRelatorioPortal).mockImplementation(async (_, tipo) => arquivo(tipo));
     const anexar = vi.fn().mockResolvedValue(undefined);

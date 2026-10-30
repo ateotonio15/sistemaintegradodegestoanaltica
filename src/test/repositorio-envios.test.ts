@@ -232,6 +232,10 @@ describe("Repositório de Envios — controle de versão", () => {
 });
 
 describe("Repositório de Envios — filtros e histórico de envios", () => {
+  it("importação para fechamento não inventa um envio de e-mail", () => {
+    const historico = agruparHistoricoEnvios([arquivo({ id: "importado", envio_id: "importacao", origem: "Importação para fechamento" }), arquivo({ id: "enviado", envio_id: "email" })]);
+    expect(historico.map(h => h.envio_id)).toEqual(["email"]);
+  });
   it("filtra por competência, período, categoria, responsável e tipo de arquivo", () => {
     const lista = [
       arquivo({ id: "a", competencia: "2026-10", periodo: "05-10", tipo_relatorio: "Relatório de Vidas", enviado_nome: "Antonio", nome_arquivo: "vidas.pdf" }),

@@ -18,5 +18,10 @@ export async function consultarDocumentoFechamento(contexto: ContextoImportacao,
   if (!resposta.ok) throw new Error("Não foi possível carregar o arquivo do Repositório de Envios.");
   const blob = await resposta.blob();
   if (!blob.size || blob.size > 25 * 1024 * 1024) throw new Error("Arquivo vazio ou inválido no repositório.");
+  const bytes = new Uint8Array(await blob.slice(0, 8).arrayBuffer());
+  const valido = tipo === "pdf" ? String.fromCharCode(...bytes.slice(0, 5)) === "%PDF-"
+    : /\.xls$/i.test(data.nome_arquivo) ? [0xd0, 0xcf, 0x11, 0xe0, 0xa1, 0xb1, 0x1a, 0xe1].every((v, i) => bytes[i] === v)
+    : bytes[0] === 0x50 && bytes[1] === 0x4b;
+  if (!valido) throw new Error("O conteúdo do documento no repositório é inválido.");
   return { ...job, nome_arquivo: data.nome_arquivo, blob, repositorio_envio_id: data.id, versao_repositorio: data.versao };
 }
