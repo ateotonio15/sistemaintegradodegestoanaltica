@@ -495,6 +495,47 @@ export default function RepositorioEnvios() {
                     <span className="font-medium">{selectedArquivo.status || "—"}</span>
                   </div>
                 </div>
+                {/* Histórico de versões: as substituídas nunca são apagadas e ficam aqui. */}
+                {versoes.length > 0 && (
+                  <div className="border-t px-4 py-3">
+                    <div className="flex items-center gap-2 mb-2">
+                      <History className="h-3.5 w-3.5 text-muted-foreground" />
+                      <span className="text-xs font-semibold">Histórico de versões</span>
+                    </div>
+                    <div className="space-y-1">
+                      {versoes.map((v) => (
+                        <button
+                          key={v.id}
+                          onClick={() => setSelectedArquivoId(v.id)}
+                          className={cn(
+                            "w-full flex items-center gap-2 px-2 py-1.5 rounded-lg text-left text-xs transition-colors",
+                            v.id === selectedArquivo.id ? "bg-primary/10 ring-1 ring-primary/20" : "hover:bg-muted/60",
+                          )}
+                        >
+                          <Badge variant="outline" className="h-5 text-[10px] px-1.5 font-medium shrink-0">
+                            v{v.versao}
+                          </Badge>
+                          <span className="text-muted-foreground shrink-0">{formatarDataHoraEnvio(v.enviado_em)}</span>
+                          {v.enviado_nome && (
+                            <span className="text-muted-foreground truncate">· {v.enviado_nome}</span>
+                          )}
+                          <Badge
+                            variant="outline"
+                            className={cn(
+                              "h-5 text-[10px] px-1.5 font-medium ml-auto shrink-0",
+                              v.status === "Atual"
+                                ? "border-emerald-500/40 text-emerald-700 dark:text-emerald-300 bg-emerald-500/10"
+                                : "text-muted-foreground",
+                            )}
+                          >
+                            {v.status}
+                          </Badge>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+                </div>
               </>
             ) : (
               <div className="h-full flex flex-col items-center justify-center gap-3 text-center p-8">
