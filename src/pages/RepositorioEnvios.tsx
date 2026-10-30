@@ -147,7 +147,32 @@ export default function RepositorioEnvios() {
     return m;
   }, [arquivos]);
 
-  const totalEnvios = useMemo(() => new Set(arquivosAtuais.map((a) => a.envio_id)).size, [arquivosAtuais]);
+  const totalEnvios = useMemo(() => new Set(arquivos.map((a) => a.envio_id)).size, [arquivos]);
+  const totalSubstituidos = useMemo(() => arquivos.filter((a) => a.status !== "Atual").length, [arquivos]);
+
+  // Opções dos filtros do topo, montadas a partir do que já foi enviado.
+  const opcoesFiltros = useMemo(() => {
+    const comps = new Set<string>();
+    const periodos = new Set<string>();
+    const categorias = new Set<string>();
+    const responsaveis = new Set<string>();
+    for (const a of arquivos) {
+      if (a.competencia) comps.add(a.competencia);
+      if (a.periodo) periodos.add(a.periodo);
+      if (a.tipo_relatorio) categorias.add(a.tipo_relatorio);
+      if (a.enviado_nome) responsaveis.add(a.enviado_nome);
+    }
+    const ord = (s: Set<string>) => [...s].sort((a, b) => a.localeCompare(b));
+    return {
+      competencias: ord(comps).reverse(),
+      periodos: ord(periodos),
+      categorias: ord(categorias),
+      responsaveis: ord(responsaveis),
+      tipos: ["PDF", "Excel", "Imagem", "Outros"],
+    };
+  }, [arquivos]);
+
+  const filtrosAtivos = useMemo(() => Object.values(filtros).some((v) => v !== null), [filtros]);
 
   // Lista de empresas: busca por nome, contrato ou CNPJ; quem tem arquivos vem primeiro.
   const empresasList = useMemo(() => {
