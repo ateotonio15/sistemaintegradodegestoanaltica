@@ -27,7 +27,7 @@ describe("importação de arquivos na movimentação", () => {
     expect(gerarRelatorioPortal).toHaveBeenCalledWith(2171, "xlsx", expect.any(AbortSignal));
     expect(anexar).toHaveBeenCalledTimes(2);
     expect(encontrados).toHaveBeenCalledWith(2);
-    expect(resultado).toEqual({ encontrados: 2, anexados: 2, falhas: 0 });
+    expect(resultado).toEqual({ encontrados: 2, anexados: 2, ignorados: 0, falhas: 0 });
   });
   it("não cria anexos quando nenhum relatório é retornado", async () => {
     vi.mocked(gerarRelatorioPortal).mockRejectedValue(new Error("Indisponível"));
@@ -41,7 +41,7 @@ describe("importação de arquivos na movimentação", () => {
     const anexar = vi.fn().mockResolvedValue(undefined);
     const resultado = await importarArquivosMovimentacao(contexto, new AbortController().signal, anexar, vi.fn());
     expect(anexar).toHaveBeenCalledTimes(1);
-    expect(resultado).toEqual({ encontrados: 1, anexados: 1, falhas: 1 });
+    expect(resultado).toEqual({ encontrados: 1, anexados: 1, ignorados: 0, falhas: 1 });
   });
   it("bloqueia todos os anexos quando um arquivo pertence a outro contrato", async () => {
     vi.mocked(gerarRelatorioPortal).mockImplementation(async (_, tipo) => arquivo(tipo, tipo === "pdf" ? 2171 : 2490));
@@ -55,5 +55,11 @@ describe("importação de arquivos na movimentação", () => {
     const anexar = vi.fn();
     await expect(importarArquivosMovimentacao(contexto, controller.signal, anexar, vi.fn())).rejects.toThrow();
     expect(anexar).not.toHaveBeenCalled();
+  });
+  it("contabiliza um arquivo ignorado sem afirmar que foi anexado", async () => {
+    vi.mocked(gerarRelatorioPortal).mockImplementation(async (_, tipo) => arquivo(tipo));
+    const anexar = vi.fn().mockResolvedValueOnce("ignorado").mockResolvedValueOnce(undefined);
+    const resultado = await importarArquivosMovimentacao(contexto, new AbortController().signal, anexar, vi.fn());
+    expect(resultado).toEqual({ encontrados: 2, anexados: 1, ignorados: 1, falhas: 0 });
   });
 });
