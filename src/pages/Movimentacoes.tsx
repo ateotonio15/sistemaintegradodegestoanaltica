@@ -1069,12 +1069,13 @@ export default function Movimentacoes() {
                     </div>
                   )}
 
-                  <AnexosMovimentacao
+                   <AnexosMovimentacao
                      movimentacaoId={editingId}
                     empresaId={form.empresa_id || null}
                     mes={form.mes_referencia}
                     periodo={form.periodo}
                     required={!!form.data_envio_financeiro}
+                    somenteImportarRepositorio={!canEditDates}
                     onConcluir={() => { if (!upsert.isPending) upsert.mutate(form); }}
                   />
                   </div>
@@ -1082,8 +1083,8 @@ export default function Movimentacoes() {
 
 
                   <div className="shrink-0 flex justify-end gap-2 border-t border-border/40 bg-muted/20 px-6 py-3.5">
-                    <Button type="button" variant="outline" onClick={() => { setDialogOpen(false); resetForm(); }} className="rounded-lg">Cancelar</Button>
-                    <Button type="submit" disabled={upsert.isPending || !form.empresa_id} className="rounded-lg">{upsert.isPending ? "Salvando..." : "Salvar"}</Button>
+                    <Button type="button" variant="outline" onClick={() => { setDialogOpen(false); resetForm(); }} className="rounded-lg">{canEditDates ? "Cancelar" : "Fechar"}</Button>
+                    {canEditDates && <Button type="submit" disabled={upsert.isPending || !form.empresa_id} className="rounded-lg">{upsert.isPending ? "Salvando..." : "Salvar"}</Button>}
                   </div>
 
                 </form>
