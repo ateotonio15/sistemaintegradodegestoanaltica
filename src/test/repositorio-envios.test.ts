@@ -179,3 +179,50 @@ describe("Repositório de Envios — registro automático dos arquivos enviados"
     expect(nomeSeguro("   ")).toBe("arquivo");
   });
 });
+
+describe("Repositório de Envios — controle de versão", () => {
+  it("a listagem principal mostra somente a versão atual de cada documento", () => {
+    const lista = [
+      arquivo({ id: "v1", versao: 1, status: "Substituído", enviado_em: "2026-10-27T12:20:00Z" }),
+      arquivo({ id: "v2", versao: 2, status: "Atual", enviado_em: "2026-10-29T14:35:00Z" }),
+      arquivo({ id: "outro", tipo_relatorio: "OPS Mensalidades", status: "Atual" }),
+    ];
+    expect(apenasAtuais(lista).map((a) => a.id)).toEqual(["v2", "outro"]);
+  });
+
+  it("reconhece o mesmo documento mesmo com nomes de arquivo diferentes", () => {
+    const v1 = arquivo({
+      id: "v1",
+      versao: 1,
+      status: "Substituído",
+      nome_arquivo: "Relatorio_Vidas_2487.pdf",
+      enviado_em: "2026-10-27T12:20:00Z",
+    });
+    const v2 = arquivo({
+      id: "v2",
+      versao: 2,
+      status: "Atual",
+      nome_arquivo: "Vidas_Ativas_Contrato_2487_20261029.pdf",
+      enviado_em: "2026-10-29T14:35:00Z",
+    });
+    expect(chaveDocumento(v1)).toBe(chaveDocumento(v2));
+  });
+
+  it("documento de outra competência, período ou categoria não é a mesma versão", () => {
+    const base = arquivo({ id: "base" });
+    expect(chaveDocumento(arquivo({ competencia: "2026-11" }))).not.toBe(chaveDocumento(base));
+    expect(chaveDocumento(arquivo({ periodo: "10-15" }))).not.toBe(chaveDocumento(base));
+    expect(chaveDocumento(arquivo({ tipo_relatorio: "OPS Mensalidades" }))).not.toBe(chaveDocumento(base));
+    expect(chaveDocumento(arquivo({ contrato: "9999" }))).not.toBe(chaveDocumento(base));
+  });
+
+  it("o histórico reúne todas as versões do documento, da mais nova para a mais antiga", () => {
+    const v1 = arquivo({ id: "v1", versao: 1, status: "Substituído", enviado_em: "2026-10-27T12:20:00Z" });
+    const v2 = arquivo({ id: "v2", versao: 2, status: "Atual", enviado_em: "2026-10-29T14:35:00Z" });
+    const outro = arquivo({ id: "outro", tipo_relatorio: "OPS Mensalidades", status: "Atual" });
+    const historico = versoesDoDocumento([v1, v2, outro], v2);
+    expect(historico.map((a) => a.id)).toEqual(["v2", "v1"]);
+    expect(historico[0].status).toBe("Atual");
+    expect(historico[1].status).toBe("Substituído");
+  });
+});
