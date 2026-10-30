@@ -86,6 +86,7 @@ export function AnexosMovimentacao({ movimentacaoId, empresaId, mes, periodo, re
     redirecionado: boolean;
     aviso?: string;
     automatico?: boolean;
+    repositorioEnvioId?: string;
   };
   const [pendente, setPendente] = useState<ItemUpload[] | null>(null);
 
@@ -199,7 +200,7 @@ export function AnexosMovimentacao({ movimentacaoId, empresaId, mes, periodo, re
   const executarUpload = async (itens: ItemUpload[]) => {
     if (!empresaId || !movimentacaoId) return;
     {
-      for (const { file, alvoEmpresaId, alvoMovId, automatico } of itens) {
+      for (const { file, alvoEmpresaId, alvoMovId, automatico, repositorioEnvioId } of itens) {
 
         // Preserva a origem autorizada no caminho; o registro aponta para o destino.
         const path = buildPath(empresaId, movimentacaoId, file.name);
@@ -217,6 +218,7 @@ export function AnexosMovimentacao({ movimentacaoId, empresaId, mes, periodo, re
           tamanho_bytes: file.size,
           uploaded_by: user?.id ?? null,
           ...(automatico ? { origem_importacao: "API" } : {}),
+          ...(repositorioEnvioId ? { repositorio_envio_id: repositorioEnvioId } : {}),
         });
         if (insErr) {
           await supabase.storage.from(STORAGE_BUCKET).remove([path]);
@@ -288,10 +290,20 @@ export function AnexosMovimentacao({ movimentacaoId, empresaId, mes, periodo, re
     if (!identificarAnexoImportado(arquivo.nome_arquivo).aceito) throw new Error("Formato não permitido para importação.");
     // Nome, contrato, tipo e competência de destino determinam a identidade; não substitui anexos.
     const { data: existentes, error } = await supabase.from("anexos_movimentacao")
-      .select("nome_arquivo, empresa_id, movimentacao_id").eq("movimentacao_id", movimentacaoId)
-      .eq("nome_arquivo", arquivo.nome_arquivo);
+      .select("nome_arquivo, empresa_id, movimentacao_id, repositorio_envio_id, storage_path").eq("movimentacao_id", movimentacaoId);
     if (error) throw error;
-    if ((existentes ?? []).some(existente => mesmoAnexoImportado(existente, {
+    if (arquivo.repositorio_envio_id) {
+      if ((existentes ?? []).some(a => a.repositorio_envio_id === arquivo.repositorio_envio_id)) return "ignorado";
+      // Um nome igual pode conter bytes de uma versão antiga. Só ignorar cópia idêntica.
+      const hash = await crypto.subtle.digest("SHA-256", await arquivo.blob.arrayBuffer());
+      for (const existente of existentes ?? []) {
+        if (existente.nome_arquivo !== arquivo.nome_arquivo) continue;
+        const { data: copia, error: downloadError } = await supabase.storage.from(STORAGE_BUCKET).download(existente.storage_path);
+        if (downloadError) throw downloadError;
+        const outro = await crypto.subtle.digest("SHA-256", await copia.arrayBuffer());
+        if (new Uint8Array(hash).every((v, i) => v === new Uint8Array(outro)[i])) return "ignorado";
+      }
+    } else if ((existentes ?? []).some(existente => mesmoAnexoImportado(existente, {
       nome: arquivo.nome_arquivo, contrato: arquivo.nr_contrato, empresaId, movimentacaoId,
     }))) return "ignorado";
     signal.throwIfAborted();
@@ -299,6 +311,7 @@ export function AnexosMovimentacao({ movimentacaoId, empresaId, mes, periodo, re
       file: new File([arquivo.blob], arquivo.nome_arquivo, { type: arquivo.blob.type }),
       alvoEmpresaId: empresaId, alvoMovId: movimentacaoId, contratoRotulo: String(arquivo.nr_contrato),
       periodo: periodo ?? null, mes: mes ?? null, redirecionado: false, automatico: true,
+      repositorioEnvioId: arquivo.repositorio_envio_id,
     }]);
   };
 

@@ -5,7 +5,7 @@ export const RELATORIOS_PORTAL = {
 } as const;
 export type TipoRelatorioPortal = keyof typeof RELATORIOS_PORTAL;
 export type JobRelatorioPortal = { job_id: string; nr_contrato: number; tipo: TipoRelatorioPortal };
-export type ArquivoPortal = JobRelatorioPortal & { nome_arquivo: string; blob: Blob; atualizado_em?: string };
+export type ArquivoPortal = JobRelatorioPortal & { nome_arquivo: string; blob: Blob; atualizado_em?: string; repositorio_envio_id?: string; versao_repositorio?: number };
 export class ErroCarregarArquivoPortal extends Error {
   constructor(public arquivo: JobRelatorioPortal & { nome_arquivo: string }) {
     super("Arquivo disponível, mas ocorreu erro ao carregar.");
