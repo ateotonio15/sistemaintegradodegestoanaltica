@@ -1039,6 +1039,8 @@ export default function Movimentacoes() {
                   <AnexosMovimentacao
                     movimentacaoId={editingId}
                     empresaId={form.empresa_id || null}
+                    mes={form.mes_referencia}
+                    periodo={form.periodo}
                     required={!!form.data_envio_financeiro}
                   />
                   </div>

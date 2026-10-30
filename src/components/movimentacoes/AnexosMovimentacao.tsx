@@ -27,11 +27,15 @@ import { formatDateBR } from "@/lib/date-utils";
 import { useAnexosMovimentacaoGrupo } from "@/hooks/useAnexosMovimentacaoGrupo";
 import { identificarContratoDoAnexo, type ContratoAlvo } from "@/lib/anexo-contrato-match";
 import { sincronizarEnvioDosAnexos } from "@/lib/movimentacao-envio-anexos";
+import { ImportarArquivosButton } from "./ImportarArquivosButton";
+import type { ArquivoPortal } from "@/services/portalEmpresaRelatorios";
 
 
 interface Props {
   movimentacaoId: string | null;
   empresaId: string | null;
+  mes?: string;
+  periodo?: string | null;
   /** Quando true, mostra aviso visual de obrigatoriedade. */
   required?: boolean;
   /** Callback recebe o número atual de anexos. Útil para o pai bloquear o submit. */
@@ -48,10 +52,11 @@ function buildPath(empresaId: string, movId: string, fileName: string) {
   return `${empresaId}/${movId}/${crypto.randomUUID()}.${ext}`;
 }
 
-export function AnexosMovimentacao({ movimentacaoId, empresaId, required, onCountChange, onAttachmentsChange }: Props) {
+export function AnexosMovimentacao({ movimentacaoId, empresaId, mes, periodo, required, onCountChange, onAttachmentsChange }: Props) {
   const queryClient = useQueryClient();
   const { user } = useAuth();
   const [uploading, setUploading] = useState(false);
+  const [importando, setImportando] = useState(false);
   const [alvoExclusao, setAlvoExclusao] = useState<{ id: string; path: string; nome: string; tipo: string; criadoEm: string; origem?: string | null } | null>(null);
   const [registrarObs, setRegistrarObs] = useState(false);
   const [excluindo, setExcluindo] = useState(false);
@@ -206,7 +211,10 @@ export function AnexosMovimentacao({ movimentacaoId, empresaId, required, onCoun
           tamanho_bytes: file.size,
           uploaded_by: user?.id ?? null,
         });
-        if (insErr) throw insErr;
+        if (insErr) {
+          await supabase.storage.from(STORAGE_BUCKET).remove([path]);
+          throw insErr;
+        }
 
         // Auto-análise do layout (Excel) — atualiza Vidas Ativas da empresa
         const ext = (file.name.split(".").pop() || "").toLowerCase();
@@ -264,6 +272,31 @@ export function AnexosMovimentacao({ movimentacaoId, empresaId, required, onCoun
       onAttachmentsChange?.();
       toast.success(itens.length > 1 ? `${itens.length} arquivos enviados` : "Arquivo enviado");
     }
+  };
+
+  const importarArquivo = async (arquivo: ArquivoPortal, signal: AbortSignal) => {
+    if (!empresaId || !movimentacaoId) throw new Error("Movimentação indisponível.");
+    signal.throwIfAborted();
+    // Evita duplicar o mesmo conteúdo; uma versão nova nunca substitui silenciosamente a anterior.
+    const { data: existentes, error } = await supabase.from("anexos_movimentacao")
+      .select("storage_path, nome_arquivo, tamanho_bytes").eq("movimentacao_id", movimentacaoId)
+      .eq("nome_arquivo", arquivo.nome_arquivo);
+    if (error) throw error;
+    const hash = async (blob: Blob) => Array.from(new Uint8Array(await crypto.subtle.digest("SHA-256", await blob.arrayBuffer()))).join(",");
+    const hashNovo = await hash(arquivo.blob);
+    for (const existente of existentes ?? []) {
+      if (existente.tamanho_bytes !== arquivo.blob.size) continue;
+      const { data: blob, error: downloadError } = await supabase.storage.from(STORAGE_BUCKET).download(existente.storage_path);
+      if (downloadError) throw downloadError;
+      signal.throwIfAborted();
+      if (blob && await hash(blob) === hashNovo) return;
+    }
+    signal.throwIfAborted();
+    await executarUpload([{
+      file: new File([arquivo.blob], arquivo.nome_arquivo, { type: arquivo.blob.type }),
+      alvoEmpresaId: empresaId, alvoMovId: movimentacaoId, contratoRotulo: String(arquivo.nr_contrato),
+      periodo: periodo ?? null, mes: mes ?? null, redirecionado: false,
+    }]);
   };
 
   const handleDownload = async (path: string, nome: string) => {
@@ -384,26 +417,30 @@ export function AnexosMovimentacao({ movimentacaoId, empresaId, required, onCoun
 
   return (
     <div className={`min-w-0 max-w-full rounded-lg border p-3 space-y-3 overflow-hidden ${showRequiredWarn ? "border-warning/50 bg-warning/5" : "border-border"}`}>
-      <div className="flex items-center justify-between gap-2">
+      <div className="flex flex-wrap items-start justify-between gap-2">
         <div className="flex items-center gap-2 text-sm font-medium">
           <Paperclip className="h-4 w-4 text-info" />
           Anexos {required && <span className="text-destructive">*</span>}
           <span className="text-muted-foreground font-normal">({anexos.length})</span>
         </div>
-        <label className={`cursor-pointer ${!movimentacaoId ? "opacity-50 pointer-events-none" : ""}`}>
+        <div className="flex min-w-0 flex-wrap items-start gap-2">
+        <ImportarArquivosButton movimentacaoId={movimentacaoId} empresaId={empresaId} mes={mes} periodo={periodo}
+          disabled={uploading || !!pendente} onBusy={setImportando} onImportar={importarArquivo} />
+        <label className={`cursor-pointer ${!movimentacaoId || uploading || importando ? "opacity-50 pointer-events-none" : ""}`}>
           <input
             type="file"
             multiple
             className="hidden"
             accept={ACCEPTED_FOR_MOV}
             onChange={handleUpload}
-            disabled={uploading || !movimentacaoId}
+            disabled={uploading || importando || !movimentacaoId}
           />
           <span className="inline-flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded-md bg-primary text-primary-foreground hover:bg-primary/90 transition-colors">
             <Upload className="h-3.5 w-3.5" />
             {uploading ? "Enviando..." : "Anexar"}
           </span>
         </label>
+        </div>
       </div>
 
       {grupoInfo?.grupoId && (
