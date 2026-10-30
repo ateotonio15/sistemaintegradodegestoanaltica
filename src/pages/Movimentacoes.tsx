@@ -964,17 +964,17 @@ export default function Movimentacoes() {
                       <Label className="text-xs font-medium text-muted-foreground">Data Envio p/ Empresa</Label>
                       <Input type="date" value={form.data_envio_empresa ?? ""} onChange={(e) => handleDataEnvioChange(e.target.value || null)} disabled={formEhSecundarioGrupo} className="h-9 rounded-lg" />
                     </div>
-                    <div className="space-y-2">
-                      <Label className="text-sm font-medium">Data Envio Financeiro</Label>
+                    <div className="space-y-1.5">
+                      <Label className="text-xs font-medium text-muted-foreground">Data Envio Financeiro</Label>
                       <div className="flex gap-2">
-                        <Input type="date" value={form.data_envio_financeiro ?? ""} onChange={(e) => setForm({ ...form, data_envio_financeiro: e.target.value || null })} disabled={formEhSecundarioGrupo} className="rounded-lg flex-1" />
+                         <Input type="date" value={form.data_envio_financeiro ?? ""} onChange={(e) => setForm({ ...form, data_envio_financeiro: e.target.value || null })} disabled={formEhSecundarioGrupo} className="h-9 rounded-lg flex-1" />
 
                         {form.data_envio_financeiro && editingId && (
                           <Button
                             type="button"
                             variant="outline"
                             size="icon"
-                            className="rounded-lg shrink-0"
+                            className="h-9 w-9 rounded-lg shrink-0"
                             title="Limpar data de envio ao Financeiro"
                             onClick={() => {
                               if (confirm("Isso removerá o alerta enviado ao Financeiro. Deseja continuar?")) {
