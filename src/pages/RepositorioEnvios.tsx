@@ -76,6 +76,8 @@ export default function RepositorioEnvios() {
   const [searchArquivo, setSearchArquivo] = useState("");
   const [selectedEmpresaId, setSelectedEmpresaId] = useState<string | null>(null);
   const [selectedArquivoId, setSelectedArquivoId] = useState<string | null>(null);
+  const [filtros, setFiltros] = useState<FiltrosEnvios>(FILTROS_VAZIOS);
+  const [abaArquivos, setAbaArquivos] = useState<"arquivos" | "historico">("arquivos");
 
   const { data: empresas = [] } = useQuery({
     queryKey: ["envios-empresas-list"],
