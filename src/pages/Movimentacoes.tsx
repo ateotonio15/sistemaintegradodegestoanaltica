@@ -100,12 +100,12 @@ const emptyForm = {
 /** Título numerado de seção dentro da janela de movimentação (só organização visual). */
 function SecaoModal({ numero, titulo }: { numero: number; titulo: string }) {
   return (
-    <div className="flex items-center gap-2 pt-1">
-      <span className="inline-flex h-5 w-5 shrink-0 items-center justify-center rounded-md bg-primary/10 text-primary text-[11px] font-bold">
+    <div className="flex items-center gap-2.5 pt-1">
+      <span className="inline-flex h-5 w-5 shrink-0 items-center justify-center rounded-md bg-muted text-muted-foreground text-[11px] font-semibold">
         {numero}
       </span>
-      <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">{titulo}</span>
-      <div className="h-px flex-1 bg-border/60" />
+      <span className="text-[11px] font-medium uppercase tracking-[0.08em] text-muted-foreground/80">{titulo}</span>
+      <div className="h-px flex-1 bg-border/40" />
     </div>
   );
 }
@@ -909,12 +909,12 @@ export default function Movimentacoes() {
               {canEdit && <DialogTrigger asChild>
                 <Button className="rounded-lg"><Plus className="mr-2 h-4 w-4" />Nova Movimentação</Button>
               </DialogTrigger>}
-              <DialogContent className="sm:max-w-lg w-[95vw] max-h-[92dvh] rounded-xl flex flex-col overflow-hidden p-0">
-                 <DialogHeader className="px-6 pt-6 pb-3 border-b border-border/50 shrink-0">
+              <DialogContent className="sm:max-w-xl w-[95vw] max-h-[92dvh] rounded-xl flex flex-col overflow-hidden p-0">
+                 <DialogHeader className="px-6 pt-5 pb-4 border-b border-border/40 shrink-0">
                   <DialogTitle>{editingId ? "Editar Movimentação" : "Nova Movimentação"}</DialogTitle>
                 </DialogHeader>
                 <form onSubmit={(e) => { e.preventDefault(); upsert.mutate(form); }} className="flex min-h-0 flex-1 flex-col">
-                  <div className="flex-1 min-h-0 overflow-y-auto px-6 py-4 space-y-6">
+                  <div className="flex-1 min-h-0 overflow-y-auto scroll-smooth px-6 py-5 space-y-7">
 
                   {/* Seção 1 — Dados principais */}
                   <SecaoModal numero={1} titulo="Dados principais" />
@@ -1077,7 +1077,7 @@ export default function Movimentacoes() {
                   </div>
 
 
-                  <div className="shrink-0 flex justify-end gap-2 border-t border-border/50 bg-background/95 px-6 py-3 backdrop-blur">
+                  <div className="shrink-0 flex justify-end gap-2 border-t border-border/40 bg-muted/20 px-6 py-3.5">
                     <Button type="button" variant="outline" onClick={() => { setDialogOpen(false); resetForm(); }} className="rounded-lg">Cancelar</Button>
                     <Button type="submit" disabled={upsert.isPending || !form.empresa_id} className="rounded-lg">{upsert.isPending ? "Salvando..." : "Salvar"}</Button>
                   </div>
