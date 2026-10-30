@@ -907,7 +907,7 @@ export default function Movimentacoes() {
             <Button variant="outline" onClick={handleExportFerias} className="rounded-lg">
               <Plane className="mr-2 h-4 w-4" />Exportar Férias
             </Button>
-            {canEditDates && (
+            {canImportarRepositorio && (
             <Dialog open={dialogOpen} onOpenChange={(open) => { setDialogOpen(open); if (!open) resetForm(); }}>
               {canEdit && <DialogTrigger asChild>
                 <Button className="rounded-lg"><Plus className="mr-2 h-4 w-4" />Nova Movimentação</Button>
@@ -1230,14 +1230,14 @@ export default function Movimentacoes() {
                     <TableHead className="font-semibold">Status Faturamento</TableHead>
                     <TableHead className="font-semibold">Nota Enviada</TableHead>
                     <TableHead className="font-semibold whitespace-nowrap">Relatório</TableHead>
-                    {canEditDates && <TableHead className="w-24 font-semibold">Ações</TableHead>}
+                    {canImportarRepositorio && <TableHead className="w-24 font-semibold">Ações</TableHead>}
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {isLoading ? (
-                     <TableRow><TableCell colSpan={canEditDates ? 13 : 12} className="text-center text-muted-foreground py-12">Carregando...</TableCell></TableRow>
+                     <TableRow><TableCell colSpan={canImportarRepositorio ? 13 : 12} className="text-center text-muted-foreground py-12">Carregando...</TableCell></TableRow>
                    ) : filtered.length === 0 ? (
-                     <TableRow><TableCell colSpan={canEditDates ? 13 : 12} className="text-center text-muted-foreground py-12">Nenhuma movimentação encontrada</TableCell></TableRow>
+                     <TableRow><TableCell colSpan={canImportarRepositorio ? 13 : 12} className="text-center text-muted-foreground py-12">Nenhuma movimentação encontrada</TableCell></TableRow>
                   ) : (
                     filtered.map((m) => {
                       const status = calcularStatus(m);
