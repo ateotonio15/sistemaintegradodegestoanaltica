@@ -230,3 +230,44 @@ describe("Repositório de Envios — controle de versão", () => {
     expect(historico[1].status).toBe("Substituído");
   });
 });
+
+describe("Repositório de Envios — filtros e histórico de envios", () => {
+  it("filtra por competência, período, categoria, responsável e tipo de arquivo", () => {
+    const lista = [
+      arquivo({ id: "a", competencia: "2026-10", periodo: "05-10", tipo_relatorio: "Relatório de Vidas", enviado_nome: "Antonio", nome_arquivo: "vidas.pdf" }),
+      arquivo({ id: "b", competencia: "2026-10", periodo: "05-10", tipo_relatorio: "OPS Mensalidades", enviado_nome: "Antonio", nome_arquivo: "ops.xlsx" }),
+      arquivo({ id: "c", competencia: "2026-09", periodo: "10-15", tipo_relatorio: "Relatório de Vidas", enviado_nome: "Junior", nome_arquivo: "vidas9.pdf" }),
+    ];
+    expect(filtrarArquivos(lista, FILTROS_VAZIOS)).toHaveLength(3);
+    expect(filtrarArquivos(lista, { ...FILTROS_VAZIOS, competencia: "2026-09" }).map((a) => a.id)).toEqual(["c"]);
+    expect(filtrarArquivos(lista, { ...FILTROS_VAZIOS, periodo: "10-15" }).map((a) => a.id)).toEqual(["c"]);
+    expect(filtrarArquivos(lista, { ...FILTROS_VAZIOS, categoria: "OPS Mensalidades" }).map((a) => a.id)).toEqual(["b"]);
+    expect(filtrarArquivos(lista, { ...FILTROS_VAZIOS, responsavel: "Junior" }).map((a) => a.id)).toEqual(["c"]);
+    expect(filtrarArquivos(lista, { ...FILTROS_VAZIOS, tipoArquivo: "Excel" }).map((a) => a.id)).toEqual(["b"]);
+    expect(filtrarArquivos(lista, { ...FILTROS_VAZIOS, tipoArquivo: "PDF" }).map((a) => a.id)).toEqual(["a", "c"]);
+  });
+
+  it("reconhece o tipo de arquivo pela extensão", () => {
+    expect(tipoArquivoEnvio(arquivo({ nome_arquivo: "a.pdf" }))).toBe("PDF");
+    expect(tipoArquivoEnvio(arquivo({ nome_arquivo: "a.xlsx" }))).toBe("Excel");
+    expect(tipoArquivoEnvio(arquivo({ nome_arquivo: "a.csv" }))).toBe("Excel");
+    expect(tipoArquivoEnvio(arquivo({ nome_arquivo: "a.png" }))).toBe("Imagem");
+    expect(tipoArquivoEnvio(arquivo({ nome_arquivo: "sem-extensao" }))).toBe("Outros");
+  });
+
+  it("agrupa o histórico por envio, do mais recente ao mais antigo, com os arquivos de cada um", () => {
+    const lista = [
+      arquivo({ id: "a", envio_id: "e1", enviado_em: "2026-10-27T12:20:00Z", tipo_relatorio: "Relatório de Vidas", enviado_nome: "Antonio" }),
+      arquivo({ id: "b", envio_id: "e2", enviado_em: "2026-10-29T14:35:00Z", tipo_relatorio: "Relatório de Vidas", versao: 2, enviado_nome: "Antonio" }),
+      arquivo({ id: "c", envio_id: "e2", enviado_em: "2026-10-29T14:35:00Z", tipo_relatorio: "OPS Mensalidades", enviado_nome: "Antonio" }),
+    ];
+    const historico = agruparHistoricoEnvios(lista);
+    expect(historico.map((h) => h.envio_id)).toEqual(["e2", "e1"]);
+    expect(historico[0].total).toBe(2);
+    expect(historico[0].tipos).toEqual(["Relatório de Vidas", "OPS Mensalidades"]);
+    expect(historico[0].competencia).toBe("2026-10");
+    expect(historico[0].periodo).toBe("05-10");
+    expect(historico[0].enviado_nome).toBe("Antonio");
+    expect(historico[1].total).toBe(1);
+  });
+});
