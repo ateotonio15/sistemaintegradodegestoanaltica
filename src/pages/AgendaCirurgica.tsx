@@ -38,7 +38,7 @@ export default function AgendaCirurgica() {
   const { user } = useAuth();
   const [params, setParams] = useSearchParams();
   const aba = params.get("aba") === "pendentes" ? "pendentes" : "agenda";
-  const [form, setForm] = useState({ ini: hoje(), fim: hoje(), nm_paciente: "", nm_empresa: "", ie_status_agenda: "", cd_agenda: "", cd_medico: "", cd_convenio: "" });
+  const [form, setForm] = useState({ ini: hoje(), fim: hoje(), nm_paciente: "", nm_empresa: "", ie_status_agenda: "", cd_agenda: "", cd_medico: "", cd_convenio: "", ignorar_datas: false });
   const [filtros, setFiltros] = useState<FiltrosAgenda>({ dt_inicio: isoParaBr(hoje()), dt_fim: isoParaBr(hoje()), page: 1, limit: 50 });
   const [sel, setSel] = useState<AgendamentoCirurgico | null>(null);
   const [exportando, setExportando] = useState(false);
@@ -62,10 +62,7 @@ export default function AgendaCirurgica() {
   });
   const item: AgendamentoCirurgico | null = sel ? ((det.data?.dados ?? det.data) as any)?.nr_sequencia ? (det.data?.dados ?? det.data) : sel : null;
 
-  const aplicar = () => setFiltros({
-    dt_inicio: isoParaBr(form.ini), dt_fim: isoParaBr(form.fim), nm_paciente: form.nm_paciente, nm_empresa: form.nm_empresa,
-    ie_status_agenda: form.ie_status_agenda, cd_agenda: form.cd_agenda, cd_medico: form.cd_medico, cd_convenio: form.cd_convenio, page: 1, limit: 50,
-  });
+  const aplicar = () => setFiltros(montarFiltrosAgenda(form));
   const set = (k: keyof typeof form) => (e: React.ChangeEvent<HTMLInputElement>) => setForm((f) => ({ ...f, [k]: e.target.value }));
 
   const exportar = async () => {
@@ -88,7 +85,7 @@ export default function AgendaCirurgica() {
       }));
       const wb = XLSX.utils.book_new();
       XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(rows), "Agenda");
-      XLSX.writeFile(wb, `agenda-cirurgica_${form.ini}_${form.fim}.xlsx`);
+      XLSX.writeFile(wb, form.ignorar_datas ? "agenda-cirurgica_sem-periodo.xlsx" : `agenda-cirurgica_${form.ini}_${form.fim}.xlsx`);
     } finally { setExportando(false); }
   };
 
