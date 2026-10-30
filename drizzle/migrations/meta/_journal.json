@@ -533,6 +533,13 @@
       "when": 1793377346504,
       "tag": "0075_uber_funcoes",
       "breakpoints": true
+    },
+    {
+      "idx": 76,
+      "version": "7",
+      "when": 1793382269334,
+      "tag": "0076_executivo_externo_importar_repositorio",
+      "breakpoints": true
     }
   ]
 }
