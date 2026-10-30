@@ -192,7 +192,7 @@ const INTELIGENCIA_SECTIONS: InteligenciaSection[] = [
     title: "Produção de Guias",
     description: "Guias e pacientes do ambulatório por usuário",
     icon: ClipboardList,
-    allow: ["diretora", "diretora_saude", "coordenadora", "executivo", "executivo_externo", "enfermeira", "tec_enfermagem"],
+    allow: ["diretora", "diretora_saude", "coordenadora", "executivo", "enfermeira", "tec_enfermagem"],
     items: [
       {
         slug: "producao-guias",
