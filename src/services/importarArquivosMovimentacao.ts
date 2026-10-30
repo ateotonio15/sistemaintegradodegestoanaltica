@@ -1,4 +1,5 @@
 import { gerarRelatorioPortal, validarArquivoContrato, validarContratoPortal, type ArquivoPortal } from "@/services/portalEmpresaRelatorios";
+import { consultarDocumentoFechamento } from "./documentosFechamento";
 
 export interface ContextoImportacao {
   movimentacaoId: string;
@@ -13,13 +14,22 @@ export async function importarArquivosMovimentacao(
   signal: AbortSignal,
   anexar: (arquivo: ArquivoPortal) => Promise<"ignorado" | void>,
   encontrados: (quantidade: number) => void,
+  preparar = false,
 ) {
   const contrato = validarContratoPortal(contexto.contrato);
   signal.throwIfAborted();
-  const resultados = await Promise.allSettled([
-    gerarRelatorioPortal(contrato, "pdf", signal),
-    gerarRelatorioPortal(contrato, "xlsx", signal),
-  ]);
+  const obter = async (tipo: "pdf" | "xlsx") => {
+    if (!preparar) return gerarRelatorioPortal(contrato, tipo, signal);
+    const atual = await consultarDocumentoFechamento(contexto, tipo, signal);
+    if (atual) return atual;
+    const gerado = await gerarRelatorioPortal(contrato, tipo, signal);
+    validarArquivoContrato(contrato, gerado, gerado.nome_arquivo);
+    signal.throwIfAborted();
+    const registrado = await consultarDocumentoFechamento(contexto, tipo, signal, gerado.job_id);
+    if (!registrado) throw new Error("Não foi possível registrar o documento no repositório.");
+    return registrado;
+  };
+  const resultados = await Promise.allSettled((["pdf", "xlsx"] as const).map(obter));
   signal.throwIfAborted();
   const arquivos = resultados.flatMap(resultado => resultado.status === "fulfilled" ? [resultado.value] : []);
   // Valida todos antes de anexar o primeiro: uma resposta divergente nunca entra na movimentação.

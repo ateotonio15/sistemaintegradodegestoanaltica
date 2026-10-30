@@ -512,6 +512,13 @@
       "when": 1793361799874,
       "tag": "0072_envios_empresa_controle_versao",
       "breakpoints": true
+    },
+    {
+      "idx": 73,
+      "version": "7",
+      "when": 1793365051238,
+      "tag": "0073_fechamento_repositorio_primeiro",
+      "breakpoints": true
     }
   ]
 }

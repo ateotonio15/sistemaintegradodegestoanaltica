@@ -378,6 +378,7 @@ export type Database = {
           movimentacao_id: string
           nome_arquivo: string
           origem_importacao: string | null
+          repositorio_envio_id: string | null
           storage_path: string
           tamanho_bytes: number | null
           uploaded_by: string | null
@@ -390,6 +391,7 @@ export type Database = {
           movimentacao_id: string
           nome_arquivo: string
           origem_importacao?: string | null
+          repositorio_envio_id?: string | null
           storage_path: string
           tamanho_bytes?: number | null
           uploaded_by?: string | null
@@ -402,6 +404,7 @@ export type Database = {
           movimentacao_id?: string
           nome_arquivo?: string
           origem_importacao?: string | null
+          repositorio_envio_id?: string | null
           storage_path?: string
           tamanho_bytes?: number | null
           uploaded_by?: string | null
@@ -6986,6 +6989,22 @@ export type Database = {
       reatribuir_ferias_empresa: {
         Args: { p_fce_id: string; p_new_user_id: string }
         Returns: Json
+      }
+      registrar_documento_fechamento: {
+        Args: {
+          p_competencia: string
+          p_contrato: string
+          p_empresa: string
+          p_mime: string
+          p_movimentacao: string
+          p_nome: string
+          p_path: string
+          p_periodo: string
+          p_tamanho: number
+          p_tipo: string
+          p_usuario: string
+        }
+        Returns: string
       }
       registrar_envio_empresa_arquivos: {
         Args: {

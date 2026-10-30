@@ -41,7 +41,7 @@ export function ImportarArquivosButton({ movimentacaoId, empresaId, mes, periodo
     controller.current = abort;
     setBusy(true);
     onBusy(true);
-    setMensagem("Buscando arquivos do contrato...");
+    setMensagem(preparar ? "Consultando o Repositório de Envios..." : "Buscando arquivos do contrato...");
     setResumo(null);
     try {
       const { data: mov, error } = await supabase.from("movimentacoes")
@@ -59,7 +59,8 @@ export function ImportarArquivosButton({ movimentacaoId, empresaId, mes, periodo
         mes: mov.mes_referencia, periodo: mov.periodo,
       }, abort.signal, arquivo => onImportar(arquivo, abort.signal), quantidade => {
         setMensagem(`Arquivos encontrados: ${quantidade}${quantidade ? " — Anexando..." : ""}`);
-      });
+      }, preparar);
+      if (preparar) await queryClient.invalidateQueries({ queryKey: ["envios-empresa-arquivos"] });
       if (preparar && !abort.signal.aborted) setResumo({ nome: empresa.nome, contrato: String(empresa.codigo_contrato), mes: mov.mes_referencia, periodo: mov.periodo, resultado });
       if (!abort.signal.aborted) setMensagem(resultado.encontrados === 0
         ? "Nenhum arquivo disponível para este contrato. Tente novamente."

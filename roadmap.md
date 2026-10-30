@@ -9,6 +9,7 @@
 
 
 ## Preparar fechamento
+- [x] Priorizar versões atuais do Repositório de Envios pelo contexto completo; API somente para ausentes, registro distinto de e-mail, anexos identificados pela origem/bytes, sem excluir versões. 49 testes aprovados e build OK. Fluxo real contrato 2171, 2026-10, 20-25: PDF/Excel importados, registrados e anexados; repetição sem nova geração e 2 ignorados. Nenhum e-mail enviado ou salvamento da movimentação acionado. Fontes configuradas continuam sendo Vidas PDF e OPS Excel; a API não oferece filtro histórico.
 - [x] Buscar/anexar documentos esperados, mostrar resumo e permitir tentar novamente ou continuar sem bloqueio novo; "Concluir" reutiliza o salvamento atual.
 - [x] Histórico privado append-only, importações registradas atomicamente por trigger após inserção do anexo; contexto, horário e responsável definidos pelo servidor. 33 testes aprovados; sessão autenticada com relatórios reais conferiu resumo completo, ausência simulada do Excel e registro da pendência antes do salvamento existente. Gravações interceptadas; persistência real do histórico não exercitada para evitar dados de teste na operação.
 
