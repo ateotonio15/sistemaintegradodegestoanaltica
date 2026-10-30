@@ -233,7 +233,7 @@ async function chamarDireto<T>(url: string, chave: string): Promise<T> {
   return corpo as T;
 }
 
-function montarQueryListagem(f: FiltrosAgenda): string {
+export function montarQueryListagem(f: FiltrosAgenda): string {
   const p = new URLSearchParams();
   const add = (k: string, v?: string) => {
     if (v && v.trim()) p.set(k, v.trim());
@@ -251,6 +251,39 @@ function montarQueryListagem(f: FiltrosAgenda): string {
   p.set("limit", String(Math.min(500, Math.max(1, f.limit ?? 50))));
   return p.toString();
 }
+
+export type FormularioAgenda = {
+  ini: string;
+  fim: string;
+  nm_paciente: string;
+  nm_empresa: string;
+  ie_status_agenda: string;
+  cd_agenda: string;
+  cd_medico: string;
+  cd_convenio: string;
+  /** Quando true, nenhum período é enviado: a busca usa apenas os demais filtros. */
+  ignorar_datas: boolean;
+};
+
+/**
+ * Converte a tela de filtros em FiltrosAgenda. Com "ignorar datas" os campos de
+ * período ficam vazios — a API e o proxy só enviam datas quando elas existem.
+ */
+export const montarFiltrosAgenda = (
+  form: FormularioAgenda,
+  paginacao: { page?: number; limit?: number } = { page: 1, limit: 50 },
+): FiltrosAgenda => ({
+  dt_inicio: form.ignorar_datas ? "" : isoParaBr(form.ini),
+  dt_fim: form.ignorar_datas ? "" : isoParaBr(form.fim),
+  nm_paciente: form.nm_paciente,
+  nm_empresa: form.nm_empresa,
+  ie_status_agenda: form.ie_status_agenda,
+  cd_agenda: form.cd_agenda,
+  cd_medico: form.cd_medico,
+  cd_convenio: form.cd_convenio,
+  page: paginacao.page ?? 1,
+  limit: paginacao.limit ?? 50,
+});
 
 export const listarProcedimentosPendentesDireto = async (filtros: FiltrosPendentes, chave: string) => {
   const p = new URLSearchParams({
