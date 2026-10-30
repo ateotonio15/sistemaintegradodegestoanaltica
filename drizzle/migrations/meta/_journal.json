@@ -519,6 +519,13 @@
       "when": 1793365051238,
       "tag": "0073_fechamento_repositorio_primeiro",
       "breakpoints": true
+    },
+    {
+      "idx": 74,
+      "version": "7",
+      "when": 1793367229922,
+      "tag": "0074_corrigir_registro_historico_envio",
+      "breakpoints": true
     }
   ]
 }
