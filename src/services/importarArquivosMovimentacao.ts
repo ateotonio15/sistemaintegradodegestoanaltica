@@ -11,7 +11,7 @@ export interface ContextoImportacao {
 export async function importarArquivosMovimentacao(
   contexto: ContextoImportacao,
   signal: AbortSignal,
-  anexar: (arquivo: ArquivoPortal) => Promise<void>,
+  anexar: (arquivo: ArquivoPortal) => Promise<"ignorado" | void>,
   encontrados: (quantidade: number) => void,
 ) {
   const contrato = validarContratoPortal(contexto.contrato);
@@ -26,11 +26,12 @@ export async function importarArquivosMovimentacao(
   for (const arquivo of arquivos) validarArquivoContrato(contrato, arquivo, arquivo.nome_arquivo);
   encontrados(arquivos.length);
   let anexados = 0;
+  let ignorados = 0;
   let falhas = resultados.filter(resultado => resultado.status === "rejected").length;
   for (const arquivo of arquivos) {
     signal.throwIfAborted();
-    try { await anexar(arquivo); anexados++; }
+    try { if (await anexar(arquivo) === "ignorado") ignorados++; else anexados++; }
     catch (erro) { if (signal.aborted) throw erro; falhas++; }
   }
-  return { encontrados: arquivos.length, anexados, falhas };
+  return { encontrados: arquivos.length, anexados, ignorados, falhas };
 }

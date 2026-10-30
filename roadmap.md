@@ -1,6 +1,7 @@
 # Roadmap — Primeiro pacote financeiro
 
 ## Importar arquivos em Editar Movimentação
+- [ ] Identificar tipo, formato, contrato e competência de destino; prévia de PDF/imagens, duplicação por nome/contrato/competência/tipo e aviso dos ignorados, mantendo somente fontes existentes.
 - [x] Adicionar busca de PDF/Excel pela integração existente e anexação à movimentação salva, preservando o envio manual e o salvamento; mês/período identificam o destino, pois a API atual consulta somente por contrato.
 - [x] 19 testes aprovados e tela autenticada conferida com PDF/Excel reais do contrato 2171; gravações de anexos interceptadas, sem anexos de teste na operação. Contexto divergente/cancelado bloqueado; repetição do mesmo nome/conteúdo não duplica. Persistência real não exercitada.
 
