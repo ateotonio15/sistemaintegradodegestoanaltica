@@ -918,11 +918,11 @@ export default function Movimentacoes() {
 
                   {/* Seção 1 — Dados principais */}
                   <SecaoModal numero={1} titulo="Dados principais" />
-                  <div className="grid gap-4 sm:grid-cols-2">
-                    <div className="space-y-2">
-                      <Label className="text-sm font-medium">Empresa *</Label>
+                  <div className="grid gap-x-4 gap-y-5 sm:grid-cols-2">
+                    <div className="space-y-1.5">
+                      <Label className="text-xs font-medium text-muted-foreground">Empresa *</Label>
                       <Select value={form.empresa_id} onValueChange={handleEmpresaChange} disabled={!canEdit && !!editingId}>
-                        <SelectTrigger className="rounded-lg"><SelectValue placeholder="Selecione" /></SelectTrigger>
+                         <SelectTrigger className="h-9 rounded-lg font-medium"><SelectValue placeholder="Selecione" /></SelectTrigger>
                         <SelectContent>
                           {empresas.filter((e) => (e as any).status_empresa === "Ativa").map((e) => (
                             <SelectItem key={e.id} value={e.id}>{e.nome}</SelectItem>
@@ -930,21 +930,21 @@ export default function Movimentacoes() {
                         </SelectContent>
                       </Select>
                     </div>
-                    <div className="space-y-2">
-                      <Label className="text-sm font-medium">Mês Referência *</Label>
-                      <Input type="month" value={form.mes_referencia} onChange={(e) => setForm({ ...form, mes_referencia: e.target.value })} required disabled={!canEdit && !!editingId} className="rounded-lg" />
+                    <div className="space-y-1.5">
+                      <Label className="text-xs font-medium text-muted-foreground">Mês Referência *</Label>
+                       <Input type="month" value={form.mes_referencia} onChange={(e) => setForm({ ...form, mes_referencia: e.target.value })} required disabled={!canEdit && !!editingId} className="h-9 rounded-lg" />
                     </div>
-                    <div className="space-y-2">
-                      <Label className="text-sm font-medium">Tipo Movimentação</Label>
-                      <Input value={form.tipo_movimentacao ?? selectedEmpresa?.tipo_movimentacao ?? "—"} disabled className="bg-accent/50 rounded-lg" />
+                    <div className="space-y-1.5">
+                      <Label className="text-xs font-medium text-muted-foreground">Tipo Movimentação</Label>
+                      <Input value={form.tipo_movimentacao ?? selectedEmpresa?.tipo_movimentacao ?? "—"} disabled className="h-9 rounded-lg border-dashed bg-muted/40 text-muted-foreground" />
                     </div>
-                    <div className="space-y-2">
-                      <Label className="text-sm font-medium">Período {isFechada ? "(fixo)" : "(automático)"}</Label>
+                    <div className="space-y-1.5">
+                      <Label className="text-xs font-medium text-muted-foreground">Período {isFechada ? "(fixo)" : "(automático)"}</Label>
                       {isFechada ? (
-                        <Input value={form.periodo} disabled className="bg-accent/50 rounded-lg" />
+                        <Input value={form.periodo} disabled className="h-9 rounded-lg border-dashed bg-muted/40 text-muted-foreground" />
                       ) : (
                         <Select value={form.periodo} onValueChange={(v) => setForm({ ...form, periodo: v })} disabled={!canEdit && !!editingId}>
-                          <SelectTrigger className="rounded-lg"><SelectValue /></SelectTrigger>
+                          <SelectTrigger className="h-9 rounded-lg"><SelectValue /></SelectTrigger>
                           <SelectContent>
                             {PERIODOS.map((p) => <SelectItem key={p} value={p}>{p}</SelectItem>)}
                           </SelectContent>
@@ -955,14 +955,14 @@ export default function Movimentacoes() {
 
                   {/* Seção 2 — Datas e responsável */}
                   <SecaoModal numero={2} titulo="Datas e responsável" />
-                  <div className="grid gap-4 sm:grid-cols-2">
-                    <div className="space-y-2">
-                       <Label className="text-sm font-medium">Responsável</Label>
-                      <Input value={form.responsavel_movimentacao ?? ""} onChange={(e) => setForm({ ...form, responsavel_movimentacao: e.target.value })} disabled={!canEdit && !!editingId} className="rounded-lg" />
+                  <div className="grid gap-x-4 gap-y-5 sm:grid-cols-2">
+                    <div className="space-y-1.5">
+                       <Label className="text-xs font-medium text-muted-foreground">Responsável</Label>
+                      <Input value={form.responsavel_movimentacao ?? ""} onChange={(e) => setForm({ ...form, responsavel_movimentacao: e.target.value })} disabled={!canEdit && !!editingId} className="h-9 rounded-lg" />
                     </div>
-                    <div className="space-y-2">
-                      <Label className="text-sm font-medium">Data Envio p/ Empresa</Label>
-                      <Input type="date" value={form.data_envio_empresa ?? ""} onChange={(e) => handleDataEnvioChange(e.target.value || null)} disabled={formEhSecundarioGrupo} className="rounded-lg" />
+                    <div className="space-y-1.5">
+                      <Label className="text-xs font-medium text-muted-foreground">Data Envio p/ Empresa</Label>
+                      <Input type="date" value={form.data_envio_empresa ?? ""} onChange={(e) => handleDataEnvioChange(e.target.value || null)} disabled={formEhSecundarioGrupo} className="h-9 rounded-lg" />
                     </div>
                     <div className="space-y-2">
                       <Label className="text-sm font-medium">Data Envio Financeiro</Label>
