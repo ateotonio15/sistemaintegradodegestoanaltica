@@ -6,6 +6,7 @@ import { enviarSmtp, type Anexo } from "../_shared/smtp.ts";
 import { dataCorteMovimentacao } from "../_shared/data-corte.ts";
 import { baixarRelatorioPortal, validarContratoPortal, RELATORIOS_PORTAL } from "../_shared/portal-empresa-relatorios.ts";
 import { concluirEnvioRelatorio } from "../_shared/registrar-envio-relatorio.ts";
+import { BUCKET_ENVIOS, bytesPorCaminho, montarItensEnvio, type AnexoEnviado, type DestinoEnvio } from "../_shared/envios-empresa.ts";
 
 const Body = z.object({
   movimentacao_id: z.string().uuid(),
@@ -99,6 +100,7 @@ Deno.serve(async (req) => {
       if (JSON.stringify(ccSalvo) !== JSON.stringify(ccEnviado)) return json({ error: "Os e-mails em cópia do lote foram alterados. Prepare novamente." }, 409);
     }
     const anexos: Anexo[] = [];
+    const anexosEnviados: AnexoEnviado[] = [];
     let total = 0;
     // Cada arquivo é baixado de novo e conferido pelo número do próprio contrato.
     for (const job of [...portal_jobs, ...grupo_jobs]) {
@@ -106,6 +108,7 @@ Deno.serve(async (req) => {
       const bytes = new Uint8Array(await arquivo.blob.arrayBuffer());
       total += bytes.length;
       anexos.push({ nome: arquivo.nome_arquivo, mime: RELATORIOS_PORTAL[job.tipo].mime, conteudo: bytes });
+      anexosEnviados.push({ nome: arquivo.nome_arquivo, mime: RELATORIOS_PORTAL[job.tipo].mime, conteudo: bytes, contrato: String(job.nr_contrato), tipo: job.tipo });
     }
     if (total > 15 * 1024 * 1024) return json({ error: "Os anexos do grupo passam de 15 MB" }, 400);
 
@@ -162,11 +165,33 @@ Deno.serve(async (req) => {
     const { data: atual, error: erroAtual } = await userClient.from("movimentacoes").select("empresas(codigo_contrato)").eq("id", movimentacao_id).maybeSingle();
     if (erroAtual || validarContratoPortal((atual as any)?.empresas?.codigo_contrato) !== contrato) return json({ error: "O contrato da empresa foi alterado. Abra o relatório novamente." }, 409);
     const movimentacoesEnviadas = [movimentacao_id];
+    let movsGrupo: { id: string; empresa_id: string; mes_referencia: string; periodo: string | null }[] = [];
     if (membros.length) {
-      const { data: movsGrupo, error: erroGrupo } = await userClient.from("movimentacoes").select("id")
+      const { data: movsGrupoRes, error: erroGrupo } = await userClient.from("movimentacoes")
+        .select("id, empresa_id, mes_referencia, periodo")
         .in("empresa_id", membros.map(m => m.empresa_id)).eq("mes_referencia", mov.mes_referencia);
       if (erroGrupo) throw erroGrupo;
-      movimentacoesEnviadas.push(...(movsGrupo ?? []).map(m => m.id));
+      movsGrupo = (movsGrupoRes ?? []) as typeof movsGrupo;
+      movimentacoesEnviadas.push(...movsGrupo.map(m => m.id));
+    }
+    // Destino de cada arquivo: o do próprio contrato. Sem movimento do membro, vale o contexto do principal.
+    const destinoPorContrato = new Map<string, DestinoEnvio>();
+    destinoPorContrato.set(String(contrato), {
+      movimentacaoId: movimentacao_id,
+      empresaId: (mov as any).empresa_id,
+      contrato: String(contrato),
+      competencia: String(mov.mes_referencia ?? ""),
+      periodo: (mov as any).periodo ?? null,
+    });
+    for (const m of membros) {
+      const mv = movsGrupo.find(x => x.empresa_id === m.empresa_id);
+      destinoPorContrato.set(String(m.contrato), {
+        movimentacaoId: mv?.id ?? movimentacao_id,
+        empresaId: m.empresa_id,
+        contrato: String(m.contrato),
+        competencia: String(mv?.mes_referencia ?? mov.mes_referencia ?? ""),
+        periodo: mv?.periodo ?? (mov as any).periodo ?? null,
+      });
     }
     const { data: perfil } = await admin.from("profiles").select("display_name").eq("user_id", u.user.id).maybeSingle();
     const envioId = crypto.randomUUID();
