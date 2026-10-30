@@ -46,6 +46,8 @@ interface Props {
   /** Callback chamado após upload/exclusão para o pai atualizar indicadores dependentes dos anexos. */
   onAttachmentsChange?: () => void;
   onConcluir?: () => void;
+  /** Perfil executivo externo: só "Importar do Repositório"; sem upload manual, exclusão ou preparar fechamento. */
+  somenteImportarRepositorio?: boolean;
 }
 
 const STORAGE_BUCKET = "anexos-movimentacoes";
@@ -56,7 +58,7 @@ function buildPath(empresaId: string, movId: string, fileName: string) {
   return `${empresaId}/${movId}/${crypto.randomUUID()}.${ext}`;
 }
 
-export function AnexosMovimentacao({ movimentacaoId, empresaId, mes, periodo, required, onCountChange, onAttachmentsChange, onConcluir }: Props) {
+export function AnexosMovimentacao({ movimentacaoId, empresaId, mes, periodo, required, onCountChange, onAttachmentsChange, onConcluir, somenteImportarRepositorio = false }: Props) {
   const queryClient = useQueryClient();
   const { user } = useAuth();
   const [uploading, setUploading] = useState(false);
