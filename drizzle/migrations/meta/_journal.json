@@ -484,6 +484,13 @@
       "when": 1793360759723,
       "tag": "0068_historico_preparacao_fechamento",
       "breakpoints": true
+    },
+    {
+      "idx": 69,
+      "version": "7",
+      "when": 1793361070043,
+      "tag": "0069_create_envios_empresa_arquivos",
+      "breakpoints": true
     }
   ]
 }
