@@ -69,6 +69,28 @@ export function agruparEnvios(arquivos: ArquivoEnvio[]): GrupoCompetencia[] {
     }));
 }
 
+/**
+ * Identidade do documento: mesma empresa, contrato, competência, período e
+ * categoria. O nome do arquivo não entra — nomes diferentes podem ser o mesmo
+ * documento (ex.: "Relatorio_Vidas_2487.pdf" e "Vidas_Ativas_Contrato_2487.pdf").
+ */
+export function chaveDocumento(a: ArquivoEnvio): string {
+  return [a.empresa_id, a.contrato, a.competencia, a.periodo ?? "", a.tipo_relatorio].join("|");
+}
+
+/** A listagem principal mostra somente a versão atual de cada documento. */
+export function apenasAtuais(arquivos: ArquivoEnvio[]): ArquivoEnvio[] {
+  return arquivos.filter((a) => a.status === "Atual");
+}
+
+/** Todas as versões do mesmo documento, da mais nova para a mais antiga. */
+export function versoesDoDocumento(arquivos: ArquivoEnvio[], referencia: ArquivoEnvio): ArquivoEnvio[] {
+  const chave = chaveDocumento(referencia);
+  return arquivos
+    .filter((a) => chaveDocumento(a) === chave)
+    .sort((x, y) => y.versao - x.versao || y.enviado_em.localeCompare(x.enviado_em));
+}
+
 /** Data e hora do envio no formato brasileiro, no fuso de Manaus. */
 export function formatarDataHoraEnvio(iso: string | null | undefined): string {
   if (!iso) return "—";
