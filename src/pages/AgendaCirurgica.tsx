@@ -13,9 +13,10 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { RelatorioPendentesEmpresa } from "@/components/agenda/RelatorioPendentesEmpresa";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   AgendamentoCirurgico, ConfigServidorAgenda, FiltrosAgenda, ModoAcesso, lerModoAgenda,
-  detalharAgendamento, detalharAgendamentoDireto, isoParaBr, lerServidorAgenda,
+  detalharAgendamento, detalharAgendamentoDireto, isoParaBr, lerServidorAgenda, montarFiltrosAgenda,
   lerChaveDireta, listarAgendamentos, listarAgendamentosDireto,
 } from "@/lib/agendaCirurgicaApi";
 import { formatarDataAgenda, formatarHoraAgenda } from "@/lib/agenda-pendentes";
