@@ -1,5 +1,10 @@
 # Roadmap — Primeiro pacote financeiro
 
+## Repositório de Envios — 30/10
+- [x] Nova aba em "Utilitários" (/repositorio-envios) com Empresas → Arquivos → Prévia, agrupando por competência e período; Repositório Financeiro, Movimentações e envio de e-mails permanecem como estão. 9 testes aprovados; sessão autenticada conferiu o card no menu, as três colunas e a busca de empresas.
+- [x] PDF e Excel de cada e-mail são guardados automaticamente após o servidor de e-mail aceitar o envio e registrados com empresa, contrato, competência, período, categoria, responsável e data/hora. Nenhum e-mail disparado na verificação: a gravação real depende do próximo envio.
+
+
 ## Preparar fechamento
 - [x] Buscar/anexar documentos esperados, mostrar resumo e permitir tentar novamente ou continuar sem bloqueio novo; "Concluir" reutiliza o salvamento atual.
 - [x] Histórico privado append-only, importações registradas atomicamente por trigger após inserção do anexo; contexto, horário e responsável definidos pelo servidor. 33 testes aprovados; sessão autenticada com relatórios reais conferiu resumo completo, ausência simulada do Excel e registro da pendência antes do salvamento existente. Gravações interceptadas; persistência real do histórico não exercitada para evitar dados de teste na operação.
