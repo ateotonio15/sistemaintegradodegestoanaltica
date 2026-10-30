@@ -1042,6 +1042,7 @@ export default function Movimentacoes() {
                     mes={form.mes_referencia}
                     periodo={form.periodo}
                     required={!!form.data_envio_financeiro}
+                    onConcluir={() => { if (!upsert.isPending) upsert.mutate(form); }}
                   />
                   </div>
 
