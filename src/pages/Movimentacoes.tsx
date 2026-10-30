@@ -966,14 +966,14 @@ export default function Movimentacoes() {
                     </div>
                     <div className="space-y-1.5">
                       <Label className="text-xs font-medium text-muted-foreground">Data Envio p/ Empresa</Label>
-                      <Input type="date" value={form.data_envio_empresa ?? ""} onChange={(e) => handleDataEnvioChange(e.target.value || null)} disabled={formEhSecundarioGrupo} className="h-9 rounded-lg" />
+                      <Input type="date" value={form.data_envio_empresa ?? ""} onChange={(e) => handleDataEnvioChange(e.target.value || null)} disabled={!canEditDates || formEhSecundarioGrupo} className="h-9 rounded-lg" />
                     </div>
                     <div className="space-y-1.5">
                       <Label className="text-xs font-medium text-muted-foreground">Data Envio Financeiro</Label>
                       <div className="flex gap-2">
-                         <Input type="date" value={form.data_envio_financeiro ?? ""} onChange={(e) => setForm({ ...form, data_envio_financeiro: e.target.value || null })} disabled={formEhSecundarioGrupo} className="h-9 rounded-lg flex-1" />
+                         <Input type="date" value={form.data_envio_financeiro ?? ""} onChange={(e) => setForm({ ...form, data_envio_financeiro: e.target.value || null })} disabled={!canEditDates || formEhSecundarioGrupo} className="h-9 rounded-lg flex-1" />
 
-                        {form.data_envio_financeiro && editingId && (
+                        {canEditDates && form.data_envio_financeiro && editingId && (
                           <Button
                             type="button"
                             variant="outline"
@@ -1046,8 +1046,8 @@ export default function Movimentacoes() {
                         <Textarea
                           value={novaObservacao}
                           onChange={(e) => setNovaObservacao(e.target.value)}
-                           disabled={formEhSecundarioGrupo}
-                          placeholder={formEhSecundarioGrupo ? "Gerenciado pelo contrato principal do grupo" : "Adicionar nova observação (as anteriores não podem ser alteradas)"}
+                           disabled={!canEditDates || formEhSecundarioGrupo}
+                           placeholder={!canEditDates ? "Somente leitura" : formEhSecundarioGrupo ? "Gerenciado pelo contrato principal do grupo" : "Adicionar nova observação (as anteriores não podem ser alteradas)"}
                           className="min-h-[90px] resize-y border-0 bg-transparent shadow-none focus-visible:ring-0 focus-visible:ring-offset-0 text-sm placeholder:text-muted-foreground/70"
                         />
                       </div>
