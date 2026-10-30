@@ -1,9 +1,9 @@
 # Roadmap — Primeiro pacote financeiro
 
 ## Importar arquivos em Editar Movimentação
-- [ ] Identificar tipo, formato, contrato e competência de destino; prévia de PDF/imagens, duplicação por nome/contrato/competência/tipo e aviso dos ignorados, mantendo somente fontes existentes.
+- [x] Identificação por nome/formato/contrato/tipo, competência explicitamente de destino e geração somente quando informada no nome; prévia reutilizada para PDF/imagens. 35 testes aprovados; sessão autenticada com arquivos reais confirmou aviso de 1 ignorado e prévia PDF. Gravações interceptadas, sem dados de teste na operação. Integração atual só disponibiliza PDF e XLS/XLSX, não há catálogo de outros formatos nem filtro histórico.
 - [x] Adicionar busca de PDF/Excel pela integração existente e anexação à movimentação salva, preservando o envio manual e o salvamento; mês/período identificam o destino, pois a API atual consulta somente por contrato.
-- [x] 19 testes aprovados e tela autenticada conferida com PDF/Excel reais do contrato 2171; gravações de anexos interceptadas, sem anexos de teste na operação. Contexto divergente/cancelado bloqueado; repetição do mesmo nome/conteúdo não duplica. Persistência real não exercitada.
+- [x] 19 testes aprovados e tela autenticada conferida com PDF/Excel reais do contrato 2171; gravações de anexos interceptadas, sem anexos de teste na operação. Contexto divergente/cancelado bloqueado; deduplicação agora por nome/contrato/competência/tipo conforme pedido posterior, sem substituir anexos. Persistência real não exercitada.
 
 ## Cartório 3 Ofício — primeira movimentação
 - [x] Aplicado ao "Dashboard Geral" o limite da primeira competência em todos os gráficos da consulta comum; 14 testes aprovados, outubro 01-05 confirmado com 42 em vez de 43 e nenhum fora do prazo, sem apagar registros.
