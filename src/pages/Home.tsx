@@ -46,6 +46,7 @@ import {
   FileSearch,
   Settings,
   ClipboardList,
+  Send,
 } from "lucide-react";
 
 type InteligenciaItem = {
@@ -391,6 +392,16 @@ const SHORTCUTS: Shortcut[] = [
     icon: FolderArchive,
     group: "utilitarios",
     show: (c) => c.isAdmin || c.isFinanceiro,
+  },
+  {
+    to: "/repositorio-envios",
+    label: "Repositório de Envios",
+    description: "Arquivos enviados às empresas por e-mail",
+    icon: Send,
+    group: "utilitarios",
+    show: (c) =>
+      c.isAdmin || c.isFinanceiro ||
+      ["comum", "administradoras", "diretora", "visualizacao"].includes(c.role as string),
   },
   {
     to: "/usuarios",

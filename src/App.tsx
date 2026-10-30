@@ -21,6 +21,7 @@ import RecebidosCentral from "./pages/RecebidosCentral";
 import PainelTvFinanceiro from "./pages/PainelTvFinanceiro";
 import Reajustes from "./pages/Reajustes";
 import Arquivos from "./pages/Arquivos";
+import RepositorioEnvios from "./pages/RepositorioEnvios";
 import Cartas from "./pages/Cartas";
 import Implantacao from "./pages/Implantacao";
 import ContratosRecemImplantados from "./pages/ContratosRecemImplantados";
@@ -260,6 +261,10 @@ const AppRoutes = () => (
         <Route path="/arquivos" element={<Arquivos />} />
         <Route path="/recebidos-central" element={<RecebidosCentral />} />
         <Route path="/cartas" element={<Cartas />} />
+      </Route>
+
+      <Route element={<RoleGate allow={["admin", "financeiro", "comum", "administradoras", "visualizacao", "diretora"]} />}>
+        <Route path="/repositorio-envios" element={<RepositorioEnvios />} />
       </Route>
 
       <Route element={<RoleGate allow={["admin"]} />}>

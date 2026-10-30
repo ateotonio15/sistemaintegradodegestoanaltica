@@ -2576,6 +2576,63 @@ export type Database = {
           },
         ]
       }
+      envios_empresa_arquivos: {
+        Row: {
+          bucket: string
+          competencia: string
+          contrato: string
+          empresa_id: string
+          enviado_em: string
+          enviado_nome: string | null
+          enviado_por: string
+          envio_id: string
+          id: string
+          mime_type: string | null
+          movimentacao_id: string
+          nome_arquivo: string
+          periodo: string | null
+          storage_path: string
+          tamanho_bytes: number | null
+          tipo_relatorio: string
+        }
+        Insert: {
+          bucket?: string
+          competencia: string
+          contrato: string
+          empresa_id: string
+          enviado_em?: string
+          enviado_nome?: string | null
+          enviado_por: string
+          envio_id: string
+          id?: string
+          mime_type?: string | null
+          movimentacao_id: string
+          nome_arquivo: string
+          periodo?: string | null
+          storage_path: string
+          tamanho_bytes?: number | null
+          tipo_relatorio: string
+        }
+        Update: {
+          bucket?: string
+          competencia?: string
+          contrato?: string
+          empresa_id?: string
+          enviado_em?: string
+          enviado_nome?: string | null
+          enviado_por?: string
+          envio_id?: string
+          id?: string
+          mime_type?: string | null
+          movimentacao_id?: string
+          nome_arquivo?: string
+          periodo?: string | null
+          storage_path?: string
+          tamanho_bytes?: number | null
+          tipo_relatorio?: string
+        }
+        Relationships: []
+      }
       feriados: {
         Row: {
           ano: number
@@ -6920,6 +6977,15 @@ export type Database = {
       reatribuir_ferias_empresa: {
         Args: { p_fce_id: string; p_new_user_id: string }
         Returns: Json
+      }
+      registrar_envio_empresa_arquivos: {
+        Args: {
+          p_envio_id: string
+          p_itens: Json
+          p_nome: string
+          p_usuario: string
+        }
+        Returns: undefined
       }
       registrar_envio_relatorio_concluido: {
         Args: {

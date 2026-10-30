@@ -48,6 +48,66 @@ function normalize(s) {
   return (s || "").toString().normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().trim();
 }
 
+// src/lib/faturamento-totais.ts
+function classificarValorCampo(v) {
+  if (v === null || v === void 0 || v === "") return "ausente";
+  const n = typeof v === "number" ? v : Number(v);
+  if (!Number.isFinite(n)) return "invalido";
+  return n === 0 ? "zero" : "valor";
+}
+var CATEGORIAS_TOTAL_FATURAMENTO = [
+  "enfermaria",
+  "apartamento",
+  "inclusoes",
+  "exclusoes",
+  "devolucoes",
+  "permuta",
+  "taxaAdesao",
+  "coparticipacao",
+  "complemento"
+];
+var ROTULO_CATEGORIA = {
+  enfermaria: "Mensalidade Enfermaria",
+  apartamento: "Mensalidade Apartamento",
+  inclusoes: "Inclus\xF5es",
+  exclusoes: "Exclus\xF5es",
+  devolucoes: "Devolu\xE7\xF5es",
+  permuta: "Permuta",
+  taxaAdesao: "Taxa de ades\xE3o",
+  coparticipacao: "Coparticipa\xE7\xE3o",
+  complemento: "Complemento"
+};
+function calcularTotalFaturamento(r) {
+  let total = 0;
+  const pendencias = [];
+  for (const cat of CATEGORIAS_TOTAL_FATURAMENTO) {
+    const c2 = r[cat];
+    if (!c2) continue;
+    const qtd = Number(c2.quantidade ?? c2.beneficiarios ?? 0) || 0;
+    const situacao = classificarValorCampo(c2.total);
+    if (situacao === "valor" || situacao === "zero") {
+      total += Number(c2.total);
+      continue;
+    }
+    if (qtd > 0) {
+      pendencias.push({
+        categoria: cat,
+        rotulo: ROTULO_CATEGORIA[cat],
+        quantidade: qtd,
+        motivo: situacao === "ausente" ? "valor ausente" : "valor inv\xE1lido"
+      });
+    }
+  }
+  return {
+    total: Number(total.toFixed(2)),
+    completo: pendencias.length === 0,
+    pendencias
+  };
+}
+function somarTotalFaturamento(r) {
+  return calcularTotalFaturamento(r).total;
+}
+
 // src/lib/excel-analysis-utils.ts
 function reclassificarRetroComoReajuste(b) {
   if (!b.retroativas) return;
@@ -655,6 +715,22 @@ function parseCoparticipacaoPivotTipoCobranca(rows) {
     empresaAtual = label;
   }
   return items;
+}
+function totalDeclaradoResumoConfere(wb, esperado) {
+  const rows = lerRowsAbaResumo(wb);
+  if (!rows) return false;
+  for (const r of rows) {
+    const i = (r || []).findIndex((c2) => norm(c2) === "total");
+    if (i < 0) continue;
+    for (let c2 = i + 1; c2 < r.length; c2++) {
+      const n = toNumber(r[c2]);
+      if (!isNaN(n)) {
+        if (Math.abs(n - esperado) < 0.01) return true;
+        break;
+      }
+    }
+  }
+  return false;
 }
 function lerRowsAbaResumo(wb) {
   const ws = wb.worksheets.find((s) => norm(s.name).includes("resumo"));
@@ -1793,6 +1869,8 @@ async function analisarExcelFinanceiroPorCnpj(buffer) {
     for (const [k, v] of retroPorPagador) if (k.startsWith(n) || n.startsWith(k)) return v;
     return null;
   };
+  const detalheSomaT = detalheArr.reduce((s, d) => s + d.total, 0);
+  const detalheSomaQ = detalheArr.reduce((s, d) => s + d.quantidade, 0);
   const scaleDetalhe = (w) => detalheArr.length ? detalheArr.map((d) => ({ mes: d.mes, quantidade: Math.round(d.quantidade * w), total: d.total * w })) : void 0;
   if ((extraRetroQtd !== 0 || Math.abs(extraRetroTotal) > 1e-3) && blocos.length > 0) {
     const jaRetroTotal = blocos.reduce((s, b) => s + (b.retroativas?.total ?? 0), 0);
@@ -1848,6 +1926,17 @@ async function analisarExcelFinanceiroPorCnpj(buffer) {
           b.inclusoes = { quantidade: b.inclusoes.quantidade + q, total: b.inclusoes.total + v };
         });
       }
+    } else if (blocos.length === 1 && linhasPrincipaisTemRetroativa && detalheArr.length > 0 && detalheSomaT > 1e-3 && Math.abs(detalheSomaT - jaRetroTotal) > 0.01 && totalDeclaradoResumoConfere(wb, somarTotalFaturamento(blocos[0]) + detalheSomaT)) {
+      const b = blocos[0];
+      b.retroativasBeneficiarios = b.retroativas ? { ...b.retroativas } : void 0;
+      b.retroativas = {
+        quantidade: (b.retroativas?.quantidade ?? 0) + detalheSomaQ,
+        total: (b.retroativas?.total ?? 0) + detalheSomaT,
+        meses: mesesArr,
+        mesesDetalhe: scaleDetalhe(1)
+      };
+      b.retroativasReajuste = { quantidade: detalheSomaQ, total: detalheSomaT, meses: mesesArr, mesesDetalhe: scaleDetalhe(1) };
+      b.inclusoes = { quantidade: b.inclusoes.quantidade + detalheSomaQ, total: b.inclusoes.total + detalheSomaT };
     } else if (mesesArr.length) {
       blocos.forEach((b) => {
         if (b.retroativas) {
@@ -2762,66 +2851,6 @@ function conferirIdentidadeFiscal(texto, e) {
   const faltando = [campos.chave_acesso, campos.numero, campos.cnpj_prestador, campos.cnpj_tomador].some((c2) => c2.situacao !== "confere");
   const estado = divergente ? "divergencia" : faltando ? "validacao_inconclusiva" : "ok";
   return { ok: estado === "ok", estado, campos, competenciaNota: lerCompetencia(texto), motivos };
-}
-
-// src/lib/faturamento-totais.ts
-function classificarValorCampo(v) {
-  if (v === null || v === void 0 || v === "") return "ausente";
-  const n = typeof v === "number" ? v : Number(v);
-  if (!Number.isFinite(n)) return "invalido";
-  return n === 0 ? "zero" : "valor";
-}
-var CATEGORIAS_TOTAL_FATURAMENTO = [
-  "enfermaria",
-  "apartamento",
-  "inclusoes",
-  "exclusoes",
-  "devolucoes",
-  "permuta",
-  "taxaAdesao",
-  "coparticipacao",
-  "complemento"
-];
-var ROTULO_CATEGORIA = {
-  enfermaria: "Mensalidade Enfermaria",
-  apartamento: "Mensalidade Apartamento",
-  inclusoes: "Inclus\xF5es",
-  exclusoes: "Exclus\xF5es",
-  devolucoes: "Devolu\xE7\xF5es",
-  permuta: "Permuta",
-  taxaAdesao: "Taxa de ades\xE3o",
-  coparticipacao: "Coparticipa\xE7\xE3o",
-  complemento: "Complemento"
-};
-function calcularTotalFaturamento(r) {
-  let total = 0;
-  const pendencias = [];
-  for (const cat of CATEGORIAS_TOTAL_FATURAMENTO) {
-    const c2 = r[cat];
-    if (!c2) continue;
-    const qtd = Number(c2.quantidade ?? c2.beneficiarios ?? 0) || 0;
-    const situacao = classificarValorCampo(c2.total);
-    if (situacao === "valor" || situacao === "zero") {
-      total += Number(c2.total);
-      continue;
-    }
-    if (qtd > 0) {
-      pendencias.push({
-        categoria: cat,
-        rotulo: ROTULO_CATEGORIA[cat],
-        quantidade: qtd,
-        motivo: situacao === "ausente" ? "valor ausente" : "valor inv\xE1lido"
-      });
-    }
-  }
-  return {
-    total: Number(total.toFixed(2)),
-    completo: pendencias.length === 0,
-    pendencias
-  };
-}
-function somarTotalFaturamento(r) {
-  return calcularTotalFaturamento(r).total;
 }
 
 // src/lib/pdf-total.ts
