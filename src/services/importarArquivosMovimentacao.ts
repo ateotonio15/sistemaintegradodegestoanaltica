@@ -28,10 +28,15 @@ export async function importarArquivosMovimentacao(
   let anexados = 0;
   let ignorados = 0;
   let falhas = resultados.filter(resultado => resultado.status === "rejected").length;
+  const documentos = (["pdf", "xlsx"] as const).map(tipo => ({ tipo, disponivel: false }));
   for (const arquivo of arquivos) {
     signal.throwIfAborted();
-    try { if (await anexar(arquivo) === "ignorado") ignorados++; else anexados++; }
+    try {
+      if (await anexar(arquivo) === "ignorado") ignorados++; else anexados++;
+      const documento = documentos.find(item => item.tipo === arquivo.tipo);
+      if (documento) documento.disponivel = true;
+    }
     catch (erro) { if (signal.aborted) throw erro; falhas++; }
   }
-  return { encontrados: arquivos.length, anexados, ignorados, falhas };
+  return { encontrados: arquivos.length, anexados, ignorados, falhas, documentos };
 }

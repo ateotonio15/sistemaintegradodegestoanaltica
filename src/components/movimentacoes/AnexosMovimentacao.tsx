@@ -31,6 +31,7 @@ import { ImportarArquivosButton } from "./ImportarArquivosButton";
 import type { ArquivoPortal } from "@/services/portalEmpresaRelatorios";
 import { identificarAnexoImportado, mesmoAnexoImportado } from "@/lib/anexo-importacao";
 import { PreviewArquivoDialog } from "@/components/arquivos/PreviewArquivoDialog";
+import { HistoricoFechamento } from "./HistoricoFechamento";
 
 
 interface Props {
@@ -44,6 +45,7 @@ interface Props {
   onCountChange?: (count: number) => void;
   /** Callback chamado após upload/exclusão para o pai atualizar indicadores dependentes dos anexos. */
   onAttachmentsChange?: () => void;
+  onConcluir?: () => void;
 }
 
 const STORAGE_BUCKET = "anexos-movimentacoes";
@@ -54,7 +56,7 @@ function buildPath(empresaId: string, movId: string, fileName: string) {
   return `${empresaId}/${movId}/${crypto.randomUUID()}.${ext}`;
 }
 
-export function AnexosMovimentacao({ movimentacaoId, empresaId, mes, periodo, required, onCountChange, onAttachmentsChange }: Props) {
+export function AnexosMovimentacao({ movimentacaoId, empresaId, mes, periodo, required, onCountChange, onAttachmentsChange, onConcluir }: Props) {
   const queryClient = useQueryClient();
   const { user } = useAuth();
   const [uploading, setUploading] = useState(false);
@@ -83,6 +85,7 @@ export function AnexosMovimentacao({ movimentacaoId, empresaId, mes, periodo, re
     mes: string | null;
     redirecionado: boolean;
     aviso?: string;
+    automatico?: boolean;
   };
   const [pendente, setPendente] = useState<ItemUpload[] | null>(null);
 
@@ -196,7 +199,7 @@ export function AnexosMovimentacao({ movimentacaoId, empresaId, mes, periodo, re
   const executarUpload = async (itens: ItemUpload[]) => {
     if (!empresaId || !movimentacaoId) return;
     {
-      for (const { file, alvoEmpresaId, alvoMovId } of itens) {
+      for (const { file, alvoEmpresaId, alvoMovId, automatico } of itens) {
 
         // Preserva a origem autorizada no caminho; o registro aponta para o destino.
         const path = buildPath(empresaId, movimentacaoId, file.name);
@@ -213,6 +216,7 @@ export function AnexosMovimentacao({ movimentacaoId, empresaId, mes, periodo, re
           mime_type: file.type || null,
           tamanho_bytes: file.size,
           uploaded_by: user?.id ?? null,
+          ...(automatico ? { origem_importacao: "API" } : {}),
         });
         if (insErr) {
           await supabase.storage.from(STORAGE_BUCKET).remove([path]);
@@ -272,6 +276,7 @@ export function AnexosMovimentacao({ movimentacaoId, empresaId, mes, periodo, re
       queryClient.invalidateQueries({ queryKey: ["empresas-dashboard"] });
       queryClient.invalidateQueries({ queryKey: ["movs-administradoras"] });
       queryClient.invalidateQueries({ queryKey: ["anexos-movimentacao-grupo"] });
+      queryClient.invalidateQueries({ queryKey: ["historico-fechamento", movimentacaoId] });
       onAttachmentsChange?.();
       toast.success(itens.length > 1 ? `${itens.length} arquivos enviados` : "Arquivo enviado");
     }
@@ -293,7 +298,7 @@ export function AnexosMovimentacao({ movimentacaoId, empresaId, mes, periodo, re
     await executarUpload([{
       file: new File([arquivo.blob], arquivo.nome_arquivo, { type: arquivo.blob.type }),
       alvoEmpresaId: empresaId, alvoMovId: movimentacaoId, contratoRotulo: String(arquivo.nr_contrato),
-      periodo: periodo ?? null, mes: mes ?? null, redirecionado: false,
+      periodo: periodo ?? null, mes: mes ?? null, redirecionado: false, automatico: true,
     }]);
   };
 
@@ -423,7 +428,7 @@ export function AnexosMovimentacao({ movimentacaoId, empresaId, mes, periodo, re
         </div>
         <div className="flex min-w-0 flex-wrap items-start gap-2">
         <ImportarArquivosButton movimentacaoId={movimentacaoId} empresaId={empresaId} mes={mes} periodo={periodo}
-          disabled={uploading || !!pendente} onBusy={setImportando} onImportar={importarArquivo} />
+          disabled={uploading || !!pendente} onBusy={setImportando} onImportar={importarArquivo} onConcluir={onConcluir} />
         <label className={`cursor-pointer ${!movimentacaoId || uploading || importando ? "opacity-50 pointer-events-none" : ""}`}>
           <input
             type="file"
@@ -542,6 +547,7 @@ export function AnexosMovimentacao({ movimentacaoId, empresaId, mes, periodo, re
         </ul>
       )}
 
+      <HistoricoFechamento movimentacaoId={movimentacaoId} />
       {preview && <PreviewArquivoDialog open onOpenChange={open => { if (!open) setPreview(null); }} bucket={STORAGE_BUCKET} storagePath={preview.storage_path} nomeArquivo={preview.nome_arquivo} mimeType={preview.mime_type} />}
       <AlertDialog
         open={!!pendente}
