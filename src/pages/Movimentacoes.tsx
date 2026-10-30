@@ -897,12 +897,14 @@ export default function Movimentacoes() {
                 <Button className="rounded-lg"><Plus className="mr-2 h-4 w-4" />Nova Movimentação</Button>
               </DialogTrigger>}
               <DialogContent className="sm:max-w-lg w-[95vw] max-h-[92dvh] rounded-xl flex flex-col overflow-hidden p-0">
-                <DialogHeader className="px-6 pt-6 pb-3 border-b border-border/50 shrink-0">
+                 <DialogHeader className="px-6 pt-6 pb-3 border-b border-border/50 shrink-0">
                   <DialogTitle>{editingId ? "Editar Movimentação" : "Nova Movimentação"}</DialogTitle>
                 </DialogHeader>
                 <form onSubmit={(e) => { e.preventDefault(); upsert.mutate(form); }} className="flex min-h-0 flex-1 flex-col">
                   <div className="flex-1 min-h-0 overflow-y-auto px-6 py-4 space-y-5">
 
+                  {/* Seção 1 — Dados principais */}
+                  <SecaoModal numero={1} titulo="Dados principais" />
                   <div className="grid gap-4 sm:grid-cols-2">
                     <div className="space-y-2">
                       <Label className="text-sm font-medium">Empresa *</Label>
