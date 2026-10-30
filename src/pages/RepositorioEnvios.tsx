@@ -445,7 +445,7 @@ export default function RepositorioEnvios() {
                   />
                 </div>
                 <div className="border-t overflow-y-auto max-h-[46%]">
-                <div className="px-4 py-3 grid grid-cols-2 gap-x-4 gap-y-1.5 text-xs">
+                <div className="px-4 py-3 grid grid-cols-1 2xl:grid-cols-2 gap-x-4 gap-y-1.5 text-xs">
                   <div className="col-span-2 min-w-0">
                     <span className="text-muted-foreground">Nome do arquivo: </span>
                     <span className="font-medium break-all">{selectedArquivo.nome_arquivo}</span>
