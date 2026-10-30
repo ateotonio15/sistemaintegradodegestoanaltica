@@ -7,7 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Switch } from "@/components/ui/switch";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useUpsertPassageiro } from "@/hooks/useUberPassageiros";
-import { useUberFuncoes } from "@/hooks/useUberFuncoes";
+import { useUberFuncoes, useGarantirFuncao } from "@/hooks/useUberFuncoes";
 import {
   UBER_MOTIVOS,
   UBER_TIPOS_PADRAO,
@@ -41,11 +41,26 @@ const VAZIO: PassageiroForm = {
 export function PassageiroDialog({ open, onOpenChange, passageiro }: Props) {
   const upsert = useUpsertPassageiro();
   const { data: funcoes = [] } = useUberFuncoes();
+  const garantir = useGarantirFuncao();
   const [form, setForm] = useState<PassageiroForm>(VAZIO);
+  const [novaFuncao, setNovaFuncao] = useState(false);
+  const [textoFuncao, setTextoFuncao] = useState("");
 
   useEffect(() => {
-    if (open) setForm(passageiro ?? VAZIO);
+    if (open) { setForm(passageiro ?? VAZIO); setNovaFuncao(false); setTextoFuncao(""); }
   }, [open, passageiro]);
+
+  const confirmarFuncao = async () => {
+    if (!novaFuncao || garantir.isPending) return;
+    const nome = textoFuncao.trim();
+    if (!nome) { setForm((p) => ({ ...p, funcao_id: null })); setNovaFuncao(false); return; }
+    try {
+      const id = await garantir.mutateAsync({ nome, existentes: funcoes });
+      setForm((p) => ({ ...p, funcao_id: id }));
+    } catch { /* toast já exibido */ }
+    setNovaFuncao(false);
+    setTextoFuncao("");
+  };
 
   const set = (k: keyof PassageiroForm, v: any) => setForm((p) => ({ ...p, [k]: v }));
 
@@ -81,15 +96,36 @@ export function PassageiroDialog({ open, onOpenChange, passageiro }: Props) {
           </div>
           <div>
             <Label>Função</Label>
-            <Select value={form.funcao_id ?? "__nenhuma"} onValueChange={(v) => set("funcao_id", v === "__nenhuma" ? null : v)}>
-              <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="__nenhuma">Sem função</SelectItem>
-                {funcoes.filter((f) => f.ativo || f.id === form.funcao_id).map((f) => (
-                  <SelectItem key={f.id} value={f.id}>{f.nome}{f.ativo ? "" : " (inativa)"}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            {novaFuncao ? (
+              <Input
+                autoFocus
+                value={textoFuncao}
+                placeholder="Digite a nova função"
+                onChange={(e) => setTextoFuncao(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") { e.preventDefault(); confirmarFuncao(); }
+                  if (e.key === "Escape") { e.preventDefault(); e.stopPropagation(); setNovaFuncao(false); setTextoFuncao(""); }
+                }}
+                onBlur={confirmarFuncao}
+                disabled={garantir.isPending}
+              />
+            ) : (
+              <Select
+                value={form.funcao_id ?? ""}
+                onValueChange={(v) => {
+                  if (v === "__nova") { setNovaFuncao(true); setTextoFuncao(""); return; }
+                  set("funcao_id", v || null);
+                }}
+              >
+                <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
+                <SelectContent>
+                  {funcoes.filter((f) => f.ativo || f.id === form.funcao_id).map((f) => (
+                    <SelectItem key={f.id} value={f.id}>{f.nome}{f.ativo ? "" : " (inativa)"}</SelectItem>
+                  ))}
+                  <SelectItem value="__nova">+ Nova função…</SelectItem>
+                </SelectContent>
+              </Select>
+            )}
           </div>
           <div className="sm:col-span-2">
             <Label>Endereço *</Label>

@@ -46,3 +46,26 @@ export function useSalvarFuncao() {
     onError: (e: any) => toast.error(e.message ?? "Erro ao salvar função"),
   });
 }
+
+/** Cria a função se não existir (comparação sem diferenciar maiúsculas); retorna o id existente ou novo. */
+export function useGarantirFuncao() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ nome, existentes }: { nome: string; existentes: UberFuncao[] }) => {
+      const limpo = nome.trim().replace(/\s+/g, " ");
+      const achada = existentes.find((f) => f.nome.trim().toLowerCase() === limpo.toLowerCase());
+      if (achada) return achada.id;
+      const { data, error } = await supabase.from("uber_funcoes" as any).insert({ nome: limpo } as any).select("id").single();
+      if (error) {
+        if ((error as any).code === "23505") {
+          const { data: d } = await supabase.from("uber_funcoes" as any).select("id").ilike("nome", limpo).maybeSingle();
+          if (d) return (d as any).id as string;
+        }
+        throw error;
+      }
+      return (data as any).id as string;
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: QK }),
+    onError: (e: any) => toast.error(e.message ?? "Erro ao salvar função"),
+  });
+}
