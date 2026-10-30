@@ -974,9 +974,12 @@ export default function Movimentacoes() {
                         )}
                       </div>
                     </div>
-                  </div>
+                   </div>
+
+                  {/* Seção 3 — Observações */}
+                  <SecaoModal numero={3} titulo="Observações" />
                   <div className="space-y-3">
-                    <Label className="text-sm font-medium">Observações</Label>
+                    <Label className="text-sm font-medium">Observações anteriores</Label>
 
                     {form.observacoes?.trim() ? (
                       <div className="space-y-2 max-h-56 overflow-y-auto pr-1">
