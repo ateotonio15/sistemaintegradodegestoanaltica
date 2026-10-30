@@ -227,7 +227,7 @@ export default function RepositorioEnvios() {
             <p className="text-xs text-muted-foreground mt-0.5">
               <span className="font-semibold text-foreground">{arquivosPorEmpresa.size}</span> empresas com arquivos
               <span className="mx-1.5 text-muted-foreground/50">·</span>
-              <span className="font-semibold text-foreground">{arquivos.length}</span> arquivos
+              <span className="font-semibold text-foreground">{arquivosAtuais.length}</span> arquivos
               <span className="mx-1.5 text-muted-foreground/50">·</span>
               <span className="font-semibold text-foreground">{totalEnvios}</span> envios
             </p>
@@ -444,7 +444,8 @@ export default function RepositorioEnvios() {
                     mimeType={selectedArquivo.mime_type}
                   />
                 </div>
-                <div className="border-t px-4 py-3 grid grid-cols-2 gap-x-4 gap-y-1.5 text-xs">
+                <div className="border-t overflow-y-auto max-h-[46%]">
+                <div className="px-4 py-3 grid grid-cols-2 gap-x-4 gap-y-1.5 text-xs">
                   <div className="col-span-2 min-w-0">
                     <span className="text-muted-foreground">Nome do arquivo: </span>
                     <span className="font-medium break-all">{selectedArquivo.nome_arquivo}</span>
