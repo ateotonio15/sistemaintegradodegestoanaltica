@@ -97,6 +97,19 @@ const emptyForm = {
   tipo_movimentacao: null as string | null,
 };
 
+/** Título numerado de seção dentro da janela de movimentação (só organização visual). */
+function SecaoModal({ numero, titulo }: { numero: number; titulo: string }) {
+  return (
+    <div className="flex items-center gap-2 pt-1">
+      <span className="inline-flex h-5 w-5 shrink-0 items-center justify-center rounded-md bg-primary/10 text-primary text-[11px] font-bold">
+        {numero}
+      </span>
+      <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">{titulo}</span>
+      <div className="h-px flex-1 bg-border/60" />
+    </div>
+  );
+}
+
 export default function Movimentacoes() {
   const [activeTab, setActiveTab] = useState<"empresas" | "administradoras">("empresas");
   const [dialogOpen, setDialogOpen] = useState(false);
