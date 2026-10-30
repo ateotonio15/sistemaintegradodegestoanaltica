@@ -11,7 +11,7 @@ interface Props {
   mes?: string;
   periodo?: string | null;
   disabled: boolean;
-  onImportar: (arquivo: ArquivoPortal, signal: AbortSignal) => Promise<void>;
+  onImportar: (arquivo: ArquivoPortal, signal: AbortSignal) => Promise<"ignorado" | void>;
   onBusy: (busy: boolean) => void;
 }
 
@@ -52,7 +52,7 @@ export function ImportarArquivosButton({ movimentacaoId, empresaId, mes, periodo
       });
       if (!abort.signal.aborted) setMensagem(resultado.encontrados === 0
         ? "Nenhum arquivo disponível para este contrato. Tente novamente."
-        : `Arquivos encontrados: ${resultado.encontrados} — ${resultado.anexados} processado(s).${resultado.falhas ? " Alguns arquivos não puderam ser obtidos ou anexados. Tente novamente." : ""}`);
+        : `Arquivos encontrados: ${resultado.encontrados} — ${resultado.anexados} anexado(s).${resultado.ignorados ? ` ${resultado.ignorados === 1 ? "1 arquivo já estava anexado e foi ignorado." : `${resultado.ignorados} arquivos já estavam anexados e foram ignorados.`}` : ""}${resultado.falhas ? " Alguns arquivos não puderam ser obtidos ou anexados. Tente novamente." : ""}`);
     } catch (erro) {
       if (!abort.signal.aborted) setMensagem(erro instanceof Error ? erro.message : "Não foi possível importar os arquivos. Tente novamente.");
     } finally {

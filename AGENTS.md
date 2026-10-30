@@ -1,6 +1,6 @@
 # Architecture rules
 - Movement list, period summaries and local provisioning share the first-competence lower bound; dashboard_movimentacoes mirrors it for all charts regardless of activation status. Preserve historical rows instead of deleting them.
-- Email reports stay in separate private storage without operational effects. Explicit editor imports re-read saved context, validate contract, cancel stale searches and reuse operational uploads; Portal only filters by contract, not month/period.
+- Email reports stay separate. Editor imports re-read context, validate contract, cancel stale searches and reuse uploads; dedupe by name/contract/movement/type. Portal filters by contract only; filename dates are generation, not competence.
 - Global surgery events are verified by one scheduled server-only fixed-upstream scan, deduplicated by demand/booking/date, and exposed through demand-inheriting RLS only to admin/executivo/executivo_externo; per-user read state feeds the existing bell/cards, never complaint resolution. Deep links temporarily isolate and focus the authorized row without erasing saved filters.
 - Operational movement billing status and note-date lookups use only normal financial entries in the shared RPC, excluding first-month entries before attachment sharing and ranking so an initial invoice cannot imply a movement closing.
 - Report sender settings store only nonsecret metadata in a singleton admin-RLS table; the settings form never verifies domains or enables delivery, which require the workspace email setup separately.

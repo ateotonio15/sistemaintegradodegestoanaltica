@@ -15,7 +15,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { Paperclip, Upload, FileText, Download, Trash2, AlertCircle, Users } from "lucide-react";
+import { Paperclip, Upload, FileText, Download, Trash2, AlertCircle, Users, Eye } from "lucide-react";
 import {
   ACCEPTED_FILE_TYPES,
   ACCEPTED_MIME_TYPES,
@@ -29,6 +29,8 @@ import { identificarContratoDoAnexo, type ContratoAlvo } from "@/lib/anexo-contr
 import { sincronizarEnvioDosAnexos } from "@/lib/movimentacao-envio-anexos";
 import { ImportarArquivosButton } from "./ImportarArquivosButton";
 import type { ArquivoPortal } from "@/services/portalEmpresaRelatorios";
+import { identificarAnexoImportado, mesmoAnexoImportado } from "@/lib/anexo-importacao";
+import { PreviewArquivoDialog } from "@/components/arquivos/PreviewArquivoDialog";
 
 
 interface Props {
@@ -57,6 +59,7 @@ export function AnexosMovimentacao({ movimentacaoId, empresaId, mes, periodo, re
   const { user } = useAuth();
   const [uploading, setUploading] = useState(false);
   const [importando, setImportando] = useState(false);
+  const [preview, setPreview] = useState<{ storage_path: string; nome_arquivo: string; mime_type: string | null } | null>(null);
   const [alvoExclusao, setAlvoExclusao] = useState<{ id: string; path: string; nome: string; tipo: string; criadoEm: string; origem?: string | null } | null>(null);
   const [registrarObs, setRegistrarObs] = useState(false);
   const [excluindo, setExcluindo] = useState(false);
@@ -274,23 +277,18 @@ export function AnexosMovimentacao({ movimentacaoId, empresaId, mes, periodo, re
     }
   };
 
-  const importarArquivo = async (arquivo: ArquivoPortal, signal: AbortSignal) => {
+  const importarArquivo = async (arquivo: ArquivoPortal, signal: AbortSignal): Promise<"ignorado" | void> => {
     if (!empresaId || !movimentacaoId) throw new Error("Movimentação indisponível.");
     signal.throwIfAborted();
-    // Evita duplicar o mesmo conteúdo; uma versão nova nunca substitui silenciosamente a anterior.
+    if (!identificarAnexoImportado(arquivo.nome_arquivo).aceito) throw new Error("Formato não permitido para importação.");
+    // Nome, contrato, tipo e competência de destino determinam a identidade; não substitui anexos.
     const { data: existentes, error } = await supabase.from("anexos_movimentacao")
-      .select("storage_path, nome_arquivo, tamanho_bytes").eq("movimentacao_id", movimentacaoId)
+      .select("nome_arquivo, empresa_id, movimentacao_id").eq("movimentacao_id", movimentacaoId)
       .eq("nome_arquivo", arquivo.nome_arquivo);
     if (error) throw error;
-    const hash = async (blob: Blob) => Array.from(new Uint8Array(await crypto.subtle.digest("SHA-256", await blob.arrayBuffer()))).join(",");
-    const hashNovo = await hash(arquivo.blob);
-    for (const existente of existentes ?? []) {
-      if (existente.tamanho_bytes !== arquivo.blob.size) continue;
-      const { data: blob, error: downloadError } = await supabase.storage.from(STORAGE_BUCKET).download(existente.storage_path);
-      if (downloadError) throw downloadError;
-      signal.throwIfAborted();
-      if (blob && await hash(blob) === hashNovo) return;
-    }
+    if ((existentes ?? []).some(existente => mesmoAnexoImportado(existente, {
+      nome: arquivo.nome_arquivo, contrato: arquivo.nr_contrato, empresaId, movimentacaoId,
+    }))) return "ignorado";
     signal.throwIfAborted();
     await executarUpload([{
       file: new File([arquivo.blob], arquivo.nome_arquivo, { type: arquivo.blob.type }),
@@ -477,15 +475,20 @@ export function AnexosMovimentacao({ movimentacaoId, empresaId, mes, periodo, re
         <ul className="min-w-0 max-w-full space-y-1.5">
           {anexos.map((a) => {
             const ext = (a.nome_arquivo.split(".").pop() || "").toLowerCase();
+            const info = identificarAnexoImportado(a.nome_arquivo);
             const isExcel = ["xlsx", "xlsm", "xls"].includes(ext);
             return (
               <li
                 key={a.id}
-                className="grid min-w-0 max-w-full grid-cols-[auto_minmax(0,1fr)_auto_auto_auto_auto] items-center gap-2 rounded-md bg-muted/50 px-2.5 py-1.5 text-sm"
+                className="flex min-w-0 max-w-full flex-wrap items-center gap-2 rounded-md bg-muted/50 px-2.5 py-1.5 text-sm"
               >
                 <FileText className="h-4 w-4 text-muted-foreground shrink-0" />
-                <span className="min-w-0 truncate" title={a.nome_arquivo}>
-                  {a.nome_arquivo}
+                <div className="min-w-0 flex-1 basis-40">
+                <span className="block truncate" title={a.nome_arquivo}>{a.nome_arquivo}</span>
+                <p className="text-[11px] text-muted-foreground">Tipo: {info.tipo === "Outros" ? tipoArquivo(ext) : info.tipo} · {ext.toUpperCase()}</p>
+                {info.contrato && <p className="text-[11px] text-muted-foreground">Contrato: {info.contrato} · Competência da movimentação: {formatMes(mes ?? null) || "não informada"}</p>}
+                {info.geradoEm && <p className="text-[11px] text-muted-foreground">Geração informada no nome: {info.geradoEm}</p>}
+                <p className="text-[11px] text-muted-foreground">Anexado em: {formatDateBR(a.created_at)}</p>
                   {a.do_grupo && (
                     <span
                       className="ml-2 inline-flex items-center gap-1 rounded-full border border-info/40 bg-info/10 px-1.5 py-0.5 text-[10px] font-medium text-info align-middle"
@@ -495,17 +498,21 @@ export function AnexosMovimentacao({ movimentacaoId, empresaId, mes, periodo, re
                       Do grupo
                     </span>
                   )}
-                </span>
+                </div>
                 <span className="text-xs text-muted-foreground shrink-0">{formatBytes(a.tamanho_bytes)}</span>
+                <div className="flex shrink-0 items-center gap-1">
+                {["pdf", "png", "jpg", "jpeg", "webp", "gif"].includes(ext) && <Button type="button" variant="ghost" size="icon" className="h-7 w-7" title="Visualizar" aria-label={`Visualizar ${a.nome_arquivo}`} onClick={() => setPreview(a)}><Eye className="h-3.5 w-3.5" /></Button>}
                 {isExcel ? (
                   <Button variant="ghost" size="icon" className="h-7 w-7 shrink-0 text-info hover:text-info" title="Extrair Vidas Ativas" onClick={() => handleExtrairVidas(a.storage_path, a.nome_arquivo)}>
                     <Users className="h-3.5 w-3.5" />
                   </Button>
                 ) : <span />}
-                <Button variant="ghost" size="icon" className="h-7 w-7 shrink-0" onClick={() => handleDownload(a.storage_path, a.nome_arquivo)}>
+                <Button type="button" variant="ghost" size="icon" className="h-7 w-7 shrink-0" title="Baixar" aria-label={`Baixar ${a.nome_arquivo}`} onClick={() => handleDownload(a.storage_path, a.nome_arquivo)}>
                   <Download className="h-3.5 w-3.5" />
                 </Button>
                 <Button
+                  type="button"
+                  aria-label={`Remover ${a.nome_arquivo}`}
                   variant="ghost"
                   size="icon"
                   className="h-7 w-7 shrink-0 text-destructive hover:text-destructive"
@@ -526,6 +533,7 @@ export function AnexosMovimentacao({ movimentacaoId, empresaId, mes, periodo, re
                 >
                   <Trash2 className="h-3.5 w-3.5" />
                 </Button>
+                </div>
 
               </li>
             );
@@ -534,6 +542,7 @@ export function AnexosMovimentacao({ movimentacaoId, empresaId, mes, periodo, re
         </ul>
       )}
 
+      {preview && <PreviewArquivoDialog open onOpenChange={open => { if (!open) setPreview(null); }} bucket={STORAGE_BUCKET} storagePath={preview.storage_path} nomeArquivo={preview.nome_arquivo} mimeType={preview.mime_type} />}
       <AlertDialog
         open={!!pendente}
         onOpenChange={(v) => {
