@@ -505,6 +505,13 @@
       "when": 1793361591920,
       "tag": "0071_envios_empresa_origem_versao_status",
       "breakpoints": true
+    },
+    {
+      "idx": 72,
+      "version": "7",
+      "when": 1793361799874,
+      "tag": "0072_envios_empresa_controle_versao",
+      "breakpoints": true
     }
   ]
 }
