@@ -460,6 +460,7 @@ export function AnexosMovimentacao({ movimentacaoId, empresaId, mes, periodo, re
             {uploading ? "Enviando..." : "Anexar manualmente"}
           </span>
         </label>
+        )}
       </div>
 
       {grupoInfo?.grupoId && (
