@@ -279,6 +279,8 @@ const AppRoutes = () => (
 
       <Route element={<RoleGate allow={["admin", "diretora", "diretora_saude", "coordenadora", "executivo", "enfermeira", "tec_enfermagem"]} />}>
         <Route path="/producao-guias" element={<ProducaoGuias />} />
+      </Route>
+      <Route element={<RoleGate allow={["admin", "diretora", "diretora_saude", "coordenadora", "executivo", "executivo_externo", "enfermeira", "tec_enfermagem"]} />}>
         <Route path="/agenda-cirurgica" element={<AgendaCirurgica />} />
       </Route>
 

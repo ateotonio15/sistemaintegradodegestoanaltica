@@ -207,7 +207,7 @@ const INTELIGENCIA_SECTIONS: InteligenciaSection[] = [
     title: "Agenda Cirúrgica",
     description: "Agendamentos cirúrgicos Samel",
     icon: ClipboardList,
-    allow: ["diretora", "diretora_saude", "coordenadora", "executivo", "enfermeira", "tec_enfermagem"],
+    allow: ["diretora", "diretora_saude", "coordenadora", "executivo", "executivo_externo", "enfermeira", "tec_enfermagem"],
     items: [
       {
         slug: "agenda-cirurgica",
@@ -704,7 +704,7 @@ export default function Home() {
                       {activeSection.items.filter((item) => {
                         if (soSaude) return (item.to || "").startsWith("/saude");
                         if (!isExecutivoExterno) return true;
-                        return ["/demandas", "/plantoes", "/mailing-brindes"].includes(item.to || "");
+                        return ["/demandas", "/plantoes", "/mailing-brindes", "/agenda-cirurgica"].includes(item.to || "");
                       }).map((item) => {
                         const Icon = item.icon;
                         return (
@@ -742,11 +742,11 @@ export default function Home() {
                     if (section.allow && !isAdmin && !section.allow.includes(role as string)) return false;
                     if (soSaude) return section.title === "Saúde nas Empresas";
                     if (!isExecutivoExterno) return true;
-                    return ["Demandas", "Plantões", "Mailing de Brindes"].includes(section.title);
+                    return ["Demandas", "Plantões", "Mailing de Brindes", "Agenda Cirúrgica"].includes(section.title);
                   }).map((section) => {
                     const Icon = section.icon;
                     const visibleItems = isExecutivoExterno
-                      ? section.items.filter((i) => ["/demandas", "/plantoes", "/mailing-brindes"].includes(i.to || ""))
+                      ? section.items.filter((i) => ["/demandas", "/plantoes", "/mailing-brindes", "/agenda-cirurgica"].includes(i.to || ""))
                       : section.items;
                     const isGroup = visibleItems.length > 1;
                     const onlyItem = visibleItems[0];
