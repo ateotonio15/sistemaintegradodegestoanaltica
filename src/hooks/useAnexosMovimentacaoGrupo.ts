@@ -11,6 +11,7 @@ export interface AnexoMovGrupo {
   mime_type: string | null;
   tamanho_bytes: number | null;
   uploaded_by: string | null;
+  repositorio_envio_id?: string | null;
   created_at: string;
   /** true quando o anexo pertence a outro contrato do mesmo Grupo Financeiro */
   do_grupo: boolean;

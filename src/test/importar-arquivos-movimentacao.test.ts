@@ -38,7 +38,7 @@ describe("importação de arquivos na movimentação", () => {
     expect(gerarRelatorioPortal).toHaveBeenCalledTimes(1);
     expect(gerarRelatorioPortal).toHaveBeenCalledWith(2171, "xlsx", expect.any(AbortSignal));
     expect(consultarDocumentoFechamento).toHaveBeenCalledWith(contexto, "xlsx", expect.any(AbortSignal), "job-xlsx");
-    expect(consultarDocumentoFechamento.mock.invocationCallOrder[2]).toBeLessThan(anexar.mock.invocationCallOrder[0]);
+    expect(vi.mocked(consultarDocumentoFechamento).mock.invocationCallOrder[2]).toBeLessThan(anexar.mock.invocationCallOrder[0]);
   });
   it("erro no repositório não dispara nova geração", async () => {
     vi.mocked(consultarDocumentoFechamento).mockRejectedValue(new Error("Sem acesso"));
