@@ -133,9 +133,11 @@ export default function Movimentacoes() {
   const [preparandoContrato, setPreparandoContrato] = useState("");
   const { toast } = useToast();
   const queryClient = useQueryClient();
-  const { user, isAdmin, isExecutivo, role, isViewOnly } = useAuth();
+  const { user, isAdmin, isExecutivo, isExecutivoExterno, role, isViewOnly } = useAuth();
   const canEdit = !isViewOnly && isAdmin;
   const canEditDates = !isViewOnly && (isAdmin || role === "comum" || role === "administradoras");
+  // Executivo externo abre a janela somente para "Importar do Repositório" (sem editar campos nem salvar).
+  const canImportarRepositorio = canEditDates || (!isViewOnly && isExecutivoExterno);
   const [gerandoMov, setGerandoMov] = useState(false);
   const [novaObservacao, setNovaObservacao] = useState("");
   const { data: empresaGrupoMap } = useEmpresaGrupoMap();
@@ -905,7 +907,7 @@ export default function Movimentacoes() {
             <Button variant="outline" onClick={handleExportFerias} className="rounded-lg">
               <Plane className="mr-2 h-4 w-4" />Exportar Férias
             </Button>
-            {canEditDates && (
+            {canImportarRepositorio && (
             <Dialog open={dialogOpen} onOpenChange={(open) => { setDialogOpen(open); if (!open) resetForm(); }}>
               {canEdit && <DialogTrigger asChild>
                 <Button className="rounded-lg"><Plus className="mr-2 h-4 w-4" />Nova Movimentação</Button>
@@ -964,14 +966,14 @@ export default function Movimentacoes() {
                     </div>
                     <div className="space-y-1.5">
                       <Label className="text-xs font-medium text-muted-foreground">Data Envio p/ Empresa</Label>
-                      <Input type="date" value={form.data_envio_empresa ?? ""} onChange={(e) => handleDataEnvioChange(e.target.value || null)} disabled={formEhSecundarioGrupo} className="h-9 rounded-lg" />
+                      <Input type="date" value={form.data_envio_empresa ?? ""} onChange={(e) => handleDataEnvioChange(e.target.value || null)} disabled={!canEditDates || formEhSecundarioGrupo} className="h-9 rounded-lg" />
                     </div>
                     <div className="space-y-1.5">
                       <Label className="text-xs font-medium text-muted-foreground">Data Envio Financeiro</Label>
                       <div className="flex gap-2">
-                         <Input type="date" value={form.data_envio_financeiro ?? ""} onChange={(e) => setForm({ ...form, data_envio_financeiro: e.target.value || null })} disabled={formEhSecundarioGrupo} className="h-9 rounded-lg flex-1" />
+                         <Input type="date" value={form.data_envio_financeiro ?? ""} onChange={(e) => setForm({ ...form, data_envio_financeiro: e.target.value || null })} disabled={!canEditDates || formEhSecundarioGrupo} className="h-9 rounded-lg flex-1" />
 
-                        {form.data_envio_financeiro && editingId && (
+                        {canEditDates && form.data_envio_financeiro && editingId && (
                           <Button
                             type="button"
                             variant="outline"
@@ -1044,8 +1046,8 @@ export default function Movimentacoes() {
                         <Textarea
                           value={novaObservacao}
                           onChange={(e) => setNovaObservacao(e.target.value)}
-                           disabled={formEhSecundarioGrupo}
-                          placeholder={formEhSecundarioGrupo ? "Gerenciado pelo contrato principal do grupo" : "Adicionar nova observação (as anteriores não podem ser alteradas)"}
+                           disabled={!canEditDates || formEhSecundarioGrupo}
+                           placeholder={!canEditDates ? "Somente leitura" : formEhSecundarioGrupo ? "Gerenciado pelo contrato principal do grupo" : "Adicionar nova observação (as anteriores não podem ser alteradas)"}
                           className="min-h-[90px] resize-y border-0 bg-transparent shadow-none focus-visible:ring-0 focus-visible:ring-offset-0 text-sm placeholder:text-muted-foreground/70"
                         />
                       </div>
@@ -1067,12 +1069,13 @@ export default function Movimentacoes() {
                     </div>
                   )}
 
-                  <AnexosMovimentacao
+                   <AnexosMovimentacao
                      movimentacaoId={editingId}
                     empresaId={form.empresa_id || null}
                     mes={form.mes_referencia}
                     periodo={form.periodo}
                     required={!!form.data_envio_financeiro}
+                    somenteImportarRepositorio={!canEditDates}
                     onConcluir={() => { if (!upsert.isPending) upsert.mutate(form); }}
                   />
                   </div>
@@ -1080,8 +1083,8 @@ export default function Movimentacoes() {
 
 
                   <div className="shrink-0 flex justify-end gap-2 border-t border-border/40 bg-muted/20 px-6 py-3.5">
-                    <Button type="button" variant="outline" onClick={() => { setDialogOpen(false); resetForm(); }} className="rounded-lg">Cancelar</Button>
-                    <Button type="submit" disabled={upsert.isPending || !form.empresa_id} className="rounded-lg">{upsert.isPending ? "Salvando..." : "Salvar"}</Button>
+                    <Button type="button" variant="outline" onClick={() => { setDialogOpen(false); resetForm(); }} className="rounded-lg">{canEditDates ? "Cancelar" : "Fechar"}</Button>
+                    {canEditDates && <Button type="submit" disabled={upsert.isPending || !form.empresa_id} className="rounded-lg">{upsert.isPending ? "Salvando..." : "Salvar"}</Button>}
                   </div>
 
                 </form>
@@ -1228,14 +1231,14 @@ export default function Movimentacoes() {
                     <TableHead className="font-semibold">Status Faturamento</TableHead>
                     <TableHead className="font-semibold">Nota Enviada</TableHead>
                     <TableHead className="font-semibold whitespace-nowrap">Relatório</TableHead>
-                    {canEditDates && <TableHead className="w-24 font-semibold">Ações</TableHead>}
+                    {canImportarRepositorio && <TableHead className="w-24 font-semibold">Ações</TableHead>}
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {isLoading ? (
-                     <TableRow><TableCell colSpan={canEditDates ? 13 : 12} className="text-center text-muted-foreground py-12">Carregando...</TableCell></TableRow>
+                     <TableRow><TableCell colSpan={canImportarRepositorio ? 13 : 12} className="text-center text-muted-foreground py-12">Carregando...</TableCell></TableRow>
                    ) : filtered.length === 0 ? (
-                     <TableRow><TableCell colSpan={canEditDates ? 13 : 12} className="text-center text-muted-foreground py-12">Nenhuma movimentação encontrada</TableCell></TableRow>
+                     <TableRow><TableCell colSpan={canImportarRepositorio ? 13 : 12} className="text-center text-muted-foreground py-12">Nenhuma movimentação encontrada</TableCell></TableRow>
                   ) : (
                     filtered.map((m) => {
                       const status = calcularStatus(m);
@@ -1331,10 +1334,11 @@ export default function Movimentacoes() {
                               rotulo={carregandoRelatorios ? "Carregando..." : "Indisponível"}
                             />
                           </TableCell>
-                          {canEditDates && (
+                          {canImportarRepositorio && (
                           <TableCell>
                             <div className="flex gap-1">
                               <Button variant="ghost" size="icon" onClick={() => openEdit(m)} className="rounded-lg hover:bg-primary/10"><Pencil className="h-4 w-4 text-primary" /></Button>
+                              {canEditDates && (
                               <DropdownMenu>
                                 <DropdownMenuTrigger asChild>
                                   <Button variant="ghost" size="icon" className="rounded-lg hover:bg-primary/10" aria-label={`Ações do relatório de ${m.empresas?.nome ?? "empresa"}`}>
@@ -1360,6 +1364,7 @@ export default function Movimentacoes() {
                                   )}
                                 </DropdownMenuContent>
                               </DropdownMenu>
+                              )}
                             </div>
                           </TableCell>
                           )}

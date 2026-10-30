@@ -46,6 +46,8 @@ interface Props {
   /** Callback chamado após upload/exclusão para o pai atualizar indicadores dependentes dos anexos. */
   onAttachmentsChange?: () => void;
   onConcluir?: () => void;
+  /** Perfil executivo externo: só "Importar do Repositório"; sem upload manual, exclusão ou preparar fechamento. */
+  somenteImportarRepositorio?: boolean;
 }
 
 const STORAGE_BUCKET = "anexos-movimentacoes";
@@ -56,7 +58,7 @@ function buildPath(empresaId: string, movId: string, fileName: string) {
   return `${empresaId}/${movId}/${crypto.randomUUID()}.${ext}`;
 }
 
-export function AnexosMovimentacao({ movimentacaoId, empresaId, mes, periodo, required, onCountChange, onAttachmentsChange, onConcluir }: Props) {
+export function AnexosMovimentacao({ movimentacaoId, empresaId, mes, periodo, required, onCountChange, onAttachmentsChange, onConcluir, somenteImportarRepositorio = false }: Props) {
   const queryClient = useQueryClient();
   const { user } = useAuth();
   const [uploading, setUploading] = useState(false);
@@ -443,6 +445,7 @@ export function AnexosMovimentacao({ movimentacaoId, empresaId, mes, periodo, re
       <div className="flex min-w-0 flex-wrap items-center gap-2">
          <ImportarDoRepositorioButton movimentacaoId={movimentacaoId} empresaId={empresaId} mes={mes} periodo={periodo}
           disabled={uploading || importando || !!pendente} onBusy={setImportandoRepositorio} onImportar={importarArquivo} />
+        {!somenteImportarRepositorio && (
         <label className={`cursor-pointer ${!movimentacaoId || uploading || importando || importandoRepositorio ? "opacity-50 pointer-events-none" : ""}`}>
           <input
             type="file"
@@ -457,6 +460,7 @@ export function AnexosMovimentacao({ movimentacaoId, empresaId, mes, periodo, re
             {uploading ? "Enviando..." : "Anexar manualmente"}
           </span>
         </label>
+        )}
       </div>
 
       {grupoInfo?.grupoId && (
@@ -530,6 +534,7 @@ export function AnexosMovimentacao({ movimentacaoId, empresaId, mes, periodo, re
                 <Button type="button" variant="ghost" size="icon" className="h-7 w-7 shrink-0" title="Baixar" aria-label={`Baixar ${a.nome_arquivo}`} onClick={() => handleDownload(a.storage_path, a.nome_arquivo)}>
                   <Download className="h-3.5 w-3.5" />
                 </Button>
+                {!somenteImportarRepositorio && (
                 <Button
                   type="button"
                    aria-label={`Remover ${a.nome_arquivo}`}
@@ -553,6 +558,7 @@ export function AnexosMovimentacao({ movimentacaoId, empresaId, mes, periodo, re
                 >
                   <Trash2 className="h-3.5 w-3.5" />
                  </Button>
+                )}
                 </div>
 
               </li>
@@ -562,10 +568,12 @@ export function AnexosMovimentacao({ movimentacaoId, empresaId, mes, periodo, re
         </ul>
       )}
 
+      {!somenteImportarRepositorio && (
       <div className="border-t border-border/40 pt-3">
         <ImportarArquivosButton compacto movimentacaoId={movimentacaoId} empresaId={empresaId} mes={mes} periodo={periodo}
           disabled={uploading || importandoRepositorio || !!pendente} onBusy={setImportando} onImportar={importarArquivo} onConcluir={onConcluir} />
       </div>
+      )}
       {preview && <PreviewArquivoDialog open onOpenChange={open => { if (!open) setPreview(null); }} bucket={STORAGE_BUCKET} storagePath={preview.storage_path} nomeArquivo={preview.nome_arquivo} mimeType={preview.mime_type} />}
       <AlertDialog
         open={!!pendente}
