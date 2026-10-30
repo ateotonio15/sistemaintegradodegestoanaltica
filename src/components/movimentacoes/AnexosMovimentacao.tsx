@@ -28,6 +28,7 @@ import { useAnexosMovimentacaoGrupo } from "@/hooks/useAnexosMovimentacaoGrupo";
 import { identificarContratoDoAnexo, type ContratoAlvo } from "@/lib/anexo-contrato-match";
 import { sincronizarEnvioDosAnexos } from "@/lib/movimentacao-envio-anexos";
 import { ImportarArquivosButton } from "./ImportarArquivosButton";
+import { ImportarDoRepositorioButton } from "./ImportarDoRepositorioButton";
 import type { ArquivoPortal } from "@/services/portalEmpresaRelatorios";
 import { identificarAnexoImportado, mesmoAnexoImportado } from "@/lib/anexo-importacao";
 import { PreviewArquivoDialog } from "@/components/arquivos/PreviewArquivoDialog";
@@ -61,6 +62,7 @@ export function AnexosMovimentacao({ movimentacaoId, empresaId, mes, periodo, re
   const { user } = useAuth();
   const [uploading, setUploading] = useState(false);
   const [importando, setImportando] = useState(false);
+  const [importandoRepositorio, setImportandoRepositorio] = useState(false);
   const [preview, setPreview] = useState<{ storage_path: string; nome_arquivo: string; mime_type: string | null } | null>(null);
   const [alvoExclusao, setAlvoExclusao] = useState<{ id: string; path: string; nome: string; tipo: string; criadoEm: string; origem?: string | null } | null>(null);
   const [registrarObs, setRegistrarObs] = useState(false);
@@ -440,16 +442,18 @@ export function AnexosMovimentacao({ movimentacaoId, empresaId, mes, periodo, re
       </div>
       {/* Ações secundárias em uma linha; quebram em duas sem bagunçar o layout. */}
       <div className="flex min-w-0 flex-wrap items-center gap-2">
+         <ImportarDoRepositorioButton movimentacaoId={movimentacaoId} empresaId={empresaId} mes={mes} periodo={periodo}
+          disabled={uploading || importando || !!pendente} onBusy={setImportandoRepositorio} onImportar={importarArquivo} />
          <ImportarArquivosButton movimentacaoId={movimentacaoId} empresaId={empresaId} mes={mes} periodo={periodo}
-          disabled={uploading || !!pendente} onBusy={setImportando} onImportar={importarArquivo} onConcluir={onConcluir} />
-        <label className={`cursor-pointer ${!movimentacaoId || uploading || importando ? "opacity-50 pointer-events-none" : ""}`}>
+          disabled={uploading || importandoRepositorio || !!pendente} onBusy={setImportando} onImportar={importarArquivo} onConcluir={onConcluir} />
+        <label className={`cursor-pointer ${!movimentacaoId || uploading || importando || importandoRepositorio ? "opacity-50 pointer-events-none" : ""}`}>
           <input
             type="file"
             multiple
             className="hidden"
             accept={ACCEPTED_FOR_MOV}
             onChange={handleUpload}
-            disabled={uploading || importando || !movimentacaoId}
+            disabled={uploading || importando || importandoRepositorio || !movimentacaoId}
            />
           <span className="inline-flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded-md border border-border bg-background hover:bg-muted/60 transition-colors">
             <Upload className="h-3.5 w-3.5" />
