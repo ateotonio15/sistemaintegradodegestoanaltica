@@ -420,14 +420,14 @@ export function AnexosMovimentacao({ movimentacaoId, empresaId, mes, periodo, re
 
   return (
     <div className={`min-w-0 max-w-full rounded-lg border p-3 space-y-3 overflow-hidden ${showRequiredWarn ? "border-warning/50 bg-warning/5" : "border-border"}`}>
-      <div className="flex flex-wrap items-start justify-between gap-2">
-        <div className="flex items-center gap-2 text-sm font-medium">
-          <Paperclip className="h-4 w-4 text-info" />
-          Anexos {required && <span className="text-destructive">*</span>}
-          <span className="text-muted-foreground font-normal">({anexos.length})</span>
-        </div>
-        <div className="flex min-w-0 flex-wrap items-start gap-2">
-        <ImportarArquivosButton movimentacaoId={movimentacaoId} empresaId={empresaId} mes={mes} periodo={periodo}
+      <div className="flex items-center gap-2 text-sm font-medium">
+        <Paperclip className="h-4 w-4 text-info" />
+        Anexos {required && <span className="text-destructive">*</span>}
+        <span className="text-muted-foreground font-normal">({anexos.length})</span>
+      </div>
+      {/* Ações secundárias em uma linha; quebram em duas sem bagunçar o layout. */}
+      <div className="flex min-w-0 flex-wrap items-center gap-2">
+         <ImportarArquivosButton movimentacaoId={movimentacaoId} empresaId={empresaId} mes={mes} periodo={periodo}
           disabled={uploading || !!pendente} onBusy={setImportando} onImportar={importarArquivo} onConcluir={onConcluir} />
         <label className={`cursor-pointer ${!movimentacaoId || uploading || importando ? "opacity-50 pointer-events-none" : ""}`}>
           <input
@@ -437,13 +437,12 @@ export function AnexosMovimentacao({ movimentacaoId, empresaId, mes, periodo, re
             accept={ACCEPTED_FOR_MOV}
             onChange={handleUpload}
             disabled={uploading || importando || !movimentacaoId}
-          />
-          <span className="inline-flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded-md bg-primary text-primary-foreground hover:bg-primary/90 transition-colors">
+           />
+          <span className="inline-flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded-md border border-border bg-background hover:bg-muted/60 transition-colors">
             <Upload className="h-3.5 w-3.5" />
-            {uploading ? "Enviando..." : "Anexar"}
+            {uploading ? "Enviando..." : "Anexar manualmente"}
           </span>
         </label>
-        </div>
       </div>
 
       {grupoInfo?.grupoId && (
