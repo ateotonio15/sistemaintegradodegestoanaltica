@@ -26,14 +26,14 @@ it("consultar e cancelar não carrega nem anexa arquivos", async () => {
 });
 it("anexa somente depois de confirmar e reconferir as versões atuais", async () => {
   const anexar = vi.fn(); abrir(anexar);
-  fireEvent.click(await screen.findByRole("button", { name: "Importar arquivos", exact: true }));
+  fireEvent.click(await screen.findByRole("button", { name: /^Importar arquivos$/ }));
   await waitFor(() => expect(anexar).toHaveBeenCalledTimes(1));
   expect(buscarArquivosRepositorio).toHaveBeenCalledTimes(2);
   expect(conferirContextoRepositorio).toHaveBeenCalledTimes(2);
 });
 it("versão trocada entre consulta e confirmação impede anexação", async () => {
   const anexar = vi.fn(); abrir(anexar);
-  const confirmar = await screen.findByRole("button", { name: "Importar arquivos", exact: true });
+  const confirmar = await screen.findByRole("button", { name: /^Importar arquivos$/ });
   vi.mocked(buscarArquivosRepositorio).mockResolvedValue([]);
   fireEvent.click(confirmar);
   await waitFor(() => expect(buscarArquivosRepositorio).toHaveBeenCalledTimes(2));
