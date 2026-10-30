@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { importarArquivosMovimentacao } from "@/services/importarArquivosMovimentacao";
 import { gerarRelatorioPortal, type ArquivoPortal } from "@/services/portalEmpresaRelatorios";
 
@@ -10,7 +10,13 @@ const arquivo = (tipo: "pdf" | "xlsx", contrato = 2171): ArquivoPortal => ({
   job_id: `job-${tipo}`, nr_contrato: contrato, tipo, nome_arquivo: `OPS_Contrato_${contrato}_20261030.${tipo}`,
   blob: new Blob([tipo === "pdf" ? "%PDF-1.7" : "PK"]),
 });
-beforeEach(() => vi.resetAllMocks());
+beforeEach(() => {
+  vi.resetAllMocks();
+  vi.stubGlobal("AbortController", class extends AbortController {
+    constructor() { super(); this.signal.throwIfAborted = () => { if (this.signal.aborted) throw new DOMException("Cancelado", "AbortError"); }; }
+  });
+});
+afterEach(() => vi.unstubAllGlobals());
 describe("importação de arquivos na movimentação", () => {
   it("busca PDF e Excel do contrato e anexa ambos sem download no computador", async () => {
     vi.mocked(gerarRelatorioPortal).mockImplementation(async (_, tipo) => arquivo(tipo));
