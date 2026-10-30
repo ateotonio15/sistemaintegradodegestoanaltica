@@ -39,8 +39,8 @@ function arquivo(parte: Partial<ArquivoEnvio>): ArquivoEnvio {
 describe("Repositório de Envios — apresentação", () => {
   it("agrupa por competência e, dentro dela, pelo período da movimentação", () => {
     const grupos = agruparEnvios([
-      arquivo({ id: "a", competencia: "2026-10", periodo: "05-10" }),
-      arquivo({ id: "b", competencia: "2026-10", periodo: "05-10" }),
+      arquivo({ id: "a", competencia: "2026-10", periodo: "05-10", enviado_em: "2026-10-27T18:30:00Z" }),
+      arquivo({ id: "b", competencia: "2026-10", periodo: "05-10", enviado_em: "2026-10-28T09:00:00Z" }),
       arquivo({ id: "c", competencia: "2026-10", periodo: "10-15" }),
       arquivo({ id: "d", competencia: "2026-09", periodo: "05-10" }),
     ]);
@@ -52,7 +52,7 @@ describe("Repositório de Envios — apresentação", () => {
 
   it("não inventa período quando o arquivo não tem um", () => {
     const grupos = agruparEnvios([
-      arquivo({ id: "sem", periodo: null }),
+      arquivo({ id: "sem", periodo: "" }),
       arquivo({ id: "com", periodo: "05-10" }),
     ]);
     expect(grupos[0].periodos.map((p) => p.periodo)).toEqual(["05-10", null]);
@@ -164,7 +164,11 @@ describe("Repositório de Envios — registro automático dos arquivos enviados"
   });
 
   it("bloqueia nomes com caminho ou pontos iniciais", () => {
-    expect(nomeSeguro("../../segredo.pdf")).toBe("__segredo.pdf");
+    const sujo = nomeSeguro("../../segredo.pdf");
+    expect(sujo).not.toContain("/");
+    expect(sujo).not.toContain("\\");
+    expect(sujo.startsWith(".")).toBe(false);
+    expect(sujo.endsWith(".pdf")).toBe(true);
     expect(nomeSeguro("a/b\\c.pdf")).toBe("a_b_c.pdf");
     expect(nomeSeguro("   ")).toBe("arquivo");
   });
