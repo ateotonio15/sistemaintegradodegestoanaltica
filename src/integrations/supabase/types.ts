@@ -6011,12 +6011,37 @@ export type Database = {
         }
         Relationships: []
       }
+      uber_funcoes: {
+        Row: {
+          ativo: boolean
+          created_at: string
+          id: string
+          nome: string
+          updated_at: string
+        }
+        Insert: {
+          ativo?: boolean
+          created_at?: string
+          id?: string
+          nome: string
+          updated_at?: string
+        }
+        Update: {
+          ativo?: boolean
+          created_at?: string
+          id?: string
+          nome?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       uber_passageiros: {
         Row: {
           ativo: boolean
           created_at: string
           created_by: string | null
           endereco: string
+          funcao_id: string | null
           id: string
           motivo_padrao: string | null
           nome: string
@@ -6033,6 +6058,7 @@ export type Database = {
           created_at?: string
           created_by?: string | null
           endereco: string
+          funcao_id?: string | null
           id?: string
           motivo_padrao?: string | null
           nome: string
@@ -6049,6 +6075,7 @@ export type Database = {
           created_at?: string
           created_by?: string | null
           endereco?: string
+          funcao_id?: string | null
           id?: string
           motivo_padrao?: string | null
           nome?: string

@@ -26,6 +26,7 @@ export interface UberPassageiro {
   setor: string;
   endereco: string;
   whatsapp: string;
+  funcao_id: string | null;
   ativo: boolean;
   tem_corrida_padrao: boolean;
   usar_endereco_origem: boolean;
@@ -44,6 +45,7 @@ export type PassageiroForm = Partial<
     | "setor"
     | "endereco"
     | "whatsapp"
+    | "funcao_id"
     | "ativo"
     | "tem_corrida_padrao"
     | "usar_endereco_origem"
@@ -81,6 +83,7 @@ export function normalizarPassageiroParaSalvar(p: PassageiroForm): PassageiroFor
     endereco: p.endereco?.trim(),
     whatsapp: p.whatsapp?.trim(),
     ativo: p.ativo !== false,
+    funcao_id: p.funcao_id || null,
   };
   if (!base.tem_corrida_padrao) {
     return {
