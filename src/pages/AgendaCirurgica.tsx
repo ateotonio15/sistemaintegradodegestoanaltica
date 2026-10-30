@@ -113,20 +113,24 @@ export default function AgendaCirurgica() {
 
       <Card className="p-4">
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-          <div><label className="text-xs text-muted-foreground">Data início</label><Input type="date" value={form.ini} onChange={set("ini")} /></div>
-          <div><label className="text-xs text-muted-foreground">Data fim</label><Input type="date" value={form.fim} onChange={set("fim")} /></div>
+          <div><label className="text-xs text-muted-foreground">Data início</label><Input type="date" value={form.ini} onChange={set("ini")} disabled={form.ignorar_datas} className={form.ignorar_datas ? "opacity-50" : ""} /></div>
+          <div><label className="text-xs text-muted-foreground">Data fim</label><Input type="date" value={form.fim} onChange={set("fim")} disabled={form.ignorar_datas} className={form.ignorar_datas ? "opacity-50" : ""} /></div>
           <div><label className="text-xs text-muted-foreground">Paciente</label><Input value={form.nm_paciente} onChange={set("nm_paciente")} placeholder="Nome do paciente" /></div>
           <div><label className="text-xs text-muted-foreground">Empresa</label><Input value={form.nm_empresa} onChange={set("nm_empresa")} placeholder="Nome da empresa" /></div>
           <div><label className="text-xs text-muted-foreground">Status</label><Input value={form.ie_status_agenda} onChange={set("ie_status_agenda")} placeholder="Ex.: N" /></div>
           <div><label className="text-xs text-muted-foreground">Cód. agenda (sala)</label><Input value={form.cd_agenda} onChange={set("cd_agenda")} placeholder="Ex.: 10,12" /></div>
           <div><label className="text-xs text-muted-foreground">Cód. médico</label><Input value={form.cd_medico} onChange={set("cd_medico")} inputMode="numeric" /></div>
           <div><label className="text-xs text-muted-foreground">Cód. convênio</label><Input value={form.cd_convenio} onChange={set("cd_convenio")} inputMode="numeric" /></div>
+          <div className="md:col-span-2 flex items-center gap-2 pt-4">
+            <Checkbox id="ignorar-datas" checked={form.ignorar_datas} onCheckedChange={(v) => setForm((f) => ({ ...f, ignorar_datas: v === true }))} />
+            <label htmlFor="ignorar-datas" className="text-sm cursor-pointer select-none">Ignorar datas <span className="text-muted-foreground">(buscar sem limite de período)</span></label>
+          </div>
         </div>
         <div className="flex justify-end mt-3"><Button onClick={aplicar}><Search className="h-4 w-4 mr-1" />Buscar</Button></div>
       </Card>
 
       <Card className="p-0 overflow-hidden">
-        <div className="px-4 py-2 text-sm text-muted-foreground border-b">{data ? `${data.total.toLocaleString("pt-BR")} agendamentos` : " "}</div>
+        <div className="px-4 py-2 text-sm text-muted-foreground border-b">{data ? `${data.total.toLocaleString("pt-BR")} agendamentos${!filtros.dt_inicio && !filtros.dt_fim ? " · sem limite de datas" : ""}` : " "}</div>
         {error ? <div className="p-6 text-destructive text-sm">{(error as Error).message}</div> : isLoading ? (
           <div className="p-4 space-y-2">{Array.from({ length: 6 }).map((_, i) => <Skeleton key={i} className="h-8" />)}</div>
         ) : (
