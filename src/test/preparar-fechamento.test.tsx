@@ -33,7 +33,7 @@ it("conclui com os dois documentos sem inventar evento de pendência", async () 
   const concluir = vi.fn();
   render(<QueryClientProvider client={new QueryClient()}><ImportarArquivosButton movimentacaoId="mov" empresaId="empresa" disabled={false} onBusy={vi.fn()} onImportar={vi.fn()} onConcluir={concluir} /></QueryClientProvider>);
   fireEvent.click(screen.getByRole("button", { name: "Preparar fechamento" }));
-  fireEvent.click(await screen.findByRole("button", { name: "Concluir", exact: true }));
+  fireEvent.click(await screen.findByRole("button", { name: /^Concluir$/ }));
   expect(concluir).toHaveBeenCalledTimes(1);
   expect(insert).not.toHaveBeenCalled();
 });
