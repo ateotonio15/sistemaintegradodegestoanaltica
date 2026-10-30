@@ -1023,21 +1023,27 @@ export default function Movimentacoes() {
                       </div>
                     )}
 
-                    <div className="rounded-xl border border-border/60 bg-muted/30 p-1">
-                      <Textarea
-                        value={novaObservacao}
-                        onChange={(e) => setNovaObservacao(e.target.value)}
-                        disabled={formEhSecundarioGrupo}
-                        placeholder={formEhSecundarioGrupo ? "Gerenciado pelo contrato principal do grupo" : "Adicionar nova observação (as anteriores não podem ser alteradas)"}
-                        className="min-h-[90px] resize-y border-0 bg-transparent shadow-none focus-visible:ring-0 focus-visible:ring-offset-0 text-sm placeholder:text-muted-foreground/70"
-                      />
+                    <div className="space-y-2">
+                      <Label className="text-sm font-medium">Nova observação</Label>
+                      <div className="rounded-xl border border-border/60 bg-muted/30 p-1">
+                        <Textarea
+                          value={novaObservacao}
+                          onChange={(e) => setNovaObservacao(e.target.value)}
+                           disabled={formEhSecundarioGrupo}
+                          placeholder={formEhSecundarioGrupo ? "Gerenciado pelo contrato principal do grupo" : "Adicionar nova observação (as anteriores não podem ser alteradas)"}
+                          className="min-h-[90px] resize-y border-0 bg-transparent shadow-none focus-visible:ring-0 focus-visible:ring-offset-0 text-sm placeholder:text-muted-foreground/70"
+                        />
+                      </div>
                     </div>
 
                   </div>
 
 
+                  {/* Seção 4 — Anexos e fechamento */}
+                  <SecaoModal numero={4} titulo="Anexos e fechamento" />
+                  <div className="rounded-xl border border-border/60 bg-card p-3 space-y-3 shadow-sm">
                   {grupoForm && grupoPrincipalId && (
-                    <div className={`rounded-lg border px-3 py-2 text-[11px] ${formEhSecundarioGrupo ? "border-warning/40 bg-warning/5 text-warning" : "border-info/40 bg-info/5 text-info"}`}>
+                     <div className={`rounded-lg border px-3 py-2 text-[11px] ${formEhSecundarioGrupo ? "border-warning/40 bg-warning/5 text-warning" : "border-info/40 bg-info/5 text-info"}`}>
                       {formEhSecundarioGrupo
                         ? `Contrato do grupo "${grupoForm.nome_grupo}". Datas, observações e anexos são gerenciados pelo contrato principal${nomeContratoPrincipal ? ` (${nomeContratoPrincipal})` : ""}.`
                         : formEhPrincipalGrupo
@@ -1047,13 +1053,14 @@ export default function Movimentacoes() {
                   )}
 
                   <AnexosMovimentacao
-                    movimentacaoId={editingId}
+                     movimentacaoId={editingId}
                     empresaId={form.empresa_id || null}
                     mes={form.mes_referencia}
                     periodo={form.periodo}
                     required={!!form.data_envio_financeiro}
                     onConcluir={() => { if (!upsert.isPending) upsert.mutate(form); }}
                   />
+                  </div>
                   </div>
 
 
