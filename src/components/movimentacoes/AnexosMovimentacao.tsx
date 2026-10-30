@@ -473,40 +473,44 @@ export function AnexosMovimentacao({ movimentacaoId, empresaId, mes, periodo, re
 
       {anexos.length === 0 && movimentacaoId && !showRequiredWarn ? (
         <p className="text-xs text-muted-foreground text-center py-3">
-          Nenhum anexo. Aceita PDF, Excel, CSV e imagens.
+          Nenhum anexo adicionado.
         </p>
       ) : (
-        <ul className="min-w-0 max-w-full space-y-1.5">
+        <ul className="min-w-0 max-w-full space-y-2">
           {anexos.map((a) => {
             const ext = (a.nome_arquivo.split(".").pop() || "").toLowerCase();
             const info = identificarAnexoImportado(a.nome_arquivo);
             const isExcel = ["xlsx", "xlsm", "xls"].includes(ext);
+            const origemAutomatica = (a as any).origem_importacao === "API";
             return (
               <li
                 key={a.id}
-                className="flex min-w-0 max-w-full flex-wrap items-center gap-2 rounded-md bg-muted/50 px-2.5 py-1.5 text-sm"
+                className="flex min-w-0 max-w-full items-start gap-2.5 rounded-lg border border-border/60 bg-card px-3 py-2.5"
               >
-                <FileText className="h-4 w-4 text-muted-foreground shrink-0" />
-                <div className="min-w-0 flex-1 basis-40">
-                <span className="block truncate" title={a.nome_arquivo}>{a.nome_arquivo}</span>
-                <p className="text-[11px] text-muted-foreground">Tipo: {info.tipo === "Outros" ? tipoArquivo(ext) : info.tipo} · {ext.toUpperCase()}</p>
+                 <FileText className="h-4 w-4 text-muted-foreground shrink-0 mt-0.5" />
+                <div className="min-w-0 flex-1">
+                <span className="block truncate text-sm font-medium" title={a.nome_arquivo}>{a.nome_arquivo}</span>
+                <p className="text-[11px] text-muted-foreground mt-0.5">
+                  {info.tipo === "Outros" ? tipoArquivo(ext) : info.tipo} · {ext.toUpperCase()} · {formatBytes(a.tamanho_bytes)}
+                </p>
+                <p className="text-[11px] text-muted-foreground">
+                  {origemAutomatica ? "Importado automaticamente" : "Anexado manualmente"} · {formatDateBR(a.created_at)}
+                </p>
                 {info.contrato && <p className="text-[11px] text-muted-foreground">Contrato: {info.contrato} · Competência da movimentação: {formatMes(mes ?? null) || "não informada"}</p>}
                 {info.geradoEm && <p className="text-[11px] text-muted-foreground">Geração informada no nome: {info.geradoEm}</p>}
-                <p className="text-[11px] text-muted-foreground">Anexado em: {formatDateBR(a.created_at)}</p>
                   {a.do_grupo && (
                     <span
-                      className="ml-2 inline-flex items-center gap-1 rounded-full border border-info/40 bg-info/10 px-1.5 py-0.5 text-[10px] font-medium text-info align-middle"
-                      title={`Anexo do contrato ${a.origem_empresa ?? "do grupo"}`}
+                      className="mt-1 inline-flex items-center gap-1 rounded-full border border-info/40 bg-info/10 px-1.5 py-0.5 text-[10px] font-medium text-info align-middle"
+                       title={`Anexo do contrato ${a.origem_empresa ?? "do grupo"}`}
                     >
                       <Users className="h-2.5 w-2.5" />
                       Do grupo
                     </span>
                   )}
                 </div>
-                <span className="text-xs text-muted-foreground shrink-0">{formatBytes(a.tamanho_bytes)}</span>
                 <div className="flex shrink-0 items-center gap-1">
                 {["pdf", "png", "jpg", "jpeg", "webp", "gif"].includes(ext) && <Button type="button" variant="ghost" size="icon" className="h-7 w-7" title="Visualizar" aria-label={`Visualizar ${a.nome_arquivo}`} onClick={() => setPreview(a)}><Eye className="h-3.5 w-3.5" /></Button>}
-                {isExcel ? (
+                 {isExcel ? (
                   <Button variant="ghost" size="icon" className="h-7 w-7 shrink-0 text-info hover:text-info" title="Extrair Vidas Ativas" onClick={() => handleExtrairVidas(a.storage_path, a.nome_arquivo)}>
                     <Users className="h-3.5 w-3.5" />
                   </Button>
@@ -516,7 +520,7 @@ export function AnexosMovimentacao({ movimentacaoId, empresaId, mes, periodo, re
                 </Button>
                 <Button
                   type="button"
-                  aria-label={`Remover ${a.nome_arquivo}`}
+                   aria-label={`Remover ${a.nome_arquivo}`}
                   variant="ghost"
                   size="icon"
                   className="h-7 w-7 shrink-0 text-destructive hover:text-destructive"
@@ -526,7 +530,7 @@ export function AnexosMovimentacao({ movimentacaoId, empresaId, mes, periodo, re
                     e.stopPropagation();
                     setRegistrarObs(false);
                     setAlvoExclusao({
-                      id: a.id,
+                       id: a.id,
                       path: a.storage_path,
                       nome: a.nome_arquivo,
                       tipo: tipoArquivo(a.nome_arquivo.split(".").pop()),
@@ -536,7 +540,7 @@ export function AnexosMovimentacao({ movimentacaoId, empresaId, mes, periodo, re
                   }}
                 >
                   <Trash2 className="h-3.5 w-3.5" />
-                </Button>
+                 </Button>
                 </div>
 
               </li>
