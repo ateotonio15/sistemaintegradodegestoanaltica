@@ -938,8 +938,13 @@ export default function Movimentacoes() {
                         </Select>
                       )}
                     </div>
+                  </div>
+
+                  {/* Seção 2 — Datas e responsável */}
+                  <SecaoModal numero={2} titulo="Datas e responsável" />
+                  <div className="grid gap-4 sm:grid-cols-2">
                     <div className="space-y-2">
-                      <Label className="text-sm font-medium">Responsável</Label>
+                       <Label className="text-sm font-medium">Responsável</Label>
                       <Input value={form.responsavel_movimentacao ?? ""} onChange={(e) => setForm({ ...form, responsavel_movimentacao: e.target.value })} disabled={!canEdit && !!editingId} className="rounded-lg" />
                     </div>
                     <div className="space-y-2">
