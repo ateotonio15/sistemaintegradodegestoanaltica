@@ -534,6 +534,7 @@ export function AnexosMovimentacao({ movimentacaoId, empresaId, mes, periodo, re
                 <Button type="button" variant="ghost" size="icon" className="h-7 w-7 shrink-0" title="Baixar" aria-label={`Baixar ${a.nome_arquivo}`} onClick={() => handleDownload(a.storage_path, a.nome_arquivo)}>
                   <Download className="h-3.5 w-3.5" />
                 </Button>
+                {!somenteImportarRepositorio && (
                 <Button
                   type="button"
                    aria-label={`Remover ${a.nome_arquivo}`}
@@ -566,10 +567,12 @@ export function AnexosMovimentacao({ movimentacaoId, empresaId, mes, periodo, re
         </ul>
       )}
 
+      {!somenteImportarRepositorio && (
       <div className="border-t border-border/40 pt-3">
         <ImportarArquivosButton compacto movimentacaoId={movimentacaoId} empresaId={empresaId} mes={mes} periodo={periodo}
           disabled={uploading || importandoRepositorio || !!pendente} onBusy={setImportando} onImportar={importarArquivo} onConcluir={onConcluir} />
       </div>
+      )}
       {preview && <PreviewArquivoDialog open onOpenChange={open => { if (!open) setPreview(null); }} bucket={STORAGE_BUCKET} storagePath={preview.storage_path} nomeArquivo={preview.nome_arquivo} mimeType={preview.mime_type} />}
       <AlertDialog
         open={!!pendente}
