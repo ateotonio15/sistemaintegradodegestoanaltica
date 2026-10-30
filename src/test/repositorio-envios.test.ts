@@ -1,9 +1,12 @@
 import { describe, expect, it } from "vitest";
 import {
   agruparEnvios,
+  apenasAtuais,
+  chaveDocumento,
   extensaoDe,
   formatarDataHoraEnvio,
   resumoEnviosEmpresa,
+  versoesDoDocumento,
   type ArquivoEnvio,
 } from "@/lib/repositorio-envios";
 import {
