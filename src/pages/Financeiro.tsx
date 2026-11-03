@@ -1374,38 +1374,39 @@ export default function Financeiro() {
     const contratosSet = new Set(
       kpiRows.map((r) => r.empresa_codigo?.trim() || `__sem__${r.empresa_id}`),
     );
-    const emFaturamento = contarContratosPorStatus(kpiRows, "Em faturamento");
-    const faturado = contarContratosPorStatus(kpiRows, "Faturado");
+    // Todos os indicadores de status contam PAGADORES (mesma expansão do Total pagadores):
+    // sem pagadores cadastrados → 1; com pagadores → nº de pagadores + CNPJ mãe (se não repetido).
+    // Cada empresa conta uma única vez por status, mesmo com várias linhas.
+    const contarPagadoresPorStatus = (statuses: string[]) => {
+      const vistos = new Set<string>();
+      let total = 0;
+      kpiRows.forEach((r) => {
+        if (!statuses.includes(r.status)) return;
+        const chave = `${r.empresa_id}|${statuses.join(",")}`;
+        if (vistos.has(chave)) return;
+        vistos.add(chave);
+        const lista = (pagadoresCadastradosMap[r.empresa_id] || []).filter(
+          (p: any) => p.ativo && vigenteNaCompetencia(p, (r as any).mes_referencia ?? mes),
+        );
+        if (lista.length === 0) {
+          total += 1;
+        } else {
+          const cnpjsPag = new Set(lista.map((p: any) => onlyDigits(p.cnpj)).filter(Boolean));
+          const cnpjMae = onlyDigits(r.empresa_cnpj);
+          const incluiMae = !!cnpjMae && !cnpjsPag.has(cnpjMae);
+          total += lista.length + (incluiMae ? 1 : 0);
+        }
+      });
+      return total;
+    };
     return {
       totalEmpresas: contratosSet.size,
       totalPagadores,
-      notasEnviadas: kpiRows.filter((r) => r.status === "Enviada" || r.status === "Nota emitida").length,
-      aguardandoNota: (() => {
-        // Contabiliza 1 linha por pagador cadastrado (mesma expansão do Painel TV):
-        // - Sem pagadores cadastrados → 1 (a própria empresa)
-        // - Com pagadores → nº de pagadores + 1 (a empresa/CNPJ mãe), evitando duplicar
-        //   quando o CNPJ mãe já está entre os pagadores.
-        let total = 0;
-        kpiRows
-          .filter((r) => r.status === "Aguardando nota")
-          .forEach((r) => {
-            const lista = (pagadoresCadastradosMap[r.empresa_id] || []).filter(
-              (p: any) => p.ativo && vigenteNaCompetencia(p, (r as any).mes_referencia ?? mes),
-            );
-            if (lista.length === 0) {
-              total += 1;
-            } else {
-              const cnpjsPag = new Set(lista.map((p: any) => onlyDigits(p.cnpj)).filter(Boolean));
-              const cnpjMae = onlyDigits(r.empresa_cnpj);
-              const incluiMae = !!cnpjMae && !cnpjsPag.has(cnpjMae);
-              total += lista.length + (incluiMae ? 1 : 0);
-            }
-          });
-        return total;
-      })(),
-      pendentes: kpiRows.filter((r) => r.status === "Pendente").length,
-      emFaturamento,
-      faturado,
+      notasEnviadas: contarPagadoresPorStatus(["Enviada", "Nota emitida"]),
+      aguardandoNota: contarPagadoresPorStatus(["Aguardando nota"]),
+      pendentes: contarPagadoresPorStatus(["Pendente"]),
+      emFaturamento: contarPagadoresPorStatus(["Em faturamento"]),
+      faturado: contarPagadoresPorStatus(["Faturado"]),
     };
   }, [kpiRows, pagadoresCadastradosMap, mes]);
 
