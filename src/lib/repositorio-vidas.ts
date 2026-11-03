@@ -4,7 +4,7 @@ import { dataCorteMovimentacao } from "../../supabase/functions/_shared/data-cor
 /** Conta as vidas (linhas com beneficiário) da planilha "OPS Mensalidades". Somente leitura. */
 export async function contarVidasExcel(blob: Blob): Promise<number | null> {
   try {
-    const wb = XLSX.read(await blob.arrayBuffer(), { type: "array" });
+    const wb = XLSX.read(await (typeof blob.arrayBuffer === "function" ? blob.arrayBuffer() : new Response(blob).arrayBuffer()), { type: "array" });
     const sheet = wb.Sheets[wb.SheetNames[0]];
     if (!sheet) return null;
     const linhas = XLSX.utils.sheet_to_json<unknown[]>(sheet, { header: 1, blankrows: false });
