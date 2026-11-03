@@ -1,5 +1,5 @@
 import { Card, CardContent } from "@/components/ui/card";
-import { Building2, FileCheck, Clock, AlertCircle, AlertTriangle, Users } from "lucide-react";
+import { Building2, FileCheck, Clock, AlertCircle, RefreshCw, BadgeCheck, Users } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface KpiCardsProps {
@@ -7,7 +7,8 @@ interface KpiCardsProps {
   notasEnviadas: number;
   aguardandoNota: number;
   pendentes: number;
-  foraDoPrazo: number;
+  emFaturamento: number;
+  faturado: number;
   totalPagadores: number;
 }
 
@@ -17,12 +18,13 @@ const items = [
   { key: "notasEnviadas", label: "Notas enviadas", icon: FileCheck, accent: "text-success", bg: "bg-success/10" },
   { key: "aguardandoNota", label: "Aguardando Emissão", icon: Clock, accent: "text-warning", bg: "bg-warning/10" },
   { key: "pendentes", label: "Pendentes", icon: AlertCircle, accent: "text-muted-foreground", bg: "bg-muted" },
-  { key: "foraDoPrazo", label: "Fora do prazo", icon: AlertTriangle, accent: "text-destructive", bg: "bg-destructive/10" },
+  { key: "emFaturamento", label: "Em faturamento", icon: RefreshCw, accent: "text-info", bg: "bg-info/10" },
+  { key: "faturado", label: "Faturado", icon: BadgeCheck, accent: "text-success", bg: "bg-success/10" },
 ] as const;
 
 export function KpiCards(props: KpiCardsProps) {
   return (
-    <div className="grid grid-cols-2 gap-3 md:grid-cols-3 lg:grid-cols-6">
+    <div className="grid grid-cols-2 gap-3 md:grid-cols-4 lg:grid-cols-7">
       {items.map((item) => {
         const Icon = item.icon;
         const value = props[item.key];
