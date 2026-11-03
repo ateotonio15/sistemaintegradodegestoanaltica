@@ -16,6 +16,6 @@ describe("contagem de vidas na planilha", () => {
     const ws = XLSX.utils.aoa_to_sheet([["Contrato", "Beneficiario"], [2194, "A"], [2194, "B"], [2194, ""]]);
     const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, "x");
     const buf = XLSX.write(wb, { type: "array", bookType: "xlsx" });
-    expect(await contarVidasExcel(new Blob([buf]))).toBe(2);
+    expect(await contarVidasExcel({ arrayBuffer: async () => buf } as unknown as Blob)).toBe(2);
   });
 });
