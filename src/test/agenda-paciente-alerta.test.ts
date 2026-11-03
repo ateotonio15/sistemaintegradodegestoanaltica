@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 vi.mock("@/lib/agendaCirurgicaApi", () => ({ listarAgendamentos: vi.fn(), listarAgendamentosDireto: vi.fn(), lerChaveDireta: () => "", lerModoAgenda: () => "servidor" }));
-import { cirurgiaAgendadaAtiva, escolherAgendamento, buscarAgendaPaciente } from "@/lib/agenda-paciente-lookup";
+import { cirurgiaAgendadaAtiva, cirurgiaRealizada, escolherAgendamento, escolherProcedimentoRealizado, buscarAgendaPaciente } from "@/lib/agenda-paciente-lookup";
 import { listarAgendamentos } from "@/lib/agendaCirurgicaApi";
 import type { AgendamentoCirurgico } from "@/lib/agendaCirurgicaApi";
 
@@ -29,6 +29,19 @@ describe("Alerta de cirurgia ativa", () => {
     expect(cirurgiaAgendadaAtiva(cirurgia("Realizada"), "2026-10-26")).toBe(false);
     expect(cirurgiaAgendadaAtiva(cirurgia("Agendada", undefined, "25/10/2026"), "2026-10-26")).toBe(false);
   });
+  it("Executada sinaliza que o paciente já realizou o procedimento", () => {
+    expect(cirurgiaRealizada(cirurgia("Executada"))).toBe(true);
+    expect(cirurgiaRealizada(cirurgia("Realizada"))).toBe(true);
+    expect(cirurgiaRealizada(cirurgia("Marcada"))).toBe(false);
+    expect(cirurgiaRealizada(cirurgia("Marcada - Cancelada"))).toBe(false);
+    expect(cirurgiaRealizada(cirurgia("Não realizada"))).toBe(false);
+    expect(cirurgiaRealizada(cirurgia("Executada", undefined, ""))).toBe(false);
+  });
+  it("sinaliza o procedimento realizado mais recente do CPF", () => {
+    const lista = [cirurgia("Executada", undefined, "20/10/2026"), cirurgia("Realizada", undefined, "25/10/2026"), cirurgia("Executada", "98765432100", "28/10/2026")];
+    expect(escolherProcedimentoRealizado(lista, "12345678901")).toEqual({ data_entrada: "2026-10-25", nome_medico: "Médica Teste", nome_procedimento: "Cirurgia teste" });
+    expect(escolherProcedimentoRealizado(lista, "")).toBeNull();
+  });
   it("status desconhecido ou aguardando não comprova agendamento", () => {
     for (const status of ["", "N", "Aguardando agendamento", "Não agendada", "Pendente"]) expect(cirurgiaAgendadaAtiva(cirurgia(status), "2026-10-26")).toBe(false);
   });
@@ -48,6 +61,6 @@ describe("Alerta de cirurgia ativa", () => {
   });
   it("ausência de paciente não cria agendamento", async () => {
     vi.mocked(listarAgendamentos).mockResolvedValueOnce({ sucesso: true, dados: [], total_paginas: 1 } as any);
-    expect(await buscarAgendaPaciente("12345678901", "Paciente teste")).toEqual({ cirurgia: null, agendamentoAtivo: null });
+    expect(await buscarAgendaPaciente("12345678901", "Paciente teste")).toEqual({ cirurgia: null, agendamentoAtivo: null, procedimentoRealizado: null });
   });
 });

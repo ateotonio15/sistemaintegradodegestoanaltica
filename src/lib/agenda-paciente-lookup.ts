@@ -15,6 +15,7 @@ export type DadosCirurgiaPaciente = {
 export type ConsultaAgendaPaciente = {
   cirurgia: DadosCirurgiaPaciente | null;
   agendamentoAtivo: DadosCirurgiaPaciente | null;
+  procedimentoRealizado: DadosCirurgiaPaciente | null;
 };
 
 /** Só identifica como ativo um status explicitamente agendado/confirmado, nunca desconhecido. */
@@ -27,6 +28,14 @@ export function cirurgiaAgendadaAtiva(a: AgendamentoCirurgico, hojeIso: string):
 }
 
 const soDigitos = (s?: string | null) => String(s ?? "").replace(/\D/g, "");
+
+const REALIZADO = /executad|realizad|conclu/;
+
+/** "Executada" (e equivalentes) na agenda significa que o paciente já realizou o procedimento cirúrgico. */
+export function cirurgiaRealizada(a: AgendamentoCirurgico): boolean {
+  const descricao = (a.status?.descricao ?? "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().trim();
+  return !!normalizarDataAgenda(a.dt_agenda) && REALIZADO.test(descricao) && !/^nao\b|^negad/.test(descricao);
+}
 const br = (d: Date) =>
   `${String(d.getDate()).padStart(2, "0")}/${String(d.getMonth() + 1).padStart(2, "0")}/${d.getFullYear()}`;
 
@@ -51,6 +60,25 @@ export function escolherAgendamento(lista: AgendamentoCirurgico[], cpf: string, 
   const futuros = doCpf.filter((x) => x.data >= hojeIso).sort((x, y) => x.data.localeCompare(y.data));
   const passados = doCpf.filter((x) => x.data < hojeIso).sort((x, y) => y.data.localeCompare(x.data));
   const { a, data } = futuros[0] ?? passados[0];
+  return {
+    data_entrada: data,
+    nome_medico: a.medico?.nm_medico?.trim() || "",
+    nome_procedimento: (a.procedimento_principal?.descricao || a.procedimentos?.[0]?.descricao || "").trim(),
+  };
+}
+
+/** Escolhe o procedimento já realizado mais recente do CPF (status "Executada", "Realizada" etc.). */
+export function escolherProcedimentoRealizado(lista: AgendamentoCirurgico[], cpf: string): DadosCirurgiaPaciente | null {
+  const alvo = soDigitos(cpf);
+  if (alvo.length !== 11) return null;
+  const realizados = lista
+    .filter((a) => soDigitos(a.paciente?.nr_cpf) === alvo && cirurgiaRealizada(a))
+    .map((a) => ({ a, data: normalizarDataAgenda(a.dt_agenda) }))
+    .filter((x) => x.data)
+    .sort((x, y) => y.data.localeCompare(x.data));
+  const escolhido = realizados[0];
+  if (!escolhido) return null;
+  const { a, data } = escolhido;
   return {
     data_entrada: data,
     nome_medico: a.medico?.nm_medico?.trim() || "",
@@ -91,6 +119,7 @@ export async function buscarAgendaPaciente(cpf: string, nome: string): Promise<C
   return {
     cirurgia: escolherAgendamento(lista, cpf, hojeIso),
     agendamentoAtivo: escolherAgendamento(lista.filter(a => cirurgiaAgendadaAtiva(a, hojeIso)), cpf, hojeIso),
+    procedimentoRealizado: escolherProcedimentoRealizado(lista, cpf),
   };
 }
 
