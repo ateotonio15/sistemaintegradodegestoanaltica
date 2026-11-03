@@ -172,6 +172,22 @@ export function calcularStatusFinanceiro(
   return "Pendente";
 }
 
+/**
+ * Conta CONTRATOS (não linhas) em um status. A mesma empresa pode ter mais de
+ * uma movimentação na competência; sem código de contrato, cada empresa conta
+ * individualmente. Usado nos indicadores "Em faturamento" e "Faturado".
+ */
+export function contarContratosPorStatus<
+  R extends { status: StatusFinanceiro; empresa_id: string; empresa_codigo?: string | null },
+>(rows: R[], status: StatusFinanceiro): number {
+  const contratos = new Set<string>();
+  rows.forEach((r) => {
+    if (r.status !== status) return;
+    contratos.add(r.empresa_codigo?.trim() || `__sem__${r.empresa_id}`);
+  });
+  return contratos.size;
+}
+
 export function statusFinanceiroColor(status: StatusFinanceiro): string {
   switch (status) {
     case "Nota emitida":

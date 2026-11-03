@@ -58,7 +58,7 @@ import {
   type FinanceiroMovimentacao,
   PERIODOS_FIN,
   calcularStatusFinanceiro,
-  calcularPrazoFinanceiro,
+  contarContratosPorStatus,
   type StatusFinanceiro,
   getCurrentMesReferencia,
   formatMesReferencia,
@@ -1374,14 +1374,8 @@ export default function Financeiro() {
     const contratosSet = new Set(
       kpiRows.map((r) => r.empresa_codigo?.trim() || `__sem__${r.empresa_id}`),
     );
-    const foraDoPrazo = kpiRows.filter((r) => {
-      const p = calcularPrazoFinanceiro({
-        aguardando_nota_em: (r as any).aguardando_nota_em,
-        data_envio_nota: r.data_envio_nota,
-        dia_emissao: (r as any).dia_emissao,
-      });
-      return p.categoria === "Fora do prazo";
-    }).length;
+    const emFaturamento = contarContratosPorStatus(kpiRows, "Em faturamento");
+    const faturado = contarContratosPorStatus(kpiRows, "Faturado");
     return {
       totalEmpresas: contratosSet.size,
       totalPagadores,
@@ -1410,7 +1404,8 @@ export default function Financeiro() {
         return total;
       })(),
       pendentes: kpiRows.filter((r) => r.status === "Pendente").length,
-      foraDoPrazo,
+      emFaturamento,
+      faturado,
     };
   }, [kpiRows, pagadoresCadastradosMap, mes]);
 
