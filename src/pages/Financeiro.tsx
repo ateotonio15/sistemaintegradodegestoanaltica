@@ -1402,7 +1402,8 @@ export default function Financeiro() {
     return {
       totalEmpresas: contratosSet.size,
       totalPagadores,
-      notasEnviadas: contarPagadoresPorStatus(["Enviada", "Nota emitida"]),
+      notasEnviadas: contarPagadoresPorStatus(["Enviada"]),
+      notaEmitida: contarPagadoresPorStatus(["Nota emitida"]),
       aguardandoNota: contarPagadoresPorStatus(["Aguardando nota"]),
       pendentes: contarPagadoresPorStatus(["Pendente"]),
       emFaturamento: contarPagadoresPorStatus(["Em faturamento"]),
