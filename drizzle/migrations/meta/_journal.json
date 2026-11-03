@@ -540,6 +540,13 @@
       "when": 1793382269334,
       "tag": "0076_executivo_externo_importar_repositorio",
       "breakpoints": true
+    },
+    {
+      "idx": 77,
+      "version": "7",
+      "when": 1793734683692,
+      "tag": "0077_varredura_agenda_reclamacoes",
+      "breakpoints": true
     }
   ]
 }

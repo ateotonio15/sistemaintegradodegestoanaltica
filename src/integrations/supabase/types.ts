@@ -2097,6 +2097,47 @@ export type Database = {
           },
         ]
       }
+      demandas_cirurgia_situacao: {
+        Row: {
+          agendamento_id: string | null
+          alterado_em: string
+          assinatura: string | null
+          consultado_em: string
+          data_procedimento: string | null
+          demanda_id: string
+          situacao: string
+          status_api: string | null
+        }
+        Insert: {
+          agendamento_id?: string | null
+          alterado_em?: string
+          assinatura?: string | null
+          consultado_em?: string
+          data_procedimento?: string | null
+          demanda_id: string
+          situacao: string
+          status_api?: string | null
+        }
+        Update: {
+          agendamento_id?: string | null
+          alterado_em?: string
+          assinatura?: string | null
+          consultado_em?: string
+          data_procedimento?: string | null
+          demanda_id?: string
+          situacao?: string
+          status_api?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "demandas_cirurgia_situacao_demanda_id_fkey"
+            columns: ["demanda_id"]
+            isOneToOne: true
+            referencedRelation: "demandas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       demandas_cirurgia_sync: {
         Row: {
           erro: string | null
@@ -2118,6 +2159,60 @@ export type Database = {
           reservado_ate?: string | null
           ultima_consulta_em?: string | null
           ultimo_sucesso_em?: string | null
+        }
+        Relationships: []
+      }
+      demandas_cirurgia_varreduras: {
+        Row: {
+          agendadas: number
+          aguardando: number
+          analisadas: number
+          atualizadas: number
+          cancelados: number
+          concluido_em: string | null
+          erro: string | null
+          erros: number
+          id: string
+          ignoradas: number
+          iniciado_em: string
+          origem: string
+          realizados: number
+          usuario_id: string | null
+          validar: number
+        }
+        Insert: {
+          agendadas?: number
+          aguardando?: number
+          analisadas?: number
+          atualizadas?: number
+          cancelados?: number
+          concluido_em?: string | null
+          erro?: string | null
+          erros?: number
+          id?: string
+          ignoradas?: number
+          iniciado_em?: string
+          origem: string
+          realizados?: number
+          usuario_id?: string | null
+          validar?: number
+        }
+        Update: {
+          agendadas?: number
+          aguardando?: number
+          analisadas?: number
+          atualizadas?: number
+          cancelados?: number
+          concluido_em?: string | null
+          erro?: string | null
+          erros?: number
+          id?: string
+          ignoradas?: number
+          iniciado_em?: string
+          origem?: string
+          realizados?: number
+          usuario_id?: string | null
+          validar?: number
         }
         Relationships: []
       }
