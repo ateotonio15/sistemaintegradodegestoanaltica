@@ -41,7 +41,7 @@ export function KpiCards(props: KpiCardsProps) {
                 <Icon className={cn("h-5 w-5", item.accent)} />
               </div>
               <div className="min-w-0">
-                <p className="text-[11px] uppercase tracking-wide text-muted-foreground truncate font-medium">{item.label}</p>
+                <p className="text-[11px] uppercase tracking-wide text-muted-foreground font-medium leading-tight">{item.label}</p>
                 <p className="text-2xl font-bold tracking-tight text-foreground tabular-nums">{value}</p>
               </div>
             </CardContent>
