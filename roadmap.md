@@ -2,7 +2,7 @@
 
 ## Agenda Cirúrgica — status Marcada
 - [x] Reconhecer “Marcada” com data atual/futura na verificação das reclamações, alerta do paciente e avisos globais, preservando CPF e status da reclamação.
-- [ ] Conferir regressões e disponibilizar as regras no servidor.
+- [x] 31 testes aprovados e regras disponibilizadas no servidor; confirmação do resultado real da paciente ainda não realizada.
 
 ## Repositório de Envios — 30/10
 - [x] Nova aba em "Utilitários" (/repositorio-envios) com Empresas → Arquivos → Prévia, agrupando por competência e período; Repositório Financeiro, Movimentações e envio de e-mails permanecem como estão. 9 testes aprovados; sessão autenticada conferiu o card no menu, as três colunas e a busca de empresas.
