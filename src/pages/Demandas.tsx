@@ -54,6 +54,7 @@ import {
 } from "@/lib/demandas-utils";
 import DemandaFormDialog from "@/components/demandas/DemandaFormDialog";
 import { SeloCirurgiaDemanda } from "@/components/demandas/AlertaCirurgiaAgendada";
+import { BotaoVarreduraAgenda, CelulasCirurgia, useSituacoesCirurgia } from "@/components/demandas/VarreduraAgendaCirurgica";
 import ImportarDemandasDialog from "@/components/demandas/ImportarDemandasDialog";
 import HistoricoImportacoesDialog from "@/components/demandas/HistoricoImportacoesDialog";
 
@@ -67,6 +68,8 @@ export default function Demandas() {
   const idParam = params.get("id");
   const destacarParam = params.get("destacar");
   const { data: demandas = [], isLoading } = useDemandas();
+  const { data: situacoesCirurgia } = useSituacoesCirurgia();
+  const podeVarrer = isAdmin || isExecutivo || isExecutivoExterno;
   useEffect(() => {
     if (!destacarParam) return;
     const timer = setTimeout(() => {
@@ -332,6 +335,7 @@ export default function Demandas() {
                 </Link>
               </Button>
             )}
+            {podeVarrer && <BotaoVarreduraAgenda />}
             <Button variant="outline" size="sm" onClick={exportExcel} className="gap-1.5">
               <Download className="h-4 w-4" />
               Exportar Excel
@@ -440,6 +444,9 @@ export default function Demandas() {
                 <th className="text-left py-2.5 px-3">Reclamação</th>
                 <th className="text-left py-2.5 px-3">Executiva</th>
                 <th className="text-left py-2.5 px-3">Status</th>
+                <th className="text-left py-2.5 px-3">Situação da cirurgia</th>
+                <th className="text-left py-2.5 px-3">Data do procedimento</th>
+                <th className="text-left py-2.5 px-3">Última consulta</th>
                 <th className="text-right py-2.5 px-3">Dias em aberto</th>
                 {!isDiretora && <th className="text-right py-2.5 px-3 w-28">Ações</th>}
               </tr>
@@ -447,13 +454,13 @@ export default function Demandas() {
             <tbody>
               {isLoading ? (
                 <tr>
-                  <td colSpan={10} className="py-10 text-center text-muted-foreground">
+                  <td colSpan={13} className="py-10 text-center text-muted-foreground">
                     Carregando...
                   </td>
                 </tr>
               ) : filtered.length === 0 ? (
                 <tr>
-                  <td colSpan={10} className="py-10 text-center text-muted-foreground">
+                  <td colSpan={13} className="py-10 text-center text-muted-foreground">
                     Nenhuma demanda encontrada.
                   </td>
                 </tr>
@@ -496,6 +503,7 @@ export default function Demandas() {
                           {st}
                         </Badge>
                       </td>
+                      <CelulasCirurgia s={situacoesCirurgia?.get(d.id)} />
                       <td
                         className={cn(
                           "py-2.5 px-3 text-right tabular-nums",
