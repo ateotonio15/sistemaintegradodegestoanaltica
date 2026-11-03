@@ -24,7 +24,7 @@ const items = [
 
 export function KpiCards(props: KpiCardsProps) {
   return (
-    <div className="grid grid-cols-2 gap-3 md:grid-cols-4 lg:grid-cols-7">
+    <div className="grid grid-cols-2 gap-3 md:grid-cols-4 min-[1750px]:grid-cols-7">
       {items.map((item) => {
         const Icon = item.icon;
         const value = props[item.key];
@@ -33,15 +33,15 @@ export function KpiCards(props: KpiCardsProps) {
             key={item.key}
             className="rounded-xl border-border/60 shadow-sm"
           >
-            <CardContent className="p-4 flex items-center gap-3">
+            <CardContent className="p-3.5 flex items-center gap-2.5">
               <div className={cn(
-                "flex h-10 w-10 shrink-0 items-center justify-center rounded-lg ring-1 ring-border/60",
+                "flex h-9 w-9 shrink-0 items-center justify-center rounded-lg ring-1 ring-border/60",
                 item.bg
               )}>
                 <Icon className={cn("h-5 w-5", item.accent)} />
               </div>
               <div className="min-w-0">
-                <p className="text-[11px] uppercase tracking-wide text-muted-foreground font-medium leading-tight">{item.label}</p>
+                <p className="text-[11px] uppercase tracking-wide text-muted-foreground font-medium leading-tight break-words">{item.label}</p>
                 <p className="text-2xl font-bold tracking-tight text-foreground tabular-nums">{value}</p>
               </div>
             </CardContent>
