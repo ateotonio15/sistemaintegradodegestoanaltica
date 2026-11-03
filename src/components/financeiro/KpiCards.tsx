@@ -26,7 +26,7 @@ const items = [
 
 export function KpiCards(props: KpiCardsProps) {
   return (
-    <div className="grid grid-cols-2 gap-3 lg:grid-cols-3 xl:grid-cols-4 min-[1750px]:grid-cols-7">
+    <div className="grid grid-cols-2 gap-3 lg:grid-cols-3 xl:grid-cols-4 min-[1750px]:grid-cols-8">
       {items.map((item) => {
         const Icon = item.icon;
         const value = props[item.key];
