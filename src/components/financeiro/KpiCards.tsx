@@ -1,10 +1,11 @@
 import { Card, CardContent } from "@/components/ui/card";
-import { Building2, FileCheck, Clock, AlertCircle, RefreshCw, BadgeCheck, Users } from "lucide-react";
+import { Building2, FileCheck, FileText, Clock, AlertCircle, RefreshCw, BadgeCheck, Users } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface KpiCardsProps {
   totalEmpresas: number;
   notasEnviadas: number;
+  notaEmitida: number;
   aguardandoNota: number;
   pendentes: number;
   emFaturamento: number;
@@ -16,6 +17,7 @@ const items = [
   { key: "totalEmpresas", label: "Total contratos", icon: Building2, accent: "text-primary", bg: "bg-primary/10" },
   { key: "totalPagadores", label: "Total pagadores", icon: Users, accent: "text-info", bg: "bg-info/10" },
   { key: "notasEnviadas", label: "Notas enviadas", icon: FileCheck, accent: "text-success", bg: "bg-success/10" },
+  { key: "notaEmitida", label: "Nota emitida", icon: FileText, accent: "text-primary", bg: "bg-primary/10" },
   { key: "aguardandoNota", label: "Aguardando Emissão", icon: Clock, accent: "text-warning", bg: "bg-warning/10" },
   { key: "pendentes", label: "Pendentes", icon: AlertCircle, accent: "text-muted-foreground", bg: "bg-muted" },
   { key: "emFaturamento", label: "Em faturamento", icon: RefreshCw, accent: "text-info", bg: "bg-info/10" },
