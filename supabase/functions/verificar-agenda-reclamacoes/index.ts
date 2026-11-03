@@ -49,7 +49,6 @@ async function processar(db: any, demandas: DemandaVarredura[], key: string, con
     const agora = new Date().toISOString();
     const linha: Record<string, unknown> = { demanda_id: d.id, consultado_em: agora };
     if (anterior.get(d.id) !== ass) {
-      // Em caso de erro, mantém a última situação válida e só registra a tentativa? Não: o erro é exibido.
       Object.assign(linha, r, { assinatura: ass, alterado_em: agora });
       contagem.atualizadas = (contagem.atualizadas ?? 0) + 1;
     }
