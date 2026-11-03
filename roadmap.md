@@ -170,3 +170,6 @@
 ## Importar do Repositório para executivo externo — 30/10
 - [x] Perfil executivo_externo abre a janela "Editar Movimentação" em modo somente leitura (campos travados, sem Salvar, rodapé "Fechar") com apenas o botão "Importar do Repositório" ativo na seção Anexos; sem "Anexar manualmente", "Preparar fechamento" nem exclusão de anexos.
 - [x] Backend: policies de leitura/inserção em anexos_movimentacao e no bucket anexos-movimentacoes, e RPC registrar_documento_fechamento + função preparar-documento-fechamento aceitam executivo_externo. Verificado com simulação real de RLS (transação desfeita) e no navegador com perfil simulado.
+
+## Indicadores do Financeiro
+- [x] Retirar o cartão "Fora do prazo" e exibir "Em faturamento" e "Faturado" (contratos distintos, não linhas). 3 testes novos aprovados, build OK; sessão autenticada conferiu os 7 cartões na largura real (1890) e em 1440/1280/1024/768 sem rótulos cortados.
