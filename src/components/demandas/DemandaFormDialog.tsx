@@ -29,7 +29,7 @@ import type { Demanda } from "@/lib/demandas-utils";
 import { format } from "date-fns";
 import { fetchBeneficiarioByCpf } from "@/lib/beneficiario-lookup";
 import { useAgendaPaciente } from "@/hooks/useAgendaPaciente";
-import { AlertaCirurgiaAgendada } from "@/components/demandas/AlertaCirurgiaAgendada";
+import { AlertaCirurgiaAgendada, AlertaCirurgiaRealizada } from "@/components/demandas/AlertaCirurgiaAgendada";
 import PessoaFisicaAutocomplete from "@/components/demandas/PessoaFisicaAutocomplete";
 import { buscarPessoaFisica, isCpfValido, type PessoaFisicaResult } from "@/lib/pessoa-fisica-lookup";
 import {
@@ -320,6 +320,9 @@ export default function DemandaFormDialog({ open, onOpenChange, demanda, initial
         </DialogHeader>
 
         {agenda.data?.agendamentoAtivo && <AlertaCirurgiaAgendada cirurgia={agenda.data.agendamentoAtivo} />}
+        {!agenda.data?.agendamentoAtivo && agenda.data?.procedimentoRealizado && (
+          <AlertaCirurgiaRealizada cirurgia={agenda.data.procedimentoRealizado} />
+        )}
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 py-2">
           <Field label="Setor responsável *" automated={!!aiFields && aiFields.setor_responsavel === form.setor_responsavel}>

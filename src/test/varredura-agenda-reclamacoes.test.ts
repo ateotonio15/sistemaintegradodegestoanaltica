@@ -22,6 +22,9 @@ describe("varredura da agenda nas reclamações", () => {
     expect(classificar(base, [ag("Realizada", "01/10/2026")], hoje).situacao).toBe("realizado");
     expect(classificar(base, [ag("Cancelado", "10/12/2026")], hoje).situacao).toBe("cancelado");
   });
+  it("Executada significa que o paciente já realizou o procedimento", () => {
+    expect(classificar(base, [ag("Executada", "01/10/2026")], hoje)).toMatchObject({ situacao: "realizado", data_procedimento: "2026-10-01" });
+  });
   it("Marcada com data de hoje reconhece o agendamento mostrado na agenda", () => {
     expect(classificar(base, [ag("Marcada", "03/11/2026 15:00")], hoje)).toEqual({
       situacao: "agendada", data_procedimento: "2026-11-03", status_api: "Marcada", agendamento_id: "9",
