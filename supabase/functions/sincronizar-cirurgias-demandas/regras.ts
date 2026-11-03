@@ -19,7 +19,7 @@ export function eventosConfirmados(demandas: DemandaCirurgia[], agenda: Cirurgia
       const data = dataAgenda(a.dt_agenda);
       if (digits(a.paciente?.nr_cpf) !== digits(d.cpf) || !data || data < hoje
         || /cancel|realiz|conclu|executad|suspens|pendente|aguard|nao agend/.test(status)
-        || !/agendad|confirmad|reservad/.test(status) || !a.nr_sequencia || !a.medico?.nm_medico?.trim()) continue;
+        || !/agendad|confirmad|reservad|\bmarcad[ao]\b/.test(status) || !a.nr_sequencia || !a.medico?.nm_medico?.trim()) continue;
       const event = { demanda_id: d.id, agendamento_id: String(a.nr_sequencia), data_cirurgia: data,
         nome_paciente: d.nome_cliente, nome_medico: a.medico.nm_medico.trim() };
       eventos.set(`${d.id}|${a.nr_sequencia}|${data}`, event);

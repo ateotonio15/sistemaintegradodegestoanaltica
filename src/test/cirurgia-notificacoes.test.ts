@@ -7,6 +7,17 @@ import { demandaCirurgicaPendente, eventosConfirmados, podeVerAvisosCirurgia, ty
 const d: DemandaCirurgia = { id: "10000000-0000-0000-0000-000000000001", cpf: "123.456.789-01", nome_cliente: "Paciente Teste", setor_responsavel: "Agenda Cirúrgica", tipo_reclamacao: null, reclamacao: null, resolvido_setor: false, resolvido_executiva: false };
 const a: Cirurgia = { nr_sequencia: 42, dt_agenda: "30/10/2026", status: { descricao: "Confirmado" }, paciente: { nr_cpf: "12345678901" }, medico: { nm_medico: "Médico Teste" } };
 describe("Avisos globais — regras da confirmação", () => {
+  it("Marcada com data atual emite aviso sem alterar a reclamação", () => {
+    const marcada = { ...a, dt_agenda: "03/11/2026", status: { descricao: "Marcada" } };
+    const before = JSON.stringify(d);
+    expect(eventosConfirmados([d], [marcada], "2026-11-03")).toEqual([{
+      demanda_id: d.id, agendamento_id: "42", data_cirurgia: "2026-11-03", nome_paciente: "Paciente Teste", nome_medico: "Médico Teste",
+    }]);
+    expect(JSON.stringify(d)).toBe(before);
+    expect(eventosConfirmados([d], [{ ...marcada, dt_agenda: "" }], "2026-11-03")).toEqual([]);
+    expect(eventosConfirmados([d], [{ ...marcada, dt_agenda: "02/11/2026" }], "2026-11-03")).toEqual([]);
+    expect(eventosConfirmados([d], [{ ...marcada, status: { descricao: "Marcada - Cancelada" } }], "2026-11-03")).toEqual([]);
+  });
   it("somente adm, executivo e executivo externo", () => {
     expect(["admin","executivo","executivo_externo"].map(podeVerAvisosCirurgia)).toEqual([true,true,true]);
     expect(["comum","financeiro","diretora","admin_interno","enfermeira","visualizacao",null].map(podeVerAvisosCirurgia)).toEqual([false,false,false,false,false,false,false]);

@@ -23,7 +23,7 @@ export function cirurgiaAgendadaAtiva(a: AgendamentoCirurgico, hojeIso: string):
   const data = normalizarDataAgenda(a.dt_agenda);
   return !!data && data >= hojeIso
     && !/cancel|realiz|conclu|executad|suspens|pendente|aguard|nao agend/.test(descricao)
-    && /agendad|confirmad|reservad/.test(descricao);
+    && /agendad|confirmad|reservad|\bmarcad[ao]\b/.test(descricao);
 }
 
 const soDigitos = (s?: string | null) => String(s ?? "").replace(/\D/g, "");
