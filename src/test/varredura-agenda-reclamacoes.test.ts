@@ -22,6 +22,17 @@ describe("varredura da agenda nas reclamações", () => {
     expect(classificar(base, [ag("Realizada", "01/10/2026")], hoje).situacao).toBe("realizado");
     expect(classificar(base, [ag("Cancelado", "10/12/2026")], hoje).situacao).toBe("cancelado");
   });
+  it("Marcada com data de hoje reconhece o agendamento mostrado na agenda", () => {
+    expect(classificar(base, [ag("Marcada", "03/11/2026 15:00")], hoje)).toEqual({
+      situacao: "agendada", data_procedimento: "2026-11-03", status_api: "Marcada", agendamento_id: "9",
+    });
+  });
+  it("Marcada exige data e CPF compatível e não aceita cancelamento", () => {
+    expect(classificar(base, [ag("Marcada", "")], hoje).situacao).toBe("aguardando");
+    expect(classificar(base, [ag("Marcada", "02/11/2026")], hoje).situacao).toBe("aguardando");
+    expect(classificar(base, [ag("Marcada", "03/11/2026", "99999999999")], hoje).situacao).toBe("validar");
+    expect(classificar(base, [ag("Marcada - Cancelada", "03/11/2026")], hoje).situacao).toBe("cancelado");
+  });
   it("homônimo com outro CPF pede validação", () => {
     expect(classificar(base, [ag("Agendado", "10/12/2026", "99999999999")], hoje).situacao).toBe("validar");
     expect(classificar({ ...base, cpf: null }, [ag("Agendado", "10/12/2026")], hoje).situacao).toBe("validar");

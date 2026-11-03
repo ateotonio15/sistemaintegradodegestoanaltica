@@ -27,7 +27,7 @@ export function dataAgenda(s?: string) {
 }
 
 const NEGATIVO = /cancel|realiz|conclu|executad|suspens|pendente|aguard|nao agend|solicit|autoriz|previs/;
-const ATIVO = /agendad|confirmad|reservad/;
+const ATIVO = /agendad|confirmad|reservad|\bmarcad[ao]\b/;
 const REALIZADO = /realiz|conclu|executad/;
 const CANCELADO = /cancel|suspens/;
 
