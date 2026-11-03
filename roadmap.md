@@ -1,5 +1,9 @@
 # Roadmap — Primeiro pacote financeiro
 
+## Agenda Cirúrgica — status Marcada
+- [x] Reconhecer “Marcada” com data atual/futura na verificação das reclamações, alerta do paciente e avisos globais, preservando CPF e status da reclamação.
+- [ ] Conferir regressões e disponibilizar as regras no servidor.
+
 ## Repositório de Envios — 30/10
 - [x] Nova aba em "Utilitários" (/repositorio-envios) com Empresas → Arquivos → Prévia, agrupando por competência e período; Repositório Financeiro, Movimentações e envio de e-mails permanecem como estão. 9 testes aprovados; sessão autenticada conferiu o card no menu, as três colunas e a busca de empresas.
 - [x] PDF e Excel de cada e-mail são guardados automaticamente após o servidor de e-mail aceitar o envio e registrados com empresa, contrato, competência, período, categoria, responsável e data/hora. Nenhum e-mail disparado na verificação: a gravação real depende do próximo envio.

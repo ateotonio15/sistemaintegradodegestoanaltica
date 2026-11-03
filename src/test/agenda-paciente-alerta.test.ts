@@ -10,6 +10,12 @@ const cirurgia = (descricao = "Agendada", cpf = "123.456.789-01", data = "28/10/
 });
 
 describe("Alerta de cirurgia ativa", () => {
+  it("Marcada com data atual ativa o alerta; sem data, passada ou cancelada não ativa", () => {
+    expect(cirurgiaAgendadaAtiva(cirurgia("Marcada", undefined, "03/11/2026"), "2026-11-03")).toBe(true);
+    expect(cirurgiaAgendadaAtiva(cirurgia("Marcada", undefined, ""), "2026-11-03")).toBe(false);
+    expect(cirurgiaAgendadaAtiva(cirurgia("Marcada", undefined, "02/11/2026"), "2026-11-03")).toBe(false);
+    expect(cirurgiaAgendadaAtiva(cirurgia("Marcada - Cancelada", undefined, "03/11/2026"), "2026-11-03")).toBe(false);
+  });
   it("reconhece cirurgia agendada com data e médico", () => {
     const a = cirurgia();
     expect(cirurgiaAgendadaAtiva(a, "2026-10-26")).toBe(true);
