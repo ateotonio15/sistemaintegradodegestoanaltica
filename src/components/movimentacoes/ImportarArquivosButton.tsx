@@ -7,6 +7,8 @@ import { importarArquivosMovimentacao } from "@/services/importarArquivosMovimen
 import type { ArquivoPortal } from "@/services/portalEmpresaRelatorios";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { useQueryClient } from "@tanstack/react-query";
+import { arquivoAnteriorAoCorte, formatarGeracao } from "@/lib/repositorio-vidas";
+import { dataCorteMovimentacao } from "../../../supabase/functions/_shared/data-corte";
 
 interface Props {
   movimentacaoId: string | null;
@@ -107,6 +109,11 @@ export function ImportarArquivosButton({ movimentacaoId, empresaId, mes, periodo
         {resumo && <>
           <dl className="grid grid-cols-2 gap-3 text-sm"><div><dt className="text-muted-foreground">Contrato</dt><dd>{resumo.contrato}</dd></div><div><dt className="text-muted-foreground">Período</dt><dd>{resumo.periodo || "—"}</dd></div><div><dt className="text-muted-foreground">Competência da movimentação</dt><dd>{resumo.mes.split("-").reverse().join("/")}</dd></div></dl>
           <div className="space-y-2 text-sm"><p className="font-medium">Arquivos encontrados</p>{resumo.resultado.documentos.map(item => <p key={item.tipo} className="flex items-center gap-2">{item.disponivel ? <Check className="h-4 w-4 text-success" /> : <AlertTriangle className="h-4 w-4 text-warning" />}{item.tipo === "pdf" ? "Relatório de Vidas - PDF" : "OPS Mensalidades - Excel"}{!item.disponivel && " — não encontrado ou não anexado"}</p>)}</div>
+          {resumo.resultado.vidas != null && <p className="text-sm">Vidas no relatório: <span className="font-semibold tabular-nums">{resumo.resultado.vidas}</span>{(() => { const x = resumo.resultado.origens.find(o => o.tipo === "xlsx"); const g = x && formatarGeracao(x.nome_arquivo); return g ? <span className="text-muted-foreground"> · gerado em {g}</span> : null; })()}</p>}
+          {resumo.resultado.origens.some(o => o.repositorio && arquivoAnteriorAoCorte(o.nome_arquivo, resumo.periodo, resumo.mes)) && <div role="alert" className="space-y-2 rounded-lg border border-warning/40 bg-warning/10 p-3 text-sm">
+            <p className="flex gap-2"><AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-warning" />O arquivo do Repositório foi gerado antes do fim do período ({dataCorteMovimentacao(resumo.periodo, resumo.mes)}). Desligamentos ou inclusões feitos depois podem não estar nele.</p>
+            <Button type="button" size="sm" variant="outline" disabled={registrando || busy} onClick={() => { setResumo(null); importar(); }}><CloudDownload className="h-3.5 w-3.5" />Buscar versão nova no Portal</Button>
+          </div>}
           <p className="text-sm">Arquivos anexados automaticamente: {resumo.resultado.anexados}</p>
           {resumo.resultado.ignorados > 0 && <p className="text-sm text-muted-foreground">Já anexados e ignorados: {resumo.resultado.ignorados}</p>}
           <p className="text-sm">Pendências: {resumo.resultado.documentos.every(item => item.disponivel) ? "Nenhuma" : "Alguns arquivos não foram encontrados."}</p>

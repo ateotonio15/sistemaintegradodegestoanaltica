@@ -1,5 +1,6 @@
 import { gerarRelatorioPortal, validarArquivoContrato, validarContratoPortal, type ArquivoPortal } from "@/services/portalEmpresaRelatorios";
 import { consultarDocumentoFechamento } from "./documentosFechamento";
+import { contarVidasExcel } from "@/lib/repositorio-vidas";
 
 export interface ContextoImportacao {
   movimentacaoId: string;
@@ -48,5 +49,8 @@ export async function importarArquivosMovimentacao(
     }
     catch (erro) { if (signal.aborted) throw erro; falhas++; }
   }
-  return { encontrados: arquivos.length, anexados, ignorados, falhas, documentos };
+  const excel = arquivos.find(a => a.tipo === "xlsx");
+  const vidas = excel ? await contarVidasExcel(excel.blob) : null;
+  const origens = arquivos.map(a => ({ tipo: a.tipo, nome_arquivo: a.nome_arquivo, repositorio: !!a.repositorio_envio_id }));
+  return { encontrados: arquivos.length, anexados, ignorados, falhas, documentos, vidas, origens };
 }

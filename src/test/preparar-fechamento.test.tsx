@@ -18,7 +18,7 @@ beforeEach(() => {
 });
 afterEach(() => { cleanup(); vi.unstubAllGlobals(); });
 it("permite continuar sem Excel e registra a pendência antes do salvamento existente", async () => {
-  vi.mocked(importarArquivosMovimentacao).mockResolvedValue({ encontrados: 1, anexados: 1, ignorados: 0, falhas: 1, documentos: [{ tipo: "pdf", disponivel: true }, { tipo: "xlsx", disponivel: false }] });
+  vi.mocked(importarArquivosMovimentacao).mockResolvedValue({ encontrados: 1, anexados: 1, ignorados: 0, vidas: null, origens: [], falhas: 1, documentos: [{ tipo: "pdf", disponivel: true }, { tipo: "xlsx", disponivel: false }] });
   insert.mockResolvedValue({ error: null });
   const concluir = vi.fn();
   render(<QueryClientProvider client={new QueryClient()}><ImportarArquivosButton movimentacaoId="mov" empresaId="empresa" mes="2026-10" periodo="05-10" disabled={false} onBusy={vi.fn()} onImportar={vi.fn()} onConcluir={concluir} /></QueryClientProvider>);
@@ -29,7 +29,7 @@ it("permite continuar sem Excel e registra a pendência antes do salvamento exis
   expect(insert.mock.invocationCallOrder[0]).toBeLessThan(concluir.mock.invocationCallOrder[0]);
 });
 it("conclui com os dois documentos sem inventar evento de pendência", async () => {
-  vi.mocked(importarArquivosMovimentacao).mockResolvedValue({ encontrados: 2, anexados: 2, ignorados: 0, falhas: 0, documentos: [{ tipo: "pdf", disponivel: true }, { tipo: "xlsx", disponivel: true }] });
+  vi.mocked(importarArquivosMovimentacao).mockResolvedValue({ encontrados: 2, anexados: 2, ignorados: 0, vidas: null, origens: [], falhas: 0, documentos: [{ tipo: "pdf", disponivel: true }, { tipo: "xlsx", disponivel: true }] });
   const concluir = vi.fn();
   render(<QueryClientProvider client={new QueryClient()}><ImportarArquivosButton movimentacaoId="mov" empresaId="empresa" disabled={false} onBusy={vi.fn()} onImportar={vi.fn()} onConcluir={concluir} /></QueryClientProvider>);
   fireEvent.click(screen.getByRole("button", { name: "Preparar fechamento" }));

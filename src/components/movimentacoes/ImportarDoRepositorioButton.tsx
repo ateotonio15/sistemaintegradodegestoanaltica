@@ -1,5 +1,8 @@
 import { useEffect, useRef, useState } from "react";
-import { Archive, Check, Loader2 } from "lucide-react";
+import { AlertTriangle, Archive, Check, CloudDownload, Loader2 } from "lucide-react";
+import { arquivoAnteriorAoCorte, contarVidasExcel, formatarGeracao } from "@/lib/repositorio-vidas";
+import { dataCorteMovimentacao } from "../../../supabase/functions/_shared/data-corte";
+import { importarArquivosMovimentacao } from "@/services/importarArquivosMovimentacao";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -14,7 +17,7 @@ interface Props {
   onImportar: (arquivo: ArquivoPortal, signal: AbortSignal) => Promise<"ignorado" | void>;
 }
 export function ImportarDoRepositorioButton({ movimentacaoId, empresaId, mes, periodo, disabled, onBusy, onImportar }: Props) {
-  const [resumo, setResumo] = useState<{ contexto: ContextoImportacao; nome: string; arquivos: ArquivoEnvio[] } | null>(null);
+  const [resumo, setResumo] = useState<{ contexto: ContextoImportacao; nome: string; arquivos: ArquivoEnvio[]; vidas: number | null } | null>(null);
   const [busy, setBusy] = useState(false);
   const [importando, setImportando] = useState(false);
   const [mensagem, setMensagem] = useState("");
@@ -34,8 +37,11 @@ export function ImportarDoRepositorioButton({ movimentacaoId, empresaId, mes, pe
       const contexto = { movimentacaoId, empresaId, contrato: String(validarContratoPortal(emp.codigo_contrato)), mes: mes ?? "", periodo: periodo ?? null };
       const nome = await conferirContextoRepositorio(contexto, abort.signal);
       const arquivos = await buscarArquivosRepositorio(contexto, abort.signal);
+      const excel = arquivos.find(a => /\.xlsx?$/i.test(a.nome_arquivo));
+      // Somente leitura: baixa a planilha para mostrar as vidas antes da confirmação.
+      const vidas = excel ? await carregarArquivoRepositorio(excel, contexto, abort.signal).then(f => contarVidasExcel(f.blob)).catch(() => null) : null;
       abort.signal.throwIfAborted();
-      setResumo({ contexto, nome, arquivos });
+      setResumo({ contexto, nome, arquivos, vidas });
     } catch (erro) {
       if (!abort.signal.aborted) { setMensagem(erro instanceof Error ? erro.message : "Não foi possível consultar o Repositório de Envios."); finalizar(); }
     }
@@ -48,7 +54,7 @@ export function ImportarDoRepositorioButton({ movimentacaoId, empresaId, mes, pe
       await conferirContextoRepositorio(resumo.contexto, abort.signal);
       const atuais = await buscarArquivosRepositorio(resumo.contexto, abort.signal);
       if (resumo.arquivos.some(a => !atuais.some(atual => atual.id === a.id))) {
-        setResumo({ ...resumo, arquivos: atuais });
+        setResumo({ ...resumo, arquivos: atuais, vidas: null });
         throw new Error("Os arquivos atuais mudaram. Confira a lista e confirme novamente.");
       }
       // Carregar todos antes de anexar: cancelar a consulta nunca cria anexos.
@@ -65,6 +71,18 @@ export function ImportarDoRepositorioButton({ movimentacaoId, empresaId, mes, pe
     } catch (erro) { if (!abort.signal.aborted) setMensagem(erro instanceof Error ? erro.message : "Não foi possível importar os arquivos."); }
     finally { if (!abort.signal.aborted) setImportando(false); }
   };
+  const buscarPortal = async () => {
+    const abort = controller.current;
+    if (!resumo || !abort || importando) return;
+    setImportando(true); setMensagem("Gerando relatórios novos no Portal...");
+    try {
+      const r = await importarArquivosMovimentacao(resumo.contexto, abort.signal, arquivo => onImportar(arquivo, abort.signal), () => {});
+      abort.signal.throwIfAborted();
+      setMensagem(`${r.anexados} arquivo(s) novo(s) do Portal anexado(s)${r.vidas != null ? ` — ${r.vidas} vidas` : ""}. Remova os anexos antigos, se houver.${r.falhas ? " Alguns arquivos não puderam ser obtidos." : ""}`);
+      setResumo(null); finalizar();
+    } catch (erro) { if (!abort.signal.aborted) setMensagem(erro instanceof Error ? erro.message : "Não foi possível buscar no Portal."); }
+    finally { if (!abort.signal.aborted) setImportando(false); }
+  };
   return <div className="min-w-0 space-y-1">
     <Button type="button" size="sm" disabled={disabled || busy || !movimentacaoId || !empresaId} onClick={buscar}>
       {busy ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Archive className="h-3.5 w-3.5" />}Importar do Repositório
@@ -75,7 +93,12 @@ export function ImportarDoRepositorioButton({ movimentacaoId, empresaId, mes, pe
         <DialogHeader><DialogTitle>Arquivos encontrados no Repositório</DialogTitle><DialogDescription>{resumo?.nome}</DialogDescription></DialogHeader>
         {resumo && <>
           <dl className="grid grid-cols-2 gap-3 text-sm"><div><dt className="text-muted-foreground">Contrato</dt><dd>{resumo.contexto.contrato}</dd></div><div><dt className="text-muted-foreground">Competência</dt><dd>{resumo.contexto.mes.split("-").reverse().join("/")}</dd></div><div><dt className="text-muted-foreground">Período</dt><dd>{resumo.contexto.periodo || "—"}</dd></div></dl>
-          {resumo.arquivos.length ? <ul className="space-y-3">{resumo.arquivos.map(a => <li key={a.id} className="flex min-w-0 gap-2 text-sm"><Check className="mt-0.5 h-4 w-4 shrink-0 text-success" /><div className="min-w-0"><p className="font-medium">{a.tipo_relatorio} - {a.nome_arquivo.split(".").pop()?.toUpperCase()} <span className="font-normal text-muted-foreground">· v{a.versao}</span></p><p className="break-words text-xs text-muted-foreground">{a.nome_arquivo}</p></div></li>)}</ul> : <p className="text-sm text-muted-foreground">Nenhum arquivo atual encontrado no Repositório para esta movimentação.</p>}
+          {resumo.arquivos.length ? <ul className="space-y-3">{resumo.arquivos.map(a => <li key={a.id} className="flex min-w-0 gap-2 text-sm"><Check className="mt-0.5 h-4 w-4 shrink-0 text-success" /><div className="min-w-0"><p className="font-medium">{a.tipo_relatorio} - {a.nome_arquivo.split(".").pop()?.toUpperCase()} <span className="font-normal text-muted-foreground">· v{a.versao}</span></p><p className="break-words text-xs text-muted-foreground">{a.nome_arquivo}</p>{formatarGeracao(a.nome_arquivo) && <p className="text-xs text-muted-foreground">Gerado em {formatarGeracao(a.nome_arquivo)}</p>}</div></li>)}</ul> : <p className="text-sm text-muted-foreground">Nenhum arquivo atual encontrado no Repositório para esta movimentação.</p>}
+          {resumo.vidas != null && <p className="text-sm">Vidas no relatório: <span className="font-semibold tabular-nums">{resumo.vidas}</span></p>}
+          {resumo.arquivos.some(a => arquivoAnteriorAoCorte(a.nome_arquivo, resumo.contexto.periodo, resumo.contexto.mes)) && <div role="alert" className="space-y-2 rounded-lg border border-warning/40 bg-warning/10 p-3 text-sm">
+            <p className="flex gap-2"><AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-warning" />Arquivo gerado antes do fim do período ({dataCorteMovimentacao(resumo.contexto.periodo, resumo.contexto.mes)}). Desligamentos ou inclusões feitos depois podem não estar nele.</p>
+            <Button type="button" size="sm" variant="outline" disabled={importando} onClick={buscarPortal}><CloudDownload className="h-3.5 w-3.5" />Buscar versão nova no Portal</Button>
+          </div>}
           {mensagem && <p role="alert" className="text-sm text-destructive">{mensagem}</p>}
           <div className="flex flex-wrap justify-end gap-2"><Button type="button" variant="outline" disabled={importando} onClick={() => { controller.current?.abort(); setResumo(null); finalizar(); }}>Cancelar</Button><Button type="button" disabled={importando || !resumo.arquivos.length} onClick={confirmar}>{importando && <Loader2 className="h-4 w-4 animate-spin" />}{importando ? "Importando..." : "Importar arquivos"}</Button></div>
         </>}
