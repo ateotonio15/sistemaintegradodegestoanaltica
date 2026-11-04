@@ -556,6 +556,7 @@ export default function Demandas() {
             </tbody>
           </table>
         </div>
+        <BarraRolagemHorizontal alvo={caixaTabela} className="rounded-b-2xl" />
       </Card>
 
       <DemandaFormDialog open={openForm} onOpenChange={setOpenForm} demanda={editing} initialValues={duplicating} />
