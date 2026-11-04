@@ -1,10 +1,11 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Link, useSearchParams } from "react-router-dom";
 import * as XLSX from "xlsx";
 import { ArrowLeft, Download, FileText, RefreshCw, Search, Stethoscope } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { Card } from "@/components/ui/card";
+import { BarraRolagemHorizontal } from "@/components/BarraRolagemHorizontal";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -45,6 +46,7 @@ export default function AgendaCirurgica() {
   const [modo] = useState<ModoAcesso>(() => lerModoAgenda());
   const [chave] = useState<string>(() => lerChaveDireta());
   const [servidor] = useState<ConfigServidorAgenda>(() => lerServidorAgenda());
+  const caixaTabela = useRef<HTMLDivElement>(null);
 
   const direto = modo === "direto";
   const prontoDireto = !direto || !!chave.trim();
@@ -129,11 +131,12 @@ export default function AgendaCirurgica() {
         <div className="flex justify-end mt-3"><Button onClick={aplicar}><Search className="h-4 w-4 mr-1" />Buscar</Button></div>
       </Card>
 
-      <Card className="p-0 overflow-hidden">
+      <Card className="p-0">
         <div className="px-4 py-2 text-sm text-muted-foreground border-b">{data ? `${data.total.toLocaleString("pt-BR")} agendamentos${!filtros.dt_inicio && !filtros.dt_fim ? " · sem limite de datas" : ""}` : " "}</div>
         {error ? <div className="p-6 text-destructive text-sm">{(error as Error).message}</div> : isLoading ? (
           <div className="p-4 space-y-2">{Array.from({ length: 6 }).map((_, i) => <Skeleton key={i} className="h-8" />)}</div>
         ) : (
+          <div ref={caixaTabela}>
           <Table>
             <TableHeader><TableRow>
               <TableHead>Data</TableHead><TableHead>Horário</TableHead><TableHead>Sala</TableHead><TableHead>Paciente</TableHead>
@@ -155,6 +158,8 @@ export default function AgendaCirurgica() {
               ))}
             </TableBody>
           </Table>
+          <BarraRolagemHorizontal alvo={caixaTabela} />
+          </div>
         )}
         <div className="flex items-center justify-end gap-2 p-3 border-t text-sm">
           <span className="text-muted-foreground">Página {pagina} de {totalPag}</span>
