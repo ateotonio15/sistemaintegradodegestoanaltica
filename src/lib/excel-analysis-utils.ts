@@ -2890,6 +2890,24 @@ export async function analisarExcelFinanceiroPorCnpj(
     } else if (
       blocos.length === 1 &&
       linhasPrincipaisTemRetroativa &&
+      detalheArr.length > 1 &&
+      Math.abs(somarTotalFaturamento(blocos[0]) - jaRetroTotal) < 0.01 &&
+      detalheArr.some((d) => Math.abs(d.total - jaRetroTotal) < 0.01) &&
+      totalDeclaradoResumoConfere(wb, detalheSomaT)
+    ) {
+      // Planilha só de retroativos, uma aba por mês ("C.RETROATIVA JUL26"…):
+      // a primeira aba é lida como relatório principal, mas é apenas um dos
+      // meses. O "Total" do RESUMO comprova que a cobrança é a soma de todos.
+      const b = blocos[0];
+      b.retroativas = { quantidade: detalheSomaQ, total: detalheSomaT, meses: mesesArr, mesesDetalhe: scaleDetalhe(1) };
+      b.retroativasReajuste = { quantidade: detalheSomaQ, total: detalheSomaT, meses: mesesArr, mesesDetalhe: scaleDetalhe(1) };
+      b.inclusoes = {
+        quantidade: b.inclusoes.quantidade - (jaRetroQtd) + detalheSomaQ,
+        total: b.inclusoes.total - jaRetroTotal + detalheSomaT,
+      };
+    } else if (
+      blocos.length === 1 &&
+      linhasPrincipaisTemRetroativa &&
       detalheArr.length > 0 &&
       detalheSomaT > 0.001 &&
       Math.abs(detalheSomaT - jaRetroTotal) > 0.01 &&
