@@ -255,18 +255,6 @@
   .scrollbar-prominent::-webkit-scrollbar-thumb:hover { background: hsl(var(--primary)); }
   .scrollbar-prominent::-webkit-scrollbar-corner { background: transparent; }
 
-  /* Barra fixa de tabelas longas — trilho e polegar sempre visíveis */
-  .scrollbar-fixa { scrollbar-color: hsl(var(--primary) / 0.75) hsl(var(--muted) / 0.6); }
-  .scrollbar-fixa::-webkit-scrollbar { width: 12px; height: 12px; display: block; }
-  .scrollbar-fixa::-webkit-scrollbar-track { background: hsl(var(--muted) / 0.6); }
-  .scrollbar-fixa::-webkit-scrollbar-thumb {
-    background: hsl(var(--primary) / 0.75);
-    border-radius: 9999px;
-    border: 2px solid transparent;
-    background-clip: padding-box;
-  }
-  .scrollbar-fixa::-webkit-scrollbar-thumb:hover { background: hsl(var(--primary)); }
-
   /* Premium icon micro-interaction (lucide) — discreet across the system */
   .lucide {
     transition: transform var(--motion-normal) var(--ease-premium),
