@@ -47,6 +47,8 @@ async function processar(db: any, demandas: DemandaVarredura[], obter: Obter, co
       r = { situacao: "erro", data_procedimento: null, status_api: null, agendamento_id: null };
     }
     contagem[r.situacao] = (contagem[r.situacao] ?? 0) + 1;
+    // Falha de consulta nunca apaga um resultado já gravado; só registra erro quando não havia nada.
+    if (r.situacao === "erro" && anterior.has(d.id)) continue;
     const ass = assinatura(r);
     const agora = new Date().toISOString();
     const linha: Record<string, unknown> = { demanda_id: d.id, consultado_em: agora };
