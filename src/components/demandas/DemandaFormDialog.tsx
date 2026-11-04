@@ -320,7 +320,8 @@ export default function DemandaFormDialog({ open, onOpenChange, demanda, initial
         </DialogHeader>
 
         {agenda.data?.agendamentoAtivo && <AlertaCirurgiaAgendada cirurgia={agenda.data.agendamentoAtivo} />}
-        {!agenda.data?.agendamentoAtivo && agenda.data?.procedimentoRealizado && (
+        {!agenda.data?.agendamentoAtivo && agenda.data?.procedimentoRealizado
+          && (!form.data_reclamacao || agenda.data.procedimentoRealizado.data_entrada >= String(form.data_reclamacao).slice(0, 10)) && (
           <AlertaCirurgiaRealizada cirurgia={agenda.data.procedimentoRealizado} />
         )}
 

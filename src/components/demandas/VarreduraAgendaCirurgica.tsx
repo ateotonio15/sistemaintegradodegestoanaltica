@@ -37,6 +37,7 @@ async function consultarAgendaNavegador(nome: string): Promise<AgendamentoCirurg
 export type SituacaoCirurgia = {
   demanda_id: string; situacao: "agendada" | "aguardando" | "realizado" | "cancelado" | "validar" | "erro";
   data_procedimento: string | null; status_api: string | null; consultado_em: string;
+  nome_medico?: string | null; nome_procedimento?: string | null;
 };
 
 export const SITUACAO_LABEL: Record<SituacaoCirurgia["situacao"], string> = {
@@ -62,7 +63,7 @@ export function useSituacoesCirurgia() {
       const out: SituacaoCirurgia[] = [];
       for (let off = 0; ; off += 1000) {
         const { data, error } = await (supabase as any).from("demandas_cirurgia_situacao")
-          .select("demanda_id,situacao,data_procedimento,status_api,consultado_em").range(off, off + 999);
+          .select("demanda_id,situacao,data_procedimento,status_api,consultado_em,nome_medico,nome_procedimento").range(off, off + 999);
         if (error) throw error;
         out.push(...(data ?? []));
         if ((data?.length ?? 0) < 1000) break;
@@ -86,6 +87,12 @@ export function CelulasCirurgia({ s }: { s?: SituacaoCirurgia }) {
       </td>
       <td className={cn("py-2.5 px-3 whitespace-nowrap", s?.situacao === "agendada" ? "font-bold text-success" : "text-muted-foreground")}>
         {dataBr(s?.data_procedimento ?? null)}
+        {s?.data_procedimento && (s.nome_medico || s.nome_procedimento) && (
+          <div className="mt-0.5 max-w-[220px] whitespace-normal text-[11px] font-normal leading-tight text-muted-foreground">
+            {s.nome_procedimento && <div title={s.nome_procedimento} className="line-clamp-2">{s.nome_procedimento}</div>}
+            {s.nome_medico && <div>Dr(a). {s.nome_medico}</div>}
+          </div>
+        )}
       </td>
       <td className="py-2.5 px-3 whitespace-nowrap text-muted-foreground text-xs">{s ? dataHoraBr(s.consultado_em) : "—"}</td>
     </>

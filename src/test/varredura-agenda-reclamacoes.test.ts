@@ -42,3 +42,17 @@ describe("varredura da agenda nas reclamações", () => {
     expect(classificar(base, [], hoje).situacao).toBe("aguardando");
   });
 });
+
+import { classificar as classificarData } from "../../supabase/functions/verificar-agenda-reclamacoes/regras";
+import { describe as d2, it as i2, expect as e2 } from "vitest";
+d2("procedimento anterior à reclamação", () => {
+  const dem = { id: "1", cpf: "12345678901", nome_cliente: "MARIA", setor_responsavel: "Agenda Cirúrgica", tipo_reclamacao: null, reclamacao: "cirurgia", data_reclamacao: "2026-11-04", resolvido_setor: false, resolvido_executiva: false };
+  const ag = (dt: string) => ({ nr_sequencia: 1, dt_agenda: dt, status: { descricao: "Executada" }, paciente: { nm_paciente: "MARIA", nr_cpf: "12345678901" }, medico: { nm_medico: "JOAO" }, procedimento_principal: { descricao: "COLECISTECTOMIA" } });
+  i2("ignora executada antes da data da reclamação", () => {
+    e2(classificarData(dem, [ag("27/01/2026")], "2026-11-04").situacao).toBe("aguardando");
+  });
+  i2("aceita executada depois e traz médico e procedimento", () => {
+    const r = classificarData(dem, [ag("05/11/2026")], "2026-11-06");
+    e2([r.situacao, r.nome_medico, r.nome_procedimento]).toEqual(["realizado", "JOAO", "COLECISTECTOMIA"]);
+  });
+});
