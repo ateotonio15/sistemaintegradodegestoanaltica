@@ -89,7 +89,7 @@ export function BarraRolagemHorizontal({
       }}
       className={cn(
         // Permanece montada para não deslocar a página ao aparecer.
-        "sticky bottom-0 z-20 h-3 shrink-0 overflow-x-auto border-t border-border/60 bg-card",
+        "sticky bottom-0 z-20 h-3 shrink-0 overflow-x-auto border-t border-border/60 bg-card scrollbar-fixa",
         !visivel && "invisible",
         className,
       )}
