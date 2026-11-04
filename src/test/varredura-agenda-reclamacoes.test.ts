@@ -26,7 +26,7 @@ describe("varredura da agenda nas reclamações", () => {
     expect(classificar(base, [ag("Executada", "01/10/2026")], hoje)).toMatchObject({ situacao: "realizado", data_procedimento: "2026-10-01" });
   });
   it("Marcada com data de hoje reconhece o agendamento mostrado na agenda", () => {
-    expect(classificar(base, [ag("Marcada", "03/11/2026 15:00")], hoje)).toEqual({
+    expect(classificar(base, [ag("Marcada", "03/11/2026 15:00")], hoje)).toMatchObject({
       situacao: "agendada", data_procedimento: "2026-11-03", status_api: "Marcada", agendamento_id: "9",
     });
   });
@@ -40,5 +40,19 @@ describe("varredura da agenda nas reclamações", () => {
     expect(classificar(base, [ag("Agendado", "10/12/2026", "99999999999")], hoje).situacao).toBe("validar");
     expect(classificar({ ...base, cpf: null }, [ag("Agendado", "10/12/2026")], hoje).situacao).toBe("validar");
     expect(classificar(base, [], hoje).situacao).toBe("aguardando");
+  });
+});
+
+import { classificar as classificarData } from "../../supabase/functions/verificar-agenda-reclamacoes/regras";
+import { describe as d2, it as i2, expect as e2 } from "vitest";
+d2("procedimento anterior à reclamação", () => {
+  const dem = { id: "1", cpf: "12345678901", nome_cliente: "MARIA", setor_responsavel: "Agenda Cirúrgica", tipo_reclamacao: null, reclamacao: "cirurgia", data_reclamacao: "2026-11-04", resolvido_setor: false, resolvido_executiva: false };
+  const ag = (dt: string) => ({ nr_sequencia: 1, dt_agenda: dt, status: { descricao: "Executada" }, paciente: { nm_paciente: "MARIA", nr_cpf: "12345678901" }, medico: { nm_medico: "JOAO" }, procedimento_principal: { descricao: "COLECISTECTOMIA" } });
+  i2("ignora executada antes da data da reclamação", () => {
+    e2(classificarData(dem, [ag("27/01/2026")], "2026-11-04").situacao).toBe("aguardando");
+  });
+  i2("aceita executada depois e traz médico e procedimento", () => {
+    const r = classificarData(dem, [ag("05/11/2026")], "2026-11-06");
+    e2([r.situacao, r.nome_medico, r.nome_procedimento]).toEqual(["realizado", "JOAO", "COLECISTECTOMIA"]);
   });
 });

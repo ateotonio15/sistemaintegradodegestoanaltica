@@ -2105,6 +2105,8 @@ export type Database = {
           consultado_em: string
           data_procedimento: string | null
           demanda_id: string
+          nome_medico: string | null
+          nome_procedimento: string | null
           situacao: string
           status_api: string | null
         }
@@ -2115,6 +2117,8 @@ export type Database = {
           consultado_em?: string
           data_procedimento?: string | null
           demanda_id: string
+          nome_medico?: string | null
+          nome_procedimento?: string | null
           situacao: string
           status_api?: string | null
         }
@@ -2125,6 +2129,8 @@ export type Database = {
           consultado_em?: string
           data_procedimento?: string | null
           demanda_id?: string
+          nome_medico?: string | null
+          nome_procedimento?: string | null
           situacao?: string
           status_api?: string | null
         }
