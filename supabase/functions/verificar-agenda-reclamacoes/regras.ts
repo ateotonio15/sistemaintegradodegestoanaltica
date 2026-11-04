@@ -3,13 +3,17 @@
 export type Situacao = "agendada" | "aguardando" | "realizado" | "cancelado" | "validar" | "erro";
 export type DemandaVarredura = {
   id: string; cpf: string | null; nome_cliente: string; setor_responsavel: string | null;
-  tipo_reclamacao: string | null; reclamacao: string | null; resolvido_setor: boolean; resolvido_executiva: boolean;
+  tipo_reclamacao: string | null; reclamacao: string | null; data_reclamacao?: string | null; resolvido_setor: boolean; resolvido_executiva: boolean;
 };
 export type Agendamento = {
   nr_sequencia?: number; dt_agenda?: string; status?: { codigo?: string; descricao?: string } | null;
   paciente?: { nm_paciente?: string; nr_cpf?: string } | null;
+  medico?: { nm_medico?: string } | null;
+  procedimento_principal?: { descricao?: string } | null;
+  procedimentos?: { descricao?: string }[] | null;
 };
-export type Resultado = { situacao: Situacao; data_procedimento: string | null; status_api: string | null; agendamento_id: string | null };
+export type Resultado = { situacao: Situacao; data_procedimento: string | null; status_api: string | null; agendamento_id: string | null;
+  nome_medico?: string | null; nome_procedimento?: string | null };
 
 export const norm = (s?: string | null) => (s ?? "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().replace(/\s+/g, " ").trim();
 export const digits = (s?: string | null) => (s ?? "").replace(/\D/g, "");
@@ -36,7 +40,7 @@ const CANCELADO = /cancel|suspens/;
  * CPF é o critério decisivo; nome completo idêntico sem CPF compatível vira "validar".
  */
 export function classificar(d: DemandaVarredura, agenda: Agendamento[], hoje: string): Resultado {
-  const vazio = { data_procedimento: null, status_api: null, agendamento_id: null };
+  const vazio = { data_procedimento: null, status_api: null, agendamento_id: null, nome_medico: null, nome_procedimento: null };
   const cpf = digits(d.cpf);
   const nome = norm(d.nome_cliente);
   const mesmoNome = agenda.filter((a) => norm(a.paciente?.nm_paciente) === nome);
@@ -47,13 +51,18 @@ export function classificar(d: DemandaVarredura, agenda: Agendamento[], hoje: st
     situacao, data_procedimento: dataAgenda(a.dt_agenda) || null,
     status_api: (a.status?.descricao || a.status?.codigo || "").trim() || null,
     agendamento_id: a.nr_sequencia ? String(a.nr_sequencia) : null,
+    nome_medico: a.medico?.nm_medico?.trim() || null,
+    nome_procedimento: (a.procedimento_principal?.descricao || a.procedimentos?.[0]?.descricao || "").trim() || null,
   });
+  // Realizado/cancelado só valem se aconteceram a partir da data da reclamação:
+  // um procedimento executado antes dela é de um agendamento anterior.
+  const desde = dataAgenda(d.data_reclamacao ?? undefined);
   const comData = doPaciente.filter((a) => dataAgenda(a.dt_agenda));
   const st = (a: Agendamento) => norm(a.status?.descricao);
   const ativos = comData.filter((a) => dataAgenda(a.dt_agenda) >= hoje && ATIVO.test(st(a)) && !NEGATIVO.test(st(a)))
     .sort((a, b) => dataAgenda(a.dt_agenda).localeCompare(dataAgenda(b.dt_agenda)));
   if (ativos.length) return info(ativos[0], "agendada");
-  const recentes = (re: RegExp) => comData.filter((a) => re.test(st(a)))
+  const recentes = (re: RegExp) => comData.filter((a) => re.test(st(a)) && (!desde || dataAgenda(a.dt_agenda) >= desde))
     .sort((a, b) => dataAgenda(b.dt_agenda).localeCompare(dataAgenda(a.dt_agenda)));
   const realizados = recentes(REALIZADO);
   if (realizados.length) return info(realizados[0], "realizado");
@@ -62,4 +71,4 @@ export function classificar(d: DemandaVarredura, agenda: Agendamento[], hoje: st
   return { situacao: "aguardando", ...vazio };
 }
 
-export const assinatura = (r: Resultado) => [r.situacao, r.data_procedimento, r.status_api, r.agendamento_id].join("|");
+export const assinatura = (r: Resultado) => [r.situacao, r.data_procedimento, r.status_api, r.agendamento_id, r.nome_medico ?? "", r.nome_procedimento ?? ""].join("|");

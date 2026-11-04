@@ -5,7 +5,7 @@ import { assinatura, classificar, elegivel, type DemandaVarredura, type Resultad
 // Usa a mesma API e a mesma chave do servidor da integração existente da Agenda Cirúrgica.
 const upstream = "https://api-agenda-cirurgica.samel.com.br/api/integracao/agendamentos";
 const json = (body: unknown, status = 200) => new Response(JSON.stringify(body), { status, headers: { ...corsHeaders, "Content-Type": "application/json" } });
-const CAMPOS = "id,cpf,nome_cliente,setor_responsavel,tipo_reclamacao,reclamacao,resolvido_setor,resolvido_executiva,updated_at";
+const CAMPOS = "id,cpf,nome_cliente,setor_responsavel,tipo_reclamacao,reclamacao,data_reclamacao,resolvido_setor,resolvido_executiva,updated_at";
 const LOTE_MAX = 5;
 
 function hojeManaus() {
@@ -44,7 +44,7 @@ async function processar(db: any, demandas: DemandaVarredura[], obter: Obter, co
       r = nome.length < 3 ? classificar(d, [], hoje) : classificar(d, await obter(d, hoje), hoje);
     } catch (e) {
       console.error("varredura: falha na consulta", d.id, (e as Error).message);
-      r = { situacao: "erro", data_procedimento: null, status_api: null, agendamento_id: null };
+      r = { situacao: "erro", data_procedimento: null, status_api: null, agendamento_id: null, nome_medico: null, nome_procedimento: null };
     }
     contagem[r.situacao] = (contagem[r.situacao] ?? 0) + 1;
     // Falha de consulta nunca apaga um resultado já gravado; só registra erro quando não havia nada.
@@ -71,6 +71,9 @@ function limparAgendamento(a: any) {
     dt_agenda: txt(a?.dt_agenda, 30),
     status: { codigo: txt(a?.status?.codigo, 50), descricao: txt(a?.status?.descricao) },
     paciente: { nm_paciente: txt(a?.paciente?.nm_paciente), nr_cpf: txt(a?.paciente?.nr_cpf, 20) },
+    medico: { nm_medico: txt(a?.medico?.nm_medico) },
+    procedimento_principal: { descricao: txt(a?.procedimento_principal?.descricao, 300) },
+    procedimentos: Array.isArray(a?.procedimentos) ? a.procedimentos.slice(0, 3).map((p: any) => ({ descricao: txt(p?.descricao, 300) })) : undefined,
   };
 }
 
