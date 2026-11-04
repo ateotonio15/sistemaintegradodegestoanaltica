@@ -1,0 +1,1 @@
+ALTER TABLE public.demandas_cirurgia_situacao ADD COLUMN IF NOT EXISTS nome_medico text, ADD COLUMN IF NOT EXISTS nome_procedimento text;

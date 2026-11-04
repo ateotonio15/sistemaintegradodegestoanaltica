@@ -547,6 +547,13 @@
       "when": 1793734683692,
       "tag": "0077_varredura_agenda_reclamacoes",
       "breakpoints": true
+    },
+    {
+      "idx": 78,
+      "version": "7",
+      "when": 1793818401175,
+      "tag": "0078_migration",
+      "breakpoints": true
     }
   ]
 }
