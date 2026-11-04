@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import * as XLSX from "xlsx";
@@ -18,6 +18,7 @@ import {
   X,
 } from "lucide-react";
 import { Card } from "@/components/ui/card";
+import { BarraRolagemHorizontal } from "@/components/BarraRolagemHorizontal";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -101,6 +102,7 @@ export default function Demandas() {
   const [openImport, setOpenImport] = useState(false);
   const [openHist, setOpenHist] = useState(false);
   const [confirmDel, setConfirmDel] = useState<Demanda | null>(null);
+  const caixaTabela = useRef<HTMLDivElement>(null);
   const { data: confirmDelNoPlantao = false } = useQuery({
     queryKey: ["demanda-no-plantao", confirmDel?.id],
     enabled: !!confirmDel?.id,
@@ -431,8 +433,8 @@ export default function Demandas() {
       </Card>
 
       {/* Tabela */}
-      <Card className="overflow-hidden">
-        <div className="overflow-x-auto">
+      <Card className="rounded-2xl">
+        <div ref={caixaTabela} className="overflow-x-auto rounded-t-2xl">
           <table className="w-full text-sm">
             <thead className="bg-muted/40 text-xs uppercase tracking-wider text-muted-foreground">
               <tr>
@@ -554,6 +556,7 @@ export default function Demandas() {
             </tbody>
           </table>
         </div>
+        <BarraRolagemHorizontal alvo={caixaTabela} className="rounded-b-2xl" />
       </Card>
 
       <DemandaFormDialog open={openForm} onOpenChange={setOpenForm} demanda={editing} initialValues={duplicating} />
