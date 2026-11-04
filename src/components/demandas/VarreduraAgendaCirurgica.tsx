@@ -7,6 +7,32 @@ import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
+import { listarAgendamentosDireto, lerChaveDireta, type AgendamentoCirurgico } from "@/lib/agendaCirurgicaApi";
+
+const brData = (d: Date) => `${String(d.getDate()).padStart(2, "0")}/${String(d.getMonth() + 1).padStart(2, "0")}/${d.getFullYear()}`;
+
+/**
+ * A API da agenda só responde na rede interna da Samel/VPN, então o navegador consulta
+ * (mesmo acesso da tela da Agenda Cirúrgica) e o servidor apenas classifica e grava.
+ */
+async function consultarAgendaNavegador(nome: string): Promise<AgendamentoCirurgico[]> {
+  if (nome.trim().length < 3) return [];
+  const h = new Date();
+  const filtros = {
+    nm_paciente: nome.trim(), limit: 200,
+    dt_inicio: brData(new Date(h.getFullYear() - 1, h.getMonth(), h.getDate())),
+    dt_fim: brData(new Date(h.getFullYear() + 1, h.getMonth(), h.getDate())),
+  };
+  const lista: AgendamentoCirurgico[] = [];
+  let total = 1;
+  for (let page = 1; page <= total && page <= 10; page++) {
+    const r = await listarAgendamentosDireto({ ...filtros, page }, lerChaveDireta());
+    if (!r?.sucesso || !Array.isArray(r.dados)) throw new Error("Resposta inválida da agenda");
+    lista.push(...r.dados);
+    total = Number(r.total_paginas) || 1;
+  }
+  return lista;
+}
 
 export type SituacaoCirurgia = {
   demanda_id: string; situacao: "agendada" | "aguardando" | "realizado" | "cancelado" | "validar" | "erro";
@@ -89,21 +115,29 @@ export function BotaoVarreduraAgenda() {
     try {
       const { data, error } = await supabase.functions.invoke("verificar-agenda-reclamacoes", { body: { acao: "iniciar" } });
       if (error || !data?.ok) throw new Error(data?.error || "Não foi possível iniciar a verificação.");
-      const ids: string[] = data.ids ?? [];
-      setProgresso({ feito: 0, total: ids.length });
-      for (let i = 0; i < ids.length; i += 5) {
-        const lote = ids.slice(i, i + 5);
+      const itens: { id: string; nome: string }[] = data.itens ?? (data.ids ?? []).map((id: string) => ({ id, nome: "" }));
+      setProgresso({ feito: 0, total: itens.length });
+      let semRede = 0;
+      for (let i = 0; i < itens.length; i += 5) {
+        const lote = itens.slice(i, i + 5);
+        const consultas = await Promise.all(lote.map(async (it) => {
+          try { return { id: it.id, agenda: await consultarAgendaNavegador(it.nome) }; }
+          catch { semRede++; return { id: it.id, agenda: null }; }
+        }));
         const res = await supabase.functions.invoke("verificar-agenda-reclamacoes", {
-          body: { acao: "verificar", ids: lote, varredura_id: data.varredura_id, ultimo: i + 5 >= ids.length },
+          body: { acao: "gravar", itens: consultas, varredura_id: data.varredura_id, ultimo: i + 5 >= itens.length },
         });
         if (res.error || !res.data?.ok) { r.erro += lote.length; r.analisadas += lote.length; }
         else {
           r.analisadas += res.data.analisadas;
           for (const k of ["agendada", "aguardando", "realizado", "cancelado", "validar", "erro"] as const) r[k] += res.data.contagem?.[k] ?? 0;
         }
-        setProgresso({ feito: Math.min(i + 5, ids.length), total: ids.length });
+        setProgresso({ feito: Math.min(i + 5, itens.length), total: itens.length });
       }
       setResumo(r);
+      if (itens.length && semRede === itens.length) {
+        setFalha("A agenda cirúrgica não respondeu. Ela só funciona na rede interna da Samel ou com a VPN ligada — confira a conexão e tente de novo.");
+      }
     } catch (e) {
       setFalha((e as Error).message);
     } finally {
