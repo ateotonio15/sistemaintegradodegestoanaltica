@@ -37,12 +37,20 @@ export function BarraRolagemHorizontal({
     const tabela = caixaQueRola(invólucro);
 
     const medir = () => setLargura(tabela.scrollWidth > tabela.clientWidth + 1 ? tabela.scrollWidth : 0);
-    const vigiar = () => setNativoForaDaTela(tabela.getBoundingClientRect().bottom > window.innerHeight + 4);
+    // Só vale mostrar a barra enquanto a tabela está sendo lida: ela já começou
+    // a aparecer e o scrollbar nativo ainda está abaixo da dobra.
+    const vigiar = () => {
+      const r = tabela.getBoundingClientRect();
+      setNativoForaDaTela(r.top < window.innerHeight - 40 && r.bottom > window.innerHeight + 4);
+    };
+    const rever = () => {
+      medir();
+      vigiar();
+    };
 
-    medir();
-    vigiar();
+    rever();
 
-    const redimensionar = new ResizeObserver(medir);
+    const redimensionar = new ResizeObserver(rever);
     redimensionar.observe(tabela);
     if (tabela.firstElementChild) redimensionar.observe(tabela.firstElementChild);
 
