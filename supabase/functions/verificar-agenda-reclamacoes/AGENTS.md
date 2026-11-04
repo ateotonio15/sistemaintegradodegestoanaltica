@@ -1,0 +1,1 @@
+- Complaint surgery scan: the agenda API is reachable only from the Samel network, so the manual scan fetches it in the browser and the edge function re-reads demands under user RLS, reclassifies the raw rows and stores them; a failed lookup never overwrites a stored result.

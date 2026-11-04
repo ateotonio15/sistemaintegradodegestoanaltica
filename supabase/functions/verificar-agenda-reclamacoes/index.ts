@@ -31,7 +31,9 @@ async function buscarAgenda(nome: string, hoje: string, key: string) {
   return dados;
 }
 
-async function processar(db: any, demandas: DemandaVarredura[], key: string, contagem: Record<string, number>) {
+type Obter = (d: DemandaVarredura, hoje: string) => Promise<any[]>;
+
+async function processar(db: any, demandas: DemandaVarredura[], obter: Obter, contagem: Record<string, number>) {
   const hoje = hojeManaus();
   const { data: atuais } = await db.from("demandas_cirurgia_situacao").select("demanda_id,assinatura").in("demanda_id", demandas.map((d) => d.id));
   const anterior = new Map((atuais ?? []).map((a: any) => [a.demanda_id, a.assinatura]));
@@ -39,12 +41,14 @@ async function processar(db: any, demandas: DemandaVarredura[], key: string, con
     let r: Resultado;
     try {
       const nome = d.nome_cliente?.trim() ?? "";
-      r = nome.length < 3 ? classificar(d, [], hoje) : classificar(d, await buscarAgenda(nome, hoje, key), hoje);
+      r = nome.length < 3 ? classificar(d, [], hoje) : classificar(d, await obter(d, hoje), hoje);
     } catch (e) {
       console.error("varredura: falha na consulta", d.id, (e as Error).message);
       r = { situacao: "erro", data_procedimento: null, status_api: null, agendamento_id: null };
     }
     contagem[r.situacao] = (contagem[r.situacao] ?? 0) + 1;
+    // Falha de consulta nunca apaga um resultado já gravado; só registra erro quando não havia nada.
+    if (r.situacao === "erro" && anterior.has(d.id)) continue;
     const ass = assinatura(r);
     const agora = new Date().toISOString();
     const linha: Record<string, unknown> = { demanda_id: d.id, consultado_em: agora };
@@ -57,6 +61,17 @@ async function processar(db: any, demandas: DemandaVarredura[], key: string, con
       : await db.from("demandas_cirurgia_situacao").insert({ ...r, ...linha, assinatura: ass });
     if (error) console.error("varredura: falha ao gravar", d.id, error.message);
   }
+}
+
+// Mantém só os campos usados na classificação, como texto curto.
+const txt = (v: unknown, max = 200) => (typeof v === "string" || typeof v === "number" ? String(v).slice(0, max) : undefined);
+function limparAgendamento(a: any) {
+  return {
+    nr_sequencia: Number.isFinite(Number(a?.nr_sequencia)) ? Number(a.nr_sequencia) : undefined,
+    dt_agenda: txt(a?.dt_agenda, 30),
+    status: { codigo: txt(a?.status?.codigo, 50), descricao: txt(a?.status?.descricao) },
+    paciente: { nm_paciente: txt(a?.paciente?.nm_paciente), nr_cpf: txt(a?.paciente?.nr_cpf, 20) },
+  };
 }
 
 async function registrarLog(db: any, id: string, c: Record<string, number>, analisadas: number, erro: string | null, fim: boolean) {
@@ -104,7 +119,7 @@ Deno.serve(async (req) => {
     let feitas = 0;
     for (const d of pendentes) {
       if (Date.now() > prazo) break;
-      await processar(db, [d], key, c);
+      await processar(db, [d], (x, h) => buscarAgenda(x.nome_cliente.trim(), h, key), c);
       feitas++;
     }
     await registrarLog(db, log.id, c, feitas, feitas < pendentes.length ? "Tempo esgotado; restantes ficam para a próxima execução" : null, true);
@@ -123,25 +138,40 @@ Deno.serve(async (req) => {
 
   if (body.acao === "iniciar") {
     const ids: string[] = [];
+    const itens: { id: string; nome: string }[] = [];
     for (let off = 0; ; off += 500) {
       const { data, error } = await user.from("demandas").select(CAMPOS).eq("resolvido_setor", false).eq("resolvido_executiva", false).order("id").range(off, off + 499);
       if (error) return json({ error: "Falha ao ler reclamações" }, 500);
-      ids.push(...((data ?? []) as any[]).filter(elegivel).map((d) => d.id));
+      for (const d of ((data ?? []) as any[]).filter(elegivel)) { ids.push(d.id); itens.push({ id: d.id, nome: d.nome_cliente ?? "" }); }
       if ((data?.length ?? 0) < 500) break;
     }
     const { data: log } = await db.from("demandas_cirurgia_varreduras").insert({ origem: "manual", usuario_id: uid }).select("id").single();
-    return json({ ok: true, varredura_id: log?.id, ids });
+    return json({ ok: true, varredura_id: log?.id, ids, itens });
   }
 
-  if (body.acao === "verificar") {
-    const ids = Array.isArray(body.ids) ? body.ids.filter((x: unknown) => typeof x === "string").slice(0, LOTE_MAX) : [];
+  // "gravar": o navegador (rede interna Samel/VPN) consultou a agenda e envia os agendamentos
+  // brutos; o servidor reclassifica com as mesmas regras e grava. "verificar": o servidor consulta.
+  if (body.acao === "verificar" || body.acao === "gravar") {
+    const gravar = body.acao === "gravar";
+    const brutos = new Map<string, any[] | null>();
+    if (gravar) {
+      for (const it of (Array.isArray(body.itens) ? body.itens : []).slice(0, LOTE_MAX)) {
+        if (typeof it?.id !== "string") continue;
+        brutos.set(it.id, Array.isArray(it.agenda) ? it.agenda.slice(0, 2000).map(limparAgendamento) : null);
+      }
+    }
+    const ids = gravar ? [...brutos.keys()]
+      : Array.isArray(body.ids) ? body.ids.filter((x: unknown) => typeof x === "string").slice(0, LOTE_MAX) : [];
     if (!ids.length) return json({ error: "Nenhuma reclamação informada" }, 400);
     // Relê pelo acesso do próprio usuário: só processa o que ele pode ver.
     const { data, error } = await user.from("demandas").select(CAMPOS).in("id", ids);
     if (error) return json({ error: "Falha ao ler reclamações" }, 500);
     const alvo = ((data ?? []) as any[]).filter(elegivel);
     const c: Record<string, number> = {};
-    await processar(db, alvo, key, c);
+    const obter: Obter = gravar
+      ? async (d) => { const a = brutos.get(d.id); if (!a) throw new Error("Consulta no navegador falhou"); return a; }
+      : (d, h) => buscarAgenda(d.nome_cliente.trim(), h, key);
+    await processar(db, alvo, obter, c);
     if (typeof body.varredura_id === "string") {
       const { data: atual } = await db.from("demandas_cirurgia_varreduras").select("*").eq("id", body.varredura_id).eq("usuario_id", uid).maybeSingle();
       if (atual) {
