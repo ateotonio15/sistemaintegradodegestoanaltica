@@ -205,6 +205,7 @@ async function uploadPdfAnexo(
   movimentacaoId: string,
   competencia: string,
   userId?: string | null,
+  cobrancaId?: string | null,
 ) {
   const ext = file.name.split(".").pop() || "pdf";
   const storedName = `${crypto.randomUUID()}.${ext}`;
@@ -226,6 +227,7 @@ async function uploadPdfAnexo(
       tamanho_bytes: file.size,
       uploaded_by: userId ?? null,
       origem: "retroativo",
+      cobranca_retroativa_id: cobrancaId ?? null,
     } as any)
     .select("id")
     .single();
@@ -288,7 +290,7 @@ export function ReajusteCobrancaRetroativa({ competencia }: { competencia?: stri
   const [manualValorInput, setManualValorInput] = useState("");
   
 
-  const handleViewPdf = async (movimentacaoId: string | null) => {
+  const handleViewPdf = async (movimentacaoId: string | null, cobrancaId?: string | null) => {
     if (!movimentacaoId) {
       toast.error("Nenhum anexo vinculado a este registro.");
       return;
@@ -297,12 +299,16 @@ export function ReajusteCobrancaRetroativa({ competencia }: { competencia?: stri
     try {
       const { data, error } = await supabase
         .from("anexos_financeiro")
-        .select("nome_arquivo, storage_path, mime_type, created_at, origem")
+        .select("nome_arquivo, storage_path, mime_type, created_at, origem, cobranca_retroativa_id")
         .eq("financeiro_movimentacao_id", movimentacaoId)
         .eq("origem", "retroativo")
-        .order("created_at", { ascending: false })
-        .limit(1);
+        .order("created_at", { ascending: false });
       if (error) throw error;
+      // Cada cobrança abre o seu próprio PDF; só usa o anexo sem vínculo se não houver um próprio.
+      const proprios = cobrancaId ? (data || []).filter((x: any) => x.cobranca_retroativa_id === cobrancaId) : [];
+      const soltos = (data || []).filter((x: any) => !x.cobranca_retroativa_id);
+      const escolhidos = proprios.length ? proprios : soltos.length ? soltos : cobrancaId ? [] : data || [];
+      data.splice(0, data.length, ...escolhidos);
       if (!data || data.length === 0) {
         toast.error("PDF não encontrado.");
         return;
@@ -570,6 +576,8 @@ export function ReajusteCobrancaRetroativa({ competencia }: { competencia?: stri
         .select("nome_arquivo")
         .eq("financeiro_movimentacao_id", c.financeiro_movimentacao_id)
         .eq("origem", "retroativo")
+        .or(`cobranca_retroativa_id.eq.${c.id},cobranca_retroativa_id.is.null`)
+        .order("cobranca_retroativa_id", { ascending: true, nullsFirst: false })
         .order("created_at", { ascending: false })
         .limit(1);
       if (data && data.length > 0) setAnexoAtualNome(data[0].nome_arquivo);
@@ -618,7 +626,7 @@ export function ReajusteCobrancaRetroativa({ competencia }: { competencia?: stri
         if (error) throw error;
         if (cobFiles.length > 0) {
           const movId = await ensureFinanceiroMovimentacao(cobEmpresa, cobCompet);
-          for (const f of cobFiles) await uploadPdfAnexo(f, cobEmpresa, movId, cobCompet, user?.id);
+          for (const f of cobFiles) await uploadPdfAnexo(f, cobEmpresa, movId, cobCompet, user?.id, editCobId);
           await supabase
             .from("cobrancas_retroativas")
             .update({ financeiro_movimentacao_id: movId })
@@ -627,8 +635,7 @@ export function ReajusteCobrancaRetroativa({ competencia }: { competencia?: stri
         toast.success(cobTipo === "devolucao" ? "Devolução atualizada." : "Cobrança atualizada.");
       } else {
         const movId = await ensureFinanceiroMovimentacao(cobEmpresa, cobCompet);
-        for (const f of cobFiles) await uploadPdfAnexo(f, cobEmpresa, movId, cobCompet, user?.id);
-        const { error } = await supabase.from("cobrancas_retroativas").insert({
+        const { data: novaCob, error } = await supabase.from("cobrancas_retroativas").insert({
           empresa_id: cobEmpresa,
           competencia: cobCompet,
           valor_centavos: cents,
@@ -637,8 +644,9 @@ export function ReajusteCobrancaRetroativa({ competencia }: { competencia?: stri
           created_by: user?.id ?? null,
           tipo: cobTipo,
           origem_retroativo: cobOrigem,
-        } as any);
+        } as any).select("id").single();
         if (error) throw error;
+        for (const f of cobFiles) await uploadPdfAnexo(f, cobEmpresa, movId, cobCompet, user?.id, novaCob.id);
         if (cobArquivoRef) {
           await supabase
             .from("financeiro_arquivos")
@@ -1007,7 +1015,7 @@ export function ReajusteCobrancaRetroativa({ competencia }: { competencia?: stri
                               mime: c.mime_type,
                               bucket: (c as any).bucket || "arquivos-financeiro",
                             })
-                          : handleViewPdf(c.financeiro_movimentacao_id ?? null)
+                          : handleViewPdf(c.financeiro_movimentacao_id ?? null, c.id)
                       }
                       disabled={!isReajuste && loadingPreview === c.financeiro_movimentacao_id}
                     >
@@ -1308,7 +1316,7 @@ export function ReajusteCobrancaRetroativa({ competencia }: { competencia?: stri
                       variant="ghost"
                       size="icon"
                       className="h-7 w-7"
-                      onClick={() => handleViewPdf(editCobMovId)}
+                      onClick={() => handleViewPdf(editCobMovId, editCobId)}
                       disabled={loadingPreview === editCobMovId}
                       title="Visualizar PDF"
                     >
