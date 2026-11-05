@@ -50,6 +50,7 @@ import { RelatorioManualDialog } from "@/components/movimentacoes/RelatorioManua
 import { RELATORIO_VAZIO, classificarPreparacao, relatorioFinalizado, resumoEnvioRelatorios, resumoLoteEnvio, selecionarLoteRelatorios } from "@/lib/movimentacao-relatorio";
 import { RelatorioStatusBadge } from "@/components/movimentacoes/RelatorioStatusBadge";
 import { contratoSuspenso, separarSuspensos, mensagemSuspensosIgnorados, TITULO_CONTRATO_SUSPENSO, MENSAGEM_CONTRATO_SUSPENSO } from "@/lib/contrato-suspenso";
+import { useEncaminhamentosSuspensos, SuspensosEncaminhadosPainel } from "@/components/movimentacoes/SuspensosEncaminhados";
 import { RelatorioLoteDialog } from "@/components/movimentacoes/RelatorioLoteDialog";
 import { PrepararRelatoriosDialog, type ResultadoPreparacao } from "@/components/movimentacoes/PrepararRelatoriosDialog";
 import { gerarRelatoriosPortal } from "@/services/portalEmpresaRelatorios";
@@ -624,6 +625,10 @@ export default function Movimentacoes() {
   const movsDoMes = useMemo(() => filtered.filter(m => m.empresa_id && m.mes_referencia === filterMes && !contratoSuspenso(m) && !(papelGrupoRelatorio(m.empresa_id, empresaGrupoMap?.get(m.empresa_id)) === "membro")), [filtered, filterMes, empresaGrupoMap]);
   const loteResumo = useMemo(() => resumoLoteEnvio(movsDoMes, relatoriosMap), [movsDoMes, relatoriosMap]);
   const contextoLote = `${formatMesReferencia(filterMes)} · ${filterPeriodo === "all" ? "todos os períodos" : `Período ${filterPeriodo}`}`;
+
+  const { data: encSuspensos = [] } = useEncaminhamentosSuspensos(filterMes);
+  const encSuspensosMap = useMemo(() => new Map(encSuspensos.filter(e => e.status === "encaminhado").map(e => [e.empresa_id, e])), [encSuspensos]);
+  const empresasComMovNoMes = useMemo(() => new Set(movimentacoes.filter(m => m.mes_referencia === filterMes && m.empresa_id).map(m => m.empresa_id as string)), [movimentacoes, filterMes]);
 
   const prepararRelatorios = useMutation({
     mutationFn: async (): Promise<ResultadoPreparacao> => {
@@ -1219,6 +1224,8 @@ export default function Movimentacoes() {
           </Card>
         )}
 
+        <SuspensosEncaminhadosPainel itens={encSuspensos} comMovimentacao={empresasComMovNoMes} />
+
         {/* Table */}
         <Card className="rounded-xl shadow-sm overflow-hidden">
           <CardContent className="p-0">
@@ -1298,7 +1305,7 @@ export default function Movimentacoes() {
                           <TableCell><Badge variant="outline" className="rounded-md">{tipo}</Badge></TableCell>
                           <TableCell>{m.periodo || formatPeriodoEmpresa(m.empresas as any)}</TableCell>
                           <TableCell>
-                            {(m.empresas as any)?.contrato_suspenso && (status === "Aguardando envio" || status === "Fora do prazo") ? (
+                            {contratoSuspenso(m) ? (
                               <Popover>
                                 <PopoverTrigger asChild>
                                   <button
@@ -1322,7 +1329,9 @@ export default function Movimentacoes() {
                           {true && <TableCell>{contratoSuspenso(m) ? <span className="text-muted-foreground text-sm" title="Não aplicável">—</span> : formatDateBR(m.data_envio_empresa)}</TableCell>}
                           <TableCell>{formatDateBR(m.data_envio_financeiro)}</TableCell>
                           <TableCell>
-                            {finInfo ? (
+                            {contratoSuspenso(m) && encSuspensosMap.has(m.empresa_id ?? "") && !finInfo ? (
+                              <Badge variant="outline" className="rounded-md text-xs" title={`Encaminhado em ${new Date(encSuspensosMap.get(m.empresa_id ?? "")!.encaminhado_em).toLocaleString("pt-BR")} · ${encSuspensosMap.get(m.empresa_id ?? "")!.encaminhado_por_nome}`}>Encaminhado ao Financeiro</Badge>
+                            ) : finInfo ? (
                               <div className="flex flex-col items-start gap-0.5">
                                 <Badge className={`${statusFinanceiroColor(finInfo.status)} rounded-md gap-1 text-xs`}>
                                   {finInfo.status === "Em faturamento" && (

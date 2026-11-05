@@ -744,6 +744,16 @@ export default function Financeiro() {
     toast.warning(`${cobrancasAbertas.length} cobrança(s) aberta(s) neste mês`);
   }, [cobrancasAbertas.length, mes]);
 
+  const { data: suspensosEncaminhados = new Set<string>() } = useQuery({
+    queryKey: ["suspensos-encaminhados-financeiro"],
+    queryFn: async () => {
+      const { data, error } = await supabase.from("movimentacao_suspensos_encaminhamentos" as any).select("empresa_id, mes_referencia").eq("status", "encaminhado");
+      if (error) throw error;
+      return new Set(((data ?? []) as any[]).map((r) => `${r.empresa_id}|${r.mes_referencia}`));
+    },
+    enabled: !!user,
+  });
+
   // Linhas enriquecidas
   const allRows: FinanceiroRow[] = useMemo(() => {
     // Empresas/competências com linha de "Primeira mensalidade": os anexos de
@@ -757,6 +767,8 @@ export default function Financeiro() {
       .filter((f) => {
         const emp = empresasMap[f.empresa_id];
         if (emp?.nao_faturado_financeiro) return false;
+        // Contrato suspenso encaminhado pela aba Movimentações segue para o Financeiro
+        if (emp && !emp.ativa && suspensosEncaminhados.has(`${f.empresa_id}|${f.mes_referencia}`)) return true;
         // Oculta empresas desativadas (rescindidas/suspensas/inativas) pelo cadastro
         return emp ? emp.ativa : true;
       })
@@ -886,7 +898,7 @@ export default function Financeiro() {
       };
     });
 
-  }, [financeiroRaw, empresasMap, operacionaisMap, anexosCadastroCountMap, anexosImplantacaoCountMap, anexosMap, pdfUploaderByMov, uploaderMap, cnpjsPorContrato, cnpjsPorAnexoOrigem, retroativasInfo, arquivosReajusteInfo, aportesPorEmpresa]);
+  }, [financeiroRaw, empresasMap, operacionaisMap, anexosCadastroCountMap, anexosImplantacaoCountMap, anexosMap, pdfUploaderByMov, uploaderMap, cnpjsPorContrato, cnpjsPorAnexoOrigem, retroativasInfo, arquivosReajusteInfo, aportesPorEmpresa, suspensosEncaminhados]);
 
   // Tipos únicos para o filtro
   const tiposUnicos = useMemo(() => {
