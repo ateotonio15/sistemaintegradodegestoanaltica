@@ -21,7 +21,7 @@ import { comporRetroativo } from "@/lib/reajuste-retroativo-composicao";
 import { AplicarRetroativoDialog } from "@/components/reajustes/AplicarRetroativoDialog";
 import {
   formatCentavosBRL, getStatusReajusteEmpresa, statusReajusteColor, statusReajusteLabel, type StatusReajuste,
-  labelStatusReajusteFluxo, corStatusReajusteFluxo, getMesReajuste, nomeMes,
+  labelStatusReajusteFluxo, corStatusReajusteFluxo, getMesReajuste, nomeMes, exibirContratoNoAnoReajuste,
 } from "@/lib/reajuste-utils";
 import { formatDateBR } from "@/lib/date-utils";
 import { valoresModalidadeReajuste } from "@/lib/reajuste-apresentacao";
@@ -214,7 +214,10 @@ export default function Reajustes() {
 
   // Cadastro (comum) passa a visualizar todos os contratos; a permissão de
   // edição continua restrita aos contratos sob sua responsabilidade (linha 343).
-  const empresasVisiveis = useMemo(() => empresas, [empresas]);
+  const empresasVisiveis = useMemo(
+    () => empresas.filter((e) => exibirContratoNoAnoReajuste(e.data_implantacao, Number(filterAno))),
+    [empresas, filterAno],
+  );
 
   const rows = useMemo(() => {
     const ano = parseInt(filterAno, 10);
