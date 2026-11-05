@@ -561,6 +561,13 @@
       "when": 1793887328638,
       "tag": "0079_anexo_por_cobranca_retroativa",
       "breakpoints": true
+    },
+    {
+      "idx": 80,
+      "version": "7",
+      "when": 1793888104536,
+      "tag": "0080_coleta_token_tipo",
+      "breakpoints": true
     }
   ]
 }

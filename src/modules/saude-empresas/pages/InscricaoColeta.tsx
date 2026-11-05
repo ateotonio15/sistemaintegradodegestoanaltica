@@ -18,6 +18,16 @@ const MSG_BLOQUEIO: Record<string, string> = {
   lotado: "Todas as vagas desta ação já foram preenchidas.",
 };
 
+const ROTULO_TIPO: Record<string, string> = {
+  psa: "PSA",
+  preventivo: "Preventivo",
+  sinais_vitais: "Sinais Vitais",
+};
+function rotuloAcao(tipo?: string | null) {
+  const t = tipo ? ROTULO_TIPO[tipo] : null;
+  return t ? `Ação de Coleta · ${t}` : "Ação de Coleta";
+}
+
 export default function InscricaoColeta() {
   const { token = "" } = useParams();
   const { data: info, isLoading } = useQuery({
@@ -78,7 +88,7 @@ export default function InscricaoColeta() {
         ) : (
           <>
             <div>
-              <p className="text-xs uppercase tracking-wide text-primary font-medium">Ação de Coleta · Preventivo</p>
+              <p className="text-xs uppercase tracking-wide text-primary font-medium">{rotuloAcao(info.tipo)}</p>
               <h1 className="text-lg font-semibold mt-1">{info.empresa}</h1>
               <div className="mt-2"><Detalhes /></div>
             </div>
