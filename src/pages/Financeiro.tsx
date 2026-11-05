@@ -744,6 +744,16 @@ export default function Financeiro() {
     toast.warning(`${cobrancasAbertas.length} cobrança(s) aberta(s) neste mês`);
   }, [cobrancasAbertas.length, mes]);
 
+  const { data: suspensosEncaminhados = new Set<string>() } = useQuery({
+    queryKey: ["suspensos-encaminhados-financeiro"],
+    queryFn: async () => {
+      const { data, error } = await supabase.from("movimentacao_suspensos_encaminhamentos" as any).select("empresa_id, mes_referencia").eq("status", "encaminhado");
+      if (error) throw error;
+      return new Set(((data ?? []) as any[]).map((r) => `${r.empresa_id}|${r.mes_referencia}`));
+    },
+    enabled: !!user,
+  });
+
   // Linhas enriquecidas
   const allRows: FinanceiroRow[] = useMemo(() => {
     // Empresas/competências com linha de "Primeira mensalidade": os anexos de
