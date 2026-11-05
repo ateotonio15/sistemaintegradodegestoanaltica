@@ -83,15 +83,15 @@ export default function Auth() {
           initial={reducedMotion ? false : { opacity: 0, y: 16 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.7 }}
-          className="relative z-10 my-10 hidden w-full max-w-xl sm:block md:my-auto md:py-8"
+          className="siga-login-content relative z-10 my-10 hidden w-full max-w-xl sm:block md:my-auto md:py-8"
         >
           <div className="siga-login-eyebrow mb-5 flex items-center gap-2 text-xs font-medium">
             <span className="siga-login-line h-px w-8" aria-hidden="true" />
             Sistema Integrado de Gestão Analítica
           </div>
           <motion.h1 initial={reducedMotion ? false : { opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.45 }} className="text-6xl font-semibold leading-none lg:text-7xl xl:text-8xl">SIGA</motion.h1>
-          <motion.p initial={reducedMotion ? false : { opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.45, delay: 0.12 }} className="mt-5 max-w-lg text-2xl font-medium leading-snug lg:text-3xl xl:text-4xl">
-            Dados, processos e decisões em um só lugar.
+          <motion.p initial={reducedMotion ? false : { opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.45, delay: 0.12 }} className="siga-login-tagline mt-5 max-w-xl text-2xl font-medium leading-snug lg:text-3xl xl:text-4xl">
+            Dados, processos e decisões<span className="block">em um só lugar.</span>
           </motion.p>
           <LoginAnalyticsVisual />
           <div className="siga-login-features mt-5 grid grid-cols-1 gap-x-8 gap-y-3 text-sm sm:grid-cols-2">
@@ -108,7 +108,7 @@ export default function Auth() {
             ))}
           </div>
         </motion.div>
-        <p className="siga-login-brand-muted relative z-10 hidden text-xs lg:block">© {year} SIGA · Cadastro Samel e Gestão Empresarial</p>
+        <p className="siga-login-footer relative z-10 hidden lg:block">© {year} SIGA · Cadastro Samel e Gestão Empresarial</p>
       </section>
 
       <section className="siga-login-access relative flex flex-col items-center justify-center px-5 py-10 sm:px-10 lg:px-8 xl:px-14" aria-label="Acesso ao sistema">
@@ -183,7 +183,7 @@ export default function Auth() {
             <span>Conexão segura • Sessão protegida</span>
           </div>
         </motion.div>
-        <p className="mt-8 text-center text-xs text-muted-foreground lg:hidden">© {year} SIGA · Cadastro Samel e Gestão Empresarial</p>
+        <p className="siga-login-footer mt-8 text-center lg:hidden">© {year} SIGA · Cadastro Samel e Gestão Empresarial</p>
       </section>
     </main>
   );

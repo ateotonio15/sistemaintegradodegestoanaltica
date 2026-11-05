@@ -21,8 +21,10 @@
   --login-brand-foreground: 145 24% 97%;
   --login-brand-muted: 149 19% 76%;
   --login-highlight: 151 43% 76%;
+  --login-footer: 149 10% 57%;
+  --login-footer-light: 155 6% 48%;
   --login-gradient: linear-gradient(140deg, hsl(145 28% 95%), hsl(var(--background)) 48%, hsl(160 20% 96%));
-  --login-shade: linear-gradient(180deg, hsl(var(--login-brand) / 0.18), hsl(var(--login-brand) / 0.38) 55%, hsl(var(--login-brand) / 0.08));
+  --login-shade: linear-gradient(180deg, hsl(var(--login-brand) / 0.24), hsl(var(--login-brand) / 0.38) 55%, hsl(var(--login-brand) / 0.18));
   --login-shadow: 0 16px 60px -24px hsl(var(--login-brand) / 0.16), 0 1px 4px hsl(var(--login-brand) / 0.025);
   --login-button-shadow: 0 5px 14px -7px hsl(var(--primary) / 0.45);
   --login-node-shadow: 0 8px 24px -12px hsl(var(--login-brand) / 0.55);
@@ -36,7 +38,15 @@
   background: hsl(var(--login-brand));
   color: hsl(var(--login-brand-foreground));
 }
-.siga-login-art { animation: siga-login-drift 26s ease-in-out infinite alternate; }
+.siga-login-art { opacity: 0.42; animation: siga-login-drift 26s ease-in-out infinite alternate; }
+.siga-login-footer { font-size: 10px; line-height: 1.6; font-weight: 400; color: hsl(var(--login-footer)); }
+.siga-login-access .siga-login-footer { color: hsl(var(--login-footer-light)); }
+@media (min-width: 1024px) {
+  .siga-login-content { position: relative; top: -20px; }
+  .siga-login-tagline { margin-top: 24px; line-height: 1.35; }
+  .siga-login-content .siga-analytics { margin-top: 32px; }
+  .siga-login-content .siga-login-features { margin-top: 28px; }
+}
 .siga-login-shade { background: var(--login-shade); }
 .siga-login-brand-muted { color: hsl(var(--login-brand-muted)); }
 .siga-login-eyebrow, .siga-login-features { color: hsl(var(--login-highlight)); }
