@@ -9,7 +9,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -619,7 +619,7 @@ export default function Movimentacoes() {
 
   // Contratos de grupo que não são o principal vão no e-mail do principal: ficam fora do preparo e do lote.
   const ehMembroGrupo = (empresaId: string | null | undefined) => papelGrupoRelatorio(empresaId, empresaId ? empresaGrupoMap?.get(empresaId) : null) === "membro";
-  const { aptos: filteredAptos, suspensos: suspensosLote } = useMemo(() => separarSuspensos(filtered.filter(m => m.empresa_id && m.mes_referencia === filterMes && !ehMembroGrupo(m.empresa_id))), [filtered, filterMes, empresaGrupoMap]);
+  const { suspensos: suspensosLote } = useMemo(() => separarSuspensos(filtered.filter(m => m.empresa_id && m.mes_referencia === filterMes && !ehMembroGrupo(m.empresa_id))), [filtered, filterMes, empresaGrupoMap]);
   const aptosLote = selecionarLoteRelatorios(filtered.filter(m => !contratoSuspenso(m)), relatoriosMap, filterMes, PERIODOS).filter(m => !ehMembroGrupo(m.empresa_id));
   const movsDoMes = useMemo(() => filtered.filter(m => m.empresa_id && m.mes_referencia === filterMes && !contratoSuspenso(m) && !(papelGrupoRelatorio(m.empresa_id, empresaGrupoMap?.get(m.empresa_id)) === "membro")), [filtered, filterMes, empresaGrupoMap]);
   const loteResumo = useMemo(() => resumoLoteEnvio(movsDoMes, relatoriosMap), [movsDoMes, relatoriosMap]);

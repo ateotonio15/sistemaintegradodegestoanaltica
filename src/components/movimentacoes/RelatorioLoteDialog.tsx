@@ -7,11 +7,12 @@ import { enviarRelatoriosPortal } from "@/services/enviarRelatoriosPortal";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
 
-export function RelatorioLoteDialog({ items, resumo, contexto, onClose }: {
+export function RelatorioLoteDialog({ items, resumo, contexto, onClose, avisoSuspensos }: {
   items: { id: string; empresaId: string | null; nome: string; contrato: string | null; periodo: string; destinatarios: string; cc: string }[];
   resumo: { selecionadas: number; prontas: number; semDestinatario: number; comErro: number };
   contexto: string;
   onClose: () => void;
+  avisoSuspensos?: string | null;
 }) {
   const [lote] = useState(() => items.map(i => Object.freeze({ ...i })));
   const [progresso, setProgresso] = useState("");
