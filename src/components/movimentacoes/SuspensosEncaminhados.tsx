@@ -59,7 +59,15 @@ export function useEncaminhamentosSuspensos(mes: string, userId?: string | null)
       if (ids) q = q.in("empresa_id", ids);
       const { data, error } = await q.order("empresa_nome");
       if (error) throw error;
-      return (data ?? []) as unknown as EncaminhamentoSuspenso[];
+      const rows = (data ?? []) as unknown as EncaminhamentoSuspenso[];
+      if (!rows.length) return rows;
+      const { data: inativas, error: e3 } = await supabase
+        .from("empresas").select("id")
+        .in("id", rows.map((r) => r.empresa_id))
+        .eq("status_empresa", "Inativa");
+      if (e3) throw e3;
+      const fora = new Set((inativas ?? []).map((r: any) => r.id));
+      return rows.filter((r) => !fora.has(r.empresa_id));
     },
   });
 }
