@@ -898,7 +898,7 @@ export default function Financeiro() {
       };
     });
 
-  }, [financeiroRaw, empresasMap, operacionaisMap, anexosCadastroCountMap, anexosImplantacaoCountMap, anexosMap, pdfUploaderByMov, uploaderMap, cnpjsPorContrato, cnpjsPorAnexoOrigem, retroativasInfo, arquivosReajusteInfo, aportesPorEmpresa]);
+  }, [financeiroRaw, empresasMap, operacionaisMap, anexosCadastroCountMap, anexosImplantacaoCountMap, anexosMap, pdfUploaderByMov, uploaderMap, cnpjsPorContrato, cnpjsPorAnexoOrigem, retroativasInfo, arquivosReajusteInfo, aportesPorEmpresa, suspensosEncaminhados]);
 
   // Tipos únicos para o filtro
   const tiposUnicos = useMemo(() => {
