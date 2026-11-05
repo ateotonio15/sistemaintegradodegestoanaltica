@@ -57,6 +57,7 @@ export function RelatorioLoteDialog({ items, resumo, contexto, onClose, avisoSus
         <div className="flex justify-between gap-4"><dt className="text-muted-foreground">Sem destinatário</dt><dd className="font-medium text-warning">{resumo.semDestinatario}</dd></div>
         <div className="flex justify-between gap-4"><dt className="text-muted-foreground">Com erro</dt><dd className="font-medium text-destructive">{resumo.comErro}</dd></div>
       </dl>
+      {avisoSuspensos && <p className="text-sm text-muted-foreground">{avisoSuspensos}</p>}
       <p className="text-sm font-medium">{items.length} relatórios serão enviados. Empresas sem destinatário ou com erro não bloqueiam as demais.</p>
       <ul className="max-h-64 overflow-y-auto divide-y divide-border">{lote.map(i => <li key={i.id} className="py-2 text-sm"><div className="font-semibold break-words">Empresa: {i.nome} | Contrato: #{i.contrato ?? "Não informado"}</div><div>{i.periodo}</div><div className="text-muted-foreground break-words">{i.destinatarios}</div>{resultados.filter(r => r.id === i.id).map(r => <p key={r.id} className={r.erro ? "text-destructive" : "text-success"}>{r.mensagem}</p>)}</li>)}</ul>
       {progresso && <p role="status" className="text-sm break-words">{progresso}</p>}
