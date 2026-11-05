@@ -49,6 +49,7 @@ import { GrupoTag } from "@/components/financeiro/GrupoTag";
 import { RelatorioManualDialog } from "@/components/movimentacoes/RelatorioManualDialog";
 import { RELATORIO_VAZIO, classificarPreparacao, relatorioFinalizado, resumoEnvioRelatorios, resumoLoteEnvio, selecionarLoteRelatorios } from "@/lib/movimentacao-relatorio";
 import { RelatorioStatusBadge } from "@/components/movimentacoes/RelatorioStatusBadge";
+import { contratoSuspenso, separarSuspensos, mensagemSuspensosIgnorados, TITULO_CONTRATO_SUSPENSO, MENSAGEM_CONTRATO_SUSPENSO } from "@/lib/contrato-suspenso";
 import { RelatorioLoteDialog } from "@/components/movimentacoes/RelatorioLoteDialog";
 import { PrepararRelatoriosDialog, type ResultadoPreparacao } from "@/components/movimentacoes/PrepararRelatoriosDialog";
 import { gerarRelatoriosPortal } from "@/services/portalEmpresaRelatorios";
@@ -128,6 +129,7 @@ export default function Movimentacoes() {
   const [verSomenteSemEmpresa, setVerSomenteSemEmpresa] = useState(false);
   const [anexosMov, setAnexosMov] = useState<{ id: string; nome: string | null; mes: string | null; periodo: string | null } | null>(null);
   const [relatorioMov, setRelatorioMov] = useState<Movimentacao | null>(null);
+  const [avisoSuspenso, setAvisoSuspenso] = useState(false);
   const [relatorioStatusInicial, setRelatorioStatusInicial] = useState<string | undefined>(undefined);
   const [loteOpen, setLoteOpen] = useState(false);
   const [prepararResultado, setPrepararResultado] = useState<ResultadoPreparacao | null>(null);
@@ -167,7 +169,7 @@ export default function Movimentacoes() {
       // 2) Provisiona movimentações faltantes da competência selecionada
       const { data: emps, error: empErr } = await supabase
         .from("empresas")
-        .select("id, nome, tipo_movimentacao, periodo_movimentacao, data_corte, status_empresa, tipo_contrato, status_implantacao, primeira_competencia_financeira, responsavel_contrato, responsavel_user_id");
+        .select("id, nome, tipo_movimentacao, periodo_movimentacao, data_corte, status_empresa, tipo_contrato, status_implantacao, primeira_competencia_financeira, responsavel_contrato, responsavel_user_id, contrato_suspenso");
       if (empErr) throw empErr;
 
       const { data: existentes, error: movErr } = await supabase
@@ -177,10 +179,12 @@ export default function Movimentacoes() {
       if (movErr) throw movErr;
       const jaTem = new Set((existentes ?? []).map((m: any) => m.empresa_id));
 
+      let suspensosGer = 0;
       const novos: TablesInsert<"movimentacoes">[] = [];
       for (const e of (emps ?? []) as any[]) {
         if (e.status_empresa === "Inativa") continue;
         if (jaTem.has(e.id)) continue;
+        if (e.contrato_suspenso) { suspensosGer++; continue; }
         if (!permiteCompetenciaMovimentacao(e, filterMes)) continue;
 
         const tipo = e.tipo_movimentacao ?? "Fechada";
@@ -210,9 +214,9 @@ export default function Movimentacoes() {
       toast({
         title: criadas > 0 || ativados > 0 ? "Movimentações geradas" : "Nada a gerar",
         description:
-          criadas > 0 || ativados > 0
+          (criadas > 0 || ativados > 0
             ? `${criadas} movimentação(ões) criada(s)${ativados > 0 ? ` • ${ativados} contrato(s) ativado(s)` : ""}.`
-            : "Todos os contratos já possuem movimentação nesta competência.",
+            : "Todos os contratos já possuem movimentação nesta competência.") + (suspensosGer > 0 ? ` ${suspensosGer} contrato(s) suspenso(s) não participa(m).` : ""),
       });
       queryClient.invalidateQueries({ queryKey: ["movimentacoes"] });
       queryClient.invalidateQueries({ queryKey: ["empresas"] });
@@ -569,6 +573,7 @@ export default function Movimentacoes() {
 
 
   const openEdit = (m: Movimentacao & { empresas?: { responsavel_contrato: string | null } | null }) => {
+    if (contratoSuspenso(m)) { setAvisoSuspenso(true); return; }
     setEditingId(m.id);
     setNovaObservacao("");
 
@@ -614,8 +619,9 @@ export default function Movimentacoes() {
 
   // Contratos de grupo que não são o principal vão no e-mail do principal: ficam fora do preparo e do lote.
   const ehMembroGrupo = (empresaId: string | null | undefined) => papelGrupoRelatorio(empresaId, empresaId ? empresaGrupoMap?.get(empresaId) : null) === "membro";
-  const aptosLote = selecionarLoteRelatorios(filtered, relatoriosMap, filterMes, PERIODOS).filter(m => !ehMembroGrupo(m.empresa_id));
-  const movsDoMes = useMemo(() => filtered.filter(m => m.empresa_id && m.mes_referencia === filterMes && !(papelGrupoRelatorio(m.empresa_id, empresaGrupoMap?.get(m.empresa_id)) === "membro")), [filtered, filterMes, empresaGrupoMap]);
+  const { aptos: filteredAptos, suspensos: suspensosLote } = useMemo(() => separarSuspensos(filtered.filter(m => m.empresa_id && m.mes_referencia === filterMes && !ehMembroGrupo(m.empresa_id))), [filtered, filterMes, empresaGrupoMap]);
+  const aptosLote = selecionarLoteRelatorios(filtered.filter(m => !contratoSuspenso(m)), relatoriosMap, filterMes, PERIODOS).filter(m => !ehMembroGrupo(m.empresa_id));
+  const movsDoMes = useMemo(() => filtered.filter(m => m.empresa_id && m.mes_referencia === filterMes && !contratoSuspenso(m) && !(papelGrupoRelatorio(m.empresa_id, empresaGrupoMap?.get(m.empresa_id)) === "membro")), [filtered, filterMes, empresaGrupoMap]);
   const loteResumo = useMemo(() => resumoLoteEnvio(movsDoMes, relatoriosMap), [movsDoMes, relatoriosMap]);
   const contextoLote = `${formatMesReferencia(filterMes)} · ${filterPeriodo === "all" ? "todos os períodos" : `Período ${filterPeriodo}`}`;
 
@@ -653,7 +659,7 @@ export default function Movimentacoes() {
         const { error } = await supabase.from("movimentacao_relatorios").upsert(lote.slice(i, i + 100), { onConflict: "movimentacao_id" });
         if (error) throw error;
       }
-      return { encontradas: movsDoMes.length, prontas, semDestinatario, comErro };
+      return { encontradas: movsDoMes.length, prontas, semDestinatario, comErro, suspensos: suspensosLote };
     },
     onSuccess: async resultado => {
       await queryClient.invalidateQueries({ queryKey: ["movimentacao-relatorios"] });
@@ -1313,7 +1319,7 @@ export default function Movimentacoes() {
                             )}
                           </TableCell>
                           <TableCell className="text-muted-foreground">{respMovOf(m.empresas) || "—"}</TableCell>
-                          {true && <TableCell>{formatDateBR(m.data_envio_empresa)}</TableCell>}
+                          {true && <TableCell>{contratoSuspenso(m) ? <span className="text-muted-foreground text-sm" title="Não aplicável">—</span> : formatDateBR(m.data_envio_empresa)}</TableCell>}
                           <TableCell>{formatDateBR(m.data_envio_financeiro)}</TableCell>
                           <TableCell>
                             {finInfo ? (
@@ -1344,14 +1350,16 @@ export default function Movimentacoes() {
                             )}
                           </TableCell>
                           <TableCell>
-                            <RelatorioStatusBadge
+                            {contratoSuspenso(m) ? (
+                              <Badge variant="outline" className="rounded-md text-muted-foreground" title="Não aplicável: contrato suspenso">Suspenso</Badge>
+                            ) : <RelatorioStatusBadge
                               registro={relatorio}
                               empresaNome={m.empresas?.nome ?? "empresa"}
                               mesReferencia={m.mes_referencia ?? null}
                               dataEnvioEmpresa={m.data_envio_empresa ?? null}
                               desabilitado={carregandoRelatorios || erroRelatorios}
                               rotulo={carregandoRelatorios ? "Carregando..." : "Indisponível"}
-                            />
+                            />}
                           </TableCell>
                           {canImportarRepositorio && (
                           <TableCell>
@@ -1365,7 +1373,7 @@ export default function Movimentacoes() {
                                   </Button>
                                 </DropdownMenuTrigger>
                                 <DropdownMenuContent align="end">
-                                  <DropdownMenuItem onClick={() => { setRelatorioStatusInicial(undefined); setRelatorioMov(m); }}>
+                                  <DropdownMenuItem onClick={() => { if (contratoSuspenso(m)) { setAvisoSuspenso(true); return; } setRelatorioStatusInicial(undefined); setRelatorioMov(m); }}>
                                     <Eye className="mr-2 h-4 w-4" /> Visualizar relatório
                                   </DropdownMenuItem>
                                   {papelGrupoRelatorio(m.empresa_id, grupoLinha) === "membro" ? (
@@ -1373,11 +1381,11 @@ export default function Movimentacoes() {
                                       <Send className="mr-2 h-4 w-4" /> Enviado pelo contrato principal do grupo
                                     </DropdownMenuItem>
                                   ) : !relatorioFinalizado(relatorio) ? (
-                                    <DropdownMenuItem onClick={() => { setRelatorioStatusInicial("Enviado"); setRelatorioMov(m); }}>
+                                    <DropdownMenuItem onClick={() => { if (contratoSuspenso(m)) { setAvisoSuspenso(true); return; } setRelatorioStatusInicial("Enviado"); setRelatorioMov(m); }}>
                                       <Send className="mr-2 h-4 w-4" /> Enviar
                                     </DropdownMenuItem>
                                   ) : (
-                                    <DropdownMenuItem onClick={() => { setRelatorioStatusInicial("Enviado"); setRelatorioMov(m); }}>
+                                    <DropdownMenuItem onClick={() => { if (contratoSuspenso(m)) { setAvisoSuspenso(true); return; } setRelatorioStatusInicial("Enviado"); setRelatorioMov(m); }}>
                                       <RotateCcw className="mr-2 h-4 w-4" /> Reenviar
                                     </DropdownMenuItem>
                                   )}
@@ -1424,8 +1432,18 @@ export default function Movimentacoes() {
       {loteOpen && canEditDates && <RelatorioLoteDialog
         items={aptosLote.map(m => ({ id: m.id, empresaId: m.empresa_id ?? null, nome: m.empresas?.nome ?? "Sem empresa", contrato: m.empresas?.codigo_contrato ?? null, periodo: m.periodo, destinatarios: relatoriosMap.get(m.id)?.destinatarios ?? "", cc: relatoriosMap.get(m.id)?.cc ?? "" }))}
         resumo={loteResumo}
+        avisoSuspensos={mensagemSuspensosIgnorados(suspensosLote, "envio")}
         contexto={contextoLote}
         onClose={() => setLoteOpen(false)} />}
+      <Dialog open={avisoSuspenso} onOpenChange={setAvisoSuspenso}>
+        <DialogContent className="sm:max-w-[440px]">
+          <DialogHeader>
+            <DialogTitle>{TITULO_CONTRATO_SUSPENSO}</DialogTitle>
+            <DialogDescription>{MENSAGEM_CONTRATO_SUSPENSO}</DialogDescription>
+          </DialogHeader>
+          <DialogFooter><Button onClick={() => setAvisoSuspenso(false)}>Fechar</Button></DialogFooter>
+        </DialogContent>
+      </Dialog>
       {prepararResultado && <PrepararRelatoriosDialog resultado={prepararResultado} contexto={contextoLote} onClose={() => setPrepararResultado(null)} />}
       {preparandoContrato && <p role="status" className="fixed bottom-4 left-4 z-50 max-w-[90vw] border border-border bg-background p-3 text-sm text-foreground shadow-sm">{preparandoContrato}</p>}
 
