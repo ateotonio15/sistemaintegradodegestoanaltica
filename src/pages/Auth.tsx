@@ -20,7 +20,6 @@ import {
 import logo from "@/assets/logo-cs-control.png";
 import loginVisual from "@/assets/siga-login-visual.webp";
 import LoginAnalyticsVisual from "@/components/LoginAnalyticsVisual";
-import LoginAccessDecor from "@/components/LoginAccessDecor";
 
 export default function Auth() {
   const [username, setUsername] = useState("");
@@ -113,8 +112,6 @@ export default function Auth() {
       </section>
 
       <section className="siga-login-access relative flex flex-col items-center justify-center px-5 py-10 sm:px-10 lg:px-8 xl:px-14" aria-label="Acesso ao sistema">
-        <div className="siga-access-ecosystem relative w-full max-w-[440px]">
-        <LoginAccessDecor />
         <motion.div
           initial={reducedMotion ? false : { opacity: 0, y: 12 }}
           animate={{ opacity: 1, y: 0 }}
@@ -186,7 +183,6 @@ export default function Auth() {
             <span>Conexão segura • Sessão protegida</span>
           </div>
         </motion.div>
-        </div>
         <p className="siga-login-footer mt-8 text-center lg:hidden">© {year} SIGA · Cadastro Samel e Gestão Empresarial</p>
       </section>
     </main>

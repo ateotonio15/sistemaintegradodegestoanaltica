@@ -78,37 +78,6 @@
 .siga-login-input:focus-visible { background: hsl(var(--card) / 0.85); border-color: hsl(var(--primary)); box-shadow: var(--login-focus-shadow); outline: none; }
 .siga-login-security { font-size: 11px; line-height: 1.5; }
 .siga-login-security .lucide { opacity: 0.7; }
-.siga-access-decor { position: absolute; inset: 0; pointer-events: none; user-select: none; }
-.siga-access-satellite { position: absolute; color: hsl(var(--primary) / 0.8); }
-.siga-access-satellite-float {
-  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px;
-  width: 68px; height: 62px; border-radius: 8px;
-  background: hsl(var(--card) / 0.4); border: 1px solid hsl(var(--primary) / 0.12);
-  box-shadow: var(--login-button-shadow); font-size: 10px;
-}
-.siga-access-satellite .lucide { width: 19px; height: 19px; }
-.siga-access-security { left: 8px; top: -90px; }
-.siga-access-key { right: 6px; top: -78px; }
-.siga-access-data { left: -90px; top: 40%; }
-.siga-access-network { right: -90px; top: 58%; }
-.siga-access-workflow { left: 58%; bottom: -88px; }
-.siga-access-security .siga-access-satellite-float { animation: siga-node-vertical 13s ease-in-out -2s infinite; }
-.siga-access-key .siga-access-satellite-float { animation: siga-node-diagonal 17s ease-in-out -6s infinite; }
-.siga-access-data .siga-access-satellite-float { animation: siga-node-lateral 19s ease-in-out -9s infinite; }
-.siga-access-network .siga-access-satellite-float { animation: siga-node-oscillate 21s ease-in-out -4s infinite; }
-.siga-access-workflow .siga-access-satellite-float { animation: siga-node-diagonal 16s ease-in-out -8s infinite reverse; }
-@media (max-width: 1599px) {
-  .siga-access-data, .siga-access-network { display: none; }
-}
-@media (min-width: 640px) and (max-width: 1023px) {
-  .siga-access-workflow { display: none; }
-}
-@media (max-width: 639px), (max-height: 780px) {
-  .siga-access-decor { display: none; }
-}
-@media (prefers-reduced-motion: reduce) {
-  .siga-access-satellite-float { animation: none !important; }
-}
 .siga-login-submit { box-shadow: var(--login-button-shadow); transition: background-color 180ms ease, box-shadow 180ms ease, transform 180ms ease; }
 @media (hover: hover) {
   .siga-login-submit:hover:not(:disabled) { transform: translateY(-1px); }
