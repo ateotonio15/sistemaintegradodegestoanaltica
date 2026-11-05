@@ -19,6 +19,7 @@ import {
 } from "lucide-react";
 import logo from "@/assets/logo-cs-control.png";
 import loginVisual from "@/assets/siga-login-visual.jpg";
+import LoginAnalyticsVisual from "@/components/LoginAnalyticsVisual";
 
 export default function Auth() {
   const [username, setUsername] = useState("");
@@ -76,17 +77,18 @@ export default function Auth() {
           initial={reducedMotion ? false : { opacity: 0, y: 16 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.7 }}
-          className="relative z-10 my-12 max-w-xl lg:my-auto lg:py-16"
+          className="relative z-10 my-10 w-full max-w-xl lg:my-auto lg:py-8"
         >
           <div className="siga-login-eyebrow mb-5 flex items-center gap-2 text-xs font-medium">
             <span className="siga-login-line h-px w-8" aria-hidden="true" />
             Sistema Integrado de Gestão Analítica
           </div>
-          <h1 className="text-6xl font-semibold leading-none sm:text-7xl xl:text-8xl">SIGA</h1>
-          <p className="mt-6 max-w-lg text-2xl font-medium leading-snug sm:text-3xl lg:text-4xl">
+          <motion.h1 initial={reducedMotion ? false : { opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.45 }} className="text-6xl font-semibold leading-none sm:text-7xl xl:text-8xl">SIGA</motion.h1>
+          <motion.p initial={reducedMotion ? false : { opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.45, delay: 0.12 }} className="mt-5 max-w-lg text-2xl font-medium leading-snug sm:text-3xl lg:text-4xl">
             Dados, processos e decisões em um só lugar.
-          </p>
-          <div className="siga-login-features mt-9 grid grid-cols-1 gap-x-8 gap-y-4 text-sm sm:grid-cols-2">
+          </motion.p>
+          <LoginAnalyticsVisual />
+          <div className="siga-login-features mt-5 grid grid-cols-1 gap-x-8 gap-y-3 text-sm sm:grid-cols-2">
             {[
               { icon: Layers3, label: "Gestão integrada" },
               { icon: Workflow, label: "Automação de processos" },
@@ -107,7 +109,7 @@ export default function Auth() {
         <motion.div
           initial={reducedMotion ? false : { opacity: 0, y: 12 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6, delay: reducedMotion ? 0 : 0.15 }}
+          transition={{ duration: 0.6, delay: reducedMotion ? 0 : 0.6 }}
           className="siga-login-card relative w-full max-w-[440px] rounded-2xl px-7 py-9 sm:px-10 sm:py-11"
         >
           <div className="mb-8">
