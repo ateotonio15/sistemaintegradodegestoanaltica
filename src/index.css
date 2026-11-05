@@ -171,33 +171,33 @@
 
 @layer base {
   :root {
-    --background: 220 20% 97%;
-    --foreground: 222 47% 11%;
+    --background: 150 18% 97%;
+    --foreground: 158 28% 12%;
 
     --card: 0 0% 100%;
-    --card-foreground: 222 47% 11%;
+    --card-foreground: 158 28% 12%;
 
     --popover: 0 0% 100%;
-    --popover-foreground: 222 47% 11%;
+    --popover-foreground: 158 28% 12%;
 
-    --primary: 152 69% 40%;
+    --primary: 158 65% 31%;
     --primary-foreground: 0 0% 100%;
 
-    --secondary: 220 14% 96%;
-    --secondary-foreground: 222 47% 11%;
+    --secondary: 150 18% 94%;
+    --secondary-foreground: 158 28% 12%;
 
-    --muted: 220 14% 96%;
-    --muted-foreground: 220 9% 46%;
+    --muted: 150 16% 94%;
+    --muted-foreground: 155 7% 42%;
 
-    --accent: 220 14% 96%;
-    --accent-foreground: 222 47% 11%;
+    --accent: 151 25% 93%;
+    --accent-foreground: 158 40% 18%;
 
     --destructive: 0 72% 51%;
     --destructive-foreground: 0 85% 97%;
 
-    --border: 220 13% 91%;
-    --input: 220 13% 91%;
-    --ring: 152 69% 40%;
+    --border: 150 13% 87%;
+    --input: 150 13% 85%;
+    --ring: 158 65% 31%;
 
     --radius: 0.75rem;
 
@@ -208,18 +208,18 @@
     --info: 199 89% 48%;
     --info-foreground: 0 0% 100%;
 
-    --sidebar-background: 222 47% 11%;
-    --sidebar-foreground: 210 40% 98%;
-    --sidebar-primary: 152 69% 40%;
+    --sidebar-background: 155 41% 8%;
+    --sidebar-foreground: 145 24% 95%;
+    --sidebar-primary: 151 55% 45%;
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 160 30% 15%;
-    --sidebar-accent-foreground: 0 0% 98%;
-    --sidebar-border: 160 30% 15%;
+    --sidebar-accent: 155 32% 14%;
+    --sidebar-accent-foreground: 151 43% 80%;
+    --sidebar-border: 155 28% 16%;
     --sidebar-ring: 152 69% 40%;
 
-    --icon: 152 69% 40%;
+    --icon: 158 65% 31%;
 
-    --chart-1: 152 69% 40%;
+    --chart-1: 158 65% 31%;
     --chart-2: 142 71% 45%;
     --chart-3: 38 92% 50%;
     --chart-4: 262 83% 58%;
@@ -244,14 +244,14 @@
 
     /* Surfaces & gradients */
     --surface-1: 0 0% 100%;
-    --surface-2: 220 14% 98%;
-    --surface-3: 220 14% 96%;
-    --border-subtle: 220 13% 93%;
-    --gradient-primary: linear-gradient(135deg, hsl(152 69% 40%), hsl(160 70% 48%));
-    --gradient-surface: linear-gradient(180deg, hsl(0 0% 100%), hsl(220 14% 98%));
-    --gradient-glow: radial-gradient(circle at 50% 0%, hsl(152 69% 40% / 0.12), transparent 70%);
-    --shadow-glow: 0 0 0 1px hsl(152 69% 40% / 0.15), 0 8px 24px -6px hsl(152 69% 40% / 0.25);
-    --shadow-elegant: 0 1px 0 0 hsl(0 0% 100% / 0.05) inset, 0 8px 24px -8px hsl(220 30% 20% / 0.12);
+    --surface-2: 150 18% 98%;
+    --surface-3: 150 16% 95%;
+    --border-subtle: 150 13% 91%;
+    --gradient-primary: linear-gradient(135deg, hsl(158 65% 31%), hsl(158 65% 24%));
+    --gradient-surface: linear-gradient(180deg, hsl(0 0% 100%), hsl(150 18% 98%));
+    --gradient-glow: radial-gradient(circle at 50% 0%, hsl(158 65% 31% / 0.12), transparent 70%);
+    --shadow-glow: 0 0 0 1px hsl(158 65% 31% / 0.15), 0 8px 24px -6px hsl(158 65% 31% / 0.25);
+    --shadow-elegant: 0 1px 0 0 hsl(0 0% 100% / 0.05) inset, 0 8px 24px -8px hsl(155 41% 8% / 0.14);
   }
 
   .dark {
@@ -649,3 +649,18 @@
     text-shadow: 0 0 8px currentColor;
   }
 }
+
+/* SIGA visual identity applied app-wide (presentation only). */
+@layer components {
+  .bg-card.rounded-lg, .bg-card.rounded-xl { box-shadow: var(--shadow-elegant); }
+  input.flex.rounded-md, textarea.flex.rounded-md, button[role="combobox"].rounded-md {
+    transition: border-color 160ms ease, box-shadow 160ms ease;
+  }
+  input.flex.rounded-md:focus-visible, textarea.flex.rounded-md:focus-visible {
+    border-color: hsl(var(--primary)); box-shadow: 0 0 0 3px hsl(var(--primary) / 0.16);
+  }
+  .bg-primary.inline-flex { box-shadow: 0 5px 14px -8px hsl(var(--primary) / 0.5); transition: transform 160ms ease, box-shadow 160ms ease, background-color 160ms ease; }
+  .bg-primary.inline-flex:hover:not(:disabled) { transform: translateY(-1px); }
+  [role="dialog"].fixed { border-radius: 1rem; }
+}
+@media (prefers-reduced-motion: reduce) { .bg-primary.inline-flex:hover:not(:disabled) { transform: none; } }
