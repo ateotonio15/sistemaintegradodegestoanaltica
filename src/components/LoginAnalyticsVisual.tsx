@@ -1,4 +1,5 @@
 import { motion, useReducedMotion } from "framer-motion";
+import { useEffect, useState } from "react";
 import { ChartNoAxesCombined, FileText, Workflow, Database, Network, ShieldCheck } from "lucide-react";
 
 const nodes = [
@@ -11,10 +12,21 @@ const nodes = [
 
 export default function LoginAnalyticsVisual() {
   const reducedMotion = useReducedMotion();
+  const [screen, setScreen] = useState(() => ({ mobile: window.matchMedia("(max-width: 639px)").matches, tablet: window.matchMedia("(max-width: 1023px)").matches }));
+  useEffect(() => {
+    const mobile = window.matchMedia("(max-width: 639px)");
+    const tablet = window.matchMedia("(max-width: 1023px)");
+    const update = () => setScreen({ mobile: mobile.matches, tablet: tablet.matches });
+    mobile.addEventListener("change", update);
+    tablet.addEventListener("change", update);
+    return () => { mobile.removeEventListener("change", update); tablet.removeEventListener("change", update); };
+  }, []);
+  if (screen.mobile) return null;
+  const visibleNodes = screen.tablet ? nodes.filter(node => ["contracts", "automation", "security"].includes(node.position)) : nodes;
   return (
     <div className="siga-analytics relative mt-7 w-full" aria-label="Contratos, Automação, Dados, Integração e Segurança conectados ao SIGA">
       <svg className="siga-analytics-connections absolute inset-0 h-full w-full" viewBox="0 0 560 260" preserveAspectRatio="none" fill="none" aria-hidden="true">
-        {nodes.map(({ label, path }, index) => (
+        {visibleNodes.map(({ label, path }, index) => (
           <g key={label}>
             <path d={path} className="siga-analytics-path" />
             <circle r="2" className="siga-analytics-dot" opacity={reducedMotion ? 0 : 0.75}>
@@ -32,7 +44,7 @@ export default function LoginAnalyticsVisual() {
         <ChartNoAxesCombined className="h-9 w-9" strokeWidth={1.3} aria-hidden="true" />
         <span className="mt-1.5 text-xs font-semibold">SIGA</span>
       </motion.div>
-      {nodes.map(({ label, icon: Icon, position }, index) => (
+      {visibleNodes.map(({ label, icon: Icon, position }, index) => (
         <motion.div
           key={label}
           initial={reducedMotion ? false : { opacity: 0 }}
