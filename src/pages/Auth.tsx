@@ -13,9 +13,6 @@ import {
   Eye,
   EyeOff,
   ShieldCheck,
-  Workflow,
-  Layers3,
-  ChartNoAxesCombined,
   Loader2,
 } from "lucide-react";
 import logo from "@/assets/logo-cs-control.png";
