@@ -32,6 +32,7 @@ export function useEncaminhamentosSuspensos(mes: string, userId?: string | null)
     queryFn: async () => {
       // Com userId: só os contratos dos quais o usuário é responsável
       let ids: string[] | null = null;
+      if (userId === "__none__") return [] as EncaminhamentoSuspenso[];
       if (userId) {
         const { data: vinc, error: e1 } = await supabase
           .from("empresa_usuarios").select("empresa_id").eq("user_id", userId);
