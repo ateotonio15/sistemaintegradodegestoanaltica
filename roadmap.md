@@ -1,5 +1,9 @@
 # Roadmap — Primeiro pacote financeiro
 
+## Tela de entrada SIGA
+- [x] Modernizar apenas a apresentação com área institucional 60/40, imagem original, movimento discreto e formulário leve; preservar autenticação e sessão.
+- [x] Conferidos computador 1705×1035 e celular 390×844, mostrar/ocultar senha e movimento reduzido; sem rolagem lateral, sem erros na tela e compilação aprovada. Nenhuma credencial enviada nem sessão alterada.
+
 ## Agenda Cirúrgica — status Marcada
 - [x] Reconhecer “Marcada” com data atual/futura na verificação das reclamações, alerta do paciente e avisos globais, preservando CPF e status da reclamação.
 - [x] 31 testes aprovados e regras disponibilizadas no servidor; confirmação do resultado real da paciente ainda não realizada.
