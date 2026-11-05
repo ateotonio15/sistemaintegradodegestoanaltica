@@ -7,11 +7,12 @@ import { enviarRelatoriosPortal } from "@/services/enviarRelatoriosPortal";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
 
-export function RelatorioLoteDialog({ items, resumo, contexto, onClose }: {
+export function RelatorioLoteDialog({ items, resumo, contexto, onClose, avisoSuspensos }: {
   items: { id: string; empresaId: string | null; nome: string; contrato: string | null; periodo: string; destinatarios: string; cc: string }[];
   resumo: { selecionadas: number; prontas: number; semDestinatario: number; comErro: number };
   contexto: string;
   onClose: () => void;
+  avisoSuspensos?: string | null;
 }) {
   const [lote] = useState(() => items.map(i => Object.freeze({ ...i })));
   const [progresso, setProgresso] = useState("");
@@ -56,6 +57,7 @@ export function RelatorioLoteDialog({ items, resumo, contexto, onClose }: {
         <div className="flex justify-between gap-4"><dt className="text-muted-foreground">Sem destinatário</dt><dd className="font-medium text-warning">{resumo.semDestinatario}</dd></div>
         <div className="flex justify-between gap-4"><dt className="text-muted-foreground">Com erro</dt><dd className="font-medium text-destructive">{resumo.comErro}</dd></div>
       </dl>
+      {avisoSuspensos && <p className="text-sm text-muted-foreground">{avisoSuspensos}</p>}
       <p className="text-sm font-medium">{items.length} relatórios serão enviados. Empresas sem destinatário ou com erro não bloqueiam as demais.</p>
       <ul className="max-h-64 overflow-y-auto divide-y divide-border">{lote.map(i => <li key={i.id} className="py-2 text-sm"><div className="font-semibold break-words">Empresa: {i.nome} | Contrato: #{i.contrato ?? "Não informado"}</div><div>{i.periodo}</div><div className="text-muted-foreground break-words">{i.destinatarios}</div>{resultados.filter(r => r.id === i.id).map(r => <p key={r.id} className={r.erro ? "text-destructive" : "text-success"}>{r.mensagem}</p>)}</li>)}</ul>
       {progresso && <p role="status" className="text-sm break-words">{progresso}</p>}
