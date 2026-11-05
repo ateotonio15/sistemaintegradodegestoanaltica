@@ -859,13 +859,17 @@ export default function Movimentacoes() {
 
 
 
-        <div className="flex items-center justify-between">
+        <div className="flex flex-wrap items-end justify-between gap-4">
 
-          <div>
-            <h1 className="text-2xl font-bold tracking-tight">Movimentações</h1>
-            <p className="text-sm text-muted-foreground mt-1">{filtered.length} movimentação(ões) encontrada(s)</p>
+          <div className="min-w-0">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-primary">Fechamento mensal</p>
+            <h1 className="mt-1 text-2xl font-bold tracking-tight">Movimentações</h1>
+            <div className="mt-2 flex items-center gap-2">
+              <span className="h-0.5 w-8 rounded-full bg-primary" aria-hidden="true" />
+              <p className="text-sm text-muted-foreground">{filtered.length} movimentação(ões) encontrada(s)</p>
+            </div>
           </div>
-          <div className="flex gap-2">
+          <div className="flex flex-wrap gap-2">
             <Button
               variant="outline"
               onClick={async () => {
@@ -1178,7 +1182,7 @@ export default function Movimentacoes() {
         <Card className="rounded-xl shadow-sm">
           <CardContent className="pt-5 pb-5">
             <div className="flex items-center justify-between mb-3">
-              <h2 className="text-base font-semibold">Resumo Geral por Período</h2>
+              <h2 className="flex items-center gap-2 text-base font-semibold"><span className="h-4 w-1 rounded-full bg-primary" aria-hidden="true" />Resumo Geral por Período</h2>
               <Button variant="outline" size="sm" className="rounded-lg" onClick={() => setDashboardOpen(true)}>
                 <LayoutDashboard className="mr-2 h-4 w-4" /> Ir para Dashboard Geral
               </Button>
@@ -1199,7 +1203,7 @@ export default function Movimentacoes() {
                     key={p}
                     type="button"
                     onClick={() => setFilterPeriodo(isActiveP ? "all" : p)}
-                    className={`rounded-xl border p-4 text-center space-y-1.5 transition-all duration-200 ${isActiveP ? "border-primary bg-primary/10 shadow-sm ring-1 ring-primary/20" : "hover:bg-accent hover:shadow-sm border-border/60"}`}
+                    className={`rounded-xl border p-4 text-center space-y-1.5 transition-all duration-200 ${isActiveP ? "border-primary bg-primary/10 shadow-sm ring-1 ring-primary/20" : "bg-surface-2 hover:-translate-y-0.5 hover:border-primary/40 hover:bg-accent hover:shadow-md border-border/60 motion-reduce:hover:translate-y-0"}`}
                   >
                     <div className="font-semibold text-sm">{p}</div>
                     <div className="text-xs text-muted-foreground">{items.length} total</div>
@@ -1233,7 +1237,7 @@ export default function Movimentacoes() {
             <div className="overflow-x-auto">
               <Table>
                 <TableHeader>
-                  <TableRow className="bg-accent/20 hover:bg-accent/20">
+                  <TableRow className="bg-accent/60 hover:bg-accent/60 [&>th]:text-[11px] [&>th]:uppercase [&>th]:tracking-wide [&>th]:text-accent-foreground">
                     <TableHead className="font-semibold">Empresa</TableHead>
                     <TableHead className="font-semibold">Cód. Contrato</TableHead>
                     <TableHead className="font-semibold">Resp. Contrato</TableHead>
