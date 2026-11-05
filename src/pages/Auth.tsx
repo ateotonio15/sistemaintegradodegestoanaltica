@@ -138,7 +138,7 @@ export default function Auth() {
                   required
                   placeholder="seu.usuario"
                   autoComplete="username"
-                  className="h-12 rounded-lg border-input bg-background pl-10 focus-visible:border-primary focus-visible:ring-primary/25"
+                  className="siga-login-input rounded-lg border-input bg-background pl-10 focus-visible:border-primary focus-visible:ring-primary/25"
                 />
               </div>
             </div>
@@ -155,7 +155,7 @@ export default function Auth() {
                   minLength={1}
                   placeholder="••••••••"
                   autoComplete="current-password"
-                  className="h-12 rounded-lg border-input bg-background pl-10 pr-12 focus-visible:border-primary focus-visible:ring-primary/25"
+                  className="siga-login-input rounded-lg border-input bg-background pl-10 pr-12 focus-visible:border-primary focus-visible:ring-primary/25"
                 />
                 <Button
                   type="button"
@@ -172,13 +172,13 @@ export default function Auth() {
             </div>
             <Button type="submit" disabled={loading} className="siga-login-submit h-12 w-full rounded-lg text-sm font-semibold">
               {loading ? (
-                <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Autenticando...</>
+                <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Entrando...</>
               ) : (
                 <>Entrar<ArrowRight className="ml-3 h-4 w-4" /></>
               )}
             </Button>
           </form>
-          <div className="mt-7 flex items-center justify-center gap-2 text-xs text-muted-foreground">
+          <div className="siga-login-security mt-7 flex items-center justify-center gap-2 text-muted-foreground">
             <ShieldCheck className="h-3.5 w-3.5 shrink-0 text-primary" aria-hidden="true" />
             <span>Conexão segura • Sessão protegida</span>
           </div>
