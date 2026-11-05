@@ -37,9 +37,14 @@ export function useEncaminhamentosSuspensos(mes: string, userId?: string | null)
         const { data: vinc, error: e1 } = await supabase
           .from("empresa_usuarios").select("empresa_id").eq("user_id", userId);
         if (e1) throw e1;
+        const { data: perfil } = await supabase
+          .from("profiles").select("display_name").eq("user_id", userId).maybeSingle();
+        const nome = (perfil?.display_name ?? "").replace(/[,()*%]/g, " ").trim();
+        const filtros = [`responsavel_user_id.eq.${userId}`, `executiva_user_id.eq.${userId}`];
+        if (nome) filtros.push(`responsavel_contrato.ilike.${nome}`);
         const { data: resp, error: e2 } = await supabase
           .from("empresas").select("id")
-          .or(`responsavel_user_id.eq.${userId},executiva_user_id.eq.${userId}`);
+          .or(filtros.join(","));
         if (e2) throw e2;
         ids = Array.from(new Set([
           ...(vinc ?? []).map((v) => v.empresa_id),
