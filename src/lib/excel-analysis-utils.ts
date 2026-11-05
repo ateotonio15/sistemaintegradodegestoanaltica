@@ -3035,7 +3035,59 @@ export async function analisarExcelFinanceiroPorCnpj(
     }
   }
 
-  return dividirBlocosPorSubBlocosDeclarados(wb, mesclarBlocosPorNomeForcado(blocos));
+  return completarRetroPivotsResumo(
+    wb,
+    dividirBlocosPorSubBlocosDeclarados(wb, mesclarBlocosPorNomeForcado(blocos)),
+  );
+}
+
+/**
+ * Layout PMI: aba RESUMO com tabelas dinâmicas "Retroativo Julho/26" /
+ * "Retroativo Agosto26" (colunas "Soma de QTD"/"Soma de Valor"), cada uma
+ * com seu "Total Geral", e um "Valor total" geral. Só aplica quando há um
+ * único pagador sem retroativo lido e o "Valor total" confere com
+ * mensalidade + soma dos meses retroativos.
+ */
+function completarRetroPivotsResumo(wb: ExcelJS.Workbook, blocos: AnalisePorCnpj[]): AnalisePorCnpj[] {
+  if (blocos.length !== 1) return blocos;
+  const b = blocos[0];
+  if (b.retroativas && (b.retroativas.total !== 0 || b.retroativas.quantidade !== 0)) return blocos;
+  const rows = lerRowsAbaResumo(wb);
+  if (!rows) return blocos;
+  const reHdr = /^(?:retroa[cç][aã]o|retroativ[oa]s?)\b.*?(janeiro|fevereiro|mar[cç]o|abril|maio|junho|julho|agosto|setembro|outubro|novembro|dezembro)\s*[\/_-]?\s*(\d{4}|\d{2})(?!\d)/i;
+  const meses: { mes: string; quantidade: number; total: number }[] = [];
+  let atual: string | null = null;
+  let valorTotal: number | null = null;
+  for (const r of rows) {
+    const cells = (r || []).map((c) => cellToText(c).trim());
+    const hdr = cells.map((c) => reHdr.exec(c)).find(Boolean);
+    if (hdr) {
+      atual = `${hdr[1].normalize("NFD").replace(/[\u0300-\u036f]/g, "").slice(0, 3).toUpperCase()}/${hdr[2].slice(-2)}`;
+      continue;
+    }
+    const iVT = cells.findIndex((c) => norm(c) === "valor total");
+    if (iVT >= 0) {
+      const n = cells.slice(iVT + 1).map((c) => toNumber(c)).find((x) => !isNaN(x));
+      if (n !== undefined) valorTotal = n;
+      continue;
+    }
+    if (atual && cells.some((c) => norm(c).startsWith("total geral"))) {
+      const nums = cells.map((c) => toNumber(c)).filter((n) => !isNaN(n));
+      if (nums.length >= 2) meses.push({ mes: atual, quantidade: Math.round(nums[0]), total: nums[nums.length - 1] });
+      atual = null;
+    }
+  }
+  if (meses.length === 0 || valorTotal === null) return blocos;
+  const retroTotal = Math.round(meses.reduce((s, m) => s + m.total, 0) * 100) / 100;
+  const retroQtd = meses.reduce((s, m) => s + m.quantidade, 0);
+  const base = b.enfermaria.total + b.apartamento.total + b.inclusoes.total;
+  if (Math.abs(base + retroTotal - valorTotal) > 0.01) return blocos;
+  return [{
+    ...b,
+    inclusoes: { quantidade: b.inclusoes.quantidade + retroQtd, total: b.inclusoes.total + retroTotal },
+    retroativas: { quantidade: retroQtd, total: retroTotal, meses: meses.map((m) => m.mes), mesesDetalhe: meses },
+    retroativasReajuste: { quantidade: retroQtd, total: retroTotal, meses: meses.map((m) => m.mes), mesesDetalhe: meses },
+  }];
 }
 
 
