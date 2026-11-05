@@ -1,6 +1,7 @@
 # Roadmap — Primeiro pacote financeiro
 
 ## Tela de entrada SIGA
+- [ ] Finalizar celular com login prioritário, tablet com decoração reduzida e conferir teclado, avisos, carregamento, temas e redução de movimento.
 - [x] Modernizar apenas a apresentação com área institucional 60/40, imagem original, movimento discreto e formulário leve; preservar autenticação e sessão.
 - [x] Conferidos computador 1705×1035 e celular 390×844, mostrar/ocultar senha e movimento reduzido; sem rolagem lateral, sem erros na tela e compilação aprovada. Nenhuma credencial enviada nem sessão alterada.
 
