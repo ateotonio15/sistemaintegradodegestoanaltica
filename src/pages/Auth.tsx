@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import {
   ArrowRight,
   User as UserIcon,
@@ -95,19 +96,6 @@ export default function Auth() {
             Dados, processos e decisões<span className="block">em um só lugar.</span>
           </motion.p>
           <LoginAnalyticsVisual />
-          <div className="siga-login-features mt-5 grid grid-cols-1 gap-x-8 gap-y-3 text-sm sm:grid-cols-2">
-            {[
-              { icon: Layers3, label: "Gestão integrada" },
-              { icon: Workflow, label: "Automação de processos" },
-              { icon: ChartNoAxesCombined, label: "Análise de dados" },
-              { icon: ShieldCheck, label: "Segurança e controle" },
-            ].map(({ icon: Icon, label }) => (
-              <div key={label} className="flex items-center gap-2.5">
-                <Icon className="h-4 w-4 shrink-0" strokeWidth={1.5} aria-hidden="true" />
-                <span>{label}</span>
-              </div>
-            ))}
-          </div>
         </motion.div>
         <p className="siga-login-footer relative z-10 hidden lg:block">© {year} SIGA · Cadastro Samel e Gestão Empresarial</p>
       </section>
@@ -146,7 +134,24 @@ export default function Auth() {
               </div>
             </div>
             <div className="space-y-2">
-              <Label htmlFor="password" className="text-sm font-medium">Senha</Label>
+              <div className="flex items-center justify-between">
+                <Label htmlFor="password" className="text-sm font-medium">Senha</Label>
+                <Dialog>
+                  <DialogTrigger asChild>
+                    <button type="button" className="text-xs font-medium text-primary hover:underline focus-visible:underline focus-visible:outline-none">
+                      Esqueci minha senha
+                    </button>
+                  </DialogTrigger>
+                  <DialogContent className="max-w-sm">
+                    <DialogHeader>
+                      <DialogTitle>Esqueceu sua senha?</DialogTitle>
+                      <DialogDescription>
+                        Por segurança, a senha é redefinida pelo administrador do SIGA. Fale com o administrador do sistema informando seu usuário para receber uma nova senha.
+                      </DialogDescription>
+                    </DialogHeader>
+                  </DialogContent>
+                </Dialog>
+              </div>
               <div className="relative group">
                 <Lock aria-hidden="true" className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground group-focus-within:text-primary" />
                 <Input
