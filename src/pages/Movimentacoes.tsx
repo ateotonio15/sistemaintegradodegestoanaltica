@@ -626,7 +626,7 @@ export default function Movimentacoes() {
   const loteResumo = useMemo(() => resumoLoteEnvio(movsDoMes, relatoriosMap), [movsDoMes, relatoriosMap]);
   const contextoLote = `${formatMesReferencia(filterMes)} · ${filterPeriodo === "all" ? "todos os períodos" : `Período ${filterPeriodo}`}`;
 
-  const { data: encSuspensos = [] } = useEncaminhamentosSuspensos(filterMes);
+  const { data: encSuspensos = [] } = useEncaminhamentosSuspensos(filterMes, user?.id);
   const encSuspensosMap = useMemo(() => new Map(encSuspensos.filter(e => e.status === "encaminhado").map(e => [e.empresa_id, e])), [encSuspensos]);
   const empresasComMovNoMes = useMemo(() => new Set(movimentacoes.filter(m => m.mes_referencia === filterMes && m.empresa_id).map(m => m.empresa_id as string)), [movimentacoes, filterMes]);
 

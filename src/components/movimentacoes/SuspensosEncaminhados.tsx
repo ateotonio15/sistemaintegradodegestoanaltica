@@ -20,7 +20,7 @@ export interface EncaminhamentoSuspenso {
 }
 
 /** Roda o encaminhamento automático e lê os registros da competência. */
-export function useEncaminhamentosSuspensos(mes: string) {
+export function useEncaminhamentosSuspensos(mes: string, userId?: string | null) {
   const qc = useQueryClient();
   useEffect(() => {
     supabase.rpc("processar_contratos_suspensos" as any).then(({ error }) => {
@@ -28,12 +28,20 @@ export function useEncaminhamentosSuspensos(mes: string) {
     });
   }, [qc]);
   return useQuery({
-    queryKey: ["suspensos-encaminhados", mes],
+    queryKey: ["suspensos-encaminhados", mes, userId ?? null],
+    enabled: !!userId,
     queryFn: async () => {
+      // Só os contratos dos quais o usuário é responsável
+      const { data: vinc, error: e1 } = await supabase
+        .from("empresa_usuarios").select("empresa_id").eq("user_id", userId!);
+      if (e1) throw e1;
+      const ids = (vinc ?? []).map((v) => v.empresa_id);
+      if (!ids.length) return [] as EncaminhamentoSuspenso[];
       const { data, error } = await supabase
         .from("movimentacao_suspensos_encaminhamentos" as any)
         .select("id, empresa_id, empresa_nome, codigo_contrato, mes_referencia, periodo, movimentacao_id, status, encaminhado_em, encaminhado_por_nome, observacao")
         .eq("mes_referencia", mes)
+        .in("empresa_id", ids)
         .order("empresa_nome");
       if (error) throw error;
       return (data ?? []) as unknown as EncaminhamentoSuspenso[];
