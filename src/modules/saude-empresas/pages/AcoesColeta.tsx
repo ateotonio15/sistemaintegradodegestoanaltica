@@ -87,7 +87,7 @@ export default function AcoesColeta() {
     <div className="p-4 md:p-6 space-y-4">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-semibold">Ações de Coleta (Preventivo)</h1>
+          <h1 className="text-2xl font-semibold">Ações de Coleta</h1>
           <p className="text-sm text-muted-foreground">Agendamentos, inscrições pelo link e confirmação das coletas.</p>
         </div>
         <Button onClick={() => setForm({ status: "agendada" })}><Plus className="h-4 w-4 mr-1" />Novo agendamento</Button>
