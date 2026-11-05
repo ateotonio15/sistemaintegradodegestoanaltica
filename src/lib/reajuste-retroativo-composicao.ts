@@ -1,8 +1,9 @@
+import { nomeMes } from "@/lib/reajuste-utils";
 // Apenas apresentação: detalha como o retroativo já salvo foi formado.
 // Não recalcula nem altera valores salvos.
 
 export interface LinhaComposicaoRetro {
-  competencia: string; // "MM/AAAA"
+  competencia: string; // "Fev/2026"
   valorAtual: number;
   valorReajustado: number;
   diferenca: number;
@@ -33,7 +34,7 @@ export function comporRetroativo(params: {
     const idx = idxAplic - i;
     const ano = Math.floor(idx / 12);
     const mes = (idx % 12) + 1;
-    linhas.push({ competencia: `${String(mes).padStart(2, "0")}/${ano}`, valorAtual: params.valorAtual, valorReajustado: params.valorReajustado, diferenca });
+    linhas.push({ competencia: `${nomeMes(mes)}/${ano}`, valorAtual: params.valorAtual, valorReajustado: params.valorReajustado, diferenca });
   }
   const somaLinhas = diferenca * n;
   return { linhas, somaLinhas, totalSalvo: params.totalSalvo || 0, confere: somaLinhas === (params.totalSalvo || 0) };

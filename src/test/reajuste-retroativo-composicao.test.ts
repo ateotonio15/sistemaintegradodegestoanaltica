@@ -4,7 +4,7 @@ import { comporRetroativo } from "@/lib/reajuste-retroativo-composicao";
 describe("comporRetroativo", () => {
   it("lista os meses anteriores à aplicação e confere com o total salvo", () => {
     const c = comporRetroativo({ dataAplicacao: "2026-01-10", meses: 2, valorAtual: 100000, valorReajustado: 120896, totalSalvo: 41792 })!;
-    expect(c.linhas.map((l) => l.competencia)).toEqual(["11/2025", "12/2025"]);
+    expect(c.linhas.map((l) => l.competencia)).toEqual(["Nov/2025", "Dez/2025"]);
     expect(c.linhas[0].diferenca).toBe(20896);
     expect(c.confere).toBe(true);
   });

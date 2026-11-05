@@ -742,22 +742,22 @@ export default function Reajustes() {
                       return (
                         <TableRow key={`${empresa.id}-retro`} className="bg-muted/20 hover:bg-muted/20">
                           <TableCell colSpan={12} className="py-3">
-                            <div className="max-w-2xl rounded-lg border bg-card p-3">
-                              <div className="mb-2 text-sm font-semibold">Composição do retroativo{resumoLabel ? ` · ${resumoLabel}` : ""}{primeiraFaixaDb ? " · 1ª Faixa" : ""}</div>
+                            <div className="max-w-2xl pl-1">
+                              <div className="mb-1 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Composição do retroativo{resumoLabel ? ` · ${resumoLabel}` : ""}{primeiraFaixaDb ? " · 1ª Faixa" : ""}</div>
                               {!comp ? (
                                 <div className="text-xs text-muted-foreground">Sem data de aplicação registrada; não é possível identificar as competências.</div>
                               ) : (
                                 <>
-                                  <table className="w-full text-xs">
-                                    <thead className="text-muted-foreground"><tr className="border-b"><th className="py-1 text-left font-medium">Competência</th><th className="py-1 text-right font-medium">Valor anterior</th><th className="py-1 text-right font-medium">Valor reajustado</th><th className="py-1 text-right font-medium">Diferença</th></tr></thead>
+                                  <table className="w-full text-sm tabular-nums">
+                                    <thead><tr className="text-[11px] uppercase tracking-wide text-muted-foreground"><th className="py-1.5 text-left font-medium">Competência</th><th className="py-1.5 text-right font-medium">Anterior</th><th className="py-1.5 text-right font-medium">Reajustado</th><th className="py-1.5 text-right font-medium">Diferença</th></tr></thead>
                                     <tbody>
                                       {comp.linhas.map((l) => (
-                                        <tr key={l.competencia} className="border-b last:border-0"><td className="py-1">{l.competencia}</td><td className="py-1 text-right">{formatCentavosBRL(l.valorAtual)}</td><td className="py-1 text-right">{formatCentavosBRL(l.valorReajustado)}</td><td className="py-1 text-right font-medium">{formatCentavosBRL(l.diferenca)}</td></tr>
+                                        <tr key={l.competencia}><td className="py-1 text-left">{l.competencia}</td><td className="py-1 text-right text-muted-foreground">{formatCentavosBRL(l.valorAtual)}</td><td className="py-1 text-right">{formatCentavosBRL(l.valorReajustado)}</td><td className="py-1 text-right font-medium text-amber-600 dark:text-amber-400">+ {formatCentavosBRL(l.diferenca)}</td></tr>
                                       ))}
                                     </tbody>
-                                    <tfoot><tr className="border-t"><td className="pt-2 font-semibold" colSpan={3}>Total retroativo ({comp.linhas.length} {comp.linhas.length === 1 ? "mês" : "meses"})</td><td className="pt-2 text-right font-semibold">{formatCentavosBRL(comp.totalSalvo)}</td></tr></tfoot>
+                                    <tfoot><tr className="border-t border-border/60"><td className="pt-2 text-xs font-semibold uppercase tracking-wide" colSpan={3}>Total retroativo</td><td className="pt-2 text-right text-base font-bold text-primary">{formatCentavosBRL(comp.totalSalvo)}</td></tr></tfoot>
                                   </table>
-                                  {!comp.confere && <div className="mt-2 rounded-md border border-destructive/40 bg-destructive/10 p-2 text-xs text-destructive"><div className="font-semibold">⚠ Divergência na composição do retroativo</div><div>Soma das competências: {formatCentavosBRL(comp.somaLinhas)} · Retroativo registrado: {formatCentavosBRL(comp.totalSalvo)} · Diferença: {formatCentavosBRL(comp.somaLinhas - comp.totalSalvo)}. O valor registrado não foi alterado.</div></div>}
+                                  {!comp.confere && <div className="mt-2 text-xs text-destructive"><span className="font-semibold">⚠ Divergência na composição do retroativo</span> — soma das competências {formatCentavosBRL(comp.somaLinhas)} · registrado {formatCentavosBRL(comp.totalSalvo)} · diferença {formatCentavosBRL(comp.somaLinhas - comp.totalSalvo)}. O valor registrado não foi alterado.</div>}
                                 </>
                               )}
                             </div>
