@@ -17,6 +17,7 @@ import { RefreshCw } from "lucide-react";
 import { ReajusteHistoricoDialog } from "@/components/reajustes/ReajusteHistoricoDialog";
 import { SolicitarReajusteDialog } from "@/components/reajustes/SolicitarReajusteDialog";
 import { AprovarReajusteDialog } from "@/components/reajustes/AprovarReajusteDialog";
+import { comporRetroativo } from "@/lib/reajuste-retroativo-composicao";
 import { AplicarRetroativoDialog } from "@/components/reajustes/AplicarRetroativoDialog";
 import {
   formatCentavosBRL, getStatusReajusteEmpresa, statusReajusteColor, type StatusReajuste,
@@ -67,6 +68,8 @@ export default function Reajustes() {
     setSolicitarOpen(true);
   };
 
+  const [retroAbertos, setRetroAbertos] = useState<Set<string>>(new Set());
+  const toggleRetro = (id: string) => setRetroAbertos((p) => { const n = new Set(p); n.has(id) ? n.delete(id) : n.add(id); return n; });
   const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set());
   const toggleExpand = (id: string) => {
     setExpandedIds((prev) => {
@@ -619,6 +622,12 @@ export default function Reajustes() {
                           <>
                             <div>{formatCentavosBRL(resumoRetro)}</div>
                             {temRetro && <div className="text-xs text-muted-foreground">{reajuste.meses_retroativos} {reajuste.meses_retroativos === 1 ? "mês" : "meses"}</div>}
+                            {temRetro && resumoRetro > 0 && (
+                              <button type="button" onClick={() => toggleRetro(empresa.id)} className="mt-1 inline-flex items-center gap-1 text-xs font-medium text-primary hover:underline">
+                                {retroAbertos.has(empresa.id) ? <ChevronDown className="h-3 w-3" /> : <ChevronRight className="h-3 w-3" />}
+                                {retroAbertos.has(empresa.id) ? "Ocultar composição" : "Ver composição"}
+                              </button>
+                            )}
                           </>
                         ) : "—"}
                       </TableCell>
@@ -728,6 +737,34 @@ export default function Reajustes() {
                         </div>
                       </TableCell>
                     </TableRow>
+                    {temValores && temRetro && retroAbertos.has(empresa.id) && (() => {
+                      const comp = comporRetroativo({ dataAplicacao: reajuste?.data_aplicacao, meses: reajuste?.meses_retroativos, valorAtual: resumoAtual, valorReajustado: resumoReaj, totalSalvo: resumoRetro });
+                      return (
+                        <TableRow key={`${empresa.id}-retro`} className="bg-muted/20 hover:bg-muted/20">
+                          <TableCell colSpan={12} className="py-3">
+                            <div className="max-w-2xl rounded-lg border bg-card p-3">
+                              <div className="mb-2 text-sm font-semibold">Composição do retroativo{resumoLabel ? ` · ${resumoLabel}` : ""}{primeiraFaixaDb ? " · 1ª Faixa" : ""}</div>
+                              {!comp ? (
+                                <div className="text-xs text-muted-foreground">Sem data de aplicação registrada; não é possível identificar as competências.</div>
+                              ) : (
+                                <>
+                                  <table className="w-full text-xs">
+                                    <thead className="text-muted-foreground"><tr className="border-b"><th className="py-1 text-left font-medium">Competência</th><th className="py-1 text-right font-medium">Valor atual</th><th className="py-1 text-right font-medium">Valor reajustado</th><th className="py-1 text-right font-medium">Diferença</th></tr></thead>
+                                    <tbody>
+                                      {comp.linhas.map((l) => (
+                                        <tr key={l.competencia} className="border-b last:border-0"><td className="py-1">{l.competencia}</td><td className="py-1 text-right">{formatCentavosBRL(l.valorAtual)}</td><td className="py-1 text-right">{formatCentavosBRL(l.valorReajustado)}</td><td className="py-1 text-right font-medium">{formatCentavosBRL(l.diferenca)}</td></tr>
+                                      ))}
+                                    </tbody>
+                                    <tfoot><tr className="border-t"><td className="pt-2 font-semibold" colSpan={3}>Total retroativo ({comp.linhas.length} {comp.linhas.length === 1 ? "mês" : "meses"})</td><td className="pt-2 text-right font-semibold">{formatCentavosBRL(comp.totalSalvo)}</td></tr></tfoot>
+                                  </table>
+                                  {!comp.confere && <div className="mt-2 text-xs text-muted-foreground">Obs.: a soma das diferenças ({formatCentavosBRL(comp.somaLinhas)}) difere do retroativo registrado; o valor registrado foi mantido.</div>}
+                                </>
+                              )}
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      );
+                    })()}
                     {isExpanded && (() => {
                       // Fallback Valor Atual: Reajuste -> Empresa -> Implantação (inclusive faixas etárias somadas)
                       const impl = implantacaoPorEmpresa[empresa.id] || {};
