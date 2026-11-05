@@ -18,8 +18,8 @@ import {
   Loader2,
 } from "lucide-react";
 import logo from "@/assets/logo-cs-control.png";
-import loginVisual from "@/assets/siga-login-visual.webp";
-import LoginAnalyticsVisual from "@/components/LoginAnalyticsVisual";
+import fachada from "@/assets/samel_hospital_fachada.jpg.asset.json";
+import { FileText, Database, Network } from "lucide-react";
 
 export default function Auth() {
   const [username, setUsername] = useState("");
@@ -57,20 +57,10 @@ export default function Auth() {
   };
 
   return (
-    <main className="siga-login min-h-svh grid md:grid-cols-2 lg:grid-cols-[3fr_2fr] text-foreground">
+    <main className="siga-login relative isolate overflow-x-hidden min-h-svh grid md:grid-cols-2 lg:grid-cols-[3fr_2fr] text-foreground">
+      <img src={fachada.url} alt="" aria-hidden="true" fetchPriority="high" className="siga-login-photo absolute inset-0 -z-10 h-full w-full object-cover" />
+      <div className="siga-login-photo-shade absolute inset-0 -z-10" aria-hidden="true" />
       <section className="siga-login-brand relative flex flex-col overflow-hidden px-7 py-6 sm:px-8 md:py-10 lg:px-16 lg:py-12 xl:px-20" aria-label="SIGA">
-        <picture>
-        <source media="(max-width: 639px)" srcSet="data:image/gif;base64,R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs=" />
-        <img
-          src={loginVisual}
-          alt=""
-          width={960}
-          height={960}
-          fetchPriority="high"
-          className="siga-login-art absolute inset-0 hidden h-full w-full object-cover sm:block"
-        />
-        </picture>
-        <div className="siga-login-shade absolute inset-0" aria-hidden="true" />
         <div className="relative z-10 flex items-center gap-3">
           <img src={logo} alt="" width={44} height={44} className="h-11 w-11 object-contain" />
           <div>
@@ -93,7 +83,6 @@ export default function Auth() {
           <motion.p initial={reducedMotion ? false : { opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.45, delay: 0.12 }} className="siga-login-tagline mt-5 max-w-xl text-2xl font-medium leading-snug lg:text-3xl xl:text-4xl">
             Dados, processos e decisões<span className="block">em um só lugar.</span>
           </motion.p>
-          <LoginAnalyticsVisual />
           <div className="siga-login-features mt-5 grid grid-cols-1 gap-x-8 gap-y-3 text-sm sm:grid-cols-2">
             {[
               { icon: Layers3, label: "Gestão integrada" },
@@ -112,11 +101,28 @@ export default function Auth() {
       </section>
 
       <section className="siga-login-access relative flex flex-col items-center justify-center px-5 py-10 sm:px-10 lg:px-8 xl:px-14" aria-label="Acesso ao sistema">
+        <div className="siga-orbit relative w-full max-w-[440px]">
+        <svg className="siga-orbit-lines pointer-events-none absolute hidden md:block" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">
+          {["M8 6 L30 20","M92 8 L70 22","M2 50 L22 50","M98 52 L78 52","M50 99 L50 86"].map((d,i)=>(
+            <g key={d}><path d={d} className="siga-orbit-path" />{!reducedMotion && <circle r="0.7" className="siga-orbit-dot"><animateMotion dur={`${6+i*1.3}s`} repeatCount="indefinite" path={d} /></circle>}</g>
+          ))}
+        </svg>
+        {[
+          { icon: FileText, label: "Contratos", pos: "siga-chip-tl" },
+          { icon: Workflow, label: "Automação", pos: "siga-chip-tr" },
+          { icon: Database, label: "Dados", pos: "siga-chip-l" },
+          { icon: Network, label: "Integração", pos: "siga-chip-r" },
+          { icon: ShieldCheck, label: "Segurança", pos: "siga-chip-b" },
+        ].map(({ icon: Icon, label, pos }) => (
+          <div key={label} aria-hidden="true" className={`siga-chip ${pos} pointer-events-none absolute z-0 hidden items-center gap-2 rounded-xl px-3 py-2 text-xs font-medium md:flex`}>
+            <Icon className="h-4 w-4" strokeWidth={1.6} />{label}
+          </div>
+        ))}
         <motion.div
           initial={reducedMotion ? false : { opacity: 0, y: 12 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6, delay: reducedMotion ? 0 : 0.6 }}
-          className="siga-login-card relative w-full max-w-[440px] rounded-2xl px-6 py-8 lg:px-10 lg:py-11"
+          className="siga-login-card relative z-10 w-full max-w-[440px] rounded-2xl px-6 py-8 lg:px-10 lg:py-11"
         >
           <div className="mb-8">
             <div className="mb-6 flex h-11 w-11 items-center justify-center rounded-lg bg-primary/10 text-primary">
@@ -183,6 +189,7 @@ export default function Auth() {
             <span>Conexão segura • Sessão protegida</span>
           </div>
         </motion.div>
+        </div>
         <p className="siga-login-footer mt-8 text-center lg:hidden">© {year} SIGA · Cadastro Samel e Gestão Empresarial</p>
       </section>
     </main>

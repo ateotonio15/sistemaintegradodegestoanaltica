@@ -643,3 +643,41 @@
     text-shadow: 0 0 8px currentColor;
   }
 }
+
+/* Login: fachada como fundo integrado + elementos orbitando o acesso */
+.siga-login-photo { object-position: center 45%; animation: siga-login-drift 30s ease-in-out infinite alternate; }
+.siga-login-photo-shade {
+  background:
+    linear-gradient(100deg, hsl(var(--login-brand) / 0.9) 0%, hsl(var(--login-brand) / 0.72) 45%, hsl(158 45% 14% / 0.45) 70%, hsl(158 40% 12% / 0.55) 100%);
+  backdrop-filter: blur(1.5px); -webkit-backdrop-filter: blur(1.5px);
+}
+.siga-login .siga-login-brand { background: transparent; }
+.siga-login .siga-login-access { background: transparent; }
+.siga-login .siga-login-access::before { display: none; }
+.siga-login .siga-login-access .siga-login-footer { color: hsl(var(--login-brand-muted)); }
+.siga-login .siga-login-card { background: hsl(var(--card) / 0.86); backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px); box-shadow: 0 30px 60px -30px hsl(var(--login-brand) / 0.7); }
+.siga-orbit-lines { inset: -70px -110px; width: calc(100% + 220px); height: calc(100% + 140px); }
+.siga-orbit-path { stroke: hsl(var(--login-highlight) / 0.35); stroke-width: 1; fill: none; vector-effect: non-scaling-stroke; stroke-dasharray: 3 4; }
+.siga-orbit-dot { fill: hsl(var(--login-highlight)); }
+.siga-chip {
+  color: hsl(var(--login-brand-foreground)); background: hsl(var(--login-brand) / 0.62);
+  border: 1px solid hsl(var(--login-highlight) / 0.35); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
+  box-shadow: var(--login-node-shadow);
+}
+.siga-chip .lucide { color: hsl(var(--login-highlight)); }
+.siga-chip-tl { top: -56px; left: -96px; animation: siga-node-vertical 9s ease-in-out infinite; }
+.siga-chip-tr { top: -48px; right: -40px; animation: siga-node-diagonal 12s ease-in-out -3s infinite; }
+.siga-chip-l { top: 50%; left: -110px; animation: siga-node-lateral 11s ease-in-out -5s infinite; }
+.siga-chip-r { top: 30%; right: -64px; animation: siga-node-vertical 13s ease-in-out -2s infinite reverse; }
+.siga-chip-b { bottom: -62px; left: 50%; margin-left: -52px; animation: siga-node-oscillate 15s ease-in-out -6s infinite; }
+@media (max-width: 1279px) {
+  .siga-chip { padding: 6px 10px; font-size: 11px; }
+  .siga-chip-l, .siga-chip-r, .siga-orbit-lines { display: none !important; }
+  .siga-chip-tl { left: -40px; top: -48px; } .siga-chip-tr { right: -40px; top: -44px; }
+}
+@media (max-width: 639px) {
+  .siga-login-photo-shade { background: linear-gradient(180deg, hsl(var(--login-brand) / 0.85), hsl(var(--login-brand) / 0.7)); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .siga-login-photo, .siga-chip { animation: none !important; }
+}
