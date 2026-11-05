@@ -29,20 +29,22 @@ export function useEncaminhamentosSuspensos(mes: string, userId?: string | null)
   }, [qc]);
   return useQuery({
     queryKey: ["suspensos-encaminhados", mes, userId ?? null],
-    enabled: !!userId,
     queryFn: async () => {
-      // Só os contratos dos quais o usuário é responsável
-      const { data: vinc, error: e1 } = await supabase
-        .from("empresa_usuarios").select("empresa_id").eq("user_id", userId!);
-      if (e1) throw e1;
-      const ids = (vinc ?? []).map((v) => v.empresa_id);
-      if (!ids.length) return [] as EncaminhamentoSuspenso[];
-      const { data, error } = await supabase
+      // Com userId: só os contratos dos quais o usuário é responsável
+      let ids: string[] | null = null;
+      if (userId) {
+        const { data: vinc, error: e1 } = await supabase
+          .from("empresa_usuarios").select("empresa_id").eq("user_id", userId);
+        if (e1) throw e1;
+        ids = (vinc ?? []).map((v) => v.empresa_id);
+        if (!ids.length) return [] as EncaminhamentoSuspenso[];
+      }
+      let q = supabase
         .from("movimentacao_suspensos_encaminhamentos" as any)
         .select("id, empresa_id, empresa_nome, codigo_contrato, mes_referencia, periodo, movimentacao_id, status, encaminhado_em, encaminhado_por_nome, observacao")
-        .eq("mes_referencia", mes)
-        .in("empresa_id", ids)
-        .order("empresa_nome");
+        .eq("mes_referencia", mes);
+      if (ids) q = q.in("empresa_id", ids);
+      const { data, error } = await q.order("empresa_nome");
       if (error) throw error;
       return (data ?? []) as unknown as EncaminhamentoSuspenso[];
     },
