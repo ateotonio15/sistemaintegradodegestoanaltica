@@ -43,7 +43,7 @@
   background: hsl(var(--login-brand));
   color: hsl(var(--login-brand-foreground));
 }
-.siga-login-art { opacity: 0.42; animation: siga-login-drift 26s ease-in-out infinite alternate; }
+.siga-login-art { opacity: 0.42; -webkit-mask-image: linear-gradient(90deg, #000 70%, transparent 100%); mask-image: linear-gradient(90deg, #000 70%, transparent 100%); animation: siga-login-drift 26s ease-in-out infinite alternate; }
 .siga-login-footer { font-size: 10px; line-height: 1.6; font-weight: 400; color: hsl(var(--login-footer)); }
 .siga-login-access .siga-login-footer { color: hsl(var(--login-footer-light)); }
 @media (min-width: 1024px) {
@@ -59,12 +59,11 @@
 .siga-login-access { background: var(--login-gradient); }
 @media (min-width: 768px) {
   .siga-login-access::before {
-    content: ""; position: absolute; inset: 0 auto 0 0; width: 96px;
-    background: var(--login-bridge); pointer-events: none;
+    content: none;
   }
 }
 .siga-login-photo { object-position: center 45%; }
-.siga-login-photo-fade { background: linear-gradient(90deg, hsl(var(--login-brand)) 0%, hsl(var(--login-brand) / 0.7) 18%, hsl(var(--login-brand) / 0.25) 45%, hsl(var(--login-brand) / 0.1) 100%); }
+.siga-login-photo-fade { background: linear-gradient(90deg, hsl(var(--login-brand)) 0%, hsl(var(--login-brand) / 0.92) 8%, hsl(var(--login-brand) / 0.72) 18%, hsl(var(--login-brand) / 0.45) 32%, hsl(var(--login-brand) / 0.22) 50%, hsl(var(--login-brand) / 0.1) 75%, hsl(var(--login-brand) / 0.06) 100%); }
 @media (max-width: 767px) {
   .siga-login-photo-fade { background: linear-gradient(180deg, hsl(var(--login-brand)) 0%, hsl(var(--login-brand) / 0.35) 30%, hsl(var(--login-brand) / 0.2) 100%); }
 }
