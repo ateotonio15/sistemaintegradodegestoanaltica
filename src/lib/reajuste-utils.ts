@@ -23,6 +23,22 @@ export function formatCentavosBRL(centavos: number | null | undefined): string {
 }
 
 // === Mês de reajuste oficial: derivado SEMPRE da data de implantação ===
+/** Filtra apenas a apresentação anual, sem alterar reajustes salvos ou cálculos. */
+export function exibirContratoNoAnoReajuste(
+  dataImplantacao: string | null | undefined,
+  anoReferencia: number,
+): boolean {
+  if (!dataImplantacao) return true;
+  const partes = dataImplantacao.match(/^(\d{4})-(\d{2})-(\d{2})(?:$|T)/);
+  if (!partes) return true;
+  const ano = Number(partes[1]);
+  const mes = Number(partes[2]);
+  const dia = Number(partes[3]);
+  const data = new Date(ano, mes - 1, dia);
+  if (data.getFullYear() !== ano || data.getMonth() !== mes - 1 || data.getDate() !== dia) return true;
+  return ano < anoReferencia;
+}
+
 export function getMesReajuste(dataImplantacao: string | null | undefined): number | null {
   if (!dataImplantacao) return null;
   const m = String(dataImplantacao).match(/^(\d{4})-(\d{2})-(\d{2})/);
