@@ -27,6 +27,8 @@
   --login-button-shadow: 0 5px 14px -7px hsl(var(--primary) / 0.45);
   --login-node-shadow: 0 8px 24px -12px hsl(var(--login-brand) / 0.55);
   --login-node-hover-shadow: 0 0 18px -8px hsl(var(--login-highlight) / 0.45);
+  --gradient-primary: linear-gradient(135deg, hsl(var(--primary)), hsl(158 65% 27%));
+  --shadow-glow: 0 0 0 3px hsl(var(--primary) / 0.2);
   background: hsl(var(--background));
   letter-spacing: 0;
 }
@@ -93,8 +95,24 @@
   .siga-login *, .siga-login *::before, .siga-login *::after { transition: none; }
 }
 @media (max-width: 1023px) {
-  .siga-login-brand { min-height: 340px; }
   .siga-login-art { object-position: center 40%; }
+}
+@media (min-width: 640px) and (max-width: 1023px) {
+  .siga-analytics { height: 200px; }
+  .siga-analytics-node { width: 100px; margin-left: -50px; }
+  .siga-analytics-center { width: 72px; height: 80px; margin-left: -36px; margin-top: -40px; }
+}
+@media (max-width: 639px) {
+  .siga-login { display: flex; flex-direction: column; }
+  .siga-login-brand { flex-shrink: 0; }
+  .siga-login-access { flex: 1; padding: 24px 16px; justify-content: flex-start; }
+  .siga-login-access > p { margin-top: 24px; }
+  .siga-login-card { animation: siga-login-mobile-entry 450ms ease both; }
+  .siga-login-shade { display: none; }
+}
+@keyframes siga-login-mobile-entry { from { opacity: 0; } to { opacity: 1; } }
+@media (prefers-reduced-motion: reduce) {
+  .siga-login-card { animation: none; }
 }
 @media (max-width: 479px) {
   .siga-analytics { height: 220px; }

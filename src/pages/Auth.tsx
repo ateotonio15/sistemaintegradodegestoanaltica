@@ -18,7 +18,7 @@ import {
   Loader2,
 } from "lucide-react";
 import logo from "@/assets/logo-cs-control.png";
-import loginVisual from "@/assets/siga-login-visual.jpg";
+import loginVisual from "@/assets/siga-login-visual.webp";
 import LoginAnalyticsVisual from "@/components/LoginAnalyticsVisual";
 
 export default function Auth() {
@@ -57,34 +57,40 @@ export default function Auth() {
   };
 
   return (
-    <main className="siga-login min-h-svh grid lg:grid-cols-[3fr_2fr] text-foreground">
-      <section className="siga-login-brand relative flex flex-col overflow-hidden px-7 py-8 sm:px-12 lg:px-16 lg:py-12 xl:px-20" aria-label="SIGA">
+    <main className="siga-login min-h-svh grid md:grid-cols-2 lg:grid-cols-[3fr_2fr] text-foreground">
+      <section className="siga-login-brand relative flex flex-col overflow-hidden px-7 py-6 sm:px-8 md:py-10 lg:px-16 lg:py-12 xl:px-20" aria-label="SIGA">
+        <picture>
+        <source media="(max-width: 639px)" srcSet="data:image/gif;base64,R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs=" />
         <img
           src={loginVisual}
           alt=""
-          width={1536}
-          height={1536}
+          width={960}
+          height={960}
           fetchPriority="high"
-          className="siga-login-art absolute inset-0 h-full w-full object-cover"
+          className="siga-login-art absolute inset-0 hidden h-full w-full object-cover sm:block"
         />
+        </picture>
         <div className="siga-login-shade absolute inset-0" aria-hidden="true" />
         <div className="relative z-10 flex items-center gap-3">
           <img src={logo} alt="" width={44} height={44} className="h-11 w-11 object-contain" />
-          <span className="text-xl font-semibold">SIGA<span className="siga-login-brand-muted ml-3 hidden text-xs font-normal sm:inline">Gestão Analítica</span></span>
+          <div>
+            <span className="text-xl font-semibold">SIGA<span className="siga-login-brand-muted ml-3 hidden text-xs font-normal lg:inline">Gestão Analítica</span></span>
+            <p className="siga-login-brand-muted mt-1 text-xs leading-relaxed sm:hidden">Sistema Integrado de Gestão Analítica</p>
+          </div>
         </div>
 
         <motion.div
           initial={reducedMotion ? false : { opacity: 0, y: 16 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.7 }}
-          className="relative z-10 my-10 w-full max-w-xl lg:my-auto lg:py-8"
+          className="relative z-10 my-10 hidden w-full max-w-xl sm:block md:my-auto md:py-8"
         >
           <div className="siga-login-eyebrow mb-5 flex items-center gap-2 text-xs font-medium">
             <span className="siga-login-line h-px w-8" aria-hidden="true" />
             Sistema Integrado de Gestão Analítica
           </div>
-          <motion.h1 initial={reducedMotion ? false : { opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.45 }} className="text-6xl font-semibold leading-none sm:text-7xl xl:text-8xl">SIGA</motion.h1>
-          <motion.p initial={reducedMotion ? false : { opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.45, delay: 0.12 }} className="mt-5 max-w-lg text-2xl font-medium leading-snug sm:text-3xl lg:text-4xl">
+          <motion.h1 initial={reducedMotion ? false : { opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.45 }} className="text-6xl font-semibold leading-none lg:text-7xl xl:text-8xl">SIGA</motion.h1>
+          <motion.p initial={reducedMotion ? false : { opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.45, delay: 0.12 }} className="mt-5 max-w-lg text-2xl font-medium leading-snug lg:text-3xl xl:text-4xl">
             Dados, processos e decisões em um só lugar.
           </motion.p>
           <LoginAnalyticsVisual />
@@ -110,7 +116,7 @@ export default function Auth() {
           initial={reducedMotion ? false : { opacity: 0, y: 12 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6, delay: reducedMotion ? 0 : 0.6 }}
-          className="siga-login-card relative w-full max-w-[440px] rounded-2xl px-7 py-9 sm:px-10 sm:py-11"
+          className="siga-login-card relative w-full max-w-[440px] rounded-2xl px-6 py-8 lg:px-10 lg:py-11"
         >
           <div className="mb-8">
             <div className="mb-6 flex h-11 w-11 items-center justify-center rounded-lg bg-primary/10 text-primary">
