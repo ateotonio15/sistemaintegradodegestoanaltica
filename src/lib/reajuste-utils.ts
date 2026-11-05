@@ -156,8 +156,13 @@ export function statusReajusteColor(status: StatusReajuste): string {
     case "Atrasado":
       return "bg-red-500/15 text-red-700 dark:text-red-400 border-red-500/30";
     default:
-      return "bg-yellow-500/15 text-yellow-700 dark:text-yellow-400 border-yellow-500/30";
+      return "bg-sky-500/10 text-sky-700 dark:text-sky-300 border-sky-500/30";
   }
+}
+
+/** Nome exibido do status (somente visual). */
+export function statusReajusteLabel(status: StatusReajuste): string {
+  return status === "Pendente" ? "A reajustar" : status;
 }
 
 // === Fluxo de aprovação / liberação ===

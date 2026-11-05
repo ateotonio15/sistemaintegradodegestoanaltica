@@ -20,7 +20,7 @@ import { AprovarReajusteDialog } from "@/components/reajustes/AprovarReajusteDia
 import { comporRetroativo } from "@/lib/reajuste-retroativo-composicao";
 import { AplicarRetroativoDialog } from "@/components/reajustes/AplicarRetroativoDialog";
 import {
-  formatCentavosBRL, getStatusReajusteEmpresa, statusReajusteColor, type StatusReajuste,
+  formatCentavosBRL, getStatusReajusteEmpresa, statusReajusteColor, statusReajusteLabel, type StatusReajuste,
   labelStatusReajusteFluxo, corStatusReajusteFluxo, getMesReajuste, nomeMes,
 } from "@/lib/reajuste-utils";
 import { formatDateBR } from "@/lib/date-utils";
@@ -461,7 +461,7 @@ export default function Reajustes() {
                 <SelectContent>
                   <SelectItem value="all">Todos os status</SelectItem>
                   <SelectItem value="Reajustado">Reajustado</SelectItem>
-                  <SelectItem value="Pendente">Pendente</SelectItem>
+                  <SelectItem value="Pendente">A reajustar</SelectItem>
                   <SelectItem value="Atrasado">Atrasado</SelectItem>
                 </SelectContent>
               </Select>
@@ -640,7 +640,7 @@ export default function Reajustes() {
                               {labelStatusReajusteFluxo(statusFluxo)}
                             </Badge>
                           ) : (
-                            <Badge variant="outline" className={statusReajusteColor(status)}>{status}</Badge>
+                            <Badge variant="outline" className={statusReajusteColor(status)}>{statusReajusteLabel(status)}</Badge>
                           )}
                           {reajuste && ((reajuste as any).usa_faixa_etaria_enfermaria || (reajuste as any).usa_faixa_etaria_apartamento) && (
                             <Badge variant="outline" className="text-[10px] bg-purple-500/15 text-purple-700 dark:text-purple-300 border-purple-500/30">
