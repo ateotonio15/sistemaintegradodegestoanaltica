@@ -4488,6 +4488,71 @@ export type Database = {
           },
         ]
       }
+      movimentacao_suspensos_encaminhamentos: {
+        Row: {
+          codigo_contrato: string | null
+          empresa_id: string
+          empresa_nome: string
+          encaminhado_em: string
+          encaminhado_por: string | null
+          encaminhado_por_nome: string
+          financeiro_movimentacao_id: string | null
+          id: string
+          mes_referencia: string
+          movimentacao_id: string | null
+          observacao: string | null
+          periodo: string
+          reativado_em: string | null
+          resolvido_em: string | null
+          situacao: string
+          status: string
+        }
+        Insert: {
+          codigo_contrato?: string | null
+          empresa_id: string
+          empresa_nome: string
+          encaminhado_em?: string
+          encaminhado_por?: string | null
+          encaminhado_por_nome?: string
+          financeiro_movimentacao_id?: string | null
+          id?: string
+          mes_referencia: string
+          movimentacao_id?: string | null
+          observacao?: string | null
+          periodo: string
+          reativado_em?: string | null
+          resolvido_em?: string | null
+          situacao?: string
+          status?: string
+        }
+        Update: {
+          codigo_contrato?: string | null
+          empresa_id?: string
+          empresa_nome?: string
+          encaminhado_em?: string
+          encaminhado_por?: string | null
+          encaminhado_por_nome?: string
+          financeiro_movimentacao_id?: string | null
+          id?: string
+          mes_referencia?: string
+          movimentacao_id?: string | null
+          observacao?: string | null
+          periodo?: string
+          reativado_em?: string | null
+          resolvido_em?: string | null
+          situacao?: string
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "movimentacao_suspensos_encaminhamentos_empresa_id_fkey"
+            columns: ["empresa_id"]
+            isOneToOne: false
+            referencedRelation: "empresas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       movimentacoes: {
         Row: {
           cc_email: string | null
@@ -6692,6 +6757,7 @@ export type Database = {
         }
         Returns: undefined
       }
+      _periodo_fim_dia: { Args: { p: string }; Returns: number }
       _periodo_para_empresa: {
         Args: { p_empresa: Database["public"]["Tables"]["empresas"]["Row"] }
         Returns: string
@@ -7116,6 +7182,10 @@ export type Database = {
         Returns: boolean
       }
       processar_avaliacoes_envios: { Args: never; Returns: Json }
+      processar_contratos_suspensos: {
+        Args: { p_empresa_id?: string }
+        Returns: Json
+      }
       processar_retorno_ferias: { Args: never; Returns: number }
       reatribuir_ferias_empresa: {
         Args: { p_fce_id: string; p_new_user_id: string }
