@@ -757,6 +757,8 @@ export default function Financeiro() {
       .filter((f) => {
         const emp = empresasMap[f.empresa_id];
         if (emp?.nao_faturado_financeiro) return false;
+        // Contrato suspenso encaminhado pela aba Movimentações segue para o Financeiro
+        if (emp && !emp.ativa && suspensosEncaminhados.has(`${f.empresa_id}|${f.mes_referencia}`)) return true;
         // Oculta empresas desativadas (rescindidas/suspensas/inativas) pelo cadastro
         return emp ? emp.ativa : true;
       })
