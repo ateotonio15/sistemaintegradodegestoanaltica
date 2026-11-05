@@ -309,6 +309,7 @@ export type Database = {
       anexos_financeiro: {
         Row: {
           bucket: string
+          cobranca_retroativa_id: string | null
           compartilhado_grupo: boolean
           contrato_origem_id: string | null
           created_at: string
@@ -324,6 +325,7 @@ export type Database = {
         }
         Insert: {
           bucket?: string
+          cobranca_retroativa_id?: string | null
           compartilhado_grupo?: boolean
           contrato_origem_id?: string | null
           created_at?: string
@@ -339,6 +341,7 @@ export type Database = {
         }
         Update: {
           bucket?: string
+          cobranca_retroativa_id?: string | null
           compartilhado_grupo?: boolean
           contrato_origem_id?: string | null
           created_at?: string
