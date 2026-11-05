@@ -12,6 +12,7 @@ import {
   Moon, Sun, Sunset, Cloud, Receipt, Trophy, Building2, ArrowUpRight, ArrowDownRight,
 } from "lucide-react";
 import { useUberCorridas, type UberCorrida } from "@/hooks/useUberCorridas";
+import { nomeUnificadoColaborador } from "@/lib/uber-colaborador";
 import { CorridaDialog } from "@/components/uber/CorridaDialog";
 import { useAuth } from "@/hooks/useAuth";
 import {
@@ -78,7 +79,7 @@ export default function UberDashboard() {
     [corridas]
   );
   const colabList = useMemo(
-    () => Array.from(new Set(corridas.map((c) => c.colaborador).filter(Boolean))).sort() as string[],
+    () => Array.from(new Set(corridas.map((c) => nomeUnificadoColaborador(c.colaborador)).filter(Boolean))).sort() as string[],
     [corridas]
   );
   const criadoresList = useMemo(
@@ -90,7 +91,7 @@ export default function UberDashboard() {
     return corridas.filter((c) => {
       if (dataIni && c.data < dataIni) return false;
       if (dataFim && c.data > dataFim) return false;
-      if (fColab !== "all" && c.colaborador !== fColab) return false;
+      if (fColab !== "all" && nomeUnificadoColaborador(c.colaborador) !== fColab) return false;
       if (fMotivo !== "all" && (c.motivo ?? "") !== fMotivo) return false;
       if (fTipo !== "all" && (c.tipo ?? "") !== fTipo) return false;
       if (fEmpresa !== "all" && (c.empresa ?? "") !== fEmpresa) return false;
@@ -167,12 +168,13 @@ export default function UberDashboard() {
   const rankingColaboradores = useMemo(() => {
     const map = new Map<string, { nome: string; qtd: number; valor: number; reemb: number; bruto: number }>();
     filtered.filter((c) => !c.cancelada).forEach((c) => {
-      const cur = map.get(c.colaborador) ?? { nome: c.colaborador, qtd: 0, valor: 0, reemb: 0, bruto: 0 };
+      const nome = nomeUnificadoColaborador(c.colaborador);
+      const cur = map.get(nome) ?? { nome, qtd: 0, valor: 0, reemb: 0, bruto: 0 };
       cur.qtd += 1;
       cur.valor += liquido(c);
       cur.bruto += Number(c.valor || 0);
       cur.reemb += c.tem_reembolso ? Number(c.valor_reembolso ?? c.reembolso ?? 0) : 0;
-      map.set(c.colaborador, cur);
+      map.set(nome, cur);
     });
     return Array.from(map.values())
       .map((r) => ({ ...r, ticket: r.qtd ? r.valor / r.qtd : 0, reembPct: r.bruto ? (r.reemb / r.bruto) * 100 : 0 }))
