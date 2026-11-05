@@ -325,7 +325,7 @@ export default function Movimentacoes() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("movimentacoes")
-        .select("*, empresas:empresas!movimentacoes_empresa_id_fkey(id, nome, codigo_contrato, cnpj, tipo_movimentacao, periodo_movimentacao, data_corte, responsavel_contrato, responsavel_user_id, status_empresa, data_implantacao, operadora_plano, tipo_contrato, status_implantacao, primeira_competencia_financeira, prioridade_maxima_id, contrato_via_portal)")
+        .select("*, empresas:empresas!movimentacoes_empresa_id_fkey(id, nome, codigo_contrato, cnpj, tipo_movimentacao, periodo_movimentacao, data_corte, responsavel_contrato, responsavel_user_id, status_empresa, data_implantacao, operadora_plano, tipo_contrato, status_implantacao, primeira_competencia_financeira, prioridade_maxima_id, contrato_via_portal, contrato_suspenso, data_suspensao, motivo_suspensao)")
         .eq("mes_referencia", filterMes)
         .order("created_at", { ascending: false });
       if (error) throw error;
@@ -1291,7 +1291,25 @@ export default function Movimentacoes() {
                           <TableCell><Badge variant="outline" className="rounded-md">{tipo}</Badge></TableCell>
                           <TableCell>{m.periodo || formatPeriodoEmpresa(m.empresas as any)}</TableCell>
                           <TableCell>
-                            <Badge className={`${statusColor(status)} rounded-md`}>{status}</Badge>
+                            {(m.empresas as any)?.contrato_suspenso && (status === "Aguardando envio" || status === "Fora do prazo") ? (
+                              <Popover>
+                                <PopoverTrigger asChild>
+                                  <button
+                                    type="button"
+                                    title={`Contrato suspenso\nDesde: ${formatDateBR((m.empresas as any)?.data_suspensao) || "—"}\nMotivo: ${(m.empresas as any)?.motivo_suspensao || "—"}`}
+                                  >
+                                    <Badge className="bg-destructive text-destructive-foreground rounded-md">Contrato suspenso</Badge>
+                                  </button>
+                                </PopoverTrigger>
+                                <PopoverContent className="w-64 text-sm space-y-1">
+                                  <p className="font-semibold text-destructive">Contrato suspenso</p>
+                                  <p>Desde: {formatDateBR((m.empresas as any)?.data_suspensao) || "—"}</p>
+                                  <p>Motivo: {(m.empresas as any)?.motivo_suspensao || "—"}</p>
+                                </PopoverContent>
+                              </Popover>
+                            ) : (
+                              <Badge className={`${statusColor(status)} rounded-md`}>{status}</Badge>
+                            )}
                           </TableCell>
                           <TableCell className="text-muted-foreground">{respMovOf(m.empresas) || "—"}</TableCell>
                           {true && <TableCell>{formatDateBR(m.data_envio_empresa)}</TableCell>}
