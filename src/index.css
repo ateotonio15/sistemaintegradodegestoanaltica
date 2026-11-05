@@ -63,6 +63,13 @@
     background: var(--login-bridge); pointer-events: none;
   }
 }
+.siga-login-photo { object-position: center 45%; }
+.siga-login-photo-fade { background: linear-gradient(90deg, hsl(var(--login-brand)) 0%, hsl(var(--login-brand) / 0.7) 18%, hsl(var(--login-brand) / 0.25) 45%, hsl(var(--login-brand) / 0.1) 100%); }
+@media (max-width: 767px) {
+  .siga-login-photo-fade { background: linear-gradient(180deg, hsl(var(--login-brand)) 0%, hsl(var(--login-brand) / 0.35) 30%, hsl(var(--login-brand) / 0.2) 100%); }
+}
+.siga-login-access > :not(.siga-login-photo):not(.siga-login-photo-fade) { position: relative; z-index: 1; }
+.siga-login-access .siga-login-footer { color: hsl(var(--login-brand-foreground) / 0.85); }
 .siga-login-card {
   background: hsl(var(--card) / 0.66);
   border: 1px solid hsl(var(--card) / 0.72);
