@@ -70,10 +70,10 @@
 .siga-login-access > :not(.siga-login-photo):not(.siga-login-photo-fade) { position: relative; z-index: 1; }
 .siga-login-access .siga-login-footer { color: hsl(var(--login-brand-foreground) / 0.85); }
 .siga-login-card {
-  background: hsl(var(--card) / 0.66);
-  border: 1px solid hsl(var(--card) / 0.72);
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
+  background: hsl(var(--card) / 0.8);
+  border: 1px solid hsl(var(--card) / 0.8);
+  backdrop-filter: blur(18px) saturate(120%);
+  -webkit-backdrop-filter: blur(18px) saturate(120%);
   box-shadow: var(--login-shadow);
 }
 .siga-login-input {
