@@ -554,6 +554,13 @@
       "when": 1793818401175,
       "tag": "0078_migration",
       "breakpoints": true
+    },
+    {
+      "idx": 79,
+      "version": "7",
+      "when": 1793887328638,
+      "tag": "0079_anexo_por_cobranca_retroativa",
+      "breakpoints": true
     }
   ]
 }
