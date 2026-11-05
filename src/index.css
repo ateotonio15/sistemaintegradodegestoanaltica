@@ -62,7 +62,7 @@
     content: none;
   }
 }
-.siga-login-photo { object-position: 60% 55%; transform: scale(1.12); transform-origin: 60% 55%; }
+.siga-login-photo { object-position: center 45%; }
 .siga-login-photo-fade { background: linear-gradient(90deg, hsl(var(--login-brand)) 0%, hsl(var(--login-brand) / 0.92) 8%, hsl(var(--login-brand) / 0.72) 18%, hsl(var(--login-brand) / 0.45) 32%, hsl(var(--login-brand) / 0.22) 50%, hsl(var(--login-brand) / 0.1) 75%, hsl(var(--login-brand) / 0.06) 100%); }
 @media (max-width: 767px) {
   .siga-login-photo-fade { background: linear-gradient(180deg, hsl(var(--login-brand)) 0%, hsl(var(--login-brand) / 0.35) 30%, hsl(var(--login-brand) / 0.2) 100%); }
