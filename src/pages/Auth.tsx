@@ -18,6 +18,7 @@ import {
   Loader2,
 } from "lucide-react";
 import logo from "@/assets/logo-cs-control.png";
+import hospitalFoto from "@/assets/hospital_samel.jpg.asset.json";
 import loginVisual from "@/assets/siga-login-visual.webp";
 import LoginAnalyticsVisual from "@/components/LoginAnalyticsVisual";
 
@@ -112,6 +113,8 @@ export default function Auth() {
       </section>
 
       <section className="siga-login-access relative flex flex-col items-center justify-center px-5 py-10 sm:px-10 lg:px-8 xl:px-14" aria-label="Acesso ao sistema">
+        <img src={hospitalFoto.url} alt="" aria-hidden="true" className="siga-login-photo absolute inset-0 h-full w-full object-cover" />
+        <div className="siga-login-photo-fade absolute inset-0" aria-hidden="true" />
         <motion.div
           initial={reducedMotion ? false : { opacity: 0, y: 12 }}
           animate={{ opacity: 1, y: 0 }}
