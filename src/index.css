@@ -666,9 +666,9 @@
 }
 .siga-chip .lucide { color: hsl(var(--login-highlight)); }
 .siga-chip-tl { top: -56px; left: -96px; animation: siga-node-vertical 9s ease-in-out infinite; }
-.siga-chip-tr { top: -48px; right: -96px; animation: siga-node-diagonal 12s ease-in-out -3s infinite; }
-.siga-chip-l { top: 50%; left: -120px; animation: siga-node-lateral 11s ease-in-out -5s infinite; }
-.siga-chip-r { top: 52%; right: -120px; animation: siga-node-vertical 13s ease-in-out -2s infinite reverse; }
+.siga-chip-tr { top: -48px; right: -40px; animation: siga-node-diagonal 12s ease-in-out -3s infinite; }
+.siga-chip-l { top: 50%; left: -110px; animation: siga-node-lateral 11s ease-in-out -5s infinite; }
+.siga-chip-r { top: 30%; right: -64px; animation: siga-node-vertical 13s ease-in-out -2s infinite reverse; }
 .siga-chip-b { bottom: -62px; left: 50%; margin-left: -52px; animation: siga-node-oscillate 15s ease-in-out -6s infinite; }
 @media (max-width: 1279px) {
   .siga-chip { padding: 6px 10px; font-size: 11px; }

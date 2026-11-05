@@ -57,7 +57,7 @@ export default function Auth() {
   };
 
   return (
-    <main className="siga-login relative isolate min-h-svh grid md:grid-cols-2 lg:grid-cols-[3fr_2fr] text-foreground">
+    <main className="siga-login relative isolate overflow-x-hidden min-h-svh grid md:grid-cols-2 lg:grid-cols-[3fr_2fr] text-foreground">
       <img src={fachada.url} alt="" aria-hidden="true" fetchPriority="high" className="siga-login-photo absolute inset-0 -z-10 h-full w-full object-cover" />
       <div className="siga-login-photo-shade absolute inset-0 -z-10" aria-hidden="true" />
       <section className="siga-login-brand relative flex flex-col overflow-hidden px-7 py-6 sm:px-8 md:py-10 lg:px-16 lg:py-12 xl:px-20" aria-label="SIGA">
