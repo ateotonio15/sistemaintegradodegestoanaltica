@@ -29,6 +29,8 @@
   --login-button-shadow: 0 5px 14px -7px hsl(var(--primary) / 0.45);
   --login-node-shadow: 0 8px 24px -12px hsl(var(--login-brand) / 0.55);
   --login-node-hover-shadow: 0 0 18px -8px hsl(var(--login-highlight) / 0.45);
+  --login-node-surface: linear-gradient(145deg, hsl(var(--login-brand-foreground) / 0.08), hsl(var(--login-brand) / 0.72));
+  --login-icon-glow: 0 0 7px hsl(var(--login-highlight) / 0.35);
   --gradient-primary: linear-gradient(135deg, hsl(var(--primary)), hsl(158 65% 27%));
   --shadow-glow: 0 0 0 3px hsl(var(--primary) / 0.2);
   background: hsl(var(--background));
@@ -60,16 +62,16 @@
 .siga-login-submit { box-shadow: var(--login-button-shadow); }
 .siga-login-submit:hover .lucide { color: inherit; filter: none; }
 .siga-analytics { height: 260px; max-width: 560px; }
-.siga-analytics-path { stroke: hsl(var(--login-highlight) / 0.28); stroke-width: 1; vector-effect: non-scaling-stroke; }
+.siga-analytics-path { stroke: hsl(var(--login-highlight) / 0.4); stroke-width: 1; vector-effect: non-scaling-stroke; }
 .siga-analytics-dot { fill: hsl(var(--login-highlight)); }
 .siga-analytics-center {
-  left: 50%; top: 50%; width: 88px; height: 88px; margin-left: -44px; margin-top: -44px;
+  left: 50%; top: 50%; width: 100px; height: 100px; margin-left: -50px; margin-top: -50px;
   color: hsl(var(--login-highlight));
-  background: hsl(var(--login-brand) / 0.88);
+  background: var(--login-node-surface);
   border: 1px solid hsl(var(--login-highlight) / 0.5);
   box-shadow: var(--login-node-shadow);
 }
-.siga-analytics-node { width: 112px; margin-left: -56px; margin-top: -21px; }
+.siga-analytics-node { width: 128px; margin-left: -64px; margin-top: -36px; }
 .siga-analytics-contracts { left: 16%; top: 21%; }
 .siga-analytics-automation { left: 80%; top: 18%; }
 .siga-analytics-data { left: 85%; top: 63%; }
@@ -77,23 +79,28 @@
 .siga-analytics-security { left: 15%; top: 77%; }
 .siga-analytics-tile {
   color: hsl(var(--login-brand-foreground));
-  background: hsl(var(--login-brand) / 0.83);
+  background: var(--login-node-surface);
+  min-height: 72px;
+  cursor: default;
   border: 1px solid hsl(var(--login-highlight) / 0.26);
   box-shadow: var(--login-node-shadow);
   transition: transform 250ms ease, border-color 250ms ease, box-shadow 250ms ease;
 }
 .siga-analytics-tile .lucide { color: hsl(var(--login-highlight)); }
 @media (hover: hover) {
-  .siga-analytics-tile:hover { transform: scale(1.04); border-color: hsl(var(--login-highlight) / 0.65); box-shadow: var(--login-node-hover-shadow); }
+  .siga-analytics-tile:hover { transform: translateY(-3px); border-color: hsl(var(--login-highlight) / 0.65); box-shadow: var(--login-node-hover-shadow); }
+  .siga-analytics-tile:hover .lucide { filter: drop-shadow(var(--login-icon-glow)); }
 }
-.siga-analytics-contracts .siga-analytics-float { animation: siga-node-vertical 8s ease-in-out infinite; }
-.siga-analytics-automation .siga-analytics-float { animation: siga-node-lateral 11s ease-in-out -3s infinite; }
-.siga-analytics-data .siga-analytics-float { animation: siga-node-diagonal 10s ease-in-out -5s infinite; }
-.siga-analytics-integration .siga-analytics-float { animation: siga-node-lateral 13s ease-in-out -7s infinite reverse; }
+.siga-analytics-core-float { animation: siga-node-vertical 16s ease-in-out -6s infinite; }
+.siga-analytics-contracts .siga-analytics-float { animation: siga-node-vertical 10s ease-in-out infinite; }
+.siga-analytics-automation .siga-analytics-float { animation: siga-node-diagonal 13s ease-in-out -3s infinite; }
+.siga-analytics-data .siga-analytics-float { animation: siga-node-lateral 14s ease-in-out -5s infinite; }
+.siga-analytics-integration .siga-analytics-float { animation: siga-node-oscillate 17s ease-in-out -7s infinite; }
 .siga-analytics-security .siga-analytics-float { animation: siga-node-vertical 12s ease-in-out -4s infinite reverse; }
 @keyframes siga-node-vertical { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-6px); } }
 @keyframes siga-node-lateral { 0%, 100% { transform: translateX(0); } 50% { transform: translateX(5px); } }
 @keyframes siga-node-diagonal { 0%, 100% { transform: translate(0, 0) rotate(0); } 50% { transform: translate(3px, -5px) rotate(1deg); } }
+@keyframes siga-node-oscillate { 0%, 100% { transform: rotate(-0.7deg); } 50% { transform: rotate(0.7deg) translateY(-2px); } }
 @keyframes siga-login-drift {
   from { transform: scale(1.015) translateY(0); }
   to { transform: scale(1.06) translateY(-0.6%); }
@@ -101,6 +108,7 @@
 @media (prefers-reduced-motion: reduce) {
   .siga-login-art { animation: none; }
   .siga-analytics-float { animation: none !important; }
+  .siga-analytics-core-float { animation: none; }
   .siga-analytics-dot { display: none; }
   .siga-login *, .siga-login *::before, .siga-login *::after { transition: none; }
 }
@@ -109,7 +117,9 @@
 }
 @media (min-width: 640px) and (max-width: 1023px) {
   .siga-analytics { height: 200px; }
-  .siga-analytics-node { width: 100px; margin-left: -50px; }
+  .siga-analytics-node { width: 104px; margin-left: -52px; margin-top: -32px; }
+  .siga-analytics-tile { min-height: 64px; padding: 10px 12px; gap: 6px; }
+  .siga-analytics-tile span { font-size: 12px; }
   .siga-analytics-center { width: 72px; height: 80px; margin-left: -36px; margin-top: -40px; }
 }
 @media (max-width: 639px) {

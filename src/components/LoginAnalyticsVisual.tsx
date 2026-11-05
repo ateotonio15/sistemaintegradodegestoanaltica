@@ -29,7 +29,7 @@ export default function LoginAnalyticsVisual() {
         {visibleNodes.map(({ label, path }, index) => (
           <g key={label}>
             <path d={path} className="siga-analytics-path" />
-            <circle r="2" className="siga-analytics-dot" opacity={reducedMotion ? 0 : 0.75}>
+            <circle r="2.2" className="siga-analytics-dot" opacity={reducedMotion || index % 2 !== 0 ? 0 : 0.8}>
               {!reducedMotion && <animateMotion dur={`${12 + index * 2}s`} begin={`${index * -3}s`} repeatCount="indefinite" path={path} />}
             </circle>
           </g>
@@ -39,10 +39,12 @@ export default function LoginAnalyticsVisual() {
         initial={reducedMotion ? false : { opacity: 0, scale: 0.92 }}
         animate={{ opacity: 1, scale: 1 }}
         transition={{ duration: 0.6, delay: 0.28 }}
-        className="siga-analytics-center absolute flex flex-col items-center justify-center rounded-2xl"
+        className="siga-analytics-center absolute rounded-2xl"
       >
-        <ChartNoAxesCombined className="h-9 w-9" strokeWidth={1.3} aria-hidden="true" />
-        <span className="mt-1.5 text-xs font-semibold">SIGA</span>
+        <div className="siga-analytics-core-float flex h-full w-full flex-col items-center justify-center">
+          <ChartNoAxesCombined className="h-10 w-10" strokeWidth={1.3} aria-hidden="true" />
+          <span className="mt-2 text-sm font-semibold">SIGA</span>
+        </div>
       </motion.div>
       {visibleNodes.map(({ label, icon: Icon, position }, index) => (
         <motion.div
@@ -53,9 +55,9 @@ export default function LoginAnalyticsVisual() {
           className={`siga-analytics-node siga-analytics-${position} absolute`}
         >
           <div className="siga-analytics-float">
-            <div className="siga-analytics-tile flex items-center justify-center gap-2 rounded-lg px-3 py-3">
-              <Icon className="h-4 w-4 shrink-0" strokeWidth={1.5} aria-hidden="true" />
-              <span className="text-xs font-medium">{label}</span>
+            <div className="siga-analytics-tile flex flex-col items-start justify-center gap-2 rounded-lg px-4 py-3">
+              <Icon className="h-5 w-5 shrink-0" strokeWidth={1.5} aria-hidden="true" />
+              <span className="text-sm font-medium">{label}</span>
             </div>
           </div>
         </motion.div>
