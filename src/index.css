@@ -111,6 +111,9 @@
   .siga-login-shade { display: none; }
 }
 @keyframes siga-login-mobile-entry { from { opacity: 0; } to { opacity: 1; } }
+@media (prefers-reduced-motion: reduce) {
+  .siga-login-card { animation: none; }
+}
 @media (max-width: 479px) {
   .siga-analytics { height: 220px; }
   .siga-analytics-node { width: 100px; margin-left: -50px; }
