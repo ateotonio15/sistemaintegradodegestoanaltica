@@ -151,15 +151,11 @@ export const normalizarBaseAgenda = (url: string): string =>
     .replace(/\/+$/, "")
     .replace(/\/integracao$/, "");
 
+// A tela não oferece mais escolha de servidor: um valor antigo salvo no navegador
+// (ex.: "localhost") prenderia o usuário num endereço errado sem como corrigir.
 export const lerServidorAgenda = (): ConfigServidorAgenda => {
   try {
-    const c = JSON.parse(localStorage.getItem(SERVIDOR_KEY) ?? "null");
-    if (
-      c &&
-      (c.tipo === "producao" || c.tipo === "localhost" || c.tipo === "personalizada") &&
-      typeof c.url === "string"
-    )
-      return c;
+    localStorage.removeItem(SERVIDOR_KEY);
   } catch {
     /* ignore */
   }
@@ -212,11 +208,18 @@ export const salvarChaveDireta = (chave: string) => {
 async function chamarDireto<T>(url: string, chave: string): Promise<T> {
   let r: Response;
   try {
-    r = await fetch(url, { headers: { Accept: "application/json", "x-api-key": chave } });
+    // A API resolve para um endereço da rede interna (192.168.x.x). O Chrome/Edge exigem
+    // a permissão "Acesso à rede local" para um site público falar com ela;
+    // targetAddressSpace pede essa permissão corretamente (ignorado por outros navegadores).
+    r = await fetch(url, {
+      headers: { Accept: "application/json", "x-api-key": chave },
+      targetAddressSpace: "local",
+    } as RequestInit);
   } catch {
     throw new Error(
-      "Sem resposta da API. Confirme se você está na rede interna da Samel ou com a VPN ligada. " +
-        "Se estiver, a API pode estar bloqueando chamadas do navegador (CORS) — nesse caso avise a TI da Samel.",
+      "Sem resposta da API. A agenda fica na rede interna da Samel: confirme a rede/VPN e, no Chrome ou Edge, " +
+        "clique no cadeado ao lado do endereço do site → Configurações do site → \"Acesso à rede local\" (ou \"Dispositivos na rede local\") → Permitir, " +
+        "e atualize a página (F5). Se mesmo assim não funcionar, avise a TI da Samel.",
     );
   }
   const texto = await r.text();
