@@ -89,6 +89,7 @@
 @media (prefers-reduced-motion: reduce) {
   .siga-login-art { animation: none; }
   .siga-analytics-float { animation: none !important; }
+  .siga-analytics-dot { display: none; }
   .siga-login *, .siga-login *::before, .siga-login *::after { transition: none; }
 }
 @media (max-width: 1023px) {
