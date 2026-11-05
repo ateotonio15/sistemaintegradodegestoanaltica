@@ -67,7 +67,7 @@ export function useEncaminhamentosSuspensos(mes: string, userId?: string | null)
 const fmt = (iso: string) => new Date(iso).toLocaleString("pt-BR", { dateStyle: "short", timeStyle: "short" });
 
 export function SuspensosEncaminhadosPainel({ itens, comMovimentacao }: { itens: EncaminhamentoSuspenso[]; comMovimentacao: Set<string> }) {
-  const semMov = itens.filter((i) => i.status === "encaminhado" && !comMovimentacao.has(i.empresa_id));
+  const semMov = itens.filter((i) => i.status === "encaminhado");
   const analise = itens.filter((i) => i.status === "analise_humana");
   if (!semMov.length && !analise.length) return null;
   return (
@@ -75,7 +75,7 @@ export function SuspensosEncaminhadosPainel({ itens, comMovimentacao }: { itens:
       <CardContent className="pt-4 space-y-3 text-sm">
         {semMov.length > 0 && (
           <div className="space-y-2">
-            <p className="font-semibold flex items-center gap-2"><Ban className="h-4 w-4 text-muted-foreground" />Contratos suspensos no período (sem movimentação)</p>
+            <p className="font-semibold flex items-center gap-2"><Ban className="h-4 w-4 text-muted-foreground" />Contratos suspensos no período</p>
             <ul className="divide-y divide-border">
               {semMov.map((i) => (
                 <li key={i.id} className="flex flex-wrap items-center gap-2 py-1.5">
