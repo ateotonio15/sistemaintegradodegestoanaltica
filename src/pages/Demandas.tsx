@@ -284,10 +284,10 @@ export default function Demandas() {
   return (
     <div className="px-4 md:px-6 py-6 max-w-[1400px] mx-auto space-y-5">
       {/* Cabeçalho */}
-      <div className="flex flex-col md:flex-row md:items-end gap-3 justify-between">
-        <div className="flex flex-col gap-1">
+      <div className="flex items-end justify-between gap-4 flex-wrap">
+        <div className="min-w-0">
           {voltarPlantao && (
-            <Button size="sm" className="self-start mb-1" onClick={() => navigate(voltarPlantao)}>
+            <Button size="sm" className="mb-2" onClick={() => navigate(voltarPlantao)}>
               <ArrowLeft className="h-4 w-4 mr-1" /> Voltar ao Plantão
             </Button>
           )}
@@ -295,15 +295,14 @@ export default function Demandas() {
             <ArrowLeft className="h-3 w-3" />
             Voltar ao início
           </Link>
-          <div className="flex items-center gap-3 flex-wrap">
-            <div className="flex items-center gap-2">
-              <div className="h-9 w-9 rounded-xl bg-primary/10 text-primary flex items-center justify-center ring-1 ring-primary/15">
-                <MessageSquareWarning className="h-5 w-5" />
-              </div>
-              <h1 className="text-xl md:text-2xl font-semibold tracking-tight text-foreground">
-                Registro de Reclamações
-              </h1>
-            </div>
+          <p className="mt-2 text-[11px] font-semibold uppercase tracking-[0.14em] text-primary">Reclamações</p>
+          <h1 className="mt-1 text-2xl font-bold tracking-tight flex items-center gap-2">
+            <MessageSquareWarning className="h-6 w-6 text-primary" />
+            Registro de Reclamações
+          </h1>
+          <div className="mt-2 flex items-center gap-2 flex-wrap">
+            <span className="h-0.5 w-8 rounded-full bg-primary" aria-hidden="true" />
+            <p className="text-sm text-muted-foreground">Reclamações registradas e seu acompanhamento</p>
             <Badge variant="secondary" className="text-xs">
               {filtered.length} registro{filtered.length === 1 ? "" : "s"}
             </Badge>
@@ -436,7 +435,7 @@ export default function Demandas() {
       <Card className="rounded-2xl">
         <div ref={caixaTabela} className="overflow-x-auto rounded-t-2xl">
           <table className="w-full text-sm">
-            <thead className="bg-muted/40 text-xs uppercase tracking-wider text-muted-foreground">
+            <thead className="bg-primary/5 text-xs uppercase tracking-wider text-muted-foreground">
               <tr>
                 <th className="text-left py-2.5 px-3">Data</th>
                 <th className="text-left py-2.5 px-3">Beneficiário</th>
