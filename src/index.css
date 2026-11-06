@@ -688,3 +688,7 @@
 .group:hover .siga-home-icon{box-shadow:inset 0 0 0 1px hsl(var(--primary)/.35),0 0 14px hsl(var(--primary)/.35)}
 @media (min-width:768px){.siga-home-hero{margin:0 -1.5rem;width:calc(100% + 3rem)}}
 @media (prefers-reduced-motion:reduce){.group:hover .siga-home-card{transform:none}}
+/* faixa encostada no topo e nas laterais */
+.siga-home-hero{margin:-1rem -2rem 0;width:calc(100% + 4rem);border-radius:0}
+@media (min-width:768px){.siga-home-hero{margin:-1.5rem -2.5rem 0;width:calc(100% + 5rem)}}
+@media (min-width:1024px){.siga-home-hero{margin:-2rem -3rem 0;width:calc(100% + 6rem)}}
