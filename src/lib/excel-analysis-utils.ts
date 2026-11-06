@@ -2567,7 +2567,7 @@ export async function analisarExcelFinanceiroPorCnpj(
   };
   wb.worksheets.forEach((sheet) => {
     const nomeAba = norm(sheet.name || "");
-    const abaEhRetro = nomeAba.includes("retroativ");
+    const abaEhRetro = ehNomeAbaRetro(nomeAba);
     if (abaEhRetro) return;
     const rowsSheet: unknown[][] = [];
     sheet.eachRow({ includeEmpty: false }, (row) => rowsSheet.push((row.values as unknown[]).slice(1)));
@@ -2703,7 +2703,7 @@ export async function analisarExcelFinanceiroPorCnpj(
   if (!pivotEncontrado) {
     wb.worksheets.forEach((sheet) => {
       const nomeAba = norm(sheet.name || "");
-      if (!nomeAba.includes("retroativ")) return;
+      if (!ehNomeAbaRetro(nomeAba)) return;
       const mes = extrairMes(sheet.name || "");
       if (mes) mesesRetro.add(mes);
       const rowsSheet: unknown[][] = [];
@@ -2747,7 +2747,7 @@ export async function analisarExcelFinanceiroPorCnpj(
     // Mesmo com pivots, coleta meses das abas dedicadas para exibição
     wb.worksheets.forEach((sheet) => {
       const nomeAba = norm(sheet.name || "");
-      if (!nomeAba.includes("retroativ")) return;
+      if (!ehNomeAbaRetro(nomeAba)) return;
       const mes = extrairMes(sheet.name || "");
       if (mes) mesesRetro.add(mes);
     });
@@ -2771,7 +2771,7 @@ export async function analisarExcelFinanceiroPorCnpj(
     const porPag = new Map<string, Map<string, { quantidade: number; total: number }>>();
     wb.worksheets.forEach((sheet) => {
       const nomeAba = norm(sheet.name || "");
-      if (!nomeAba.includes("retroativ")) return;
+      if (!ehNomeAbaRetro(nomeAba)) return;
       const mes = extrairMes(sheet.name || "");
       if (!mes) return;
       const rowsSheet: unknown[][] = [];
