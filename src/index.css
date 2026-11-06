@@ -698,11 +698,11 @@
   --motion-trail: var(--sidebar-accent-foreground);
   --motion-kpi-shadow: 0 8px 20px -12px hsl(var(--primary) / .28);
 }
-.siga-motion-trail {
+.siga-home-hero .siga-motion-trail {
   position: absolute; right: 0; top: 22px; width: 220px; height: 180px;
   pointer-events: none; z-index: 1; color: hsl(var(--motion-trail));
 }
-.siga-motion-track { stroke: currentColor; stroke-width: 1; opacity: .16; }
+.siga-motion-track { stroke: currentColor; stroke-width: 1; opacity: .24; }
 .siga-motion-signal {
   stroke: currentColor; stroke-width: 2.5; stroke-linecap: round;
   stroke-dasharray: .7 99.3; animation: siga-trace-travel 15s linear infinite;
@@ -731,7 +731,7 @@
 .siga-loading-track { width: 96px; height: 2px; overflow: hidden; background: hsl(var(--primary) / .15); }
 .siga-loading-track > span { display: block; width: 20px; height: 2px; background: hsl(var(--primary)); animation: siga-loading-travel 1.6s ease-in-out infinite; }
 @keyframes siga-loading-travel { from { transform: translateX(-20px); } to { transform: translateX(96px); } }
-@media (max-width: 1199px) { .siga-motion-trail { display: none; } }
+@media (max-width: 1199px) { .siga-home-hero .siga-motion-trail { display: none; } }
 @media (max-width: 767px) {
   .siga-motion-heading, .siga-motion-search, .siga-motion-content,
   [data-siga-motion="module"] > div > :first-child, [data-siga-motion="module"] .siga-motion-kpi { animation: none; }
