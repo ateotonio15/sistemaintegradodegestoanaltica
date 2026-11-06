@@ -1,4 +1,5 @@
 import { anexoCompartilhavelNoGrupo } from "@/lib/financeiro-utils";
+import { SigaLoading } from "@/components/SigaLoading";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Navigate } from "react-router-dom";
@@ -1705,7 +1706,7 @@ export default function Financeiro() {
   if (loading) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center text-foreground">
-        Carregando...
+        <SigaLoading />
       </div>
     );
   }
