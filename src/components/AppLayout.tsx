@@ -988,7 +988,7 @@ export function AppLayout({ children }: { children?: React.ReactNode }) {
         </header>
 
         {/* Main Content */}
-        <main className="flex-1 min-w-0 p-4 md:p-6 lg:p-8 space-y-4">
+        <main data-siga-motion={ ["/movimentacoes", "/financeiro", "/dashboard/geral", "/dashboard/financeiro"].includes(location.pathname) ? "module" : undefined } className="flex-1 min-w-0 p-4 md:p-6 lg:p-8 space-y-4">
           {canVerUea && !isFinanceiro && <AlertaGlobalMargemUea />}
           {children ?? <Outlet />}
         </main>

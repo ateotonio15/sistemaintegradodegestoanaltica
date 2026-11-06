@@ -1,4 +1,5 @@
 import hospitalFoto from "@/assets/hospital_samel.jpg.asset.json";
+import { SigaMotionTrail } from "@/components/SigaMotionTrail";
 import { useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
@@ -594,8 +595,9 @@ export default function Home() {
     <div className="siga-home min-h-[calc(100vh-4rem)] flex flex-col items-center px-4 pb-10 md:pb-16">
       <section className="siga-home-hero w-full">
         <img src={hospitalFoto.url} alt="" aria-hidden="true" className="siga-home-hero-photo" />
+        <SigaMotionTrail />
         <div className="relative z-10 mx-auto flex w-full max-w-5xl flex-col items-center gap-7 px-4 py-12 md:py-16">
-        <div className="text-center space-y-2">
+        <div className="siga-motion-heading text-center space-y-2">
           <h1 className="siga-home-title text-3xl md:text-4xl font-semibold tracking-tight">
             Bem-vindo{greetingDisplay ? (
               <>, <span className="siga-home-name">{greetingDisplay}</span></>
@@ -607,7 +609,7 @@ export default function Home() {
         </div>
 
         {/* Search */}
-        <div className="relative w-full max-w-2xl group">
+        <div className="siga-motion-search relative w-full max-w-2xl group">
           <Search className="absolute left-5 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground group-focus-within:text-primary transition-colors" />
           <Input
             value={query}
@@ -618,7 +620,7 @@ export default function Home() {
         </div>
         </div>
       </section>
-      <div className="w-full max-w-5xl flex flex-col items-center gap-8 pt-8">
+      <div className="siga-motion-content w-full max-w-5xl flex flex-col items-center gap-8 pt-8">
 
         {/* Group header */}
         {activeGroup && !query && (

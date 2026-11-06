@@ -33,7 +33,7 @@ export function KpiCards(props: KpiCardsProps) {
         return (
           <Card
             key={item.key}
-            className="rounded-xl border-border/60 shadow-sm"
+            className="siga-motion-kpi rounded-xl border-border/60 shadow-sm"
           >
             <CardContent className="p-3.5 flex items-center gap-2.5">
               <div className={cn(

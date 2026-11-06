@@ -692,3 +692,56 @@
 .siga-home-hero{margin:-1rem -2rem 0;width:calc(100% + 4rem);border-radius:0}
 @media (min-width:768px){.siga-home-hero{margin:-1.5rem -2.5rem 0;width:calc(100% + 5rem)}}
 @media (min-width:1024px){.siga-home-hero{margin:-2rem -3rem 0;width:calc(100% + 6rem)}}
+
+/* Restrained, opt-in SIGA motion: never animate operational table rows. */
+:root {
+  --motion-trail: var(--sidebar-accent-foreground);
+  --motion-kpi-shadow: 0 8px 20px -12px hsl(var(--primary) / .28);
+}
+.siga-motion-trail {
+  position: absolute; right: 0; top: 22px; width: 220px; height: 180px;
+  pointer-events: none; z-index: 1; color: hsl(var(--motion-trail));
+}
+.siga-motion-track { stroke: currentColor; stroke-width: 1; opacity: .16; }
+.siga-motion-signal {
+  stroke: currentColor; stroke-width: 2.5; stroke-linecap: round;
+  stroke-dasharray: .7 99.3; animation: siga-trace-travel 15s linear infinite;
+}
+.siga-motion-signal-secondary { animation-delay: -7.5s; animation-duration: 19s; }
+@keyframes siga-trace-travel {
+  0% { stroke-dashoffset: 0; opacity: 0; }
+  12%, 82% { opacity: .72; }
+  100% { stroke-dashoffset: -100; opacity: 0; }
+}
+.siga-motion-heading { animation: siga-soft-entry 220ms ease-out both; }
+.siga-motion-search { animation: siga-soft-entry 260ms 40ms ease-out both; }
+.siga-motion-content { animation: siga-soft-entry 280ms 70ms ease-out both; }
+[data-siga-motion="module"] > div > :first-child { animation: siga-soft-entry 220ms ease-out both; }
+[data-siga-motion="module"] .siga-motion-kpi { animation: siga-soft-entry 260ms 40ms ease-out backwards; }
+@keyframes siga-soft-entry { from { opacity: .65; transform: translateY(4px); } to { opacity: 1; transform: none; } }
+.siga-motion-kpi { transition: transform 180ms ease, border-color 180ms ease, box-shadow 180ms ease; }
+@media (hover: hover) and (pointer: fine) {
+  .siga-motion-kpi:hover { transform: translateY(-2px); border-color: hsl(var(--primary) / .4); box-shadow: var(--motion-kpi-shadow); }
+  .siga-motion-kpi:hover .lucide, .group:hover .siga-home-icon .lucide {
+    transform: translateY(-2px); filter: none;
+  }
+  .group:focus-visible .siga-home-card { border-color: hsl(var(--ring)); }
+}
+.siga-loading { display: inline-flex; flex-direction: column; align-items: center; gap: 10px; }
+.siga-loading-track { width: 96px; height: 2px; overflow: hidden; background: hsl(var(--primary) / .15); }
+.siga-loading-track > span { display: block; width: 20px; height: 2px; background: hsl(var(--primary)); animation: siga-loading-travel 1.6s ease-in-out infinite; }
+@keyframes siga-loading-travel { from { transform: translateX(-20px); } to { transform: translateX(96px); } }
+@media (max-width: 1199px) { .siga-motion-trail { display: none; } }
+@media (max-width: 767px) {
+  .siga-motion-heading, .siga-motion-search, .siga-motion-content,
+  [data-siga-motion="module"] > div > :first-child, [data-siga-motion="module"] .siga-motion-kpi { animation: none; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .siga-motion-signal { animation: none; display: none; }
+  .siga-motion-heading, .siga-motion-search, .siga-motion-content,
+  [data-siga-motion="module"] > div > :first-child, [data-siga-motion="module"] .siga-motion-kpi,
+  .siga-loading-track > span { animation: none; }
+  .siga-motion-kpi, .siga-home-card, .siga-home-icon { transition: none; }
+  .siga-motion-kpi:hover, .siga-motion-kpi:hover .lucide, .group:hover .siga-home-icon .lucide { transform: none; }
+  .siga-loading-track > span { width: 100%; opacity: .6; }
+}

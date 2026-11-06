@@ -20,7 +20,7 @@ const TONE: Record<string, string> = {
 
 export function KpiCard({ label, value, hint, icon, tone = "primary" }: KpiCardProps) {
   return (
-    <Card className="relative flex items-center gap-3 overflow-hidden rounded-2xl border-border/60 bg-card/80 p-3.5 shadow-sm">
+    <Card className="siga-motion-kpi relative flex items-center gap-3 overflow-hidden rounded-2xl border-border/60 bg-card/80 p-3.5 shadow-sm">
       <span className={cn("flex h-10 w-10 shrink-0 items-center justify-center rounded-xl", TONE[tone])}>
         {icon}
       </span>
@@ -28,7 +28,7 @@ export function KpiCard({ label, value, hint, icon, tone = "primary" }: KpiCardP
         <p className="truncate text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
           {label}
         </p>
-        <p className="text-2xl font-bold leading-tight tracking-tight">
+        <p className="text-2xl font-bold leading-tight tracking-tight tabular-nums">
           {typeof value === "number" ? value.toLocaleString("pt-BR") : value}
         </p>
         {hint && <p className="truncate text-[11px] text-muted-foreground">{hint}</p>}
