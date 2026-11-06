@@ -435,7 +435,7 @@ export default function Demandas() {
       <Card className="rounded-2xl">
         <div ref={caixaTabela} className="overflow-x-auto rounded-t-2xl">
           <table className="w-full text-sm">
-            <thead className="bg-muted/40 text-xs uppercase tracking-wider text-muted-foreground">
+            <thead className="bg-primary/5 text-xs uppercase tracking-wider text-muted-foreground">
               <tr>
                 <th className="text-left py-2.5 px-3">Data</th>
                 <th className="text-left py-2.5 px-3">Beneficiário</th>
