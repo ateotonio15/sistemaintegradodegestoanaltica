@@ -664,3 +664,27 @@
   [role="dialog"].fixed { border-radius: 1rem; }
 }
 @media (prefers-reduced-motion: reduce) { .bg-primary.inline-flex:hover:not(:disabled) { transform: none; } }
+
+/* ===== Tela inicial no padrão da entrada ===== */
+.siga-home-hero{position:relative;overflow:hidden;margin:0 -1rem;width:calc(100% + 2rem);
+  background:linear-gradient(135deg,hsl(158 64% 9%),hsl(156 55% 15%) 55%,hsl(152 48% 22%));
+  border-bottom:1px solid hsl(var(--primary)/.25)}
+.siga-home-hero-photo{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;opacity:.16;filter:saturate(.7)}
+.siga-home-hero::after{content:"";position:absolute;inset:0;pointer-events:none;
+  background:radial-gradient(ellipse at 50% 0%,hsl(150 60% 40%/.22),transparent 60%),linear-gradient(180deg,transparent 60%,hsl(158 64% 7%/.45))}
+.siga-home-title{color:hsl(150 30% 97%)}
+.siga-home-name{color:hsl(148 60% 62%)}
+.siga-home-subtitle{color:hsl(150 20% 82%)}
+.siga-home-search{background:hsl(0 0% 100%/.1)!important;border:1px solid hsl(0 0% 100%/.18)!important;color:hsl(150 30% 97%);backdrop-filter:blur(8px)}
+.siga-home-search::placeholder{color:hsl(150 15% 78%)}
+.siga-home-search:focus-visible{border-color:hsl(148 60% 55%)!important;box-shadow:0 0 0 4px hsl(148 60% 50%/.22)!important;outline:none}
+.siga-home-hero .group:focus-within svg{color:hsl(148 60% 62%)}
+.siga-home-hero svg{color:hsl(150 15% 80%)}
+.siga-home-tab-active{background:hsl(var(--primary));color:hsl(var(--primary-foreground));box-shadow:0 6px 16px -8px hsl(var(--primary)/.6)}
+.siga-home-divider{background:linear-gradient(90deg,hsl(var(--primary)/.5),transparent)}
+.siga-home-card{background:hsl(var(--card));transition:transform .2s,box-shadow .2s,border-color .2s}
+.group:hover .siga-home-card{transform:translateY(-3px);border-color:hsl(var(--primary)/.5);box-shadow:0 14px 30px -14px hsl(var(--primary)/.4)}
+.siga-home-icon{color:hsl(var(--primary));background:linear-gradient(135deg,hsl(var(--primary)/.18),hsl(var(--primary)/.06));box-shadow:inset 0 0 0 1px hsl(var(--primary)/.18);transition:box-shadow .2s}
+.group:hover .siga-home-icon{box-shadow:inset 0 0 0 1px hsl(var(--primary)/.35),0 0 14px hsl(var(--primary)/.35)}
+@media (min-width:768px){.siga-home-hero{margin:0 -1.5rem;width:calc(100% + 3rem)}}
+@media (prefers-reduced-motion:reduce){.group:hover .siga-home-card{transform:none}}
