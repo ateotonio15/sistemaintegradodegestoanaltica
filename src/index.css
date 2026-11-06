@@ -675,11 +675,11 @@
 .siga-home-title{color:hsl(150 30% 97%)}
 .siga-home-name{color:hsl(148 60% 62%)}
 .siga-home-subtitle{color:hsl(150 20% 82%)}
-.siga-home-search{background:hsl(0 0% 100%/.1)!important;border:1px solid hsl(0 0% 100%/.18)!important;color:hsl(150 30% 97%);backdrop-filter:blur(8px)}
-.siga-home-search::placeholder{color:hsl(150 15% 78%)}
-.siga-home-search:focus-visible{border-color:hsl(148 60% 55%)!important;box-shadow:0 0 0 4px hsl(148 60% 50%/.22)!important;outline:none}
-.siga-home-hero .group:focus-within svg{color:hsl(148 60% 62%)}
-.siga-home-hero svg{color:hsl(150 15% 80%)}
+.siga-home-search{background:hsl(150 28% 98%)!important;border:1px solid hsl(158 28% 74%)!important;color:hsl(158 45% 12%)!important;caret-color:hsl(148 60% 36%);box-shadow:0 16px 34px -18px hsl(158 64% 3%/.95),inset 0 1px 0 hsl(0 0% 100%)}
+.siga-home-search::placeholder{color:hsl(158 12% 40%)!important}
+.siga-home-search:focus-visible{background:hsl(0 0% 100%)!important;border-color:hsl(148 55% 40%)!important;box-shadow:0 0 0 4px hsl(148 60% 50%/.35),0 16px 34px -18px hsl(158 64% 3%/.95)!important;outline:none}
+.siga-home-hero .group:focus-within svg{color:hsl(148 55% 32%)}
+.siga-home-hero svg{color:hsl(158 16% 36%)}
 .siga-home-tab-active{background:hsl(var(--primary));color:hsl(var(--primary-foreground));box-shadow:0 6px 16px -8px hsl(var(--primary)/.6)}
 .siga-home-divider{background:linear-gradient(90deg,hsl(var(--primary)/.5),transparent)}
 .siga-home-card{background:hsl(var(--card));transition:transform .2s,box-shadow .2s,border-color .2s}
