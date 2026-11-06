@@ -363,9 +363,12 @@ export default function Dashboard() {
               </span>
             </div>
             <h1 className="text-2xl font-bold tracking-tight">Dashboard Geral</h1>
-            <p className="text-sm text-muted-foreground">
-              Visão analítica de movimentações, canais e vidas da carteira empresarial
-            </p>
+            <div className="mt-1 flex items-center gap-2">
+              <span className="h-0.5 w-8 rounded-full bg-primary" aria-hidden="true" />
+              <p className="text-sm text-muted-foreground">
+                Visão analítica de movimentações, canais e vidas da carteira empresarial
+              </p>
+            </div>
           </div>
           <div className="flex flex-wrap items-center gap-2">
             <Select
