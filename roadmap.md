@@ -1,8 +1,8 @@
 # Roadmap — Primeiro pacote financeiro
 
 ## Movimento visual SIGA
-- [ ] Aplicar linhas discretas na área espaçosa da página inicial, entradas curtas em módulos selecionados e microinterações nos indicadores, sem mudanças operacionais.
-- [ ] Conferir navegação, busca, computador, celular e redução de movimento.
+- [x] Linhas discretas na página inicial, entradas curtas em Movimentações/Faturamento/painéis e microinterações nos indicadores; carregamento com linha verde, sem mudanças operacionais ou novas bibliotecas.
+- [x] Busca abriu Faturamento com sessão atual; 8 indicadores preservados, efeito de 2px conferido, celular 390px sem rolagem lateral e efeitos removidos com redução de movimento. Três testes aprovados, compilação aprovada e nenhum erro na navegação. Foto existente indisponível no navegador de teste, não alterada.
 
 ## Tela de entrada SIGA
 - [x] Celular prioriza formulário e não baixa a imagem decorativa; tablet tem 3 elementos, desktop 5. Imagem reduzida para 48 KB. Conferidos 320/390/768/1705px, senha, Enter, foco, temas e redução de movimento; carregamento e erro conferidos com resposta simulada, sem envio real de credenciais. Compilação aprovada e nenhuma regra de autenticação alterada.
