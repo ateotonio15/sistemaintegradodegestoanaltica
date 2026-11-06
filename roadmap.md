@@ -1,7 +1,10 @@
 # Roadmap — Primeiro pacote financeiro
 
+## Financeiro — soma dos pagadores
+- [x] Confirmado no período 25–30 de outubro: 1 pagador “Aguardando validação” estava omitido. Cartões próprios para validação/faturamento aguardado; 5 testes aprovados e sessão real confirmou 84 + 10 + 8 + 1 + 0 + 0 + 14 + 2 = 119, sem alteração de registros.
+
 ## PowerPoint de Saúde nas Empresas · Triagens
-- [ ] Apresentar prévia visual dos 10 slides para aprovação, sem números fictícios nem dados individuais.
+- [ ] Apresentar prévia visual dos 10 slides para aprovação, sem números fictícios nem dados individuais; aguarda empresa e data da ação para selecionar os dados reais.
 - [ ] Após aprovação, substituir somente o PowerPoint por apresentação editável baseada nas triagens reais; preservar Excel e classificações.
 - [ ] Validar bases, semáforo sem duplicação, cruzamento condicional, arquivo editável e enquadramento de todos os slides.
 

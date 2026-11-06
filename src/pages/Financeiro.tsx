@@ -60,6 +60,7 @@ import {
   PERIODOS_FIN,
   calcularStatusFinanceiro,
   contarContratosPorStatus,
+  contarPagadoresPorStatus,
   type StatusFinanceiro,
   getCurrentMesReferencia,
   formatMesReferencia,
@@ -1390,37 +1391,19 @@ export default function Financeiro() {
     // Todos os indicadores de status contam PAGADORES (mesma expansão do Total pagadores):
     // sem pagadores cadastrados → 1; com pagadores → nº de pagadores + CNPJ mãe (se não repetido).
     // Cada empresa conta uma única vez por status, mesmo com várias linhas.
-    const contarPagadoresPorStatus = (statuses: string[]) => {
-      const vistos = new Set<string>();
-      let total = 0;
-      kpiRows.forEach((r) => {
-        if (!statuses.includes(r.status)) return;
-        const chave = `${r.empresa_id}|${statuses.join(",")}`;
-        if (vistos.has(chave)) return;
-        vistos.add(chave);
-        const lista = (pagadoresCadastradosMap[r.empresa_id] || []).filter(
-          (p: any) => p.ativo && vigenteNaCompetencia(p, (r as any).mes_referencia ?? mes),
-        );
-        if (lista.length === 0) {
-          total += 1;
-        } else {
-          const cnpjsPag = new Set(lista.map((p: any) => onlyDigits(p.cnpj)).filter(Boolean));
-          const cnpjMae = onlyDigits(r.empresa_cnpj);
-          const incluiMae = !!cnpjMae && !cnpjsPag.has(cnpjMae);
-          total += lista.length + (incluiMae ? 1 : 0);
-        }
-      });
-      return total;
-    };
+    const contar = (statuses: StatusFinanceiro[]) =>
+      contarPagadoresPorStatus(kpiRows, pagadoresCadastradosMap, mes, statuses);
     return {
       totalEmpresas: contratosSet.size,
       totalPagadores,
-      notasEnviadas: contarPagadoresPorStatus(["Enviada"]),
-      notaEmitida: contarPagadoresPorStatus(["Nota emitida"]),
-      aguardandoNota: contarPagadoresPorStatus(["Aguardando nota"]),
-      pendentes: contarPagadoresPorStatus(["Pendente"]),
-      emFaturamento: contarPagadoresPorStatus(["Em faturamento"]),
-      faturado: contarPagadoresPorStatus(["Faturado"]),
+      notasEnviadas: contar(["Enviada"]),
+      notaEmitida: contar(["Nota emitida"]),
+      aguardandoNota: contar(["Aguardando nota"]),
+      aguardandoValidacao: contar(["Aguardando validação"]),
+      aguardandoFaturamento: contar(["Aguardando faturamento"]),
+      pendentes: contar(["Pendente"]),
+      emFaturamento: contar(["Em faturamento"]),
+      faturado: contar(["Faturado"]),
     };
   }, [kpiRows, pagadoresCadastradosMap, mes]);
 

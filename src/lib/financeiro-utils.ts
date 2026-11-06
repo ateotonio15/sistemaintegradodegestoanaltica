@@ -188,6 +188,30 @@ export function contarContratosPorStatus<
   return contratos.size;
 }
 
+/** Mesma base de pagadores do total, sem repetir movimentações da empresa no mesmo status. */
+export function contarPagadoresPorStatus(
+  rows: Array<{ empresa_id: string; empresa_cnpj?: string | null; status: StatusFinanceiro; mes_referencia?: string | null }>,
+  pagadores: Record<string, Array<{ ativo: boolean; cnpj?: string | null; inativo_a_partir_de?: string | null }>>,
+  mes: string,
+  statuses: StatusFinanceiro[],
+): number {
+  const vistos = new Set<string>();
+  const digits = (s?: string | null) => (s ?? "").replace(/\D/g, "");
+  let total = 0;
+  rows.forEach((r) => {
+    if (!statuses.includes(r.status) || vistos.has(r.empresa_id)) return;
+    vistos.add(r.empresa_id);
+    const competencia = r.mes_referencia ?? mes;
+    const lista = (pagadores[r.empresa_id] ?? []).filter(
+      (p) => p.ativo && (!p.inativo_a_partir_de || competencia < p.inativo_a_partir_de),
+    );
+    const cnpjMae = digits(r.empresa_cnpj);
+    const incluiMae = !!cnpjMae && !lista.some((p) => digits(p.cnpj) === cnpjMae);
+    total += lista.length === 0 ? 1 : lista.length + (incluiMae ? 1 : 0);
+  });
+  return total;
+}
+
 export function statusFinanceiroColor(status: StatusFinanceiro): string {
   switch (status) {
     case "Nota emitida":
