@@ -33,7 +33,7 @@ export function KpiCards(props: KpiCardsProps) {
         return (
           <Card
             key={item.key}
-            className="siga-motion-kpi rounded-xl border-border/60 shadow-sm"
+            className="siga-motion-kpi siga-home-card group relative overflow-hidden rounded-xl border-border/60 shadow-sm transition-all hover:-translate-y-0.5 hover:border-primary/40 hover:shadow-md before:absolute before:inset-x-0 before:top-0 before:h-0.5 before:bg-gradient-to-r before:from-primary/70 before:to-transparent"
           >
             <CardContent className="p-3.5 flex items-center gap-2.5">
               <div className={cn(

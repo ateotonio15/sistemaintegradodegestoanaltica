@@ -22,7 +22,9 @@ import LoginAnalyticsVisual from "@/components/LoginAnalyticsVisual";
 import { SigaMotionTrail } from "@/components/SigaMotionTrail";
 
 export default function Auth() {
-  const [username, setUsername] = useState("");
+  const [username, setUsername] = useState(() => localStorage.getItem("siga_lembrar_usuario") ?? "");
+  const [lembrar, setLembrar] = useState(() => !!localStorage.getItem("siga_lembrar_usuario"));
+  const [capsLock, setCapsLock] = useState(false);
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -46,6 +48,8 @@ export default function Auth() {
         refresh_token: data.session.refresh_token,
       });
       if (error) throw error;
+      if (lembrar) localStorage.setItem("siga_lembrar_usuario", username.trim());
+      else localStorage.removeItem("siga_lembrar_usuario");
     } catch (err: any) {
       const msg = err.message?.includes("Invalid login")
         ? "Usuário ou senha inválidos"
@@ -160,6 +164,9 @@ export default function Auth() {
                   type={showPassword ? "text" : "password"}
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
+                  onKeyUp={(e) => setCapsLock(e.getModifierState("CapsLock"))}
+                  onKeyDown={(e) => setCapsLock(e.getModifierState("CapsLock"))}
+                  onBlur={() => setCapsLock(false)}
                   required
                   minLength={1}
                   placeholder="••••••••"
@@ -178,7 +185,19 @@ export default function Auth() {
                   {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                 </Button>
               </div>
+              {capsLock && (
+                <p role="status" className="text-xs font-medium text-warning">Caps Lock está ligado</p>
+              )}
             </div>
+            <label className="flex items-center gap-2 text-sm text-muted-foreground cursor-pointer select-none">
+              <input
+                type="checkbox"
+                checked={lembrar}
+                onChange={(e) => setLembrar(e.target.checked)}
+                className="h-4 w-4 rounded border-input accent-primary"
+              />
+              Lembrar meu usuário
+            </label>
             <Button type="submit" disabled={loading} className="siga-login-submit h-12 w-full rounded-lg text-sm font-semibold">
               {loading ? (
                 <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Entrando...</>
