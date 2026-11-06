@@ -1,5 +1,10 @@
 # Roadmap — Primeiro pacote financeiro
 
+## PowerPoint de Saúde nas Empresas · Triagens
+- [ ] Apresentar prévia visual dos 10 slides para aprovação, sem números fictícios nem dados individuais.
+- [ ] Após aprovação, substituir somente o PowerPoint por apresentação editável baseada nas triagens reais; preservar Excel e classificações.
+- [ ] Validar bases, semáforo sem duplicação, cruzamento condicional, arquivo editável e enquadramento de todos os slides.
+
 ## Movimento visual SIGA
 - [x] Linhas discretas na página inicial, entradas curtas em Movimentações/Faturamento/painéis e microinterações nos indicadores; carregamento com linha verde, sem mudanças operacionais ou novas bibliotecas.
 - [x] Busca abriu Faturamento com sessão atual; 8 indicadores preservados, efeito de 2px conferido, celular 390px sem rolagem lateral e efeitos removidos com redução de movimento. Três testes aprovados, compilação aprovada e nenhum erro na navegação. Foto existente indisponível no navegador de teste, não alterada.
