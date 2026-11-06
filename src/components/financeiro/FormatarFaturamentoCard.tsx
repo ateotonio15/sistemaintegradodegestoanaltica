@@ -325,7 +325,7 @@ export function FormatarFaturamentoCard() {
           </div>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-[1fr_auto] gap-3 items-stretch flex-1">
+        <div className="grid grid-cols-1 gap-3 items-stretch flex-1 min-w-0">
           {/* Drop zone */}
           <button
             type="button"
@@ -341,7 +341,7 @@ export function FormatarFaturamentoCard() {
               pickFile(e.dataTransfer.files?.[0]);
             }}
             className={cn(
-              "relative flex items-center justify-center gap-3 rounded-xl border-2 border-dashed px-4 py-4 text-left transition-colors min-h-[92px]",
+              "relative flex w-full min-w-0 items-center justify-center gap-3 rounded-xl border-2 border-dashed px-4 py-4 text-left transition-colors min-h-[92px]",
               dragOver
                 ? "border-primary bg-primary/5"
                 : file
@@ -392,13 +392,13 @@ export function FormatarFaturamentoCard() {
           </button>
 
           {/* Modo + ação */}
-          <div className="flex flex-col justify-between gap-3 lg:min-w-[220px]">
+          <div className="flex w-full min-w-0 flex-col justify-between gap-3">
             <div>
               <Label className="text-xs">Modo</Label>
               <RadioGroup
                 value={modo}
                 onValueChange={(v) => setModo(v as ModoFaturamento)}
-                className="mt-1 flex items-center gap-3"
+                className="mt-1 flex flex-wrap items-center gap-3"
               >
                 <div className="flex items-center gap-1.5">
                   <RadioGroupItem value="nao_prorata" id="mod-np" />
