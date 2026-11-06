@@ -2678,12 +2678,16 @@ export default function Financeiro() {
     <>
       <div className="space-y-6 p-4 md:p-6">
         {/* Header */}
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <div>
-            <h1 className="text-2xl font-bold tracking-tight text-foreground">Faturamento</h1>
-            <p className="mt-1 text-sm text-muted-foreground">
-              {filteredRows.length} registro(s) encontrado(s) · {formatMesReferencia(mes)}
-            </p>
+        <div className="flex flex-wrap items-end justify-between gap-4">
+          <div className="min-w-0">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-primary">Financeiro</p>
+            <h1 className="mt-1 text-2xl font-bold tracking-tight text-foreground">Faturamento</h1>
+            <div className="mt-2 flex items-center gap-2">
+              <span className="h-0.5 w-8 rounded-full bg-primary" aria-hidden="true" />
+              <p className="text-sm text-muted-foreground">
+                {filteredRows.length} registro(s) encontrado(s) · {formatMesReferencia(mes)}
+              </p>
+            </div>
           </div>
 
           <div className="flex items-center gap-2 flex-wrap">
