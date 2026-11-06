@@ -277,17 +277,17 @@
 
   .dark {
     /* Paleta premium — verde petróleo + verde vivo (#22C55E) */
-    --background: 150 14% 7%;          /* #0F1512 */
+    --background: 152 24% 7%;          /* #0F1512 */
     --foreground: 150 12% 96%;
 
-    --card: 150 22% 12%;               /* #18241E */
+    --card: 152 22% 11%;               /* #18241E */
     --card-foreground: 150 12% 96%;
 
-    --popover: 150 22% 12%;
+    --popover: 152 22% 12%;
     --popover-foreground: 150 12% 96%;
 
     /* Primária vibrante #22C55E com texto branco para contraste premium */
-    --primary: 142 71% 45%;
+    --primary: 142 65% 52%;
     --primary-foreground: 0 0% 100%;
 
     --secondary: 150 18% 13%;
@@ -302,9 +302,9 @@
     --destructive: 0 72% 55%;
     --destructive-foreground: 0 0% 100%;
 
-    --border: 150 14% 17%;
-    --input: 150 14% 17%;
-    --ring: 142 71% 45%;
+    --border: 148 20% 20%;
+    --input: 148 18% 22%;
+    --ring: 142 65% 52%;
 
     --success: 142 71% 45%;
     --success-foreground: 0 0% 100%;
@@ -766,3 +766,6 @@
   .siga-motion-kpi:hover, .siga-motion-kpi:hover .lucide, .group:hover .siga-home-icon .lucide { transform: none; }
   .siga-loading-track > span { width: 100%; opacity: .6; }
 }
+
+/* Modo escuro: quadros e janelas destacados do fundo */
+.dark .bg-card, .dark [role="dialog"] { box-shadow: 0 0 0 1px hsl(142 50% 45% / 0.12), 0 8px 24px -12px hsl(0 0% 0% / 0.6); }
