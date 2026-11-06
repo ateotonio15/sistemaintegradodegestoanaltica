@@ -180,6 +180,11 @@ function norm(s: unknown): string {
     .trim();
 }
 
+/** Aba dedicada a retroativo: "Retroativo Ago26", "RetroaçãoAgo26", "C.RETROATIVA". */
+function ehNomeAbaRetro(nomeNormalizado: string): boolean {
+  return nomeNormalizado.includes("retroativ") || nomeNormalizado.includes("retroacao");
+}
+
 /** Converte qualquer célula em número (aceita "R$ 1.234,56"). */
 function toNumber(v: unknown): number {
   if (v === null || v === undefined || v === "") return NaN;
@@ -2567,7 +2572,7 @@ export async function analisarExcelFinanceiroPorCnpj(
   };
   wb.worksheets.forEach((sheet) => {
     const nomeAba = norm(sheet.name || "");
-    const abaEhRetro = nomeAba.includes("retroativ");
+    const abaEhRetro = ehNomeAbaRetro(nomeAba);
     if (abaEhRetro) return;
     const rowsSheet: unknown[][] = [];
     sheet.eachRow({ includeEmpty: false }, (row) => rowsSheet.push((row.values as unknown[]).slice(1)));
@@ -2703,7 +2708,7 @@ export async function analisarExcelFinanceiroPorCnpj(
   if (!pivotEncontrado) {
     wb.worksheets.forEach((sheet) => {
       const nomeAba = norm(sheet.name || "");
-      if (!nomeAba.includes("retroativ")) return;
+      if (!ehNomeAbaRetro(nomeAba)) return;
       const mes = extrairMes(sheet.name || "");
       if (mes) mesesRetro.add(mes);
       const rowsSheet: unknown[][] = [];
@@ -2747,7 +2752,7 @@ export async function analisarExcelFinanceiroPorCnpj(
     // Mesmo com pivots, coleta meses das abas dedicadas para exibição
     wb.worksheets.forEach((sheet) => {
       const nomeAba = norm(sheet.name || "");
-      if (!nomeAba.includes("retroativ")) return;
+      if (!ehNomeAbaRetro(nomeAba)) return;
       const mes = extrairMes(sheet.name || "");
       if (mes) mesesRetro.add(mes);
     });
@@ -2771,7 +2776,7 @@ export async function analisarExcelFinanceiroPorCnpj(
     const porPag = new Map<string, Map<string, { quantidade: number; total: number }>>();
     wb.worksheets.forEach((sheet) => {
       const nomeAba = norm(sheet.name || "");
-      if (!nomeAba.includes("retroativ")) return;
+      if (!ehNomeAbaRetro(nomeAba)) return;
       const mes = extrairMes(sheet.name || "");
       if (!mes) return;
       const rowsSheet: unknown[][] = [];
