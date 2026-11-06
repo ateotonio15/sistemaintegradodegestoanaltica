@@ -380,15 +380,19 @@ export default function Reajustes() {
   return (
     <>
       <div className="p-4 md:p-6 space-y-6">
-        <div className="flex items-center justify-between gap-4 flex-wrap">
-          <div>
-            <h1 className="text-2xl md:text-3xl font-bold tracking-tight flex items-center gap-2">
-              <TrendingUp className="h-7 w-7 text-primary" />
+        <div className="flex items-end justify-between gap-4 flex-wrap">
+          <div className="min-w-0">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-primary">Contratos</p>
+            <h1 className="mt-1 text-2xl font-bold tracking-tight flex items-center gap-2">
+              <TrendingUp className="h-6 w-6 text-primary" />
               Reajuste Contratual
             </h1>
-            <p className="text-sm text-muted-foreground mt-1">Controle anual de reajustes dos contratos</p>
+            <div className="mt-2 flex items-center gap-2">
+              <span className="h-0.5 w-8 rounded-full bg-primary" aria-hidden="true" />
+              <p className="text-sm text-muted-foreground">Controle anual de reajustes dos contratos</p>
+            </div>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
             <Button variant="outline" onClick={handleExportExcel}>
               <Download className="h-4 w-4 mr-2" /> Excel
             </Button>
