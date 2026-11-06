@@ -180,6 +180,11 @@ function norm(s: unknown): string {
     .trim();
 }
 
+/** Aba dedicada a retroativo: "Retroativo Ago26", "RetroaçãoAgo26", "C.RETROATIVA". */
+function ehNomeAbaRetro(nomeNormalizado: string): boolean {
+  return nomeNormalizado.includes("retroativ") || nomeNormalizado.includes("retroacao");
+}
+
 /** Converte qualquer célula em número (aceita "R$ 1.234,56"). */
 function toNumber(v: unknown): number {
   if (v === null || v === undefined || v === "") return NaN;
