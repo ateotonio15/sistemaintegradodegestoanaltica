@@ -46,7 +46,7 @@ export function statusColor(status: StatusMovimentacao) {
       return "bg-destructive text-destructive-foreground";
     case "Aguardando envio":
     default:
-      return "bg-muted text-muted-foreground";
+      return "border-border/70 bg-muted text-foreground/85";
   }
 }
 
