@@ -19,6 +19,7 @@ import logo from "@/assets/logo-cs-control.png";
 import hospitalFoto from "@/assets/hospital_samel.jpg.asset.json";
 import loginVisual from "@/assets/siga-login-visual.webp";
 import LoginAnalyticsVisual from "@/components/LoginAnalyticsVisual";
+import { SigaMotionTrail } from "@/components/SigaMotionTrail";
 
 export default function Auth() {
   const [username, setUsername] = useState("");
@@ -70,6 +71,8 @@ export default function Auth() {
         />
         </picture>
         <div className="siga-login-shade absolute inset-0" aria-hidden="true" />
+        <div className="siga-login-traces siga-login-traces-top" aria-hidden="true"><SigaMotionTrail /></div>
+        <div className="siga-login-traces siga-login-traces-bottom" aria-hidden="true"><SigaMotionTrail /></div>
         <div className="relative z-10 flex items-center gap-3">
           <img src={logo} alt="" width={44} height={44} className="h-11 w-11 object-contain" />
           <div>
@@ -100,6 +103,7 @@ export default function Auth() {
       <section className="siga-login-access relative flex flex-col items-center justify-center px-5 py-10 sm:px-10 lg:px-8 xl:px-14" aria-label="Acesso ao sistema">
         <img src={hospitalFoto.url} alt="" aria-hidden="true" className="siga-login-photo absolute inset-0 h-full w-full object-cover" />
         <div className="siga-login-photo-fade absolute inset-0" aria-hidden="true" />
+        <div className="siga-login-traces siga-login-traces-access" aria-hidden="true"><SigaMotionTrail /></div>
         <motion.div
           initial={reducedMotion ? false : { opacity: 0, y: 12 }}
           animate={{ opacity: 1, y: 0 }}
