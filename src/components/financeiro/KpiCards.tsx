@@ -7,6 +7,8 @@ interface KpiCardsProps {
   notasEnviadas: number;
   notaEmitida: number;
   aguardandoNota: number;
+  aguardandoValidacao: number;
+  aguardandoFaturamento: number;
   pendentes: number;
   emFaturamento: number;
   faturado: number;
@@ -19,6 +21,8 @@ const items = [
   { key: "notasEnviadas", label: "Notas enviadas", icon: FileCheck, accent: "text-success", bg: "bg-success/10" },
   { key: "notaEmitida", label: "Nota emitida", icon: FileText, accent: "text-primary", bg: "bg-primary/10" },
   { key: "aguardandoNota", label: "Aguardando Emissão", icon: Clock, accent: "text-warning", bg: "bg-warning/10" },
+  { key: "aguardandoValidacao", label: "Aguardando validação", icon: FileCheck, accent: "text-info", bg: "bg-info/10" },
+  { key: "aguardandoFaturamento", label: "Aguardando faturamento", icon: Clock, accent: "text-warning", bg: "bg-warning/10" },
   { key: "pendentes", label: "Pendentes", icon: AlertCircle, accent: "text-muted-foreground", bg: "bg-muted" },
   { key: "emFaturamento", label: "Em faturamento", icon: RefreshCw, accent: "text-info", bg: "bg-info/10" },
   { key: "faturado", label: "Faturado", icon: BadgeCheck, accent: "text-success", bg: "bg-success/10" },
@@ -26,7 +30,7 @@ const items = [
 
 export function KpiCards(props: KpiCardsProps) {
   return (
-    <div className="grid grid-cols-2 gap-3 lg:grid-cols-3 xl:grid-cols-4 min-[1750px]:grid-cols-8">
+    <div className="grid grid-cols-2 gap-3 lg:grid-cols-3 xl:grid-cols-5">
       {items.map((item) => {
         const Icon = item.icon;
         const value = props[item.key];
