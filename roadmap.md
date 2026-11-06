@@ -186,3 +186,10 @@
 
 ## Indicadores do Financeiro
 - [x] Retirar o cartão "Fora do prazo" e exibir "Em faturamento" e "Faturado" (contratos distintos, não linhas). 3 testes novos aprovados, build OK; sessão autenticada conferiu os 7 cartões na largura real (1890) e em 1440/1280/1024/768 sem rótulos cortados.
+
+## Padrão visual do SIGA — telas com o topo da tela de entrada
+- [x] "Movimentações": etiqueta verde "Fechamento mensal", traço verde na descrição, botões que quebram linha, cards de período com hover, cabeçalho de tabela suave.
+- [x] "Financeiro": etiqueta verde "Financeiro" acima de "Faturamento" e traço verde no total de registros.
+- [x] "Reajustes": etiqueta verde "Contratos", traço verde na descrição e botões que quebram linha em telas menores.
+- [x] "Demandas": etiqueta verde "Reclamações", traço verde na descrição, contagem de registros na mesma linha e cabeçalho de tabela em verde suave. Conferido na prévia com sessão real (1000 registros, sem erros novos).
+- [ ] Dashboard, janelas abertas, telas vazias e revisão do modo escuro.
