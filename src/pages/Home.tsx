@@ -1,3 +1,4 @@
+import hospitalFoto from "@/assets/hospital_samel.jpg.asset.json";
 import { useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
@@ -558,8 +559,8 @@ export default function Home() {
   const renderCard = (s: LeafShortcut | (GroupShortcut & { group?: string }), opts?: { asGroup?: boolean }) => {
     const Icon = s.icon;
     const inner = (
-      <Card className="p-4 flex items-center gap-4 rounded-2xl border border-border/70 bg-card hover:border-primary/40 hover:shadow-[0_10px_30px_-12px_hsl(var(--primary)/0.25)] transition-all duration-200 h-[88px]">
-        <div className="h-11 w-11 rounded-xl bg-primary/10 text-primary flex items-center justify-center shrink-0 group-hover:bg-primary group-hover:text-primary-foreground transition-colors">
+      <Card className="p-4 flex items-center gap-4 rounded-2xl border border-border/70 siga-home-card h-[88px]">
+        <div className="h-11 w-11 rounded-xl siga-home-icon flex items-center justify-center shrink-0">
           <Icon className="h-5 w-5" />
         </div>
         <div className="min-w-0 flex-1">
@@ -590,15 +591,17 @@ export default function Home() {
   };
 
   return (
-    <div className="min-h-[calc(100vh-4rem)] flex flex-col items-center px-4 py-10 md:py-16">
-      <div className="w-full max-w-5xl flex flex-col items-center gap-8">
+    <div className="siga-home min-h-[calc(100vh-4rem)] flex flex-col items-center px-4 pb-10 md:pb-16">
+      <section className="siga-home-hero w-full">
+        <img src={hospitalFoto.url} alt="" aria-hidden="true" className="siga-home-hero-photo" />
+        <div className="relative z-10 mx-auto flex w-full max-w-5xl flex-col items-center gap-7 px-4 py-12 md:py-16">
         <div className="text-center space-y-2">
-          <h1 className="text-3xl md:text-4xl font-semibold tracking-tight text-foreground">
+          <h1 className="siga-home-title text-3xl md:text-4xl font-semibold tracking-tight">
             Bem-vindo{greetingDisplay ? (
-              <>, <span className="text-primary">{greetingDisplay}</span></>
+              <>, <span className="siga-home-name">{greetingDisplay}</span></>
             ) : ""}!
           </h1>
-          <p className="text-sm md:text-base text-muted-foreground font-medium">
+          <p className="siga-home-subtitle text-sm md:text-base font-medium">
             O que você deseja gerenciar hoje no SIGA?
           </p>
         </div>
@@ -610,9 +613,12 @@ export default function Home() {
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             placeholder="Buscar módulo, função ou atalho..."
-            className="h-14 pl-14 pr-6 rounded-2xl border-border/70 bg-card shadow-sm focus-visible:ring-2 focus-visible:ring-primary/20 focus-visible:border-primary transition-all"
+            className="siga-home-search h-14 pl-14 pr-6 rounded-2xl transition-all"
           />
         </div>
+        </div>
+      </section>
+      <div className="w-full max-w-5xl flex flex-col items-center gap-8 pt-8">
 
         {/* Group header */}
         {activeGroup && !query && (
@@ -628,7 +634,7 @@ export default function Home() {
 
         {/* Tabs */}
         {!query && !activeGroup && !soSaude && (
-          <div className="inline-flex items-center gap-1 p-1 bg-muted/60 rounded-xl">
+          <div className="inline-flex items-center gap-1 p-1 bg-muted/60 rounded-xl border border-border/50">
             {(["funcoes", "utilitarios"] as const).map((t) => {
               const active = tab === t;
               return (
@@ -638,7 +644,7 @@ export default function Home() {
                   className={cn(
                     "px-6 md:px-8 py-2 text-sm rounded-lg transition-all",
                     active
-                      ? "bg-card text-primary font-semibold shadow-sm border border-border/60"
+                      ? "siga-home-tab-active font-semibold"
                       : "text-muted-foreground hover:text-foreground font-medium",
                   )}
                 >
@@ -675,7 +681,7 @@ export default function Home() {
               <h2 className="text-base font-bold tracking-tight text-foreground">
                 Inteligência de Relacionamento
               </h2>
-              <div className="flex-1 h-px bg-border/60" />
+              <div className="siga-home-divider flex-1 h-px" />
               {openInteligencia && (
                 <Button
                   variant="ghost"
@@ -713,8 +719,8 @@ export default function Home() {
                             to={item.to || `/inteligencia/${item.slug}`}
                             className="group h-full block"
                           >
-                            <Card className="p-4 flex items-center gap-3 rounded-xl border-border/60 bg-card hover:bg-accent/40 hover:border-primary/40 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md h-[88px]">
-                              <div className="h-11 w-11 rounded-xl bg-primary/10 text-primary flex items-center justify-center shrink-0 ring-1 ring-primary/15 group-hover:bg-primary/15 transition-colors">
+                            <Card className="p-4 flex items-center gap-3 rounded-xl border-border/60 siga-home-card h-[88px]">
+                              <div className="h-11 w-11 rounded-xl siga-home-icon flex items-center justify-center shrink-0">
                                 <Icon className="h-5 w-5" />
                               </div>
                               <div className="min-w-0">
@@ -753,8 +759,8 @@ export default function Home() {
                     if (!onlyItem) return null;
 
                     const cardInner = (
-                      <Card className="p-4 flex items-center gap-3 rounded-xl border-border/60 bg-card hover:bg-accent/40 hover:border-primary/40 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md h-[88px]">
-                        <div className="h-11 w-11 rounded-xl bg-primary/10 text-primary flex items-center justify-center shrink-0 ring-1 ring-primary/15 group-hover:bg-primary/15 transition-colors">
+                      <Card className="p-4 flex items-center gap-3 rounded-xl border-border/60 siga-home-card h-[88px]">
+                        <div className="h-11 w-11 rounded-xl siga-home-icon flex items-center justify-center shrink-0">
                           <Icon className="h-5 w-5" />
                         </div>
                         <div className="min-w-0 flex-1">
@@ -763,7 +769,7 @@ export default function Home() {
                               {isGroup ? section.title : onlyItem.label}
                             </div>
                             {section.title === "Demandas" ? <CirurgiaCardBadge demandas /> : section.title === "Agenda Cirúrgica" ? <CirurgiaCardBadge /> : isGroup && (
-                              <span className="text-[10px] font-medium px-1.5 py-0.5 rounded-full bg-primary/10 text-primary">
+                              <span className="text-[10px] font-medium px-1.5 py-0.5 rounded-full bg-primary text-primary-foreground">
                                 {visibleItems.length}
                               </span>
                             )}
