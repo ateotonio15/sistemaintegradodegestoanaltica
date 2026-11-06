@@ -1,5 +1,8 @@
 # Roadmap — Primeiro pacote financeiro
 
+## Financeiro — soma dos pagadores
+- [ ] Investigar soma de 118 indicadores versus 119 pagadores, corrigir a causa e validar com teste e tela real.
+
 ## PowerPoint de Saúde nas Empresas · Triagens
 - [ ] Apresentar prévia visual dos 10 slides para aprovação, sem números fictícios nem dados individuais.
 - [ ] Após aprovação, substituir somente o PowerPoint por apresentação editável baseada nas triagens reais; preservar Excel e classificações.
