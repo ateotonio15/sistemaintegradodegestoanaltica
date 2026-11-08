@@ -34,7 +34,10 @@ function ProdutoCombobox({ acomodacao, codigo, produtos, loading, error, onChang
         </Button>
       </PopoverTrigger>
       <PopoverContent className="w-[var(--radix-popover-trigger-width)] p-0" align="start">
-        <Command>
+        <Command filter={(value, search) => {
+          const normalize = (text: string) => text.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+          return normalize(value).includes(normalize(search).trim()) ? 1 : 0;
+        }}>
           <CommandInput placeholder="Pesquisar código ou nome…" />
           <CommandList>
             <CommandEmpty>Nenhum produto encontrado.</CommandEmpty>
