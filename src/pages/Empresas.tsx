@@ -77,6 +77,7 @@ const emptyForm: TablesInsert<"empresas"> & { responsavel_user_id?: string | nul
   nome_fantasia: "",
   cnpj: "",
   codigo_contrato: "",
+  plano: "",
   responsavel_contrato: "",
   operadora_plano: "",
   data_corte: null,
@@ -426,6 +427,9 @@ export default function Empresas() {
         if (error) throw error;
         return;
       }
+      if (!String((values as any).plano ?? "").trim()) {
+        throw new Error("Informe o plano contratado.");
+      }
       // Validação: anexo obrigatório APENAS quando a Data de Implantação for hoje ou futura
       const implFutura = (() => {
         if (!dataImplantacao) return false;
@@ -688,6 +692,7 @@ export default function Empresas() {
       nome_fantasia: (e as any).nome_fantasia ?? "",
       cnpj: e.cnpj ?? "",
       codigo_contrato: e.codigo_contrato ?? "",
+      plano: (e as any).plano ?? "",
       responsavel_contrato: e.responsavel_contrato ?? "",
       operadora_plano: e.operadora_plano ?? "",
       data_corte: e.data_corte,
@@ -1230,6 +1235,10 @@ export default function Empresas() {
                       <div className="space-y-2">
                         <Label className="text-sm font-medium">Código do Contrato *</Label>
                         <Input value={form.codigo_contrato ?? ""} onChange={(e) => setForm({ ...form, codigo_contrato: e.target.value })} required className="rounded-lg" />
+                      </div>
+                      <div className="space-y-2">
+                        <Label className="text-sm font-medium">Plano *</Label>
+                        <Input value={(form as any).plano ?? ""} onChange={(e) => setForm({ ...form, plano: e.target.value } as any)} placeholder="Nome do produto contratado" required className="rounded-lg" />
                       </div>
                       <div className="space-y-2">
                         <div className="flex items-center justify-between gap-2">
