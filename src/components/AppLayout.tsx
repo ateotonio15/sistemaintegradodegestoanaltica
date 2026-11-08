@@ -50,7 +50,6 @@ const allNavItems = [
   
   { to: "/financeiro", label: "Faturamento", icon: Wallet },
   { to: "/implantacao", label: "Análise de Contratos", icon: FileSignature },
-  { to: "/contratos-recem-implantados", label: "Primeira Vigencia", icon: ClockAlert },
   { to: "/arquivos", label: "Arquivos", icon: FolderArchive },
   { to: "/recebidos-central", label: "Recebidos da Central", icon: FolderArchive },
   { to: "/reajustes", label: "Reajuste", icon: TrendingUp },

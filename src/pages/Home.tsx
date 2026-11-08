@@ -295,14 +295,6 @@ const EMPRESAS_CHILDREN: LeafShortcut[] = [
       c.isAdmin || ["comum", "administradoras", "visualizacao", "diretora"].includes(c.role as string),
   },
   {
-    to: "/contratos-recem-implantados",
-    label: "Primeira Vigencia",
-    description: "Acompanhar primeiros fechamentos",
-    icon: ClockAlert,
-    show: (c) =>
-      c.isAdmin || c.isFinanceiro || ["comum", "administradoras", "diretora"].includes(c.role as string),
-  },
-  {
     to: "/vidas",
     label: "Vidas",
     description: "Gestão e conciliação com a operadora",
