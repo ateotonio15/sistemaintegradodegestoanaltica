@@ -7,7 +7,6 @@ import {
   ArrowLeftRight,
   UserCheck,
   FileSignature,
-  ClockAlert,
   Activity,
   type LucideIcon,
 } from "lucide-react";
@@ -28,13 +27,6 @@ const TABS: Tab[] = [
   },
   { to: "/empresas", label: "Empresas", icon: Building2, show: () => true },
   { to: "/movimentacoes", label: "Movimentações", icon: ArrowLeftRight, show: () => true },
-  {
-    to: "/contratos-recem-implantados",
-    label: "Primeira Vigencia",
-    icon: ClockAlert,
-    show: ({ isAdmin, isFinanceiro, role }) =>
-      isAdmin || isFinanceiro || ["comum", "administradoras", "diretora"].includes(role as string),
-  },
   {
     to: "/vidas",
     label: "Vidas",

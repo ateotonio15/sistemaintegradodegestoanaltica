@@ -22,7 +22,6 @@ import {
   UserCheck,
   Wallet,
   FileSignature,
-  ClockAlert,
   FolderArchive,
   FileText,
   TrendingUp,
@@ -293,14 +292,6 @@ const EMPRESAS_CHILDREN: LeafShortcut[] = [
     icon: FileSignature,
     show: (c) =>
       c.isAdmin || ["comum", "administradoras", "visualizacao", "diretora"].includes(c.role as string),
-  },
-  {
-    to: "/contratos-recem-implantados",
-    label: "Primeira Vigencia",
-    description: "Acompanhar primeiros fechamentos",
-    icon: ClockAlert,
-    show: (c) =>
-      c.isAdmin || c.isFinanceiro || ["comum", "administradoras", "diretora"].includes(c.role as string),
   },
   {
     to: "/vidas",

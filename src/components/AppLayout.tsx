@@ -1,6 +1,6 @@
 import { useState, useMemo, useCallback, useEffect, useRef } from "react";
 import { Link, Outlet, useLocation, useNavigate } from "react-router-dom";
-import { Building2, ArrowLeftRight, LayoutDashboard, Bell, Sun, Moon, LogOut, Users, Check, CheckCheck, PanelLeftClose, PanelLeft, UserCheck, CalendarClock, Building, FileText, User, Calendar, Wallet, TrendingUp, FolderArchive, FileSignature, HeartPulse, Activity, ChevronDown, ClockAlert, Bike, Briefcase, MessageSquareWarning, Phone, Car, Stethoscope, Mic, Star, ShieldPlus, Home as HomeIcon, Plus, ExternalLink } from "lucide-react";
+import { Building2, ArrowLeftRight, LayoutDashboard, Bell, Sun, Moon, LogOut, Users, Check, CheckCheck, PanelLeftClose, PanelLeft, UserCheck, CalendarClock, Building, FileText, User, Calendar, Wallet, TrendingUp, FolderArchive, FileSignature, HeartPulse, Activity, ChevronDown, Bike, Briefcase, MessageSquareWarning, Phone, Car, Stethoscope, Mic, Star, ShieldPlus, Home as HomeIcon, Plus, ExternalLink } from "lucide-react";
 import { useApplyUserTheme, usePersistentThemeToggle } from "@/hooks/useUserPreferences";
 import { useCanAccessHonda } from "@/hooks/useHondaExclusoes";
 import { useMinhaPermissaoUea } from "@/hooks/useUeaPermissoes";
@@ -50,7 +50,6 @@ const allNavItems = [
   
   { to: "/financeiro", label: "Faturamento", icon: Wallet },
   { to: "/implantacao", label: "Análise de Contratos", icon: FileSignature },
-  { to: "/contratos-recem-implantados", label: "Primeira Vigencia", icon: ClockAlert },
   { to: "/arquivos", label: "Arquivos", icon: FolderArchive },
   { to: "/recebidos-central", label: "Recebidos da Central", icon: FolderArchive },
   { to: "/reajustes", label: "Reajuste", icon: TrendingUp },
