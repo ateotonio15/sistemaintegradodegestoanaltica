@@ -6,9 +6,9 @@ const catalogo: ProdutoPlano[] = [
   { codigo_produto: 57, nome_produto: "Class", acomodacao: "Não definida", ativo: true },
 ];
 describe("produtos do contrato", () => {
-  it("encaminha código 14 para Enfermaria independentemente da lista aberta", () => expect(selecionarProdutoContrato(catalogo[0])).toEqual({ produto_enfermaria_codigo: 14 }));
-  it("encaminha código 15 para Apartamento independentemente da lista aberta", () => expect(selecionarProdutoContrato(catalogo[1])).toEqual({ produto_apartamento_codigo: 15 }));
-  it("mantém código 57 sem acomodação definida independentemente da lista aberta", () => expect(selecionarProdutoContrato(catalogo[2])).toEqual({ produto_nao_definido_codigo: 57 }));
+  it("vincula Master Executivo 16 à coluna Enfermaria escolhida", () => expect(selecionarProdutoContrato({ codigo_produto: 16, nome_produto: "Master Executivo", acomodacao: "Não definida", ativo: true }, "Enfermaria")).toEqual({ produto_enfermaria_codigo: 16 }));
+  it("vincula Plano Master Executivo 29 à coluna Apartamento escolhida", () => expect(selecionarProdutoContrato({ codigo_produto: 29, nome_produto: "Plano Master Executivo", acomodacao: "Não definida", ativo: true }, "Apartamento")).toEqual({ produto_apartamento_codigo: 29 }));
+  it("não redireciona pela acomodação do catálogo", () => expect(selecionarProdutoContrato(catalogo[0], "Apartamento")).toEqual({ produto_apartamento_codigo: 14 }));
   it("identifica Class por código sem inferir acomodação", () => { expect(produtoPorCodigo(57, catalogo)?.acomodacao).toBe("Não definida"); expect(produtoPorCodigo("Class", catalogo)).toBeUndefined(); });
   it("permite somente Enfermaria", () => expect(temProdutoContratado({ produto_enfermaria_codigo: 14 })).toBe(true));
   it("permite somente Apartamento", () => expect(temProdutoContratado({ produto_apartamento_codigo: 15 })).toBe(true));

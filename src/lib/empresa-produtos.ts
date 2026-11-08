@@ -10,10 +10,10 @@ export interface VinculosProdutos {
   produto_apartamento_codigo?: number | null;
   produto_nao_definido_codigo?: number | null;
 }
-export function selecionarProdutoContrato(produto: ProdutoPlano): VinculosProdutos {
-  if (produto.acomodacao === "Enfermaria") return { produto_enfermaria_codigo: produto.codigo_produto };
-  if (produto.acomodacao === "Apartamento") return { produto_apartamento_codigo: produto.codigo_produto };
-  return { produto_nao_definido_codigo: produto.codigo_produto };
+export function selecionarProdutoContrato(produto: ProdutoPlano, acomodacao: "Enfermaria" | "Apartamento"): VinculosProdutos {
+  return acomodacao === "Enfermaria"
+    ? { produto_enfermaria_codigo: produto.codigo_produto }
+    : { produto_apartamento_codigo: produto.codigo_produto };
 }
 export function temProdutoContratado(form: VinculosProdutos & { plano?: string | null }) {
   return !!(form.plano?.trim() || form.produto_enfermaria_codigo || form.produto_apartamento_codigo || form.produto_nao_definido_codigo);
