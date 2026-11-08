@@ -47,6 +47,8 @@ import { useGrupoFinanceiro } from "@/hooks/useGrupoFinanceiro";
 import { ResponsavelLockDialog } from "@/components/empresas/ResponsavelLockDialog";
 import { EmpresaEnderecosFields, EmpresaEnderecosConsulta } from "@/components/empresas/EmpresaEnderecosFields";
 import { carregarEnderecos, prepararEnderecos } from "@/lib/empresa-enderecos";
+import { ProdutosContratoFields } from "@/components/empresas/ProdutosContratoFields";
+import { temProdutoContratado, vinculosDaOperadora, type ProdutoPlano } from "@/lib/empresa-produtos";
 import { ConsultarCnpj, SeloSituacaoCnpj, SituacaoCnpjLista } from "@/components/empresas/ConsultarCnpj";
 import { divergenciaCnpj, SituacaoCnpjRegistro } from "@/lib/consulta-cnpj";
 import { DadosCnpj, camposFormularioCnpj, enderecosComDadosCnpj } from "@/lib/consulta-cnpj";
@@ -78,6 +80,9 @@ const emptyForm: TablesInsert<"empresas"> & { responsavel_user_id?: string | nul
   cnpj: "",
   codigo_contrato: "",
   plano: "",
+  produto_enfermaria_codigo: null,
+  produto_apartamento_codigo: null,
+  produto_nao_definido_codigo: null,
   responsavel_contrato: "",
   operadora_plano: "",
   data_corte: null,
@@ -131,6 +136,15 @@ export default function Empresas() {
   
   const [draftEmpresaId, setDraftEmpresaId] = useState<string | null>(null);
   const [form, setForm] = useState(emptyForm);
+  const { data: produtos = [], isLoading: produtosLoading, isError: produtosError } = useQuery({
+    queryKey: ["catalogo-produtos-planos"],
+    enabled: dialogOpen,
+    queryFn: async () => {
+      const { data, error } = await supabase.from("produtos_planos").select("*").order("codigo_produto");
+      if (error) throw error;
+      return (data ?? []) as ProdutoPlano[];
+    },
+  });
   // Situação do CNPJ vinda da consulta pública — apenas informativa, nunca grava.
   const [situacaoConsultaCnpj, setSituacaoConsultaCnpj] = useState("");
   const registrarSituacaoCnpj = useCallback((dados: DadosCnpj | null) => setSituacaoConsultaCnpj(dados?.situacao ?? ""), []);
@@ -427,7 +441,7 @@ export default function Empresas() {
         if (error) throw error;
         return;
       }
-      if (!String((values as any).plano ?? "").trim()) {
+      if (!temProdutoContratado(values)) {
         throw new Error("Informe o plano contratado.");
       }
       // Validação: anexo obrigatório APENAS quando a Data de Implantação for hoje ou futura
@@ -693,6 +707,9 @@ export default function Empresas() {
       cnpj: e.cnpj ?? "",
       codigo_contrato: e.codigo_contrato ?? "",
       plano: (e as any).plano ?? "",
+      produto_enfermaria_codigo: e.produto_enfermaria_codigo,
+      produto_apartamento_codigo: e.produto_apartamento_codigo,
+      produto_nao_definido_codigo: e.produto_nao_definido_codigo,
       responsavel_contrato: e.responsavel_contrato ?? "",
       operadora_plano: e.operadora_plano ?? "",
       data_corte: e.data_corte,
@@ -1469,10 +1486,12 @@ export default function Empresas() {
                                 const r = await buscarValoresOperadora(cod);
                                 if (!r) { toast({ title: "Contrato não encontrado na operadora", description: `NR_CONTRATO ${cod}` }); return; }
                                 const dt = String(r.contrato.DT_REAJUSTE).slice(0, 10).split("-").reverse().join("/");
+                                const vinculos = vinculosDaOperadora(r.contrato.PLANOS ?? [], produtos);
                                 setForm((prev: any) => r.porFaixa
-                                  ? { ...prev, contrato_faixa_etaria: true, faixas_etarias: { enfermaria: r.enfermaria, apartamento: r.apartamento } }
+                                  ? { ...prev, ...vinculos, contrato_faixa_etaria: true, faixas_etarias: { enfermaria: r.enfermaria, apartamento: r.apartamento } }
                                   : {
                                       ...prev,
+                                      ...vinculos,
                                       contrato_faixa_etaria: false,
                                       valor_enfermaria_centavos: r.enfermaria[0]?.centavos ?? prev.valor_enfermaria_centavos,
                                       valor_apartamento_centavos: r.apartamento[0]?.centavos ?? prev.valor_apartamento_centavos,
@@ -1487,10 +1506,11 @@ export default function Empresas() {
                           </Button>
                         )}
                       </div>
-                      <div className="space-y-2">
-                        <Label className="text-sm font-medium">Plano *</Label>
-                        <Input value={(form as any).plano ?? ""} onChange={(e) => setForm({ ...form, plano: e.target.value } as any)} placeholder="Nome do produto contratado" required className="rounded-lg" />
-                      </div>
+                      <ProdutosContratoFields
+                        form={form} produtos={produtos} loading={produtosLoading} error={produtosError}
+                        administradorContrato={form.tipo_contrato === "ADMINISTRADORA"}
+                        onChange={patch => setForm(prev => ({ ...prev, ...patch }))}
+                      />
                       <div className="space-y-2">
                         <Label className="text-sm font-medium">Status da Empresa</Label>
                         <Select value={form.status_empresa ?? "Ativa"} onValueChange={(v) => setForm({ ...form, status_empresa: v })}>
@@ -1542,47 +1562,12 @@ export default function Empresas() {
                         </div>
                       </div>
 
-                      {(form as any).tipo_contrato !== "ADMINISTRADORA" && !(form as any).contrato_faixa_etaria && (
-                        <>
-                          <div className="space-y-2">
-                            <Label className="text-sm font-medium">Valor Enfermaria (R$)</Label>
-                            <DecimalInput
-                              placeholder="0,00"
-                              value={
-                                (form as any).valor_enfermaria_centavos != null
-                                  ? (form as any).valor_enfermaria_centavos / 100
-                                  : null
-                              }
-                              onChange={(n) => {
-                                const cents = Math.round(n * 100);
-                                setForm({ ...form, valor_enfermaria_centavos: Number.isFinite(cents) ? cents : null } as any);
-                              }}
-                              className="rounded-lg"
-                            />
-                          </div>
-                          <div className="space-y-2">
-                            <Label className="text-sm font-medium">Valor Apartamento (R$)</Label>
-                            <DecimalInput
-                              placeholder="0,00"
-                              value={
-                                (form as any).valor_apartamento_centavos != null
-                                  ? (form as any).valor_apartamento_centavos / 100
-                                  : null
-                              }
-                              onChange={(n) => {
-                                const cents = Math.round(n * 100);
-                                setForm({ ...form, valor_apartamento_centavos: Number.isFinite(cents) ? cents : null } as any);
-                              }}
-                              className="rounded-lg"
-                            />
-                          </div>
-                        </>
-                      )}
+
                     </div>
 
                     {/* Tabela de Faixas Etárias — quando contrato é por faixa */}
                     {(form as any).contrato_faixa_etaria && (form as any).tipo_contrato !== "ADMINISTRADORA" && (
-                      <div className="space-y-3 rounded-xl border bg-muted/30 p-4">
+                      <div className="space-y-3">
                         <div className="flex items-center gap-2">
                           <h3 className="text-sm font-semibold">Valores por Faixa Etária</h3>
                           <span className="text-xs text-muted-foreground">
