@@ -2508,6 +2508,9 @@ export type Database = {
           primeiro_fechamento_em: string | null
           primeiro_processamento_financeiro_em: string | null
           prioridade_maxima_id: string | null
+          produto_apartamento_codigo: number | null
+          produto_enfermaria_codigo: number | null
+          produto_nao_definido_codigo: number | null
           razao_social: string | null
           regra_prorrogacao: string | null
           responsavel_contrato: string | null
@@ -2578,6 +2581,9 @@ export type Database = {
           primeiro_fechamento_em?: string | null
           primeiro_processamento_financeiro_em?: string | null
           prioridade_maxima_id?: string | null
+          produto_apartamento_codigo?: number | null
+          produto_enfermaria_codigo?: number | null
+          produto_nao_definido_codigo?: number | null
           razao_social?: string | null
           regra_prorrogacao?: string | null
           responsavel_contrato?: string | null
@@ -2648,6 +2654,9 @@ export type Database = {
           primeiro_fechamento_em?: string | null
           primeiro_processamento_financeiro_em?: string | null
           prioridade_maxima_id?: string | null
+          produto_apartamento_codigo?: number | null
+          produto_enfermaria_codigo?: number | null
+          produto_nao_definido_codigo?: number | null
           razao_social?: string | null
           regra_prorrogacao?: string | null
           responsavel_contrato?: string | null
@@ -2676,6 +2685,27 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "empresa_prioridade_maxima"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "empresas_produto_apartamento_codigo_fkey"
+            columns: ["produto_apartamento_codigo"]
+            isOneToOne: false
+            referencedRelation: "produtos_planos"
+            referencedColumns: ["codigo_produto"]
+          },
+          {
+            foreignKeyName: "empresas_produto_enfermaria_codigo_fkey"
+            columns: ["produto_enfermaria_codigo"]
+            isOneToOne: false
+            referencedRelation: "produtos_planos"
+            referencedColumns: ["codigo_produto"]
+          },
+          {
+            foreignKeyName: "empresas_produto_nao_definido_codigo_fkey"
+            columns: ["produto_nao_definido_codigo"]
+            isOneToOne: false
+            referencedRelation: "produtos_planos"
+            referencedColumns: ["codigo_produto"]
           },
           {
             foreignKeyName: "empresas_responsavel_user_id_fkey"
@@ -5477,6 +5507,27 @@ export type Database = {
           status?: string
           updated_at?: string
           user_id?: string
+        }
+        Relationships: []
+      }
+      produtos_planos: {
+        Row: {
+          acomodacao: string
+          ativo: boolean
+          codigo_produto: number
+          nome_produto: string
+        }
+        Insert: {
+          acomodacao?: string
+          ativo?: boolean
+          codigo_produto: number
+          nome_produto: string
+        }
+        Update: {
+          acomodacao?: string
+          ativo?: boolean
+          codigo_produto?: number
+          nome_produto?: string
         }
         Relationships: []
       }
