@@ -1237,10 +1237,6 @@ export default function Empresas() {
                         <Input value={form.codigo_contrato ?? ""} onChange={(e) => setForm({ ...form, codigo_contrato: e.target.value })} required className="rounded-lg" />
                       </div>
                       <div className="space-y-2">
-                        <Label className="text-sm font-medium">Plano *</Label>
-                        <Input value={(form as any).plano ?? ""} onChange={(e) => setForm({ ...form, plano: e.target.value } as any)} placeholder="Nome do produto contratado" required className="rounded-lg" />
-                      </div>
-                      <div className="space-y-2">
                         <div className="flex items-center justify-between gap-2">
                           <Label className="text-sm font-medium">Responsável pelo Contrato *</Label>
                           {editingId && (form as any).tipo_contrato !== "ADMINISTRADORA" && (
@@ -1457,8 +1453,8 @@ export default function Empresas() {
                       )}
                       <div className="sm:col-span-2 flex items-center gap-2 pb-1 mt-2 border-b">
                         <Wallet className="h-4 w-4 text-primary" />
-                        <h3 className="text-sm font-semibold">Configurações & Valores</h3>
-                        <span className="text-xs text-muted-foreground">· Status, faixa etária e valores</span>
+                        <h3 className="text-sm font-semibold">Produto & Valores</h3>
+                        <span className="text-xs text-muted-foreground">· Produto contratado e forma de cobrança</span>
                         {(form as any).tipo_contrato !== "ADMINISTRADORA" && (
                           <Button
                             type="button"
@@ -1490,6 +1486,10 @@ export default function Empresas() {
                             Buscar valores da operadora
                           </Button>
                         )}
+                      </div>
+                      <div className="space-y-2">
+                        <Label className="text-sm font-medium">Plano *</Label>
+                        <Input value={(form as any).plano ?? ""} onChange={(e) => setForm({ ...form, plano: e.target.value } as any)} placeholder="Nome do produto contratado" required className="rounded-lg" />
                       </div>
                       <div className="space-y-2">
                         <Label className="text-sm font-medium">Status da Empresa</Label>
