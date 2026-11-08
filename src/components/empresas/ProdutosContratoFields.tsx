@@ -7,6 +7,7 @@ import { DecimalInput } from "@/components/ui/decimal-input";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Command, CommandInput, CommandList, CommandItem, CommandEmpty } from "@/components/ui/command";
 import type { ProdutoPlano, VinculosProdutos, AcomodacaoProduto } from "@/lib/empresa-produtos";
+import { selecionarProdutoContrato } from "@/lib/empresa-produtos";
 
 type ProdutosForm = VinculosProdutos & {
   plano?: string | null;
@@ -17,7 +18,7 @@ type ProdutosForm = VinculosProdutos & {
 
 function ProdutoCombobox({ acomodacao, codigo, produtos, loading, error, onChange }: {
   acomodacao: AcomodacaoProduto; codigo?: number | null; produtos: ProdutoPlano[];
-  loading: boolean; error: boolean; onChange: (codigo: number | null) => void;
+  loading: boolean; error: boolean; onChange: (produto: ProdutoPlano | null) => void;
 }) {
   const [open, setOpen] = useState(false);
   const selecionado = produtos.find(p => p.codigo_produto === codigo);
@@ -38,9 +39,9 @@ function ProdutoCombobox({ acomodacao, codigo, produtos, loading, error, onChang
           <CommandList>
             <CommandEmpty>Nenhum produto encontrado.</CommandEmpty>
             <CommandItem value="Sem produto selecionado" onSelect={() => { onChange(null); setOpen(false); }}>Sem produto selecionado</CommandItem>
-            {produtos.filter(p => p.ativo && p.acomodacao === acomodacao).map(p => <CommandItem key={p.codigo_produto}
-              value={`${p.codigo_produto} ${p.nome_produto}`} onSelect={() => { onChange(p.codigo_produto); setOpen(false); }}>
-              <span className="flex-1">{p.codigo_produto} - {p.nome_produto}</span>
+            {produtos.filter(p => p.ativo).map(p => <CommandItem key={p.codigo_produto}
+              value={`${p.codigo_produto} ${p.nome_produto}`} onSelect={() => { onChange(p); setOpen(false); }}>
+              <span className="flex-1 min-w-0">{p.codigo_produto} - {p.nome_produto}<span className="block text-xs text-muted-foreground">{p.acomodacao}</span></span>
               {codigo === p.codigo_produto && <Check className="h-4 w-4 shrink-0" />}
             </CommandItem>)}
           </CommandList>
@@ -66,7 +67,7 @@ export function ProdutosContratoFields({ form, produtos, loading, error, adminis
         const cents = form[valorCampo];
         return <div key={acomodacao} className="space-y-3 min-w-0">
           <ProdutoCombobox acomodacao={acomodacao} codigo={form[campo]} produtos={produtos} loading={loading} error={error}
-            onChange={codigo => onChange({ [campo]: codigo })} />
+            onChange={produto => onChange(produto ? selecionarProdutoContrato(produto) : { [campo]: null })} />
           {!administradorContrato && !form.contrato_faixa_etaria && <div className="space-y-2">
             <Label>Valor {acomodacao} (R$)</Label>
             <DecimalInput placeholder="0,00" value={cents != null ? cents / 100 : null}
@@ -77,7 +78,7 @@ export function ProdutosContratoFields({ form, produtos, loading, error, adminis
     </div>
     <div className="max-w-lg">
       <ProdutoCombobox acomodacao="Não definida" codigo={form.produto_nao_definido_codigo} produtos={produtos} loading={loading} error={error}
-        onChange={codigo => onChange({ produto_nao_definido_codigo: codigo })} />
+        onChange={produto => onChange(produto ? selecionarProdutoContrato(produto) : { produto_nao_definido_codigo: null })} />
     </div>
   </div>;
 }
