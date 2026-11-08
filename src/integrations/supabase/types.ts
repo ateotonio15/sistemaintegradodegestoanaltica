@@ -2500,6 +2500,7 @@ export type Database = {
           periodo_cobranca_inicio: string | null
           periodo_especifico_cobranca: boolean
           periodo_movimentacao: string | null
+          plano: string | null
           portal_ativo: boolean
           portal_secoes: Json
           prazo: string | null
@@ -2569,6 +2570,7 @@ export type Database = {
           periodo_cobranca_inicio?: string | null
           periodo_especifico_cobranca?: boolean
           periodo_movimentacao?: string | null
+          plano?: string | null
           portal_ativo?: boolean
           portal_secoes?: Json
           prazo?: string | null
@@ -2638,6 +2640,7 @@ export type Database = {
           periodo_cobranca_inicio?: string | null
           periodo_especifico_cobranca?: boolean
           periodo_movimentacao?: string | null
+          plano?: string | null
           portal_ativo?: boolean
           portal_secoes?: Json
           prazo?: string | null

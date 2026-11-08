@@ -575,6 +575,13 @@
       "when": 1793889130068,
       "tag": "0081_contratos_suspensos_encaminhamento_financeiro",
       "breakpoints": true
+    },
+    {
+      "idx": 82,
+      "version": "7",
+      "when": 1794100849365,
+      "tag": "0082_empresas_plano",
+      "breakpoints": true
     }
   ]
 }
