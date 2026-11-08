@@ -1,5 +1,10 @@
 # Roadmap — Primeiro pacote financeiro
 
+## Produto & Valores
+- [ ] Criar catálogo por código e vínculos opcionais por acomodação sem alterar contratos existentes.
+- [ ] Organizar seleção pesquisável junto aos valores simples ou tabela etária; preservar plano legado.
+- [ ] Verificar códigos retornados pela operadora, testar regras e conferir a janela autenticada.
+
 ## Financeiro — soma dos pagadores
 - [x] Confirmado no período 25–30 de outubro: 1 pagador “Aguardando validação” estava omitido. Cartões próprios para validação/faturamento aguardado; 5 testes aprovados e sessão real confirmou 84 + 10 + 8 + 1 + 0 + 0 + 14 + 2 = 119, sem alteração de registros.
 
