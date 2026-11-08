@@ -1,6 +1,8 @@
 # Roadmap — Primeiro pacote financeiro
 
 ## Produto & Valores
+- [ ] Corrigir para somente dois vínculos manuais definidos pela coluna; remover terceira opção da interface e liberar qualquer produto ativo em ambos no servidor.
+- [ ] Testar Master Executivo 16 em Enfermaria e Plano Master Executivo 29 em Apartamento, preservando valores e busca da operadora.
 - [x] Catálogo com 42 produtos e vínculos opcionais por acomodação, sem atualizar empresas existentes; acomodação validada no servidor.
 - [x] Seleção por código/nome junto aos valores existentes; plano legado preservado, valores etários permanecem na tabela.
 - [x] Oito testes aprovados; sessão real conferiu código 14, busca Gold, produto 57 “Não definida” e cancelamento preservando cadastro. Nenhum vínculo de teste gravado.
