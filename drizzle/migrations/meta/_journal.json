@@ -589,6 +589,13 @@
       "when": 1794102928851,
       "tag": "0083_catalogo_produtos_empresa",
       "breakpoints": true
+    },
+    {
+      "idx": 84,
+      "version": "7",
+      "when": 1794103593376,
+      "tag": "0084_produtos_acomodacao_manual",
+      "breakpoints": true
     }
   ]
 }
