@@ -1,9 +1,9 @@
 # Roadmap — Primeiro pacote financeiro
 
 ## Produto & Valores
-- [ ] Corrigir para somente dois vínculos manuais definidos pela coluna; remover terceira opção da interface e liberar qualquer produto ativo em ambos no servidor.
-- [ ] Testar Master Executivo 16 em Enfermaria e Plano Master Executivo 29 em Apartamento, preservando valores e busca da operadora.
-- [x] Catálogo com 42 produtos e vínculos opcionais por acomodação, sem atualizar empresas existentes; acomodação validada no servidor.
+- [x] Somente dois vínculos manuais definidos pela coluna; terceiro campo e selos removidos, qualquer produto ativo permitido em ambos no servidor. Dados antigos preservados.
+- [x] Doze testes aprovados, incluindo gravação isolada com valores 29100/40600 preservados; sessão real conferiu 42 planos em cada lista, Master Executivo 16 em Enfermaria e Plano Master Executivo 29 em Apartamento. Cancelado sem gravação operacional; busca da operadora mantida.
+- [x] Catálogo com 42 produtos e vínculos opcionais por coluna, sem atualizar empresas existentes; produto ativo validado no servidor.
 - [x] Seleção por código/nome junto aos valores existentes; plano legado preservado, valores etários permanecem na tabela.
 - [x] Oito testes aprovados; sessão real conferiu código 14, busca Gold, produto 57 “Não definida” e cancelamento preservando cadastro. Nenhum vínculo de teste gravado.
 - [x] Busca explícita aceita somente código comercial informado pela operadora. Campo atual NR_SEQ_PLANO não comprova código comercial, portanto não vincula automaticamente; depende de confirmação da operadora para habilitar esse identificador.
