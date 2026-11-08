@@ -1,9 +1,10 @@
 # Roadmap — Primeiro pacote financeiro
 
 ## Produto & Valores
-- [ ] Criar catálogo por código e vínculos opcionais por acomodação sem alterar contratos existentes.
-- [ ] Organizar seleção pesquisável junto aos valores simples ou tabela etária; preservar plano legado.
-- [ ] Verificar códigos retornados pela operadora, testar regras e conferir a janela autenticada.
+- [x] Catálogo com 42 produtos e vínculos opcionais por acomodação, sem atualizar empresas existentes; acomodação validada no servidor.
+- [x] Seleção por código/nome junto aos valores existentes; plano legado preservado, valores etários permanecem na tabela.
+- [x] Oito testes aprovados; sessão real conferiu código 14, busca Gold, produto 57 “Não definida” e cancelamento preservando cadastro. Nenhum vínculo de teste gravado.
+- [x] Busca explícita aceita somente código comercial informado pela operadora. Campo atual NR_SEQ_PLANO não comprova código comercial, portanto não vincula automaticamente; depende de confirmação da operadora para habilitar esse identificador.
 
 ## Financeiro — soma dos pagadores
 - [x] Confirmado no período 25–30 de outubro: 1 pagador “Aguardando validação” estava omitido. Cartões próprios para validação/faturamento aguardado; 5 testes aprovados e sessão real confirmou 84 + 10 + 8 + 1 + 0 + 0 + 14 + 2 = 119, sem alteração de registros.
