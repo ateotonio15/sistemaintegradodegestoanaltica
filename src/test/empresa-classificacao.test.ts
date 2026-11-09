@@ -27,4 +27,9 @@ describe("Classificação do contrato", () => {
     expect(normalizarClassificacao(undefined)).toBeNull();
     expect(normalizarClassificacao("Coparticipação Total")).toBeNull();
   });
+
+  it("a reserva 'Sem classificação' nunca vira valor gravado", () => {
+    expect(CLASSIFICACAO_OPTIONS).not.toContain(SEM_CLASSIFICACAO);
+    expect(normalizarClassificacao(SEM_CLASSIFICACAO)).toBeNull();
+  });
 });
