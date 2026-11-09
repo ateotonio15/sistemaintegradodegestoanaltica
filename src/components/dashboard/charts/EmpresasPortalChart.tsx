@@ -1,6 +1,7 @@
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell, LabelList } from "recharts";
 import { Globe } from "lucide-react";
 import { ChartCard } from "./ChartCard";
+import { Button } from "@/components/ui/button";
 
 const TOOLTIP_STYLE = {
   background: "hsl(var(--popover))",
@@ -14,9 +15,10 @@ const COLORS = ["hsl(var(--primary))", "hsl(var(--muted-foreground))"];
 
 interface Props {
   data: { categoria: string; total: number }[];
+  onVerPorUsuario?: () => void;
 }
 
-export function EmpresasPortalChart({ data }: Props) {
+export function EmpresasPortalChart({ data, onVerPorUsuario }: Props) {
   const total = data.reduce((s, d) => s + d.total, 0);
   const viaPortal = data.find((d) => d.categoria === "Via portal")?.total ?? 0;
   const pct = total > 0 ? Math.round((viaPortal / total) * 100) : 0;
@@ -27,6 +29,7 @@ export function EmpresasPortalChart({ data }: Props) {
       subtitle={`${total.toLocaleString("pt-BR")} empresas ativas · ${pct}% via portal`}
       icon={<Globe className="h-4 w-4" />}
       empty={total === 0}
+      actions={onVerPorUsuario && <Button size="sm" variant="outline" onClick={onVerPorUsuario}>Ver por usuário</Button>}
     >
       <ResponsiveContainer width="100%" height="100%">
         <BarChart data={data} layout="vertical" margin={{ top: 8, right: 40, left: 8, bottom: 8 }}>
