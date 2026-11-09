@@ -829,6 +829,22 @@ export default function Empresas() {
     return "Não definida";
   };
 
+  const nomeProduto = (codigo: unknown) => {
+    if (codigo == null) return null;
+    const p = produtos.find((p) => p.codigo_produto === Number(codigo));
+    return p ? `${p.codigo_produto} - ${p.nome_produto}` : `Produto ${codigo}`;
+  };
+
+  const getPlanosLabel = (empresa: Empresa) => {
+    const partes: string[] = [];
+    const enf = nomeProduto((empresa as any).produto_enfermaria_codigo);
+    const apt = nomeProduto((empresa as any).produto_apartamento_codigo);
+    if (enf) partes.push(`Enf: ${enf}`);
+    if (apt) partes.push(`Apt: ${apt}`);
+    if (partes.length === 0 && (empresa as any).plano?.trim()) partes.push((empresa as any).plano.trim());
+    return partes.length ? partes.join(" · ") : "—";
+  };
+
   const respOptions = useMemo(() => {
     const set = new Set<string>();
     empresas.forEach((e) => { const v = (e.responsavel_contrato ?? "").trim(); if (v) set.add(v); });
@@ -2049,6 +2065,7 @@ export default function Empresas() {
                     <TableHead className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">CNPJ</TableHead>
                     <TableHead className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground text-right">Vidas Ativas</TableHead>
                     <TableHead className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">Corretora</TableHead>
+                    <TableHead className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">Plano</TableHead>
                     <TableHead className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">Tipo de Movimentação</TableHead>
                     <TableHead className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">Período de Movimentação</TableHead>
                     <TableHead className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">Implantação</TableHead>
@@ -2060,9 +2077,9 @@ export default function Empresas() {
                 </TableHeader>
                 <TableBody>
                    {isLoading ? (
-                      <TableRow><TableCell colSpan={14} className="text-center text-muted-foreground py-12">Carregando...</TableCell></TableRow>
+                      <TableRow><TableCell colSpan={15} className="text-center text-muted-foreground py-12">Carregando...</TableCell></TableRow>
                    ) : filtered.length === 0 ? (
-                     <TableRow><TableCell colSpan={14} className="text-center text-muted-foreground py-12">{isExecutivo ? "Você não possui empresas vinculadas." : "Nenhuma empresa encontrada"}</TableCell></TableRow>
+                     <TableRow><TableCell colSpan={15} className="text-center text-muted-foreground py-12">{isExecutivo ? "Você não possui empresas vinculadas." : "Nenhuma empresa encontrada"}</TableCell></TableRow>
                    ) : (
                     filtered.map((e) => {
                       const suspenso = (e as any).contrato_suspenso;
@@ -2129,6 +2146,9 @@ export default function Empresas() {
                           </TableCell>
                           <TableCell className="text-right font-medium tabular-nums">{((e as any).vidas ?? 0).toLocaleString("pt-BR")}</TableCell>
                           <TableCell className="text-muted-foreground">{e.operadora_plano || "—"}</TableCell>
+                          <TableCell className="text-muted-foreground text-xs max-w-[220px]">
+                            <span className="break-words whitespace-normal">{getPlanosLabel(e)}</span>
+                          </TableCell>
                           <TableCell>
                             <div className="flex flex-wrap items-center gap-1">
                               <Badge variant="outline" className="rounded-md">{e.tipo_movimentacao === "Diária" ? "Diário" : "Período"}</Badge>
@@ -2374,6 +2394,8 @@ export default function Empresas() {
                     </h3>
                     <dl className="grid sm:grid-cols-2 gap-x-6 gap-y-3 border rounded-lg p-4 bg-card">
                       <DetailRow label="Operadora / Corretora" value={detailEmpresa.operadora_plano} />
+                      <DetailRow label="Plano Enfermaria" value={nomeProduto((detailEmpresa as any).produto_enfermaria_codigo)} />
+                      <DetailRow label="Plano Apartamento" value={nomeProduto((detailEmpresa as any).produto_apartamento_codigo)} />
                       <DetailRow label="Grupo de Contrato" value={(detailEmpresa as any).grupo_contrato} />
                       <DetailRow label="Tipo de Movimentação" value={detailEmpresa.tipo_movimentacao === "Diária" ? "Diário" : "Período"} />
                       <DetailRow label="Período de Movimentação" value={detailEmpresa.periodo_movimentacao} />
