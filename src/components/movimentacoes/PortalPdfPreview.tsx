@@ -67,7 +67,7 @@ export function PortalPdfPreview({ blob }: { blob: Blob }) {
           onFocus={() => setEditando(true)}
           onChange={e => setTexto(e.target.value.replace(/\D/g, "").slice(0, 5))}
           onBlur={confirmarPagina}
-          onKeyDown={e => { if (e.key === "Enter") { e.preventDefault(); (e.target as HTMLInputElement).blur(); } }}
+          onKeyDown={e => { if (e.key === "Enter") { e.preventDefault(); confirmarPagina(); (e.target as HTMLInputElement).blur(); } }}
           className="h-8 w-14 rounded-md border border-input bg-background px-2 text-center text-sm outline-none focus-visible:border-primary focus-visible:ring-2 focus-visible:ring-ring/30 disabled:opacity-50"
         />
         <span className="text-muted-foreground">de {doc?.numPages ?? "—"}</span>
