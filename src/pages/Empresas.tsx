@@ -63,6 +63,12 @@ const GRUPO_CONTRATO_OPTIONS = [
   "Compulsória - Todos",
 ];
 
+const CLASSIFICACAO_OPTIONS = [
+  "Empresarial",
+  "Empresarial Copart. - Total",
+  "Empresarial Copart. - Parcial",
+];
+
 function DetailRow({ label, value }: { label: string; value: React.ReactNode }) {
   const display = value === null || value === undefined || value === "" ? "—" : value;
   const isEmpty = display === "—";
@@ -134,6 +140,7 @@ const emptyForm: TablesInsert<"empresas"> & { responsavel_user_id?: string | nul
   cnpj: "",
   codigo_contrato: "",
   plano: "",
+  classificacao: "",
   produto_enfermaria_codigo: null,
   produto_apartamento_codigo: null,
   produto_nao_definido_codigo: null,
@@ -760,6 +767,7 @@ export default function Empresas() {
       cnpj: e.cnpj ?? "",
       codigo_contrato: e.codigo_contrato ?? "",
       plano: (e as any).plano ?? "",
+      classificacao: (e as any).classificacao ?? "",
       produto_enfermaria_codigo: e.produto_enfermaria_codigo,
       produto_apartamento_codigo: e.produto_apartamento_codigo,
       produto_nao_definido_codigo: e.produto_nao_definido_codigo,
