@@ -2140,7 +2140,7 @@ export default function Empresas() {
                     <TableHead className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">CNPJ</TableHead>
                     <TableHead className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground text-right">Vidas Ativas</TableHead>
                     <TableHead className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">Corretora</TableHead>
-                    <TableHead className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">Plano</TableHead>
+                    <TableHead className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">Classificação</TableHead>
                     <TableHead className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">Tipo de Movimentação</TableHead>
                     <TableHead className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">Período de Movimentação</TableHead>
                     <TableHead className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">Implantação</TableHead>
@@ -2222,7 +2222,7 @@ export default function Empresas() {
                           <TableCell className="text-right font-medium tabular-nums">{((e as any).vidas ?? 0).toLocaleString("pt-BR")}</TableCell>
                           <TableCell className="text-muted-foreground">{e.operadora_plano || "—"}</TableCell>
                           <TableCell className="text-muted-foreground text-xs max-w-[220px]">
-                            <span className="break-words whitespace-normal">{getPlanosLabel(e)}</span>
+                            <span className="break-words whitespace-normal">{(e as any).classificacao || "—"}</span>
                           </TableCell>
                           <TableCell>
                             <div className="flex flex-wrap items-center gap-1">
