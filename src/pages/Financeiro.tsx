@@ -233,9 +233,16 @@ export default function Financeiro() {
       if (empresaIds.length === 0) return {};
       const { data, error } = await supabase
         .from("empresas")
-        .select("id, nome, codigo_contrato, cnpj, tipo_movimentacao, periodo_movimentacao, data_corte, status_empresa, data_rescisao, contrato_suspenso, pagamento_via_deposito, vidas, nao_faturado_financeiro, exige_po_pc, periodo_especifico_cobranca, periodo_cobranca_inicio, prioridade_maxima_id, responsavel_contrato, nao_reajustado, aguarda_faturamento_excel")
+        .select("id, nome, codigo_contrato, cnpj, tipo_movimentacao, periodo_movimentacao, data_corte, status_empresa, data_rescisao, contrato_suspenso, pagamento_via_deposito, vidas, nao_faturado_financeiro, exige_po_pc, periodo_especifico_cobranca, periodo_cobranca_inicio, prioridade_maxima_id, responsavel_contrato, responsavel_user_id, nao_reajustado, aguarda_faturamento_excel")
         .in("id", empresaIds);
       if (error) throw error;
+      // Mesma regra da aba Empresas: nome do usuário vinculado, senão o texto do contrato.
+      const userIds = Array.from(new Set((data as any[]).map((e) => e.responsavel_user_id).filter(Boolean)));
+      const nomesUsuarios: Record<string, string> = {};
+      if (userIds.length > 0) {
+        const { data: profs } = await supabase.from("profiles").select("user_id, display_name").in("user_id", userIds);
+        (profs || []).forEach((p: any) => { if (p.display_name) nomesUsuarios[p.user_id] = p.display_name; });
+      }
       const map: Record<string, {
         nome: string;
         codigo: string | null;
@@ -275,7 +282,8 @@ export default function Financeiro() {
           periodo_cobranca_inicio: e.periodo_cobranca_inicio ?? null,
           prioridade_maxima: !!e.prioridade_maxima_id,
           nao_reajustado: !!e.nao_reajustado,
-          responsavel_contrato: e.responsavel_contrato ?? null,
+          responsavel_contrato:
+            (e.responsavel_user_id && nomesUsuarios[e.responsavel_user_id]) || e.responsavel_contrato || null,
         };
       });
 
@@ -859,9 +867,9 @@ export default function Financeiro() {
       return {
         ...f,
         empresa_nome: emp?.nome || "—",
-        // Responsável: usa o valor gravado na linha e, quando ausente,
-        // cai para o responsável atual do contrato cadastrado na empresa.
-        responsavel: (f as any).responsavel || emp?.responsavel_contrato || null,
+        // Responsável: sempre o responsável atual da empresa (igual à aba Empresas);
+        // o valor gravado na linha só é usado quando a empresa não tem responsável.
+        responsavel: emp?.responsavel_contrato || (f as any).responsavel || null,
         empresa_codigo: emp?.codigo ?? null,
         empresa_cnpj: emp?.cnpj ?? null,
         empresa_vidas: emp?.vidas ?? 0,
