@@ -138,7 +138,6 @@ export default function Empresas() {
   const [form, setForm] = useState(emptyForm);
   const { data: produtos = [], isLoading: produtosLoading, isError: produtosError } = useQuery({
     queryKey: ["catalogo-produtos-planos"],
-    enabled: dialogOpen,
     queryFn: async () => {
       const { data, error } = await supabase.from("produtos_planos").select("*").order("codigo_produto");
       if (error) throw error;
