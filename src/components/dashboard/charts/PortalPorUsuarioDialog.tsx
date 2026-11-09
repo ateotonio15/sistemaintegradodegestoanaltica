@@ -1,4 +1,6 @@
 import { useMemo, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
+import { fetchVidasOperadoraAgrupado, normalizeNomeStrict } from "@/lib/vidasOperadoraApi";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 
@@ -25,6 +27,21 @@ export function PortalPorUsuarioDialog({ open, onOpenChange, empresas, profilesM
     return Array.from(map.values()).sort((a, b) => b.portal + b.sem - (a.portal + a.sem));
   }, [empresas, profilesMap]);
 
+  const { data: oper, isLoading: carregandoVidas } = useQuery({
+    queryKey: ["vidas-operadora-agrupado", "TODOS"],
+    queryFn: () => fetchVidasOperadoraAgrupado(),
+    staleTime: 5 * 60_000,
+    enabled: open,
+  });
+  const vidasPorNome = useMemo(() => {
+    const m = new Map<string, number>();
+    (oper?.porEmpresa ?? []).forEach((e) => {
+      const k = normalizeNomeStrict(e.NM_ESTIPULANTE);
+      if (k) m.set(k, (m.get(k) ?? 0) + (e.QT_VIDAS ?? 0));
+    });
+    return m;
+  }, [oper]);
+  const vidasDe = (nome: string) => vidasPorNome.get(normalizeNomeStrict(nome));
   const [sel, setSel] = useState<{ titulo: string; nomes: string[] } | null>(null);
   const abrir = (titulo: string, nomes: string[]) =>
     setSel({ titulo, nomes: [...nomes].sort((a, b) => (a ?? "").localeCompare(b ?? "", "pt-BR")) });
@@ -75,9 +92,26 @@ export function PortalPorUsuarioDialog({ open, onOpenChange, empresas, profilesM
               <span className="text-sm font-semibold">{sel.titulo} ({sel.nomes.length})</span>
               <button type="button" className="text-xs text-muted-foreground hover:underline" onClick={() => setSel(null)}>Fechar lista</button>
             </div>
-            <ol className="max-h-64 list-decimal space-y-1 overflow-y-auto pl-6 text-sm">
-              {sel.nomes.map((n, i) => <li key={i}>{n}</li>)}
+            <ol className="max-h-64 list-decimal space-y-1 overflow-y-auto pl-6 pr-2 text-sm">
+              {sel.nomes.map((n, i) => {
+                const v = vidasDe(n);
+                return (
+                  <li key={i}>
+                    <div className="flex items-center justify-between gap-3">
+                      <span>{n}</span>
+                      <span className="shrink-0 tabular-nums text-xs font-semibold text-primary">
+                        {carregandoVidas ? "…" : v != null ? `${v.toLocaleString("pt-BR")} vidas` : <span className="font-normal text-muted-foreground">sem vidas na operadora</span>}
+                      </span>
+                    </div>
+                  </li>
+                );
+              })}
             </ol>
+            {!carregandoVidas && (
+              <p className="mt-2 text-right text-xs font-semibold">
+                Total: {sel.nomes.reduce((s, n) => s + (vidasDe(n) ?? 0), 0).toLocaleString("pt-BR")} vidas (Vidas na Operadora)
+              </p>
+            )}
           </div>
         )}
       </DialogContent>
