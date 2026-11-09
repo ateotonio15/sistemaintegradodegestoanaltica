@@ -44,7 +44,6 @@ import {
   Sparkles,
   type LucideIcon,
   Star,
-  FileSearch,
   Settings,
   ClipboardList,
   Send,
@@ -427,16 +426,6 @@ const SHORTCUTS: Shortcut[] = [
     icon: MessageSquareWarning,
     group: "utilitarios",
     show: (c) => !c.isFinanceiro,
-  },
-  {
-    to: "/analise-contrato",
-    label: "Análise de Contrato",
-    description: "Elegibilidade de inclusão via IA (PDF/DOCX)",
-    icon: FileSearch,
-    group: "utilitarios",
-    show: (c) =>
-      c.isAdmin || c.isVendas ||
-      ["comum", "diretora", "administradoras"].includes(c.role as string),
   },
   {
     to: "/dependentes-uea",
