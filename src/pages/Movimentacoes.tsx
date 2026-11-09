@@ -1114,8 +1114,12 @@ export default function Movimentacoes() {
         </div>
 
         {/* Filters */}
-        <Card className="rounded-xl shadow-sm">
-          <CardContent className="pt-5 pb-5">
+        <Card className="rounded-xl shadow-sm border-primary/20">
+          <CardContent className="pt-4 pb-5">
+            <div className="mb-3 flex items-center gap-2">
+              <span className="h-4 w-1 rounded-full bg-primary" aria-hidden="true" />
+              <span className="text-xs font-semibold uppercase tracking-wide text-primary">Filtros</span>
+            </div>
             <div className="flex flex-wrap items-end gap-4">
               <div className="space-y-1.5 flex-1 min-w-[240px]">
                 <Label className="text-xs font-medium text-muted-foreground">Buscar</Label>
@@ -1259,7 +1263,18 @@ export default function Movimentacoes() {
                   {isLoading ? (
                      <TableRow><TableCell colSpan={canImportarRepositorio ? 13 : 12} className="text-center text-muted-foreground py-12"><SigaLoading /></TableCell></TableRow>
                    ) : filtered.length === 0 ? (
-                     <TableRow><TableCell colSpan={canImportarRepositorio ? 13 : 12} className="text-center text-muted-foreground py-12">Nenhuma movimentação encontrada</TableCell></TableRow>
+                     <TableRow><TableCell colSpan={canImportarRepositorio ? 13 : 12} className="py-14">
+                      <div className="flex flex-col items-center gap-3 text-center">
+                        <div className="flex h-14 w-14 items-center justify-center rounded-full bg-primary/10"><Search className="h-6 w-6 text-primary" /></div>
+                        <div>
+                          <p className="font-medium text-foreground">Nenhuma movimentação encontrada</p>
+                          <p className="text-sm text-muted-foreground">Tente mudar a busca ou os filtros.</p>
+                        </div>
+                        {(searchTerm || filterResponsavel) && (
+                          <Button variant="outline" size="sm" className="rounded-lg" onClick={() => { setSearchTerm(""); setFilterResponsavel(""); }}>Limpar filtros</Button>
+                        )}
+                      </div>
+                    </TableCell></TableRow>
                   ) : (
                     filtered.map((m) => {
                       const status = calcularStatus(m);
@@ -1309,7 +1324,7 @@ export default function Movimentacoes() {
 
                           <TableCell className="text-muted-foreground">{m.empresas?.codigo_contrato || "—"}</TableCell>
                           <TableCell className="text-muted-foreground">{respContratoOf(m.empresas) || "—"}</TableCell>
-                          <TableCell><Badge variant="outline" className="rounded-md">{tipo}</Badge></TableCell>
+                          <TableCell><Badge variant="outline" className="rounded-md h-6 px-2 text-xs whitespace-nowrap">{tipo}</Badge></TableCell>
                           <TableCell>{m.periodo || formatPeriodoEmpresa(m.empresas as any)}</TableCell>
                           <TableCell>
                             {contratoSuspenso(m) ? (
@@ -1319,7 +1334,7 @@ export default function Movimentacoes() {
                                     type="button"
                                     title={`Contrato suspenso\nDesde: ${formatDateBR((m.empresas as any)?.data_suspensao) || "—"}\nMotivo: ${(m.empresas as any)?.motivo_suspensao || "—"}`}
                                   >
-                                    <Badge className="bg-destructive text-destructive-foreground rounded-md">Contrato suspenso</Badge>
+                                    <Badge className="bg-destructive text-destructive-foreground rounded-md h-6 px-2 text-xs whitespace-nowrap">Contrato suspenso</Badge>
                                   </button>
                                 </PopoverTrigger>
                                 <PopoverContent className="w-64 text-sm space-y-1">
@@ -1329,7 +1344,7 @@ export default function Movimentacoes() {
                                 </PopoverContent>
                               </Popover>
                             ) : (
-                              <Badge className={`${statusColor(status)} rounded-md`}>{status}</Badge>
+                              <Badge className={`${statusColor(status)} rounded-md h-6 px-2 text-xs whitespace-nowrap`}>{status}</Badge>
                             )}
                           </TableCell>
                           <TableCell className="text-muted-foreground">{respMovOf(m.empresas) || "—"}</TableCell>
@@ -1337,10 +1352,10 @@ export default function Movimentacoes() {
                           <TableCell>{formatDateBR(m.data_envio_financeiro)}</TableCell>
                           <TableCell>
                             {contratoSuspenso(m) && encSuspensosMap.has(m.empresa_id ?? "") && !finInfo ? (
-                              <Badge variant="outline" className="rounded-md text-xs" title={`Encaminhado em ${new Date(encSuspensosMap.get(m.empresa_id ?? "")!.encaminhado_em).toLocaleString("pt-BR")} · ${encSuspensosMap.get(m.empresa_id ?? "")!.encaminhado_por_nome}`}>Encaminhado ao Financeiro</Badge>
+                              <Badge variant="outline" className="rounded-md h-6 px-2 text-xs whitespace-nowrap" title={`Encaminhado em ${new Date(encSuspensosMap.get(m.empresa_id ?? "")!.encaminhado_em).toLocaleString("pt-BR")} · ${encSuspensosMap.get(m.empresa_id ?? "")!.encaminhado_por_nome}`}>Encaminhado ao Financeiro</Badge>
                             ) : finInfo ? (
                               <div className="flex flex-col items-start gap-0.5">
-                                <Badge className={`${statusFinanceiroColor(finInfo.status)} rounded-md gap-1 text-xs`}>
+                                <Badge className={`${statusFinanceiroColor(finInfo.status)} rounded-md h-6 px-2 text-xs whitespace-nowrap gap-1`}>
                                   {finInfo.status === "Em faturamento" && (
                                     <RefreshCw className="h-3 w-3 animate-spin" />
                                   )}
@@ -1358,7 +1373,7 @@ export default function Movimentacoes() {
                           </TableCell>
                           <TableCell>
                             {dataNota ? (
-                              <Badge className="rounded-md bg-primary/15 text-primary border border-primary/30 hover:bg-primary/20">
+                              <Badge className="rounded-md h-6 px-2 text-xs whitespace-nowrap bg-primary/15 text-primary border border-primary/30 hover:bg-primary/20">
                                 {formatDateBR(dataNota)}
                               </Badge>
                             ) : (
@@ -1367,7 +1382,7 @@ export default function Movimentacoes() {
                           </TableCell>
                           <TableCell>
                             {contratoSuspenso(m) ? (
-                              <Badge variant="outline" className="rounded-md text-muted-foreground" title="Não aplicável: contrato suspenso">Suspenso</Badge>
+                              <Badge variant="outline" className="rounded-md h-6 px-2 text-xs whitespace-nowrap text-muted-foreground" title="Não aplicável: contrato suspenso">Suspenso</Badge>
                             ) : <RelatorioStatusBadge
                               registro={relatorio}
                               empresaNome={m.empresas?.nome ?? "empresa"}
