@@ -83,6 +83,20 @@
   transition: border-color 180ms ease, background-color 180ms ease, box-shadow 180ms ease;
 }
 .siga-login-input:focus-visible { background: hsl(var(--card) / 0.85); border-color: hsl(var(--primary)); box-shadow: var(--login-focus-shadow); outline: none; }
+/* Dark mode keeps the fields on their dark surface, so what the user types must be white. */
+.dark .siga-login-input {
+  color: #fff;
+  -webkit-text-fill-color: #fff;
+  caret-color: #fff;
+}
+.dark .siga-login-input::placeholder { color: hsl(0 0% 100% / 0.45); }
+.dark .siga-login-input:-webkit-autofill,
+.dark .siga-login-input:-webkit-autofill:hover,
+.dark .siga-login-input:-webkit-autofill:focus {
+  -webkit-text-fill-color: #fff;
+  -webkit-box-shadow: 0 0 0 1000px hsl(152 20% 14%) inset;
+  caret-color: #fff;
+}
 .siga-login-security { font-size: 11px; line-height: 1.5; }
 .siga-login-security .lucide { opacity: 0.7; }
 .siga-login-submit { box-shadow: var(--login-button-shadow); transition: background-color 180ms ease, box-shadow 180ms ease, transform 180ms ease; }
