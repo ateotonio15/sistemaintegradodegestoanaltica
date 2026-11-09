@@ -1,5 +1,9 @@
 import { describe, expect, it } from "vitest";
-import { CLASSIFICACAO_OPTIONS, normalizarClassificacao } from "@/lib/empresa-classificacao";
+import {
+  CLASSIFICACAO_OPTIONS,
+  SEM_CLASSIFICACAO,
+  normalizarClassificacao,
+} from "@/lib/empresa-classificacao";
 
 describe("Classificação do contrato", () => {
   it("oferece exatamente as três opções ditadas pelo usuário", () => {

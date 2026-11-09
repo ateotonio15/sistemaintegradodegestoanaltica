@@ -50,7 +50,7 @@ import { EmpresaEnderecosFields, EmpresaEnderecosConsulta } from "@/components/e
 import { carregarEnderecos, prepararEnderecos } from "@/lib/empresa-enderecos";
 import { ProdutosContratoFields } from "@/components/empresas/ProdutosContratoFields";
 import { temProdutoContratado, vinculosDaOperadora, type ProdutoPlano } from "@/lib/empresa-produtos";
-import { CLASSIFICACAO_OPTIONS as CLASSIFICACAO_OPCOES, normalizarClassificacao } from "@/lib/empresa-classificacao";
+import { CLASSIFICACAO_OPTIONS as CLASSIFICACAO_OPCOES, SEM_CLASSIFICACAO, normalizarClassificacao } from "@/lib/empresa-classificacao";
 import { ConsultarCnpj, SeloSituacaoCnpj, SituacaoCnpjLista } from "@/components/empresas/ConsultarCnpj";
 import { divergenciaCnpj, SituacaoCnpjRegistro } from "@/lib/consulta-cnpj";
 import { DadosCnpj, camposFormularioCnpj, enderecosComDadosCnpj } from "@/lib/consulta-cnpj";
