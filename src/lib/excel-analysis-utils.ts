@@ -1086,7 +1086,19 @@ function parseCoparticipacaoRows(
     const r = rows[i] || [];
     for (let c = 0; c < r.length; c++) {
       const t = norm(r[c]);
-      if (t && t.includes("copartic") && t.includes("empresarial")) {
+      const tSemSep = t ? t.replace(/[^a-z0-9]/g, "") : "";
+      // Aceita também o título "Co Participação" quando a mesma linha traz o
+      // cabeçalho do pivot (Soma de Qtd / Soma de Valor).
+      const cabecalhoNaLinha = r.slice(c + 1).some((x) => {
+        const h = norm(x);
+        return !!h && (h.includes("soma de") || h === "qtd" || h === "valor");
+      });
+      if (
+        t &&
+        tSemSep.includes("coparticipacao") &&
+        !/^\s*pj\s*[-–—:]/i.test(cellToText(r[c])) &&
+        (t.includes("empresarial") || cabecalhoNaLinha)
+      ) {
         anchorRow = i;
         anchorCol = c;
         break;
