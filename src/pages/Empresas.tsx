@@ -1584,12 +1584,12 @@ export default function Empresas() {
                       <div className="space-y-2">
                         <Label className="text-sm font-medium">Classificação</Label>
                         <Select
-                          value={(form as any).classificacao ?? ""}
-                          onValueChange={(v) => setForm({ ...form, classificacao: v } as any)}
+                          value={(form as any).classificacao || SEM_CLASSIFICACAO}
+                          onValueChange={(v) => setForm({ ...form, classificacao: v === SEM_CLASSIFICACAO ? "" : v } as any)}
                         >
                           <SelectTrigger className="rounded-lg"><SelectValue placeholder="Selecione a classificação" /></SelectTrigger>
                           <SelectContent>
-                            <SelectItem value="">Sem classificação</SelectItem>
+                            <SelectItem value={SEM_CLASSIFICACAO}>Sem classificação</SelectItem>
                             {CLASSIFICACAO_OPTIONS.map((opt) => (
                               <SelectItem key={opt} value={opt}>{opt}</SelectItem>
                             ))}
