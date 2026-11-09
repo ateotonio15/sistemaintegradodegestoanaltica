@@ -17,12 +17,13 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
-import { Plus, Pencil, Trash2, Search, Upload, Building2, Ban, Wallet, FileSpreadsheet, FileText, Users, Calendar as CalendarIcon, Mail, Phone, User, Clock, MoreHorizontal, RefreshCw } from "lucide-react";
+import { Plus, Pencil, Trash2, Search, Upload, Building2, Ban, Wallet, FileSpreadsheet, FileText, Users, Calendar as CalendarIcon, Mail, Phone, User, Clock, MoreHorizontal, RefreshCw, ChevronDown } from "lucide-react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { PERIODOS, isPrioridadeAlertaIntenso, periodoDaDataCorte } from "@/lib/movimentacao-utils";
 import { TIPOS_FINANCEIRO } from "@/lib/financeiro-utils";
 import { formatDateBR, formatDay, calcularPeriodoCobranca, formatPeriodoCobranca } from "@/lib/date-utils";
 import { FAIXAS_ETARIAS, labelFaixa, formatCentavosBRL } from "@/lib/reajuste-utils";
+import { ordenarFaixasEtarias, type FaixaEtariaValor } from "@/lib/faixas-apresentacao";
 import { Switch } from "@/components/ui/switch";
 import { SuspensaoDialog } from "@/components/empresas/SuspensaoDialog";
 import { ValoresFaixaEtariaDialog } from "@/components/empresas/ValoresFaixaEtariaDialog";
@@ -69,6 +70,59 @@ function DetailRow({ label, value }: { label: string; value: React.ReactNode }) 
     <div className="min-w-0">
       <dt className="text-[11px] text-muted-foreground font-medium uppercase tracking-wider">{label}</dt>
       <dd className={cn("text-sm mt-0.5 break-words", isEmpty ? "text-muted-foreground/60" : "font-medium")}>{display}</dd>
+    </div>
+  );
+}
+
+// Apresentação somente leitura: contrato por faixa mostra a primeira faixa no
+// campo e abre as demais, em ordem, ao clicar em "Ver faixas".
+function FaixaValorDetail({
+  label,
+  porFaixa,
+  faixas,
+  valorAlternativo,
+}: {
+  label: string;
+  porFaixa: boolean;
+  faixas: FaixaEtariaValor[] | null | undefined;
+  valorAlternativo?: React.ReactNode;
+}) {
+  const [aberto, setAberto] = useState(false);
+  const todas = porFaixa ? ordenarFaixasEtarias(faixas) : [];
+  const primeira = todas[0] ?? null;
+
+  if (!primeira) return <DetailRow label={label} value={valorAlternativo ?? null} />;
+
+  return (
+    <div className="min-w-0">
+      <dt className="text-[11px] text-muted-foreground font-medium uppercase tracking-wider">{label}</dt>
+      <dd className="text-sm mt-0.5 font-medium tabular-nums">{formatCentavosBRL(primeira.centavos ?? 0)}</dd>
+      <p className="text-[11px] text-muted-foreground mt-0.5">
+        1ª faixa · {labelFaixa(primeira.ini, primeira.fim ?? 999)}
+      </p>
+      {todas.length > 1 && (
+        <button
+          type="button"
+          onClick={() => setAberto((v) => !v)}
+          aria-expanded={aberto}
+          className="mt-1.5 inline-flex items-center gap-1 text-[11px] font-medium text-primary hover:underline"
+        >
+          <ChevronDown className={cn("h-3 w-3 transition-transform", aberto && "rotate-180")} />
+          {aberto ? "Ocultar faixas" : `Ver as ${todas.length} faixas`}
+        </button>
+      )}
+      {aberto && (
+        <ol className="mt-1.5 space-y-1 border-l-2 border-primary/30 pl-2.5">
+          {todas.map((f, i) => (
+            <li key={`${f.ini}-${f.fim ?? 999}`} className="flex items-baseline justify-between gap-2 text-xs">
+              <span className="text-muted-foreground">
+                {i + 1}. {labelFaixa(f.ini, f.fim ?? 999)}
+              </span>
+              <span className="font-medium tabular-nums">{formatCentavosBRL(f.centavos ?? 0)}</span>
+            </li>
+          ))}
+        </ol>
+      )}
     </div>
   );
 }
@@ -2436,39 +2490,34 @@ export default function Empresas() {
                       <DetailRow label="Data de Vencimento" value={formatDay(detailEmpresa.data_vencimento_fatura)} />
                       <DetailRow label="Plano Enfermaria" value={nomeProduto((detailEmpresa as any).produto_enfermaria_codigo)} />
                       <DetailRow label="Plano Apartamento" value={nomeProduto((detailEmpresa as any).produto_apartamento_codigo)} />
-                      <DetailRow
-                        label="Valor Enfermaria"
-                        value={
-                          (detailEmpresa as any).valor_enfermaria_centavos != null
-                            ? ((detailEmpresa as any).valor_enfermaria_centavos / 100).toLocaleString("pt-BR", { style: "currency", currency: "BRL" })
-                            : null
-                        }
-                      />
-                      <DetailRow
-                        label="Valor Apartamento"
-                        value={
-                          (detailEmpresa as any).valor_apartamento_centavos != null
-                            ? ((detailEmpresa as any).valor_apartamento_centavos / 100).toLocaleString("pt-BR", { style: "currency", currency: "BRL" })
-                            : null
-                        }
-                      />
-                      {(detailEmpresa as any).contrato_faixa_etaria &&
-                        (() => {
-                          const fe = (detailEmpresa as any).faixas_etarias as { enfermaria?: { ini: number; fim: number; centavos: number }[]; apartamento?: { ini: number; fim: number; centavos: number }[] } | null;
-                          const fmtFaixas = (arr?: { ini: number; fim: number; centavos: number }[]) =>
-                            (Array.isArray(arr) ? arr : [])
-                              .filter((f) => f && (f.centavos ?? 0) > 0)
-                              .map((f) => `${f.ini}–${f.fim ?? 999} anos: ${((f.centavos ?? 0) / 100).toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}`)
-                              .join(" · ");
-                          const enf = fmtFaixas(fe?.enfermaria);
-                          const apt = fmtFaixas(fe?.apartamento);
-                          return (
-                            <>
-                              {enf && <DetailRow label="Faixas Etárias — Enfermaria" value={enf} />}
-                              {apt && <DetailRow label="Faixas Etárias — Apartamento" value={apt} />}
-                            </>
-                          );
-                        })()}
+                      {(() => {
+                        const porFaixa = Boolean((detailEmpresa as any).contrato_faixa_etaria);
+                        const fe = (detailEmpresa as any).faixas_etarias as
+                          | { enfermaria?: FaixaEtariaValor[]; apartamento?: FaixaEtariaValor[] }
+                          | null;
+                        const enf = (detailEmpresa as any).valor_enfermaria_centavos != null
+                          ? formatCentavosBRL((detailEmpresa as any).valor_enfermaria_centavos)
+                          : null;
+                        const apt = (detailEmpresa as any).valor_apartamento_centavos != null
+                          ? formatCentavosBRL((detailEmpresa as any).valor_apartamento_centavos)
+                          : null;
+                        return (
+                          <>
+                            <FaixaValorDetail
+                              label="Valor Enfermaria"
+                              porFaixa={porFaixa}
+                              faixas={porFaixa ? fe?.enfermaria : null}
+                              valorAlternativo={enf}
+                            />
+                            <FaixaValorDetail
+                              label="Valor Apartamento"
+                              porFaixa={porFaixa}
+                              faixas={porFaixa ? fe?.apartamento : null}
+                              valorAlternativo={apt}
+                            />
+                          </>
+                        );
+                      })()}
                     </dl>
                   </section>
 
