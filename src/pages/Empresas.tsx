@@ -553,9 +553,7 @@ export default function Empresas() {
       if (typeof payload.tipo_financeiro === "string" && payload.tipo_financeiro.trim() === "") {
         payload.tipo_financeiro = null;
       }
-      if (typeof payload.classificacao === "string" && payload.classificacao.trim() === "") {
-        payload.classificacao = null;
-      }
+      payload.classificacao = normalizarClassificacao(payload.classificacao);
       if (payload.valor_enfermaria_centavos === "" || payload.valor_enfermaria_centavos === undefined) {
         payload.valor_enfermaria_centavos = null;
       }
