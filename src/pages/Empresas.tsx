@@ -1583,6 +1583,31 @@ export default function Empresas() {
                           </Button>
                         )}
                       </div>
+                      <div className="space-y-2">
+                        <Label className="text-sm font-medium">Classificação</Label>
+                        <Select
+                          value={(form as any).classificacao ?? ""}
+                          onValueChange={(v) => setForm({ ...form, classificacao: v } as any)}
+                        >
+                          <SelectTrigger className="rounded-lg"><SelectValue placeholder="Selecione a classificação" /></SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="">Sem classificação</SelectItem>
+                            {CLASSIFICACAO_OPTIONS.map((opt) => (
+                              <SelectItem key={opt} value={opt}>{opt}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div className="space-y-2">
+                        <Label className="text-sm font-medium">Status da Empresa</Label>
+                        <Select value={form.status_empresa ?? "Ativa"} onValueChange={(v) => setForm({ ...form, status_empresa: v })}>
+                          <SelectTrigger className="rounded-lg"><SelectValue /></SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="Ativa">Ativa</SelectItem>
+                            <SelectItem value="Inativa">Inativa</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
                       <ProdutosContratoFields
                         form={form} produtos={produtos} loading={produtosLoading} error={produtosError}
                         administradorContrato={form.tipo_contrato === "ADMINISTRADORA"}
