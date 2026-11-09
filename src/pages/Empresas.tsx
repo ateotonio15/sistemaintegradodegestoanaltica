@@ -2434,6 +2434,8 @@ export default function Empresas() {
                     <dl className="grid sm:grid-cols-2 gap-x-6 gap-y-3 border rounded-lg p-4 bg-card">
                       <DetailRow label="Emissão da Fatura" value={formatDay(diaEmissaoMap[detailEmpresa.id] ?? detailEmpresa.data_emissao_fatura)} />
                       <DetailRow label="Data de Vencimento" value={formatDay(detailEmpresa.data_vencimento_fatura)} />
+                      <DetailRow label="Plano Enfermaria" value={nomeProduto((detailEmpresa as any).produto_enfermaria_codigo)} />
+                      <DetailRow label="Plano Apartamento" value={nomeProduto((detailEmpresa as any).produto_apartamento_codigo)} />
                       <DetailRow
                         label="Valor Enfermaria"
                         value={
