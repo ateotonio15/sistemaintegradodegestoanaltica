@@ -19,9 +19,11 @@ import { PortalPdfPreview } from "@/components/movimentacoes/PortalPdfPreview";
 const paginaDoCanvas = (container: HTMLElement) =>
   container.querySelector("canvas")?.getAttribute("aria-label") ?? "";
 
+const blobFake = { arrayBuffer: async () => new Uint8Array([1]) } as unknown as Blob;
+
 describe("Campo de página digitada na prévia de PDF", () => {
   it("vai para a página digitada ao pressionar Enter", async () => {
-    const { container } = render(<PortalPdfPreview blob={new Blob(["x"])} />);
+    const { container } = render(<PortalPdfPreview blob={blobFake} />);
     const campo = await screen.findByLabelText("Número da página");
     await waitFor(() => expect(paginaDoCanvas(container)).toBe("Página 1 do relatório de vidas"));
 
@@ -33,7 +35,7 @@ describe("Campo de página digitada na prévia de PDF", () => {
   });
 
   it("não passa da última página quando o número digitado é maior", async () => {
-    const { container } = render(<PortalPdfPreview blob={new Blob(["x"])} />);
+    const { container } = render(<PortalPdfPreview blob={blobFake} />);
     const campo = await screen.findByLabelText("Número da página");
     await waitFor(() => expect(paginaDoCanvas(container)).toBe("Página 1 do relatório de vidas"));
 
@@ -45,7 +47,7 @@ describe("Campo de página digitada na prévia de PDF", () => {
   });
 
   it("volta para a página atual quando o campo é esvaziado", async () => {
-    const { container } = render(<PortalPdfPreview blob={new Blob(["x"])} />);
+    const { container } = render(<PortalPdfPreview blob={blobFake} />);
     const campo = await screen.findByLabelText("Número da página");
     await waitFor(() => expect(paginaDoCanvas(container)).toBe("Página 1 do relatório de vidas"));
 
