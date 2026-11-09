@@ -18,6 +18,7 @@ import { EmpresasPorPeriodoChart } from "@/components/dashboard/charts/EmpresasP
 import { EmpresasPortalChart } from "@/components/dashboard/charts/EmpresasPortalChart";
 import { ChartFiltros } from "@/components/dashboard/charts/ChartFiltros";
 import { KpiCard } from "@/components/dashboard/charts/KpiCard";
+import { PortalPorUsuarioDialog } from "@/components/dashboard/charts/PortalPorUsuarioDialog";
 import { StatusPorUsuarioDialog } from "@/components/dashboard/charts/StatusPorUsuarioDialog";
 import { Building2, HeartPulse, Globe, ArrowLeftRight } from "lucide-react";
 
@@ -259,6 +260,7 @@ export default function Dashboard() {
   }, [empresas, movsTipo, matchUsuario, matchEmpresaUsuario]);
 
   // Empresas por canal de movimentação (Portal vs Não portal) — todas as ativas do usuário filtrado
+  const [portalUsuarioOpen, setPortalUsuarioOpen] = useState(false);
   const porPortal = useMemo(() => {
     const base = empresas.filter(
       (e: any) => e.status_empresa === "Ativa" && matchEmpresaUsuario(e),
@@ -490,7 +492,7 @@ export default function Dashboard() {
             />
           }
         />
-        <EmpresasPortalChart data={porPortal} />
+        <EmpresasPortalChart data={porPortal} onVerPorUsuario={() => setPortalUsuarioOpen(true)} />
         <EmpresasMovMensalChart data={serieEmpresas} />
         <div className="xl:col-span-2">
           <EmpresasPorPeriodoChart
@@ -504,6 +506,7 @@ export default function Dashboard() {
       </div>
 
 
+      <PortalPorUsuarioDialog open={portalUsuarioOpen} onOpenChange={setPortalUsuarioOpen} empresas={empresas as any} profilesMap={profilesMap} />
       <StatusPorUsuarioDialog
         open={statusUsuarioOpen}
         onOpenChange={setStatusUsuarioOpen}
