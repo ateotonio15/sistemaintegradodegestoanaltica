@@ -4,11 +4,14 @@ import workerUrl from "pdfjs-dist/build/pdf.worker.min.mjs?url";
 import type { PDFDocumentProxy } from "pdfjs-dist";
 import { ChevronLeft, ChevronRight, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { ajustarPaginaDigitada } from "@/lib/portal-pdf-pagina";
 pdfjs.GlobalWorkerOptions.workerSrc = workerUrl;
 
 export function PortalPdfPreview({ blob }: { blob: Blob }) {
   const [doc, setDoc] = useState<PDFDocumentProxy | null>(null);
   const [pagina, setPagina] = useState(1);
+  const [texto, setTexto] = useState("1");
+  const [editando, setEditando] = useState(false);
   const [erro, setErro] = useState("");
   const [ocupado, setOcupado] = useState(true);
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -42,10 +45,33 @@ export function PortalPdfPreview({ blob }: { blob: Blob }) {
       .finally(() => { if (ativo) setOcupado(false); });
     return () => { ativo = false; render?.cancel(); };
   }, [doc, pagina]);
+  useEffect(() => { if (!editando) setTexto(String(pagina)); }, [pagina, editando]);
+  const total = doc?.numPages ?? 0;
+  const confirmarPagina = () => {
+    setEditando(false);
+    const nova = ajustarPaginaDigitada(texto, pagina, total);
+    setPagina(nova); setTexto(String(nova));
+  };
   return <div className="space-y-2">
     <div className="flex items-center justify-center gap-3">
       <Button type="button" variant="outline" size="icon" title="Página anterior" aria-label="Página anterior" disabled={!doc || pagina <= 1 || ocupado} onClick={() => setPagina(p => p - 1)}><ChevronLeft className="h-4 w-4" /></Button>
-      <span className="text-sm">Página {pagina} de {doc?.numPages ?? "—"}</span>
+      <div className="flex items-center gap-1.5 text-sm">
+        <span className="text-muted-foreground">Página</span>
+        <input
+          type="text"
+          inputMode="numeric"
+          aria-label="Número da página"
+          title="Digite o número da página e pressione Enter"
+          value={texto}
+          disabled={!doc}
+          onFocus={() => setEditando(true)}
+          onChange={e => setTexto(e.target.value.replace(/\D/g, "").slice(0, 5))}
+          onBlur={confirmarPagina}
+          onKeyDown={e => { if (e.key === "Enter") { e.preventDefault(); (e.target as HTMLInputElement).blur(); } }}
+          className="h-8 w-14 rounded-md border border-input bg-background px-2 text-center text-sm outline-none focus-visible:border-primary focus-visible:ring-2 focus-visible:ring-ring/30 disabled:opacity-50"
+        />
+        <span className="text-muted-foreground">de {doc?.numPages ?? "—"}</span>
+      </div>
       <Button type="button" variant="outline" size="icon" title="Próxima página" aria-label="Próxima página" disabled={!doc || pagina >= doc.numPages || ocupado} onClick={() => setPagina(p => p + 1)}><ChevronRight className="h-4 w-4" /></Button>
     </div>
     {ocupado && <p role="status" className="flex items-center justify-center gap-2 text-sm"><Loader2 className="h-4 w-4 animate-spin" />Carregando PDF...</p>}
