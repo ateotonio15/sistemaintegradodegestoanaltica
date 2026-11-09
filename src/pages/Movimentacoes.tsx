@@ -871,17 +871,6 @@ export default function Movimentacoes() {
             </div>
           </div>
           <div className="flex flex-wrap gap-2">
-            <Button
-              variant="outline"
-              onClick={async () => {
-                await queryClient.invalidateQueries();
-                toast({ title: "Informações atualizadas" });
-              }}
-              className="rounded-lg"
-              title="Atualizar informações"
-            >
-              <RefreshCw className="mr-2 h-4 w-4" />Atualizar
-            </Button>
             {canEditDates && (
               <Button
                 variant="outline"
@@ -919,12 +908,24 @@ export default function Movimentacoes() {
             )}
 
             
-            <Button variant="outline" onClick={handleExportExcel} className="rounded-lg">
-              <Download className="mr-2 h-4 w-4" />Exportar Excel
-            </Button>
-            <Button variant="outline" onClick={handleExportFerias} className="rounded-lg">
-              <Plane className="mr-2 h-4 w-4" />Exportar Férias
-            </Button>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline" className="rounded-lg">
+                  <MoreHorizontal className="mr-2 h-4 w-4" />Mais ações
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem onClick={async () => { await queryClient.invalidateQueries(); toast({ title: "Informações atualizadas" }); }}>
+                  <RefreshCw className="mr-2 h-4 w-4" />Atualizar
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={handleExportExcel}>
+                  <Download className="mr-2 h-4 w-4" />Exportar Excel
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={handleExportFerias}>
+                  <Plane className="mr-2 h-4 w-4" />Exportar Férias
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
             {canImportarRepositorio && (
             <Dialog open={dialogOpen} onOpenChange={(open) => { setDialogOpen(open); if (!open) resetForm(); }}>
               {canEdit && <DialogTrigger asChild>
@@ -1235,9 +1236,9 @@ export default function Movimentacoes() {
         {/* Table */}
         <Card className="rounded-xl shadow-sm overflow-hidden">
           <CardContent className="p-0">
-            <div className="overflow-x-auto">
+            <div className="[&>div]:max-h-[70vh]">
               <Table>
-                <TableHeader>
+                <TableHeader className="sticky top-0 z-20 bg-card shadow-sm">
                   <TableRow className="bg-accent/60 hover:bg-accent/60 [&>th]:text-[11px] [&>th]:uppercase [&>th]:tracking-wide [&>th]:text-accent-foreground">
                     <TableHead className="font-semibold">Empresa</TableHead>
                     <TableHead className="font-semibold">Cód. Contrato</TableHead>
