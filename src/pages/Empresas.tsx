@@ -50,6 +50,7 @@ import { EmpresaEnderecosFields, EmpresaEnderecosConsulta } from "@/components/e
 import { carregarEnderecos, prepararEnderecos } from "@/lib/empresa-enderecos";
 import { ProdutosContratoFields } from "@/components/empresas/ProdutosContratoFields";
 import { temProdutoContratado, vinculosDaOperadora, type ProdutoPlano } from "@/lib/empresa-produtos";
+import { CLASSIFICACAO_OPTIONS as CLASSIFICACAO_OPCOES, SEM_CLASSIFICACAO, normalizarClassificacao } from "@/lib/empresa-classificacao";
 import { ConsultarCnpj, SeloSituacaoCnpj, SituacaoCnpjLista } from "@/components/empresas/ConsultarCnpj";
 import { divergenciaCnpj, SituacaoCnpjRegistro } from "@/lib/consulta-cnpj";
 import { DadosCnpj, camposFormularioCnpj, enderecosComDadosCnpj } from "@/lib/consulta-cnpj";
@@ -62,6 +63,8 @@ const GRUPO_CONTRATO_OPTIONS = [
   "Compulsória - Titular / Adesão - Dependente",
   "Compulsória - Todos",
 ];
+
+const CLASSIFICACAO_OPTIONS = [...CLASSIFICACAO_OPCOES];
 
 function DetailRow({ label, value }: { label: string; value: React.ReactNode }) {
   const display = value === null || value === undefined || value === "" ? "—" : value;
@@ -134,6 +137,7 @@ const emptyForm: TablesInsert<"empresas"> & { responsavel_user_id?: string | nul
   cnpj: "",
   codigo_contrato: "",
   plano: "",
+  classificacao: "",
   produto_enfermaria_codigo: null,
   produto_apartamento_codigo: null,
   produto_nao_definido_codigo: null,
@@ -549,6 +553,7 @@ export default function Empresas() {
       if (typeof payload.tipo_financeiro === "string" && payload.tipo_financeiro.trim() === "") {
         payload.tipo_financeiro = null;
       }
+      payload.classificacao = normalizarClassificacao(payload.classificacao);
       if (payload.valor_enfermaria_centavos === "" || payload.valor_enfermaria_centavos === undefined) {
         payload.valor_enfermaria_centavos = null;
       }
@@ -760,6 +765,7 @@ export default function Empresas() {
       cnpj: e.cnpj ?? "",
       codigo_contrato: e.codigo_contrato ?? "",
       plano: (e as any).plano ?? "",
+      classificacao: (e as any).classificacao ?? "",
       produto_enfermaria_codigo: e.produto_enfermaria_codigo,
       produto_apartamento_codigo: e.produto_apartamento_codigo,
       produto_nao_definido_codigo: e.produto_nao_definido_codigo,
@@ -1575,11 +1581,21 @@ export default function Empresas() {
                           </Button>
                         )}
                       </div>
-                      <ProdutosContratoFields
-                        form={form} produtos={produtos} loading={produtosLoading} error={produtosError}
-                        administradorContrato={form.tipo_contrato === "ADMINISTRADORA"}
-                        onChange={patch => setForm(prev => ({ ...prev, ...patch }))}
-                      />
+                      <div className="space-y-2">
+                        <Label className="text-sm font-medium">Classificação</Label>
+                        <Select
+                          value={(form as any).classificacao || SEM_CLASSIFICACAO}
+                          onValueChange={(v) => setForm({ ...form, classificacao: v === SEM_CLASSIFICACAO ? "" : v } as any)}
+                        >
+                          <SelectTrigger className="rounded-lg"><SelectValue placeholder="Selecione a classificação" /></SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value={SEM_CLASSIFICACAO}>Sem classificação</SelectItem>
+                            {CLASSIFICACAO_OPTIONS.map((opt) => (
+                              <SelectItem key={opt} value={opt}>{opt}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
                       <div className="space-y-2">
                         <Label className="text-sm font-medium">Status da Empresa</Label>
                         <Select value={form.status_empresa ?? "Ativa"} onValueChange={(v) => setForm({ ...form, status_empresa: v })}>
@@ -1590,6 +1606,11 @@ export default function Empresas() {
                           </SelectContent>
                         </Select>
                       </div>
+                      <ProdutosContratoFields
+                        form={form} produtos={produtos} loading={produtosLoading} error={produtosError}
+                        administradorContrato={form.tipo_contrato === "ADMINISTRADORA"}
+                        onChange={patch => setForm(prev => ({ ...prev, ...patch }))}
+                      />
                       <div className="space-y-2">
                         <Label className="text-sm font-medium">Contrato por Faixa Etária</Label>
                         <div className="flex items-center gap-3 h-10 px-3 rounded-lg border bg-background">
@@ -2448,6 +2469,7 @@ export default function Empresas() {
                     </h3>
                     <dl className="grid sm:grid-cols-2 gap-x-6 gap-y-3 border rounded-lg p-4 bg-card">
                       <DetailRow label="Operadora / Corretora" value={detailEmpresa.operadora_plano} />
+                      <DetailRow label="Classificação" value={(detailEmpresa as any).classificacao} />
                       <DetailRow label="Plano Enfermaria" value={nomeProduto((detailEmpresa as any).produto_enfermaria_codigo)} />
                       <DetailRow label="Plano Apartamento" value={nomeProduto((detailEmpresa as any).produto_apartamento_codigo)} />
                       <DetailRow label="Grupo de Contrato" value={(detailEmpresa as any).grupo_contrato} />
