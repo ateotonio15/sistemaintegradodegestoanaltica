@@ -1614,16 +1614,6 @@ export default function Empresas() {
                         onChange={patch => setForm(prev => ({ ...prev, ...patch }))}
                       />
                       <div className="space-y-2">
-                        <Label className="text-sm font-medium">Status da Empresa</Label>
-                        <Select value={form.status_empresa ?? "Ativa"} onValueChange={(v) => setForm({ ...form, status_empresa: v })}>
-                          <SelectTrigger className="rounded-lg"><SelectValue /></SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="Ativa">Ativa</SelectItem>
-                            <SelectItem value="Inativa">Inativa</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </div>
-                      <div className="space-y-2">
                         <Label className="text-sm font-medium">Contrato por Faixa Etária</Label>
                         <div className="flex items-center gap-3 h-10 px-3 rounded-lg border bg-background">
                           <Switch
