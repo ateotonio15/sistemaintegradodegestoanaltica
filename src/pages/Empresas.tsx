@@ -556,6 +556,9 @@ export default function Empresas() {
       if (typeof payload.tipo_financeiro === "string" && payload.tipo_financeiro.trim() === "") {
         payload.tipo_financeiro = null;
       }
+      if (typeof payload.classificacao === "string" && payload.classificacao.trim() === "") {
+        payload.classificacao = null;
+      }
       if (payload.valor_enfermaria_centavos === "" || payload.valor_enfermaria_centavos === undefined) {
         payload.valor_enfermaria_centavos = null;
       }
@@ -2471,6 +2474,7 @@ export default function Empresas() {
                     </h3>
                     <dl className="grid sm:grid-cols-2 gap-x-6 gap-y-3 border rounded-lg p-4 bg-card">
                       <DetailRow label="Operadora / Corretora" value={detailEmpresa.operadora_plano} />
+                      <DetailRow label="Classificação" value={(detailEmpresa as any).classificacao} />
                       <DetailRow label="Plano Enfermaria" value={nomeProduto((detailEmpresa as any).produto_enfermaria_codigo)} />
                       <DetailRow label="Plano Apartamento" value={nomeProduto((detailEmpresa as any).produto_apartamento_codigo)} />
                       <DetailRow label="Grupo de Contrato" value={(detailEmpresa as any).grupo_contrato} />
