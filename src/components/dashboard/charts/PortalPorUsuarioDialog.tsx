@@ -39,6 +39,13 @@ export function PortalPorUsuarioDialog({ open, onOpenChange, empresas, profilesM
       const k = normalizeNomeStrict(e.NM_ESTIPULANTE);
       if (k) m.set(k, (m.get(k) ?? 0) + (e.QT_VIDAS ?? 0));
     });
+    // Nomes com sigla entre parênteses, ex.: "UNIVERSIDADE ... (UEA)" — também casam sem a sigla.
+    (oper?.porEmpresa ?? []).forEach((e) => {
+      const nome = e.NM_ESTIPULANTE ?? "";
+      if (!/\(.*\)/.test(nome)) return;
+      const k = normalizeNomeStrict(nome.replace(/\s*\([^)]*\)\s*/g, " "));
+      if (k && !m.has(k)) m.set(k, e.QT_VIDAS ?? 0);
+    });
     return m;
   }, [oper]);
   const vidasDe = (nome: string) => vidasPorNome.get(normalizeNomeStrict(nome));
