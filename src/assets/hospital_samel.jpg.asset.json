@@ -1,11 +1,11 @@
 {
   "version": 1,
-  "asset_id": "48d8cdc9-6b4b-44bd-952a-3507fc8246b8",
+  "asset_id": "0abee865-37fa-4c1f-99d5-cf82c0cbcfa1",
   "project_id": "c8c4a1b8-02b1-4db6-a011-44358b0a85dd",
-  "url": "/__l5e/assets-v1/48d8cdc9-6b4b-44bd-952a-3507fc8246b8/hospital_samel.jpg",
-  "r2_key": "a/v1/c8c4a1b8-02b1-4db6-a011-44358b0a85dd/48d8cdc9-6b4b-44bd-952a-3507fc8246b8/hospital_samel.jpg",
-  "original_filename": "hospital_samel.jpg",
-  "size": 247100,
+  "url": "/__l5e/assets-v1/0abee865-37fa-4c1f-99d5-cf82c0cbcfa1/hospital_samel_fachada.jpg",
+  "r2_key": "a/v1/c8c4a1b8-02b1-4db6-a011-44358b0a85dd/0abee865-37fa-4c1f-99d5-cf82c0cbcfa1/hospital_samel_fachada.jpg",
+  "original_filename": "hospital_samel_fachada.jpg",
+  "size": 231110,
   "content_type": "image/jpeg",
-  "created_at": "2026-11-05T21:50:59Z"
+  "created_at": "2026-11-09T19:44:42Z"
 }
