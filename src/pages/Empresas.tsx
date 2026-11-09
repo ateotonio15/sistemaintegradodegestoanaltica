@@ -2490,39 +2490,34 @@ export default function Empresas() {
                       <DetailRow label="Data de Vencimento" value={formatDay(detailEmpresa.data_vencimento_fatura)} />
                       <DetailRow label="Plano Enfermaria" value={nomeProduto((detailEmpresa as any).produto_enfermaria_codigo)} />
                       <DetailRow label="Plano Apartamento" value={nomeProduto((detailEmpresa as any).produto_apartamento_codigo)} />
-                      <DetailRow
-                        label="Valor Enfermaria"
-                        value={
-                          (detailEmpresa as any).valor_enfermaria_centavos != null
-                            ? ((detailEmpresa as any).valor_enfermaria_centavos / 100).toLocaleString("pt-BR", { style: "currency", currency: "BRL" })
-                            : null
-                        }
-                      />
-                      <DetailRow
-                        label="Valor Apartamento"
-                        value={
-                          (detailEmpresa as any).valor_apartamento_centavos != null
-                            ? ((detailEmpresa as any).valor_apartamento_centavos / 100).toLocaleString("pt-BR", { style: "currency", currency: "BRL" })
-                            : null
-                        }
-                      />
-                      {(detailEmpresa as any).contrato_faixa_etaria &&
-                        (() => {
-                          const fe = (detailEmpresa as any).faixas_etarias as { enfermaria?: { ini: number; fim: number; centavos: number }[]; apartamento?: { ini: number; fim: number; centavos: number }[] } | null;
-                          const fmtFaixas = (arr?: { ini: number; fim: number; centavos: number }[]) =>
-                            (Array.isArray(arr) ? arr : [])
-                              .filter((f) => f && (f.centavos ?? 0) > 0)
-                              .map((f) => `${f.ini}–${f.fim ?? 999} anos: ${((f.centavos ?? 0) / 100).toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}`)
-                              .join(" · ");
-                          const enf = fmtFaixas(fe?.enfermaria);
-                          const apt = fmtFaixas(fe?.apartamento);
-                          return (
-                            <>
-                              {enf && <DetailRow label="Faixas Etárias — Enfermaria" value={enf} />}
-                              {apt && <DetailRow label="Faixas Etárias — Apartamento" value={apt} />}
-                            </>
-                          );
-                        })()}
+                      {(() => {
+                        const porFaixa = Boolean((detailEmpresa as any).contrato_faixa_etaria);
+                        const fe = (detailEmpresa as any).faixas_etarias as
+                          | { enfermaria?: FaixaEtariaValor[]; apartamento?: FaixaEtariaValor[] }
+                          | null;
+                        const enf = (detailEmpresa as any).valor_enfermaria_centavos != null
+                          ? formatCentavosBRL((detailEmpresa as any).valor_enfermaria_centavos)
+                          : null;
+                        const apt = (detailEmpresa as any).valor_apartamento_centavos != null
+                          ? formatCentavosBRL((detailEmpresa as any).valor_apartamento_centavos)
+                          : null;
+                        return (
+                          <>
+                            <FaixaValorDetail
+                              label="Valor Enfermaria"
+                              porFaixa={porFaixa}
+                              faixas={porFaixa ? fe?.enfermaria : null}
+                              valorAlternativo={enf}
+                            />
+                            <FaixaValorDetail
+                              label="Valor Apartamento"
+                              porFaixa={porFaixa}
+                              faixas={porFaixa ? fe?.apartamento : null}
+                              valorAlternativo={apt}
+                            />
+                          </>
+                        );
+                      })()}
                     </dl>
                   </section>
 
