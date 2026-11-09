@@ -2461,6 +2461,7 @@ export type Database = {
       empresas: {
         Row: {
           aguarda_faturamento_excel: boolean
+          classificacao: string | null
           cnpj: string | null
           codigo_contrato: string | null
           config_financeira_confirmada: boolean
@@ -2534,6 +2535,7 @@ export type Database = {
         }
         Insert: {
           aguarda_faturamento_excel?: boolean
+          classificacao?: string | null
           cnpj?: string | null
           codigo_contrato?: string | null
           config_financeira_confirmada?: boolean
@@ -2607,6 +2609,7 @@ export type Database = {
         }
         Update: {
           aguarda_faturamento_excel?: boolean
+          classificacao?: string | null
           cnpj?: string | null
           codigo_contrato?: string | null
           config_financeira_confirmada?: boolean
