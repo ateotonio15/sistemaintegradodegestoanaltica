@@ -27,14 +27,47 @@ export function formatarGeracao(nome: string): string | null {
   return d ? `${String(d.dia).padStart(2, "0")}/${String(d.mes).padStart(2, "0")}/${d.ano} ${d.hora}` : null;
 }
 
+/** Situação da geração do arquivo em relação ao fim do período (dia de corte). */
+export type SituacaoGeracao = "antes" | "depois";
+
+export function situacaoGeracaoArquivo(
+  nome: string,
+  periodo: string | null | undefined,
+  mes: string | null | undefined,
+): SituacaoGeracao | null {
+  const g = dataGeracaoArquivo(nome);
+  const corte = dataCorteMovimentacao(periodo, mes);
+  if (!g || !corte) return null;
+  const [d, m, a] = corte.split("/").map(Number);
+  return g.ano * 10000 + g.mes * 100 + g.dia <= a * 10000 + m * 100 + d ? "antes" : "depois";
+}
+
 /**
  * Arquivo gerado até o fim do período (dia de corte, inclusive) pode não ter os
  * desligamentos/inclusões feitos depois — mostrar aviso para buscar no Portal.
  */
 export function arquivoAnteriorAoCorte(nome: string, periodo: string | null | undefined, mes: string | null | undefined): boolean {
-  const g = dataGeracaoArquivo(nome);
+  return situacaoGeracaoArquivo(nome, periodo, mes) === "antes";
+}
+
+/**
+ * Aviso sobre a geração dos arquivos do Repositório. Aparece tanto quando o
+ * arquivo foi gerado dentro do período quanto quando foi gerado fora dele:
+ * nos dois casos é preciso conferir se aquela é a versão mais recente.
+ * Devolve null quando não dá para saber (sem data de geração ou sem corte).
+ */
+export function avisoGeracaoArquivos(
+  nomes: (string | null | undefined)[],
+  periodo: string | null | undefined,
+  mes: string | null | undefined,
+): string | null {
   const corte = dataCorteMovimentacao(periodo, mes);
-  if (!g || !corte) return false;
-  const [d, m, a] = corte.split("/").map(Number);
-  return g.ano * 10000 + g.mes * 100 + g.dia <= a * 10000 + m * 100 + d;
+  if (!corte) return null;
+  const situacoes = nomes
+    .map(n => (n ? situacaoGeracaoArquivo(n, periodo, mes) : null))
+    .filter((s): s is SituacaoGeracao => s !== null);
+  if (!situacoes.length) return null;
+  return situacoes.includes("antes")
+    ? `Arquivo gerado antes do fim do período (${corte}). Desligamentos ou inclusões feitos depois podem não estar nele.`
+    : `Arquivo gerado depois do fim do período (${corte}). Confira se esta é a versão mais recente — se houver uma nova, busque no Portal.`;
 }
