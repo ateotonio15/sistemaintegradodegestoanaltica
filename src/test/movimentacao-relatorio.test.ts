@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { RELATORIO_VAZIO, STATUS_RELATORIO, validarRegistroRelatorio, selecionarLoteRelatorios, resumoEnvioRelatorios, classificarPreparacao, resumoLoteEnvio } from "@/lib/movimentacao-relatorio";
+import { RELATORIO_VAZIO, STATUS_RELATORIO, ajustarRegistroManual, validarRegistroRelatorio, selecionarLoteRelatorios, resumoEnvioRelatorios, classificarPreparacao, resumoLoteEnvio } from "@/lib/movimentacao-relatorio";
 import { PERIODOS } from "@/lib/movimentacao-utils";
 describe("controle manual independente do relatório", () => {
   it("mantém exatamente os seis períodos existentes", () => {
@@ -26,6 +26,17 @@ describe("controle manual independente do relatório", () => {
       const confirmacao = ["Conferido pela empresa", "Divergência informada"].includes(status) ? status : "Aguardando";
       expect(validarRegistroRelatorio({ ...RELATORIO_VAZIO, status, destinatarios: "rh@empresa.com.br", data_envio: "2026-10-26", confirmacao })).toBeNull();
     }
+  });
+  it("salvar registro manual só com e-mails não marca o relatório como enviado", () => {
+    const ajustado = ajustarRegistroManual({ ...RELATORIO_VAZIO, status: "Enviado", destinatarios: "rh@empresa.com.br", data_envio: "2026-11-10" });
+    expect(ajustado).toMatchObject({ status: "Pronto para envio", data_envio: null, confirmacao: "Aguardando" });
+    expect(validarRegistroRelatorio(ajustado)).toBeNull();
+  });
+  it("registro manual mantém confirmação explícita da empresa", () => {
+    const conferido = { ...RELATORIO_VAZIO, status: "Conferido pela empresa", confirmacao: "Conferido pela empresa", destinatarios: "rh@empresa.com.br", data_envio: "2026-11-10" };
+    expect(ajustarRegistroManual(conferido)).toEqual(conferido);
+    const divergente = { ...RELATORIO_VAZIO, status: "Divergência informada", confirmacao: "Divergência informada", destinatarios: "rh@empresa.com.br", data_envio: "2026-11-10" };
+    expect(ajustarRegistroManual(divergente)).toEqual(divergente);
   });
   it("não registra Enviado sem destinatários", () => {
     expect(validarRegistroRelatorio({ ...RELATORIO_VAZIO, status: "Enviado", data_envio: "2026-10-26" })).not.toBeNull();
