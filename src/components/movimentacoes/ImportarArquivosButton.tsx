@@ -39,7 +39,7 @@ export function ImportarArquivosButton({ movimentacaoId, empresaId, mes, periodo
     return () => { controller.current?.abort(); };
   }, [movimentacaoId, empresaId, mes, periodo]);
 
-  const importar = async (preparar = false) => {
+  const importar = async (preparar = false, substituir = false) => {
     if (!movimentacaoId || !empresaId || busy) return;
     const abort = new AbortController();
     controller.current = abort;
@@ -63,8 +63,8 @@ export function ImportarArquivosButton({ movimentacaoId, empresaId, mes, periodo
         mes: mov.mes_referencia, periodo: mov.periodo,
       }, abort.signal, arquivo => onImportar(arquivo, abort.signal), quantidade => {
         setMensagem(`Arquivos encontrados: ${quantidade}${quantidade ? " — Anexando..." : ""}`);
-      }, preparar);
-      if (preparar) await queryClient.invalidateQueries({ queryKey: ["envios-empresa-arquivos"] });
+      }, preparar, substituir);
+      if (preparar || substituir) await queryClient.invalidateQueries({ queryKey: ["envios-empresa-arquivos"] });
       if (preparar && !abort.signal.aborted) setResumo({ nome: empresa.nome, contrato: String(empresa.codigo_contrato), mes: mov.mes_referencia, periodo: mov.periodo, resultado });
       if (!abort.signal.aborted) setMensagem(resultado.encontrados === 0
         ? "Nenhum arquivo disponível para este contrato. Tente novamente."
@@ -112,7 +112,7 @@ export function ImportarArquivosButton({ movimentacaoId, empresaId, mes, periodo
           {resumo.resultado.vidas != null && <p className="text-sm">Vidas no relatório: <span className="font-semibold tabular-nums">{resumo.resultado.vidas}</span>{(() => { const x = resumo.resultado.origens.find(o => o.tipo === "xlsx"); const g = x && formatarGeracao(x.nome_arquivo); return g ? <span className="text-muted-foreground"> · gerado em {g}</span> : null; })()}</p>}
           {resumo.resultado.origens.some(o => o.repositorio && arquivoAnteriorAoCorte(o.nome_arquivo, resumo.periodo, resumo.mes)) && <div role="alert" className="space-y-2 rounded-lg border border-warning/40 bg-warning/10 p-3 text-sm">
             <p className="flex gap-2"><AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-warning" />O arquivo do Repositório foi gerado antes do fim do período ({dataCorteMovimentacao(resumo.periodo, resumo.mes)}). Desligamentos ou inclusões feitos depois podem não estar nele.</p>
-            <Button type="button" size="sm" variant="outline" disabled={registrando || busy} onClick={() => { setResumo(null); importar(); }}><CloudDownload className="h-3.5 w-3.5" />Buscar versão nova no Portal</Button>
+            <Button type="button" size="sm" variant="outline" disabled={registrando || busy} onClick={() => { setResumo(null); importar(false, true); }}><CloudDownload className="h-3.5 w-3.5" />Buscar versão nova no Portal</Button>
           </div>}
           <p className="text-sm">Arquivos anexados automaticamente: {resumo.resultado.anexados}</p>
           {resumo.resultado.ignorados > 0 && <p className="text-sm text-muted-foreground">Já anexados e ignorados: {resumo.resultado.ignorados}</p>}
