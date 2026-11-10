@@ -100,8 +100,8 @@ export function ImportarDoRepositorioButton({ movimentacaoId, empresaId, mes, pe
           {resumo.vidas != null && <p className="text-sm">Vidas no relatório: <span className="font-semibold tabular-nums">{resumo.vidas}</span></p>}
           {resumo.arquivos.some(a => arquivoAnteriorAoCorte(a.nome_arquivo, resumo.contexto.periodo, resumo.contexto.mes)) && <div role="alert" className="space-y-2 rounded-lg border border-warning/40 bg-warning/10 p-3 text-sm">
             <p className="flex gap-2"><AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-warning" />Arquivo gerado antes do fim do período ({dataCorteMovimentacao(resumo.contexto.periodo, resumo.contexto.mes)}). Desligamentos ou inclusões feitos depois podem não estar nele.</p>
-            <Button type="button" size="sm" variant="outline" disabled={importando} onClick={buscarPortal}><CloudDownload className="h-3.5 w-3.5" />Buscar versão nova no Portal</Button>
           </div>}
+          <Button type="button" size="sm" variant="outline" disabled={importando} onClick={buscarPortal}><CloudDownload className="h-3.5 w-3.5" />Buscar versão nova no Portal</Button>
           {mensagem && <p role="alert" className="text-sm text-destructive">{mensagem}</p>}
           <div className="flex flex-wrap justify-end gap-2"><Button type="button" variant="outline" disabled={importando} onClick={() => { controller.current?.abort(); setResumo(null); finalizar(); }}>Cancelar</Button><Button type="button" disabled={importando || !resumo.arquivos.length} onClick={confirmar}>{importando && <Loader2 className="h-4 w-4 animate-spin" />}{importando ? "Importando..." : "Importar arquivos"}</Button></div>
         </>}
