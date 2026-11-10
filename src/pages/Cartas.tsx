@@ -106,6 +106,13 @@ export default function Cartas() {
               <div className="md:col-span-3">
                 <Campo label="Tomador (nome na assinatura)" value={campos.tomadorNome} onChange={(v) => set("tomadorNome", v)} />
               </div>
+              <div className="md:col-span-3">
+                <Campo
+                  label="NFS-e reconhecida (opcional — nota válida no lugar desta)"
+                  value={campos.notaReconhecida}
+                  onChange={(v) => set("notaReconhecida", v)}
+                />
+              </div>
               <div className="md:col-span-3 space-y-2">
                 <Label>Complemento do motivo</Label>
                 <Textarea

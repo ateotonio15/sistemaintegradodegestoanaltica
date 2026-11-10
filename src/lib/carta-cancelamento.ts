@@ -269,6 +269,8 @@ export interface CartaCampos {
   prestadorEndereco: string;
   prestadorCep: string;
   motivoComplemento: string;
+  /** NFS-e reconhecida no lugar da cancelada (opcional). */
+  notaReconhecida: string;
 }
 
 export function camposIniciais(d: DadosCartaNfse): CartaCampos {
@@ -285,8 +287,16 @@ export function camposIniciais(d: DadosCartaNfse): CartaCampos {
     prestadorInscricaoMunicipal: d.prestadorInscricaoMunicipal || PRESTADOR_PADRAO.inscricao,
     prestadorEndereco: d.prestadorEndereco || PRESTADOR_PADRAO.endereco,
     prestadorCep: d.prestadorCep || PRESTADOR_PADRAO.cep,
+    notaReconhecida: "",
     motivoComplemento: "Nota não utilizada. Sendo assim, afirmo a desistência total e definitiva.",
   };
+}
+
+/** Trecho opcional: "pois, não reconhecemos... apenas para a NFS-e nº X". */
+export function textoReconhecimento(c: Pick<CartaCampos, "notaReconhecida">): string {
+  const n = (c.notaReconhecida || "").trim();
+  if (!n) return "";
+  return `, pois, não reconhecemos a solicitação e prestação dos serviços em nossa empresa, ficando reconhecida a prestação de serviço apenas para a NFS-e nº ${n}`;
 }
 
 function esc(s: string): string {
@@ -315,7 +325,7 @@ export function montarCartaHtml(c: CartaCampos): string {
   <p class="just">
     <b>Motivo de cancelamento:</b> A nota fiscal de serviço emitida indevidamente pelo prestador,
     foi faturada indevidamente para o C.N.P.J nº <u>${esc(c.tomadorCnpj)}</u>, através da NFSe nº
-    <b>${esc(c.numero)}</b>. ${esc(c.motivoComplemento)}<br/>Nesses termos,
+    <b>${esc(c.numero)}</b>${esc(textoReconhecimento(c))}. ${esc(c.motivoComplemento)}<br/>Nesses termos,
   </p>
   <p>Pede deferimento.</p>
   <p class="ass">__________________________________<br/>
@@ -383,6 +393,7 @@ export async function baixarCartaDoc(c: CartaCampos): Promise<void> {
     TOMADOR_IM: c.tomadorInscricaoMunicipal,
     TOMADOR_NOME: c.tomadorNome,
     MOTIVO: c.motivoComplemento,
+    RECONHECIMENTO: textoReconhecimento(c),
   };
 
   const preenchido = doc.replace(/\{\{([A-Z_]+)\}\}/g, (all, chave: string) =>
@@ -418,6 +429,7 @@ function valoresCarta(c: CartaCampos): Record<string, string> {
     TOMADOR_IM: c.tomadorInscricaoMunicipal,
     TOMADOR_NOME: c.tomadorNome,
     MOTIVO: c.motivoComplemento,
+    RECONHECIMENTO: textoReconhecimento(c),
   };
 }
 
