@@ -617,6 +617,13 @@
       "when": 1794340715986,
       "tag": "0087_migration",
       "breakpoints": true
+    },
+    {
+      "idx": 88,
+      "version": "7",
+      "when": 1794342417031,
+      "tag": "0088_cirurgia_avisos_destinatario_perfis",
+      "breakpoints": true
     }
   ]
 }

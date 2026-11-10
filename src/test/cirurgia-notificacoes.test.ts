@@ -2,6 +2,7 @@
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { PGlite } from "@electric-sql/pglite";
 import { readFileSync } from "node:fs";
+import { avisoCirurgiaDoUsuario } from "@/lib/cirurgia-notificacao";
 import { demandaCirurgicaPendente, eventosConfirmados, podeVerAvisosCirurgia, type DemandaCirurgia, type Cirurgia } from "../../supabase/functions/sincronizar-cirurgias-demandas/regras";
 
 const d: DemandaCirurgia = { id: "10000000-0000-0000-0000-000000000001", cpf: "123.456.789-01", nome_cliente: "Paciente Teste", setor_responsavel: "Agenda Cirúrgica", tipo_reclamacao: null, reclamacao: null, resolvido_setor: false, resolvido_executiva: false };
@@ -21,6 +22,15 @@ describe("Avisos globais — regras da confirmação", () => {
   it("somente adm, executivo e executivo externo", () => {
     expect(["admin","executivo","executivo_externo"].map(podeVerAvisosCirurgia)).toEqual([true,true,true]);
     expect(["comum","financeiro","diretora","admin_interno","enfermeira","visualizacao",null].map(podeVerAvisosCirurgia)).toEqual([false,false,false,false,false,false,false]);
+  });
+  for (const role of ["executivo", "executivo_externo"]) it(`${role} recebe apenas avisos destinados a quem lançou`, () => {
+    expect(avisoCirurgiaDoUsuario("criador", "criador", role)).toBe(true);
+    expect(avisoCirurgiaDoUsuario("outro", "criador", role)).toBe(false);
+    expect(avisoCirurgiaDoUsuario(null, "criador", role)).toBe(false);
+  });
+  it("administrador mantém supervisão e outros perfis não recebem", () => {
+    expect(avisoCirurgiaDoUsuario("outro", "criador", "admin")).toBe(true);
+    expect(avisoCirurgiaDoUsuario("criador", "criador", "financeiro")).toBe(false);
   });
   it("procedimento cirúrgico também é elegível fora do setor", () => {
     expect(demandaCirurgicaPendente({ ...d, setor_responsavel: "Atendimento", reclamacao: "Procedimento cirúrgico" })).toBe(true);
@@ -49,13 +59,16 @@ beforeAll(async () => {
   await db.exec(`CREATE ROLE authenticated; CREATE ROLE anon; CREATE ROLE service_role;
     CREATE SCHEMA auth;
     CREATE FUNCTION auth.uid() RETURNS uuid LANGUAGE sql AS $$ SELECT '${user}'::uuid $$;
-    CREATE FUNCTION public.has_role(u uuid,r text) RETURNS boolean LANGUAGE sql AS $$ SELECT current_setting('test.role',true)=r $$;
+    CREATE TYPE public.app_role AS ENUM ('admin','executivo','executivo_externo','comum','financeiro','diretora','enfermeira');
+    CREATE FUNCTION public.has_role(u uuid,r public.app_role) RETURNS boolean LANGUAGE sql AS $$ SELECT current_setting('test.role',true)=r::text $$;
     CREATE TABLE public.demandas(id uuid PRIMARY KEY, created_by uuid);
     GRANT SELECT ON public.demandas TO authenticated;
     ALTER TABLE public.demandas ENABLE ROW LEVEL SECURITY;
     CREATE POLICY leitura ON public.demandas FOR SELECT TO authenticated USING (current_setting('test.role',true) IN ('admin','executivo') OR created_by=auth.uid());`);
   const sql = readFileSync("drizzle/migrations/0055_avisos_globais_cirurgia.sql", "utf8").replace(/ALTER PUBLICATION[^;]+;/g, "");
   await db.exec(sql);
+  await db.exec("ALTER TABLE public.demandas_cirurgia_notificacoes ADD COLUMN destinatario_id uuid");
+  await db.exec(readFileSync("drizzle/migrations/0088_cirurgia_avisos_destinatario_perfis.sql", "utf8"));
   await db.exec(`INSERT INTO demandas VALUES ('${d.id}', '${user}'), ('10000000-0000-0000-0000-000000000002', '20000000-0000-0000-0000-000000000002');
     INSERT INTO demandas_cirurgia_notificacoes(demanda_id,agendamento_id,data_cirurgia,nome_paciente,nome_medico) SELECT id,'42','2026-10-30','Paciente Teste','Médico Teste' FROM demandas;`);
 },30000);
@@ -64,7 +77,13 @@ describe("Avisos globais — proteção real das tabelas", () => {
   for (const role of ["admin","executivo","executivo_externo","comum","financeiro","diretora","enfermeira"]) it(`protege leitura para ${role}`, async () => {
     await db.exec(`RESET ROLE; SET test.role='${role}'; SET ROLE authenticated;`);
     const { rows } = await db.query("SELECT id FROM demandas_cirurgia_notificacoes");
-    expect(rows.length).toBe(role === "admin" || role === "executivo" ? 2 : role === "executivo_externo" ? 1 : 0);
+    expect(rows.length).toBe(role === "admin" ? 2 : role === "executivo" || role === "executivo_externo" ? 1 : 0);
+  });
+  for (const role of ["executivo", "executivo_externo"]) it(`${role} não lê aviso de outro destinatário mesmo na própria reclamação`, async () => {
+    await db.exec(`RESET ROLE; UPDATE demandas_cirurgia_notificacoes SET destinatario_id='20000000-0000-0000-0000-000000000002' WHERE demanda_id='${d.id}'; SET test.role='${role}'; SET ROLE authenticated;`);
+    expect((await db.query("SELECT id FROM demandas_cirurgia_notificacoes")).rows).toHaveLength(0);
+    await db.exec(`RESET ROLE; UPDATE demandas_cirurgia_notificacoes SET destinatario_id='${user}' WHERE demanda_id='${d.id}'; SET ROLE authenticated;`);
+    expect((await db.query("SELECT id FROM demandas_cirurgia_notificacoes")).rows).toHaveLength(1);
   });
   it("executivo não pode fabricar notificações", async () => {
     await db.exec("RESET ROLE; SET test.role='executivo'; SET ROLE authenticated;");

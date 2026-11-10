@@ -2,7 +2,7 @@ import { useEffect } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
-import { podeVerAvisosCirurgia } from "@/lib/cirurgia-notificacao";
+import { avisoCirurgiaDoUsuario, podeVerAvisosCirurgia } from "@/lib/cirurgia-notificacao";
 
 export function useNotificacoesCirurgia() {
   const { user, role } = useAuth();
@@ -36,7 +36,7 @@ export function useNotificacoesCirurgia() {
         supabase.from("demandas_cirurgia_sync").select("ultimo_sucesso_em,erro").eq("id",true).maybeSingle(),
       ]);
       if (sync.error) throw sync.error;
-      const meus = role === "admin" ? avisos : avisos.filter((n: { destinatario_id?: string | null }) => !n.destinatario_id || n.destinatario_id === user.id);
+      const meus = avisos.filter(n => avisoCirurgiaDoUsuario(n.destinatario_id, user.id, role));
       return { avisos: meus.filter(n => !lidas.has(n.id)), sync: sync.data };
     }, staleTime: 15000, refetchInterval: 60000, refetchOnWindowFocus: true,
   });
