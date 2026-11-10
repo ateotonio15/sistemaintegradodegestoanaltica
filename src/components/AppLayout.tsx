@@ -9,6 +9,7 @@ import logoImg from "@/assets/logo-cs-control.png";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
+import { podeExibirAtalhoMailing } from "@/lib/mailing-acesso";
 import { useAuth } from "@/hooks/useAuth";
 import { useTheme } from "@/hooks/useTheme";
 import { useIsMobile } from "@/hooks/use-mobile";
@@ -60,6 +61,7 @@ const allNavItems = [
   { to: "/demandas/dashboard", label: "Dashboard Reclamações", icon: LayoutDashboard, adminOnly: true },
   { to: "/plantoes", label: "Plantão nas empresas", icon: Phone, adminOnly: true },
   { to: "/plantoes/calendario", label: "Calendário Plantões", icon: Calendar, adminOnly: true },
+  { to: "/mailing-brindes", label: "Mailing de Brindes", icon: Briefcase },
   { to: "/uber", label: "Uber Corporativo", icon: Car, adminOnly: true },
   { to: "/uber/dashboard", label: "Dashboard Uber", icon: LayoutDashboard, adminOnly: true },
   { to: "/dependentes-uea", label: "Dependentes UEA", icon: Users },
@@ -185,6 +187,7 @@ export function AppLayout({ children }: { children?: React.ReactNode }) {
           ]
       : allNavItems;
     const filtered = base.filter((item) => {
+      if (item.to === "/mailing-brindes") return podeExibirAtalhoMailing(role);
       // Dependentes UEA: visibilidade por permissão individual, independente do perfil.
       if (item.to === "/dependentes-uea") return canVerUea;
       if (isExecutivoExterno) {
