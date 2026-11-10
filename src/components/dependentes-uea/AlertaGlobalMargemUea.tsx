@@ -80,7 +80,7 @@ export function AlertaGlobalMargemUea() {
     <section
       ref={containerRef}
       aria-label="Alerta de mudanças de faixa com risco de falta de margem"
-      className="fixed bottom-[88px] right-4 z-40 max-w-[calc(100vw-2rem)]"
+      className="fixed bottom-[72px] right-3 z-40 max-w-[calc(100vw-2rem)]"
     >
       {expandido ? (
         <div className="w-[320px] rounded-lg border border-destructive/50 bg-destructive/15 p-3 text-destructive shadow-xl backdrop-blur-sm">
@@ -126,7 +126,7 @@ export function AlertaGlobalMargemUea() {
           aria-expanded={expandido}
           aria-label={`Alerta: ${totalTitularesCriticos} ${singular ? "titular" : "titulares"} com troca de faixa pendente de validação. Clique para ver detalhes.`}
           title="Trocas de faixa pendentes de validação de cobrança"
-          className={`relative flex h-12 w-12 items-center justify-center rounded-full border border-destructive/60 bg-destructive text-white shadow-xl transition-transform hover:scale-105 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-destructive/70 ${piscando ? "animate-pulse" : ""}`}
+          className={`relative flex h-10 w-10 opacity-70 hover:opacity-100 items-center justify-center rounded-full border border-destructive/60 bg-destructive text-white shadow-xl transition-transform hover:scale-105 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-destructive/70 ${piscando ? "animate-pulse" : ""}`}
         >
           {piscando && (
             <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-destructive opacity-60" aria-hidden="true" />

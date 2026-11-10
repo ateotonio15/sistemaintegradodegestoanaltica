@@ -240,7 +240,7 @@ export function FloatingFilaChat() {
       <button
         onClick={() => setOpen(true)}
         className={cn(
-          "fixed bottom-5 right-5 z-40 group flex items-center justify-center rounded-2xl h-14 w-14 shadow-xl transition-all duration-300",
+          "fixed bottom-4 right-3 z-40 group flex items-center justify-center rounded-2xl h-11 w-11 shadow-xl transition-all duration-300 opacity-60 hover:opacity-100 focus-visible:opacity-100",
           "bg-gradient-to-br from-primary via-primary to-primary/80 text-primary-foreground",
           "hover:scale-105 hover:shadow-2xl active:scale-95",
           "ring-1 ring-primary/20",
