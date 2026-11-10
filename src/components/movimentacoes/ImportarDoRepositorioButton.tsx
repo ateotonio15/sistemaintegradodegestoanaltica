@@ -85,6 +85,7 @@ export function ImportarDoRepositorioButton({ movimentacaoId, empresaId, mes, pe
     } catch (erro) { if (!abort.signal.aborted) setMensagem(erro instanceof Error ? erro.message : "Não foi possível buscar no Portal."); }
     finally { if (!abort.signal.aborted) setImportando(false); }
   };
+  const aviso = resumo ? avisoGeracaoArquivos(resumo.arquivos.map(a => a.nome_arquivo), resumo.contexto.periodo, resumo.contexto.mes) : null;
   return <div className="min-w-0 space-y-1">
     <Button type="button" size="sm" disabled={disabled || busy || !movimentacaoId || !empresaId} onClick={buscar}>
       {busy ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Archive className="h-3.5 w-3.5" />}Importar do Repositório
@@ -97,8 +98,8 @@ export function ImportarDoRepositorioButton({ movimentacaoId, empresaId, mes, pe
           <dl className="grid grid-cols-2 gap-3 text-sm"><div><dt className="text-muted-foreground">Contrato</dt><dd>{resumo.contexto.contrato}</dd></div><div><dt className="text-muted-foreground">Competência</dt><dd>{resumo.contexto.mes.split("-").reverse().join("/")}</dd></div><div><dt className="text-muted-foreground">Período</dt><dd>{resumo.contexto.periodo || "—"}</dd></div></dl>
           {resumo.arquivos.length ? <ul className="space-y-3">{resumo.arquivos.map(a => <li key={a.id} className="flex min-w-0 gap-2 text-sm"><Check className="mt-0.5 h-4 w-4 shrink-0 text-success" /><div className="min-w-0"><p className="font-medium">{a.tipo_relatorio} - {a.nome_arquivo.split(".").pop()?.toUpperCase()} <span className="font-normal text-muted-foreground">· v{a.versao}</span></p><p className="break-words text-xs text-muted-foreground">{a.nome_arquivo}</p>{formatarGeracao(a.nome_arquivo) && <p className="text-xs text-muted-foreground">Gerado em {formatarGeracao(a.nome_arquivo)}</p>}</div></li>)}</ul> : <p className="text-sm text-muted-foreground">Nenhum arquivo atual encontrado no Repositório para esta movimentação.</p>}
           {resumo.vidas != null && <p className="text-sm">Vidas no relatório: <span className="font-semibold tabular-nums">{resumo.vidas}</span></p>}
-          {resumo.arquivos.some(a => arquivoAnteriorAoCorte(a.nome_arquivo, resumo.contexto.periodo, resumo.contexto.mes)) && <div role="alert" className="space-y-2 rounded-lg border border-warning/40 bg-warning/10 p-3 text-sm">
-            <p className="flex gap-2"><AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-warning" />Arquivo gerado antes do fim do período ({dataCorteMovimentacao(resumo.contexto.periodo, resumo.contexto.mes)}). Desligamentos ou inclusões feitos depois podem não estar nele.</p>
+          {aviso && <div role="alert" className="space-y-2 rounded-lg border border-warning/40 bg-warning/10 p-3 text-sm">
+            <p className="flex gap-2"><AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-warning" />{aviso}</p>
           </div>}
           <Button type="button" size="sm" variant="outline" disabled={importando} onClick={buscarPortal}><CloudDownload className="h-3.5 w-3.5" />Buscar versão nova no Portal</Button>
           {mensagem && <p role="alert" className="text-sm text-destructive">{mensagem}</p>}
