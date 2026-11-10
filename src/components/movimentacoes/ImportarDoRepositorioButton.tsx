@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { AlertTriangle, Archive, Check, CloudDownload, Loader2 } from "lucide-react";
 import { arquivoAnteriorAoCorte, contarVidasExcel, formatarGeracao } from "@/lib/repositorio-vidas";
 import { dataCorteMovimentacao } from "../../../supabase/functions/_shared/data-corte";
@@ -18,6 +19,7 @@ interface Props {
 }
 export function ImportarDoRepositorioButton({ movimentacaoId, empresaId, mes, periodo, disabled, onBusy, onImportar }: Props) {
   const [resumo, setResumo] = useState<{ contexto: ContextoImportacao; nome: string; arquivos: ArquivoEnvio[]; vidas: number | null } | null>(null);
+  const queryClient = useQueryClient();
   const [busy, setBusy] = useState(false);
   const [importando, setImportando] = useState(false);
   const [mensagem, setMensagem] = useState("");
@@ -78,6 +80,7 @@ export function ImportarDoRepositorioButton({ movimentacaoId, empresaId, mes, pe
     try {
       const r = await importarArquivosMovimentacao(resumo.contexto, abort.signal, arquivo => onImportar(arquivo, abort.signal), () => {}, false, true);
       abort.signal.throwIfAborted();
+      await queryClient.invalidateQueries({ queryKey: ["envios-empresa-arquivos"] });
       setMensagem(`${r.anexados} arquivo(s) novo(s) do Portal anexado(s) e atualizado(s) no Repositório de Envios${r.vidas != null ? ` — ${r.vidas} vidas` : ""}. Remova os anexos antigos, se houver.${r.falhas ? " Alguns arquivos não puderam ser obtidos." : ""}`);
       setResumo(null); finalizar();
     } catch (erro) { if (!abort.signal.aborted) setMensagem(erro instanceof Error ? erro.message : "Não foi possível buscar no Portal."); }
