@@ -46,7 +46,8 @@ Deno.serve(async req => {
     query = mov.periodo === null ? query.is("periodo", null) : query.eq("periodo", mov.periodo);
     const { data: atual, error: repoError } = await query.maybeSingle();
     if (repoError) throw repoError; // Falha de consulta não significa documento ausente.
-    let registro = atual;
+    const substituir = body.substituir === true && !!body.job_id;
+    let registro = substituir ? null : atual;
     if (!registro && !body.job_id) return json({ ausente: true });
     if (!registro && body.job_id) {
       const arquivo = await baixarRelatorioPortal(contrato, { nr_contrato: contrato, tipo: body.tipo, job_id: body.job_id }, AbortSignal.timeout(60_000));
@@ -57,7 +58,7 @@ Deno.serve(async req => {
         p_movimentacao: body.movimentacao_id, p_usuario: usuario.user.id,
         p_empresa: body.empresa_id, p_contrato: body.contrato, p_competencia: body.competencia, p_periodo: body.periodo,
         p_tipo: categoria, p_nome: arquivo.nome_arquivo, p_path: path,
-        p_mime: arquivo.blob.type, p_tamanho: arquivo.blob.size,
+        p_mime: arquivo.blob.type, p_tamanho: arquivo.blob.size, p_substituir: substituir,
       });
       if (registroError) {
         await admin.storage.from("arquivos-envios").remove([path]);
