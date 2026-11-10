@@ -610,6 +610,13 @@
       "when": 1794311904344,
       "tag": "0086_documento_fechamento_substituir",
       "breakpoints": true
+    },
+    {
+      "idx": 87,
+      "version": "7",
+      "when": 1794340715986,
+      "tag": "0087_migration",
+      "breakpoints": true
     }
   ]
 }

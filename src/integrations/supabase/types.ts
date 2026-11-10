@@ -2068,6 +2068,7 @@ export type Database = {
           created_at: string
           data_cirurgia: string
           demanda_id: string
+          destinatario_id: string | null
           id: string
           nome_medico: string
           nome_paciente: string
@@ -2077,6 +2078,7 @@ export type Database = {
           created_at?: string
           data_cirurgia: string
           demanda_id: string
+          destinatario_id?: string | null
           id?: string
           nome_medico: string
           nome_paciente: string
@@ -2086,6 +2088,7 @@ export type Database = {
           created_at?: string
           data_cirurgia?: string
           demanda_id?: string
+          destinatario_id?: string | null
           id?: string
           nome_medico?: string
           nome_paciente?: string

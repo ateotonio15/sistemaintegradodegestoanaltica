@@ -36,7 +36,8 @@ export function useNotificacoesCirurgia() {
         supabase.from("demandas_cirurgia_sync").select("ultimo_sucesso_em,erro").eq("id",true).maybeSingle(),
       ]);
       if (sync.error) throw sync.error;
-      return { avisos: avisos.filter(n => !lidas.has(n.id)), sync: sync.data };
+      const meus = role === "admin" ? avisos : avisos.filter((n: { destinatario_id?: string | null }) => !n.destinatario_id || n.destinatario_id === user.id);
+      return { avisos: meus.filter(n => !lidas.has(n.id)), sync: sync.data };
     }, staleTime: 15000, refetchInterval: 60000, refetchOnWindowFocus: true,
   });
   const marcar = useMutation({ mutationFn: async (ids: string[]) => {
