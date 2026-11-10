@@ -1,8 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { AlertTriangle, Archive, Check, CloudDownload, Loader2 } from "lucide-react";
-import { arquivoAnteriorAoCorte, contarVidasExcel, formatarGeracao } from "@/lib/repositorio-vidas";
-import { dataCorteMovimentacao } from "../../../supabase/functions/_shared/data-corte";
+import { avisoGeracaoArquivos, contarVidasExcel, formatarGeracao } from "@/lib/repositorio-vidas";
 import { importarArquivosMovimentacao } from "@/services/importarArquivosMovimentacao";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
