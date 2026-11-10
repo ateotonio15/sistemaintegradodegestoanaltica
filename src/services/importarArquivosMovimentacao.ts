@@ -16,10 +16,19 @@ export async function importarArquivosMovimentacao(
   anexar: (arquivo: ArquivoPortal) => Promise<"ignorado" | void>,
   encontrados: (quantidade: number) => void,
   preparar = false,
+  substituirRepositorio = false,
 ) {
   const contrato = validarContratoPortal(contexto.contrato);
   signal.throwIfAborted();
   const obter = async (tipo: "pdf" | "xlsx") => {
+    if (substituirRepositorio) {
+      // Versão nova do Portal: registra no Repositório de Envios como versão atual (a anterior vira "Substituído").
+      const gerado = await gerarRelatorioPortal(contrato, tipo, signal);
+      validarArquivoContrato(contrato, gerado, gerado.nome_arquivo);
+      const registrado = await consultarDocumentoFechamento(contexto, tipo, signal, gerado.job_id, true);
+      if (!registrado) throw new Error("Não foi possível registrar o documento no repositório.");
+      return registrado;
+    }
     if (!preparar) return gerarRelatorioPortal(contrato, tipo, signal);
     const atual = await consultarDocumentoFechamento(contexto, tipo, signal);
     if (atual) return atual;

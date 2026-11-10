@@ -2,11 +2,11 @@ import { supabase } from "@/integrations/supabase/client";
 import type { ContextoImportacao } from "./importarArquivosMovimentacao";
 import { validarArquivoContrato, type ArquivoPortal } from "./portalEmpresaRelatorios";
 
-export async function consultarDocumentoFechamento(contexto: ContextoImportacao, tipo: "pdf" | "xlsx", signal: AbortSignal, jobId?: string): Promise<ArquivoPortal | null> {
+export async function consultarDocumentoFechamento(contexto: ContextoImportacao, tipo: "pdf" | "xlsx", signal: AbortSignal, jobId?: string, substituir = false): Promise<ArquivoPortal | null> {
   signal.throwIfAborted();
   const { data, error } = await supabase.functions.invoke("preparar-documento-fechamento", {
     body: { movimentacao_id: contexto.movimentacaoId, empresa_id: contexto.empresaId, contrato: contexto.contrato,
-      competencia: contexto.mes, periodo: contexto.periodo, tipo, ...(jobId ? { job_id: jobId } : {}) }, signal,
+      competencia: contexto.mes, periodo: contexto.periodo, tipo, ...(jobId ? { job_id: jobId, ...(substituir ? { substituir: true } : {}) } : {}) }, signal,
   });
   signal.throwIfAborted();
   if (error || data?.error) throw new Error(data?.error || "Não foi possível consultar o Repositório de Envios.");
