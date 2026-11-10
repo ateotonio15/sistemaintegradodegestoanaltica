@@ -7258,6 +7258,7 @@ export type Database = {
           p_nome: string
           p_path: string
           p_periodo: string
+          p_substituir?: boolean
           p_tamanho: number
           p_tipo: string
           p_usuario: string

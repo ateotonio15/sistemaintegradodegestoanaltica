@@ -603,6 +603,13 @@
       "when": 1794246491334,
       "tag": "0085_add_classificacao_empresas",
       "breakpoints": true
+    },
+    {
+      "idx": 86,
+      "version": "7",
+      "when": 1794311904344,
+      "tag": "0086_documento_fechamento_substituir",
+      "breakpoints": true
     }
   ]
 }
