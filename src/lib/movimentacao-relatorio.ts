@@ -46,6 +46,19 @@ export function resumoLoteEnvio<T extends { id: string }>(itens: T[], registros:
   }
   return { selecionadas: itens.length, prontas, semDestinatario, comErro, aptas };
 }
+/**
+ * Ajusta o registro salvo pelo botão "Salvar registro manual": preencher só os
+ * e-mails não pode marcar o relatório como enviado. "Enviado" com confirmação
+ * "Aguardando" vira "Pronto para envio" e perde a data de envio; o envio real
+ * continua vindo do botão "Enviar por e-mail". Confirmações explícitas
+ * ("Conferido pela empresa", "Divergência informada") são mantidas.
+ */
+export function ajustarRegistroManual(r: RegistroRelatorio): RegistroRelatorio {
+  if (r.status === "Enviado" && r.confirmacao === "Aguardando") {
+    return { ...r, status: "Pronto para envio", data_envio: null };
+  }
+  return r;
+}
 export function validarRegistroRelatorio(r: RegistroRelatorio): string | null {
   if (!STATUS_RELATORIO.some(s => s === r.status) || !CONFIRMACOES_RELATORIO.some(c => c === r.confirmacao)) return "Selecione um status e uma confirmação válidos.";
   if ((["Enviado", "Conferido pela empresa", "Divergência informada"].includes(r.status) || r.confirmacao !== "Aguardando") && (!r.destinatarios.trim() || !r.data_envio)) return "Informe os destinatários e a data de envio.";
