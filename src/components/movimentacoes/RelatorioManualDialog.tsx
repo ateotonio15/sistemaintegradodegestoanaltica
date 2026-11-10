@@ -10,7 +10,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
-import { STATUS_RELATORIO, CONFIRMACOES_RELATORIO, RELATORIO_VAZIO, validarRegistroRelatorio, type RegistroRelatorio } from "@/lib/movimentacao-relatorio";
+import { STATUS_RELATORIO, CONFIRMACOES_RELATORIO, RELATORIO_VAZIO, ajustarRegistroManual, validarRegistroRelatorio, type RegistroRelatorio } from "@/lib/movimentacao-relatorio";
 import type { ArquivoPortal } from "@/services/portalEmpresaRelatorios";
 import { enviarRelatoriosPortal, buscarGrupoRelatorio } from "@/services/enviarRelatoriosPortal";
 import { HistoricoEnvioRelatorio } from "./HistoricoEnvioRelatorio";
@@ -35,17 +35,19 @@ export function RelatorioManualDialog({ movimentacaoId, empresaId = null, nome, 
   const save = useMutation({
     mutationFn: async () => {
       if (!canEdit) throw new Error("Sem permissão para registrar o relatório.");
-      const erro = validarRegistroRelatorio(form);
+      // Salvar só os e-mails não pode marcar o relatório como enviado.
+      const registro = ajustarRegistroManual(form);
+      const erro = validarRegistroRelatorio(registro);
       if (erro) throw new Error(erro);
       const { error } = await supabase.from("movimentacao_relatorios").upsert({
-        movimentacao_id: movimentacaoId, status: form.status, destinatarios: form.destinatarios.trim(),
-        cc: form.cc.trim(),
-        data_envio: form.data_envio, confirmacao: form.confirmacao, observacoes: form.observacoes.trim(),
+        movimentacao_id: movimentacaoId, status: registro.status, destinatarios: registro.destinatarios.trim(),
+        cc: registro.cc.trim(),
+        data_envio: registro.data_envio, confirmacao: registro.confirmacao, observacoes: registro.observacoes.trim(),
       }, { onConflict: "movimentacao_id" });
       if (error) throw error;
       // Integração com o fluxo da movimentação: relatório enviado preenche "Envio Empresa" apenas se estiver vazia.
-      if (["Enviado", "Conferido pela empresa", "Divergência informada"].includes(form.status) && form.data_envio && !dataEnvioEmpresa) {
-        const { error: erroMov } = await supabase.from("movimentacoes").update({ data_envio_empresa: form.data_envio }).eq("id", movimentacaoId).is("data_envio_empresa", null);
+      if (["Enviado", "Conferido pela empresa", "Divergência informada"].includes(registro.status) && registro.data_envio && !dataEnvioEmpresa) {
+        const { error: erroMov } = await supabase.from("movimentacoes").update({ data_envio_empresa: registro.data_envio }).eq("id", movimentacaoId).is("data_envio_empresa", null);
         if (erroMov) throw erroMov;
       }
     },
