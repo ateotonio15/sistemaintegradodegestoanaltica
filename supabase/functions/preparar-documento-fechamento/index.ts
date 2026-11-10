@@ -8,6 +8,7 @@ const Body = z.object({
   competencia: z.string().regex(/^\d{4}-\d{2}$/), periodo: z.string().nullable(),
   contrato: z.string().regex(/^\d+$/), tipo: z.enum(["pdf", "xlsx"]),
   job_id: z.string().regex(/^[A-Za-z0-9_-]{1,160}$/).optional(),
+  substituir: z.boolean().optional(),
 });
 const json = (data: unknown, status = 200) => new Response(JSON.stringify(data), {
   status, headers: { ...corsHeaders, "Content-Type": "application/json" },

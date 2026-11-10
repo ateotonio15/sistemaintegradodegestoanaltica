@@ -76,9 +76,9 @@ export function ImportarDoRepositorioButton({ movimentacaoId, empresaId, mes, pe
     if (!resumo || !abort || importando) return;
     setImportando(true); setMensagem("Gerando relatórios novos no Portal...");
     try {
-      const r = await importarArquivosMovimentacao(resumo.contexto, abort.signal, arquivo => onImportar(arquivo, abort.signal), () => {});
+      const r = await importarArquivosMovimentacao(resumo.contexto, abort.signal, arquivo => onImportar(arquivo, abort.signal), () => {}, false, true);
       abort.signal.throwIfAborted();
-      setMensagem(`${r.anexados} arquivo(s) novo(s) do Portal anexado(s)${r.vidas != null ? ` — ${r.vidas} vidas` : ""}. Remova os anexos antigos, se houver.${r.falhas ? " Alguns arquivos não puderam ser obtidos." : ""}`);
+      setMensagem(`${r.anexados} arquivo(s) novo(s) do Portal anexado(s) e atualizado(s) no Repositório de Envios${r.vidas != null ? ` — ${r.vidas} vidas` : ""}. Remova os anexos antigos, se houver.${r.falhas ? " Alguns arquivos não puderam ser obtidos." : ""}`);
       setResumo(null); finalizar();
     } catch (erro) { if (!abort.signal.aborted) setMensagem(erro instanceof Error ? erro.message : "Não foi possível buscar no Portal."); }
     finally { if (!abort.signal.aborted) setImportando(false); }
