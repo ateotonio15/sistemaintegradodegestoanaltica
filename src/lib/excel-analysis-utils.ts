@@ -2590,6 +2590,10 @@ export async function analisarExcelFinanceiroPorCnpj(
     sheet.eachRow({ includeEmpty: false }, (row) => rowsSheet.push((row.values as unknown[]).slice(1)));
     let pvQtdIdx = -1;
     let pvValIdx = -1;
+    // Cabeçalho de listagem de beneficiários (Carteirinha/Beneficiário/CPF):
+    // cada linha traz "Retroativo <Mês>" na coluna Tipo Cobrança, mas são
+    // lançamentos individuais, não pivots — nunca somar como pivot.
+    let emListagem = false;
     for (let i = 0; i < rowsSheet.length; i++) {
       const r = rowsSheet[i] || [];
       // Cabeçalho da tabela dinâmica ("Soma de QTD" / "Soma de Valor")
@@ -2605,8 +2609,13 @@ export async function analisarExcelFinanceiroPorCnpj(
       if (hVal >= 0 || hQtd >= 0) {
         pvQtdIdx = hQtd;
         pvValIdx = hVal;
+        emListagem = r.some((c) => {
+          const t = norm(c);
+          return t === "cpf" || t.startsWith("carteirinha") || t.startsWith("beneficiario");
+        });
         continue;
       }
+      if (emListagem) continue;
       if (r.some((c) => norm(c).startsWith("total"))) continue;
       let hitIdx = -1;
       let hitLabel = "";
