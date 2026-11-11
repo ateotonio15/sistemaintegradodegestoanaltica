@@ -624,6 +624,13 @@
       "when": 1794342417031,
       "tag": "0088_cirurgia_avisos_destinatario_perfis",
       "breakpoints": true
+    },
+    {
+      "idx": 89,
+      "version": "7",
+      "when": 1794430620394,
+      "tag": "0089_tighten_select_policies",
+      "breakpoints": true
     }
   ]
 }
