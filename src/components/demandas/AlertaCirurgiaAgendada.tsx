@@ -42,7 +42,7 @@ export function AlertaCirurgiaRealizada({ cirurgia }: { cirurgia: DadosCirurgiaP
 }
 
 /** Limita as consultas às linhas visíveis, compartilhando o cache com o formulário. */
-export function SeloCirurgiaDemanda({ cpf, nome }: { cpf?: string | null; nome: string }) {
+export function SeloCirurgiaDemanda({ cpf, nome, dataReclamacao }: { cpf?: string | null; nome: string; dataReclamacao?: string | null }) {
   const ref = useRef<HTMLDivElement>(null);
   const [visible, setVisible] = useState(false);
   useEffect(() => {
@@ -54,7 +54,10 @@ export function SeloCirurgiaDemanda({ cpf, nome }: { cpf?: string | null; nome: 
   }, []);
   const agenda = useAgendaPaciente(cpf, nome, visible);
   const cirurgia = agenda.data?.agendamentoAtivo;
-  const realizado = cirurgia ? undefined : agenda.data?.procedimentoRealizado;
+  const desde = String(dataReclamacao ?? "").slice(0, 10);
+  const candidato = cirurgia ? undefined : agenda.data?.procedimentoRealizado;
+  // Procedimento executado antes da reclamação é de um agendamento anterior.
+  const realizado = candidato && (!desde || candidato.data_entrada >= desde) ? candidato : undefined;
   const titulo = (d?: DadosCirurgiaPaciente | null) => d ? `${d.data_entrada.split("-").reverse().join("/")} — ${d.nome_medico || "Médico não informado"} — ${d.nome_procedimento}` : undefined;
   return <div ref={ref}>
     {cirurgia && <Badge variant="outline" className="mt-1 gap-1 border-warning/60 bg-warning/10 text-foreground whitespace-nowrap" title={titulo(cirurgia)}>

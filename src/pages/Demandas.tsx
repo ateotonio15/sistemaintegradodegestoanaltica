@@ -481,7 +481,7 @@ export default function Demandas() {
                       <td className="py-2.5 px-3 whitespace-nowrap">{formatDate(d.data_reclamacao)}</td>
                       <td className="py-2.5 px-3 font-medium">
                         {d.nome_cliente}
-                        <SeloCirurgiaDemanda cpf={d.cpf} nome={d.nome_cliente} />
+                        <SeloCirurgiaDemanda cpf={d.cpf} nome={d.nome_cliente} dataReclamacao={d.data_reclamacao} />
                       </td>
                       <td className="py-2.5 px-3 text-muted-foreground">{d.empresa || "—"}</td>
                       <td className="py-2.5 px-3 text-muted-foreground">{d.setor_responsavel || "—"}</td>
