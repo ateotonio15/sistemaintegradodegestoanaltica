@@ -260,503 +260,210 @@ function painel(slide: any, x: number, y: number, w: number, h: number, titulo: 
 }
 
 // ============================================================
-// EXPORT PRINCIPAL — PPTX EXECUTIVO
+// EXPORT PRINCIPAL — APRESENTAÇÃO À DIRETORIA (6 páginas, 16:9)
+// Somente dados agregados (LGPD). Linguagem de triagem.
 // ============================================================
 export async function exportRelatorioPptx(acao: AcaoSaude, triagens: Triagem[]) {
   const { default: PptxGenJS } = await import("pptxgenjs");
+  const { resumoApresentacao, pctDe } = await import("./apresentacao-saude");
   const pptx = new PptxGenJS();
   pptx.layout = "LAYOUT_WIDE"; // 13.333 x 7.5
-  pptx.title = `Relatório de Saúde - ${acao.empresa?.nome ?? ""}`;
+  pptx.title = `Resultados da Campanha de Saúde - ${acao.empresa?.nome ?? ""}`;
 
-  // Plano de fundo (template Samel — Programa Saúde nas Empresas)
-  const [bgCapa, bgConteudo] = await Promise.all([
-    fetchDataUri(bgCapaAsset.url),
-    fetchDataUri(bgConteudoAsset.url),
-  ]);
-  const capaBg = { data: bgCapa } as const;
-  const conteudoBg = { data: bgConteudo } as const;
+  const [bgCapa, bgConteudo] = await Promise.all([fetchDataUri(bgCapaAsset.url), fetchDataUri(bgConteudoAsset.url)]);
 
+  const C = {
+    VERDE: "2E5F2E", PETROLEO: "1E3A4C", CINZA: "5B6B77",
+    OK: "2E8B57", OK_ESCURO: "1F6B40", ATENCAO: "E0A800", ALERTA: "E67E22", PRIORIDADE: "C0392B",
+    NR: "B8C2CA", BRANCO: "FFFFFF", BORDA: "E3E8EC",
+  };
+  const FONT = "Calibri";
+  const W = 13.333, MX = 0.6, CW = W - 2 * MX;
+  const TOP = 1.95; // área de conteúdo
+  const BOTTOM = 6.55;
 
+  const m = calcularMetricas(triagens);
+  const r = resumoApresentacao({ total: m.total, paCounts: m.paCounts, gliCounts: m.gliCounts, encaminhamentos: m.encaminhamentos });
+  const gl = m.gliCounts as Record<string, number>;
+  const pa = m.paCounts as Record<string, number>;
   const empresaNome = (acao.empresa?.nome ?? "Empresa").toUpperCase();
   const dataBR = formatDateBR(acao.data_acao);
+  const plural = (n: number, s: string, p: string) => (n === 1 ? s : p);
 
-  // ----- Cálculos -----
-  const total = triagens.length;
-
-  const paCounts = { "Ótima": 0, Normal: 0, "PA Elevada": 0, "Hipertensão Estágio 1": 0, "Hipertensão Estágio 2": 0, "Hipertensão Estágio 3": 0, "Não realizado": 0 };
-  const gliCounts = { Normal: 0, "Pré-Diabetes": 0, "Alterada pós-prandial": 0, Diabetes: 0, "Não realizado": 0 };
-
-  triagens.forEach((t) => {
-    const pa = classificarPa(t.pas_mmhg, t.pad_mmhg);
-    paCounts[pa]++;
-    const gli = classificarGlicemia(t.glicemia_mg_dl, t.jejum);
-    if (gli) gliCounts[gli]++;
-    else gliCounts["Não realizado"]++;
-  });
-
-  const paAlt = paCounts["PA Elevada"] + paCounts["Hipertensão Estágio 1"] + paCounts["Hipertensão Estágio 2"] + paCounts["Hipertensão Estágio 3"];
-  const paNormal = paCounts["Ótima"] + paCounts["Normal"];
-  const paNR = paCounts["Não realizado"];
-  const gliAlt = gliCounts["Pré-Diabetes"] + gliCounts["Alterada pós-prandial"] + gliCounts["Diabetes"];
-  const gliNormal = gliCounts["Normal"];
-  const gliNR = gliCounts["Não realizado"];
-  // Totais por exame efetivamente realizado (base correta dos percentuais)
-  const totalPa = total - paNR;
-  const totalGli = total - gliNR;
-  const encaminhamentos = triagens.filter((t) => {
-    const pa = classificarPa(t.pas_mmhg, t.pad_mmhg);
-    const gli = classificarGlicemia(t.glicemia_mg_dl, t.jejum);
-    return PA_ALTERADAS.includes(pa) || (gli && gli !== "Normal");
-  }).length;
-
-
-  // ============================================================
-  // Slide 1 — CAPA (fundo Samel)
-  // ============================================================
-  const s1 = pptx.addSlide();
-  s1.background = capaBg;
-  // Textos posicionados na área livre (esquerda-inferior), evitando os logos
-  // no topo-esquerdo e a foto da profissional à direita.
-  s1.addText("Programa Saúde nas Empresas", {
-    x: 0.7, y: 3.05, w: 8.2, h: 0.75,
-    fontSize: 38, bold: true, color: COLORS.NAVY, fontFace: "Calibri",
-  });
-  s1.addText("Relatório de Ação de Saúde", {
-    x: 0.7, y: 3.85, w: 8.2, h: 0.4,
-    fontSize: 17, bold: false, color: COLORS.GREEN, fontFace: "Calibri",
-  });
-  s1.addText(empresaNome, {
-    x: 0.7, y: 4.35, w: 8.2, h: 0.55,
-    fontSize: 20, bold: true, color: COLORS.GREEN, fontFace: "Calibri",
-  });
-  const capaMeta = [
-    { text: `Data da ação: ${dataBR}\n`, options: { bold: true } },
-    { text: `Enfermeira responsável: ${(acao.enfermeira_nome ?? "Lorenn Brandão — COREN-AM 977.099")}\n`, options: {} },
-    { text: `Total triado: ${total} colaboradores`, options: {} },
-  ];
-  s1.addText(capaMeta as any, {
-    x: 0.7, y: 5.0, w: 8.2, h: 1.4,
-    fontSize: 13, color: COLORS.NAVY, fontFace: "Calibri",
-    paraSpaceAfter: 4,
-  });
-
-  // ============================================================
-  // Slide 2 — RESUMO EXECUTIVO (KPI grid 3x2)
-  // ============================================================
-  const s2 = pptx.addSlide();
-  s2.background = conteudoBg;
-  slideTitle(s2, "Resumo Executivo", `${empresaNome} · ${dataBR}`);
-
-
-  const gap = 0.22;
-  const cols = 3;
-  const kW = (SAFE.w - gap * (cols - 1)) / cols;
-  const kH = (SAFE.h - gap) / 2;
-
-  const kpis = [
-    { label: "Total triado", valor: total, cor: COLORS.NAVY, sub: "Colaboradores atendidos" },
-    { label: "PA alterada", valor: `${pct(paAlt, totalPa)}%`, cor: COLORS.RED, sub: `${paAlt} de ${totalPa} avaliados em PA` },
-    { label: "PA normal", valor: `${pct(paNormal, totalPa)}%`, cor: COLORS.GREEN, sub: `${paNormal} de ${totalPa} avaliados em PA` },
-    { label: "Glicemia alterada", valor: `${pct(gliAlt, totalGli)}%`, cor: COLORS.RED, sub: `${gliAlt} de ${totalGli} avaliados em glicemia` },
-    { label: "Glicemia normal", valor: `${pct(gliNormal, totalGli)}%`, cor: COLORS.GREEN, sub: `${gliNormal} de ${totalGli} avaliados em glicemia` },
-    { label: "Encaminhamentos", valor: encaminhamentos, cor: COLORS.AMBER, sub: `${pct(encaminhamentos, total)}% do total triado` },
-  ];
-
-
-  kpis.forEach((k, i) => {
-    const col = i % cols;
-    const row = Math.floor(i / cols);
-    const x = SAFE.x + col * (kW + gap);
-    const y = SAFE.y + row * (kH + gap);
-    kpiCard(s2, x, y, kW, kH, k.label, k.valor, k.cor, k.sub);
-  });
-
-  // ============================================================
-  // Slide 3 — DIAGNÓSTICO EXECUTIVO (barras horizontais)
-  // ============================================================
-  const s3 = pptx.addSlide();
-  s3.background = conteudoBg;
-  slideTitle(s3, "Diagnóstico Executivo", "Distribuição dos colaboradores avaliados na ação");
-
-  const panelW = (SAFE.w - 0.4) / 2;
-  const panelH = 2.75;
-
-  const barraGrupo = (
-    slide: any,
-    px: number, py: number, pw: number, ph: number,
-    titulo: string, subtitulo: string,
-    itens: { label: string; valor: number; base: number; cor: string }[],
-  ) => {
-    painel(slide, px, py, pw, ph, titulo);
-    slide.addText(subtitulo, {
-      x: px + 0.25, y: py + 0.55, w: pw - 0.5, h: 0.28,
-      fontSize: 10, color: COLORS.GREY, fontFace: "Calibri",
+  let pagina = 1;
+  const novaPagina = (titulo: string) => {
+    pagina++;
+    const s = pptx.addSlide();
+    s.background = { data: bgConteudo };
+    s.addText(titulo, { x: MX, y: 0.95, w: CW, h: 0.85, fontSize: 34, bold: true, color: C.PETROLEO, fontFace: FONT, valign: "middle", fit: "shrink" });
+    s.addText("Samel · Programa Saúde nas Empresas", { x: MX, y: 7.0, w: 6, h: 0.3, fontSize: 12, color: C.CINZA, fontFace: FONT });
+    s.addText(String(pagina), { x: W - MX - 1, y: 7.0, w: 1, h: 0.3, fontSize: 12, color: C.CINZA, fontFace: FONT, align: "right" });
+    return s;
+  };
+  const cartao = (s: any, x: number, y: number, w: number, h: number) =>
+    s.addShape("roundRect", {
+      x, y, w, h, fill: { color: C.BRANCO }, line: { color: C.BORDA, width: 0.5 }, rectRadius: 0.12,
+      shadow: { type: "outer", blur: 6, offset: 2, angle: 90, color: "000000", opacity: 0.08 },
     });
-    const trackX = px + 0.25;
-    const trackW = pw - 1.55;
-    let by = py + 1.0;
-    itens.forEach((it) => {
-      const p = it.base > 0 ? it.valor / it.base : 0;
-      slide.addText(`${it.label}`, {
-        x: trackX, y: by, w: trackW, h: 0.25,
-        fontSize: 11, bold: true, color: COLORS.NAVY, fontFace: "Calibri",
-      });
-      slide.addShape("roundRect", {
-        x: trackX, y: by + 0.28, w: trackW, h: 0.34,
-        fill: { color: "EEF2F6" }, line: { color: COLORS.BORDER, width: 0.5 }, rectRadius: 0.05,
-      });
-      if (p > 0) {
-        slide.addShape("roundRect", {
-          x: trackX, y: by + 0.28, w: Math.max(trackW * p, 0.12), h: 0.34,
-          fill: { color: it.cor }, line: { color: it.cor }, rectRadius: 0.05,
-        });
-      }
-      slide.addText(`${pct(it.valor, it.base)}%  ·  ${it.valor}`, {
-        x: trackX + trackW + 0.12, y: by + 0.26, w: 1.15, h: 0.38,
-        fontSize: 11, bold: true, color: it.cor, fontFace: "Calibri", valign: "middle",
-      });
-      by += 0.85;
+  const nota = (s: any, texto: string) =>
+    s.addText(texto, { x: MX, y: BOTTOM + 0.05, w: CW, h: 0.38, fontSize: 12, color: C.CINZA, fontFace: FONT, valign: "top", fit: "shrink" });
+  const rosca = (s: any, x: number, y: number, w: number, h: number, itens: { l: string; v: number; c: string }[], opts: any = {}) => {
+    const vis = itens.filter((i) => i.v > 0);
+    if (!vis.length) {
+      s.addText("Sem aferições nesta ação", { x, y, w, h, fontSize: 14, color: C.CINZA, fontFace: FONT, align: "center", valign: "middle" });
+      return;
+    }
+    s.addChart(pptx.ChartType.doughnut, [{ name: "Colaboradores", labels: vis.map((i) => i.l), values: vis.map((i) => i.v) }], {
+      x, y, w, h, holeSize: 58, chartColors: vis.map((i) => i.c),
+      showValue: true, showPercent: false, dataLabelColor: C.BRANCO, dataLabelFontSize: 14, dataLabelFontBold: true,
+      showLegend: true, legendPos: "b", legendFontSize: 13, legendFontFace: FONT, legendColor: C.PETROLEO,
+      ...opts,
     });
   };
 
-  barraGrupo(
-    s3, SAFE.x, SAFE.y, panelW, panelH,
-    "Pressão Arterial", `Base: ${totalPa} colaboradores aferidos`,
-    [
-      { label: "Normal", valor: paNormal, base: totalPa, cor: COLORS.GREEN },
-      { label: "Alterada", valor: paAlt, base: totalPa, cor: COLORS.RED },
-    ],
+  // ---------------- 1. CAPA ----------------
+  const s1 = pptx.addSlide();
+  s1.background = { data: bgCapa };
+  s1.addText("Resultados da Campanha de Saúde", { x: 0.7, y: 2.9, w: 7.6, h: 1.2, fontSize: 40, bold: true, color: C.PETROLEO, fontFace: FONT, valign: "bottom", fit: "shrink" });
+  s1.addText(empresaNome, { x: 0.7, y: 4.15, w: 7.6, h: 0.6, fontSize: 22, bold: true, color: C.VERDE, fontFace: FONT, fit: "shrink" });
+  s1.addText(`Apresentação à diretoria · Ação realizada em ${dataBR}`, { x: 0.7, y: 4.85, w: 7.6, h: 0.4, fontSize: 15, color: C.PETROLEO, fontFace: FONT });
+  s1.addText(
+    `Enfermeira responsável: ${acao.enfermeira_nome ?? "Lorenn Brandão — COREN-AM 977.099"} · ${m.total} ${plural(m.total, "colaborador triado", "colaboradores triados")}`,
+    { x: 0.7, y: 5.3, w: 7.6, h: 0.7, fontSize: 14, color: C.CINZA, fontFace: FONT, valign: "top", fit: "shrink" },
   );
 
-  barraGrupo(
-    s3, SAFE.x + panelW + 0.4, SAFE.y, panelW, panelH,
-    "Glicemia", `Base: ${totalGli} colaboradores avaliados`,
-    [
-      { label: "Normal", valor: gliNormal, base: totalGli, cor: COLORS.GREEN },
-      { label: "Alterada", valor: gliAlt, base: totalGli, cor: COLORS.RED },
-    ],
-  );
-
-  const paPctAlt = pct(paAlt, totalPa);
-  const gliPctAlt = pct(gliAlt, totalGli);
-  const encPct = pct(encaminhamentos, total);
-  const hasGrave = ((paCounts as any)["Hipertensão Estágio 2"] ?? 0) + ((paCounts as any)["Hipertensão Estágio 3"] ?? 0);
-  const diabetes = (gliCounts as any)["Diabetes"] ?? 0;
-  const preDiabetes = (gliCounts as any)["Pré-Diabetes"] ?? 0;
-  const naoRealizadas = ((paCounts as any)["Não realizado"] ?? 0) + ((gliCounts as any)["Não realizado"] ?? 0);
-  const predominante = gliPctAlt > paPctAlt ? "glicêmicas" : paPctAlt > gliPctAlt ? "de pressão arterial" : "metabólicas e cardiovasculares";
-  const secundario = gliPctAlt > paPctAlt ? "de pressão arterial" : "glicêmicas";
-
-  const leituraTxt =
-    `A ação evidenciou maior prevalência de alterações ${predominante} entre os colaboradores avaliados, ` +
-    `configurando o principal fator de atenção identificado durante a campanha. Também foram observadas alterações ${secundario} ` +
-    `que justificam acompanhamento preventivo. ` +
-    (encPct >= 40
-      ? "O volume de encaminhamentos reforça a importância da continuidade das ações de promoção da saúde e do monitoramento periódico dos participantes. "
-      : "Os encaminhamentos realizados indicam a necessidade de acompanhamento dirigido dos casos identificados. ") +
-    `Insight executivo: a atuação preventiva sobre esse perfil tende a reduzir afastamentos e custos assistenciais no médio prazo. ` +
-    `Os resultados referem-se exclusivamente aos colaboradores avaliados nesta ação.`;
-
-  painel(s3, SAFE.x, SAFE.y + panelH + 0.1, panelW, 1.55, "Leitura Executiva");
-  s3.addText(leituraTxt, {
-    x: SAFE.x + 0.22, y: SAFE.y + panelH + 0.6, w: panelW - 0.44, h: 1.0,
-    fontSize: 9.5, color: COLORS.NAVY, fontFace: "Calibri", valign: "top",
+  // ---------------- 2. NÚMEROS ----------------
+  const s2 = novaPagina(r.tituloNumeros);
+  const kpis = [
+    { v: String(m.total), c: C.PETROLEO, l: "Colaboradores triados", sub: "Participação na ação" },
+    { v: `${r.pctPaAlt}%`, c: C.PRIORIDADE, l: "Com PA alterada", sub: `${r.paAlt} de ${r.basePa} aferidos` },
+    { v: `${r.pctGliAlt}%`, c: C.PRIORIDADE, l: "Com glicemia alterada", sub: `${r.gliAlt} de ${r.baseGli} avaliados` },
+    { v: String(m.encaminhamentos), c: C.ATENCAO, l: "Encaminhamentos", sub: `${r.pctEnc}% do total triado` },
+  ];
+  const g2 = 0.3, kW = (CW - g2 * 3) / 4, kH = 3.6, kY = TOP + 0.35;
+  kpis.forEach((k, i) => {
+    const x = MX + i * (kW + g2);
+    cartao(s2, x, kY, kW, kH);
+    s2.addText(k.v, { x: x + 0.2, y: kY + 0.45, w: kW - 0.4, h: 1.4, fontSize: 64, bold: true, color: k.c, fontFace: FONT, align: "center", valign: "middle", fit: "shrink" });
+    s2.addText(k.l, { x: x + 0.2, y: kY + 2.0, w: kW - 0.4, h: 0.5, fontSize: 17, bold: true, color: C.PETROLEO, fontFace: FONT, align: "center" });
+    s2.addText(k.sub, { x: x + 0.2, y: kY + 2.55, w: kW - 0.4, h: 0.6, fontSize: 14, color: C.CINZA, fontFace: FONT, align: "center", valign: "top" });
   });
+  nota(s2, `Base de cálculo: ${r.basePa} aferições de PA e ${r.baseGli} de glicemia. Resultados referem-se exclusivamente aos colaboradores avaliados nesta ação. Triagem não substitui avaliação médica.`);
 
-  const achados: string[] = [];
-  achados.push(`Predomínio de alterações ${predominante} entre os colaboradores avaliados.`);
-  if (hasGrave > 0) achados.push("Casos com necessidade de avaliação clínica prioritária identificados.");
-  if (diabetes > 0 || preDiabetes > 0) achados.push("Perfil metabólico exige reforço das ações de controle glicêmico.");
-  if (encPct >= 40) achados.push("Elevado número de encaminhamentos preventivos gerados na ação.");
-  else achados.push("Encaminhamentos preventivos direcionados aos casos prioritários.");
-  if (naoRealizadas > 0) achados.push("Adesão parcial às aferições sinaliza espaço para maior engajamento.");
-  if (achados.length < 3) achados.push("Oportunidade de fortalecimento das ações de educação em saúde.");
-
-  const achX = SAFE.x + panelW + 0.4;
-  painel(s3, achX, SAFE.y + panelH + 0.1, panelW, 1.55, "Principais Achados");
-  s3.addText(
-    achados.slice(0, 5).map((a) => ({ text: a, options: { bullet: { code: "25CF" }, color: COLORS.NAVY } })) as any,
-    {
-      x: achX + 0.22, y: SAFE.y + panelH + 0.6, w: panelW - 0.44, h: 1.0,
-      fontSize: 9.5, fontFace: "Calibri", valign: "top", paraSpaceAfter: 2,
-    },
-  );
-
-
-
-  // ============================================================
-  // Slide 3B — EVOLUÇÃO DO PROGRAMA (somente com 2+ ações)
-  // ============================================================
-  const historico = await carregarHistorico(acao, triagens);
-  if (historico.length >= 2) {
-    const sEv = pptx.addSlide();
-    sEv.background = conteudoBg;
-    slideTitle(sEv, "Evolução do Programa", `Comparativo das últimas ${historico.length} ações realizadas`);
-
-    const labels = historico.map((p) => p.label);
-    const serieVar = (arr: number[]) => arr;
-
-    const paPct = historico.map((p) => pct(p.m.paAlt, p.m.totalPa));
-    const gliPct = historico.map((p) => pct(p.m.gliAlt, p.m.totalGli));
-    const encam = historico.map((p) => p.m.encaminhamentos);
-    const naoRealiz = historico.map((p) => p.m.paNR + p.m.gliNR);
-    const variouNR = new Set(naoRealiz).size > 1;
-
-    const series: any[] = [
-      { name: "% PA alterada", labels, values: serieVar(paPct) },
-      { name: "% Glicemia alterada", labels, values: serieVar(gliPct) },
-      { name: "Encaminhamentos", labels, values: serieVar(encam) },
-    ];
-    if (variouNR) series.push({ name: "Aferições não realizadas", labels, values: serieVar(naoRealiz) });
-
-    const chW = SAFE.w * 0.62;
-    sEv.addChart(pptx.ChartType.line, series, {
-      x: SAFE.x, y: SAFE.y, w: chW, h: SAFE.h - 0.55,
-      chartColors: [COLORS.RED, COLORS.AMBER, COLORS.NAVY, COLORS.GREY],
-      lineSize: 3,
-      lineDataSymbolSize: 8,
-      showLegend: true,
-      legendPos: "b",
-      legendFontSize: 10,
-      catAxisLabelFontSize: 11,
-      valAxisLabelFontSize: 10,
-      showValue: true,
-      dataLabelFontSize: 10,
+  // ---------------- 3. GLICEMIA ----------------
+  const paginaGlicemia = () => {
+    const s = novaPagina(r.tituloGlicemia);
+    const lw = CW * 0.52, h = BOTTOM - TOP;
+    cartao(s, MX, TOP, lw, h);
+    rosca(s, MX + 0.2, TOP + 0.15, lw - 0.4, h - 0.3, [
+      { l: "Normal", v: gl["Normal"] ?? 0, c: C.OK },
+      { l: "Pré-diabetes", v: gl["Pré-Diabetes"] ?? 0, c: C.ATENCAO },
+      { l: "Alterada pós-prandial", v: gl["Alterada pós-prandial"] ?? 0, c: C.ALERTA },
+      { l: "Diabetes", v: gl["Diabetes"] ?? 0, c: C.PRIORIDADE },
+    ]);
+    const rx = MX + lw + 0.3, rw = CW - lw - 0.3, ch = (h - 0.3) / 2;
+    const pre = gl["Pré-Diabetes"] ?? 0, dia = gl["Diabetes"] ?? 0;
+    [
+      { p: pctDe(pre, r.baseGli), c: C.ATENCAO, a: `${pre} ${plural(pre, "colaborador com pré-diabetes", "colaboradores com pré-diabetes")}`, b: "Fase ainda reversível com mudança de hábitos" },
+      { p: pctDe(dia, r.baseGli), c: C.PRIORIDADE, a: `${dia} ${plural(dia, "colaborador na faixa de diabetes", "colaboradores na faixa de diabetes")}`, b: "Sugere avaliação clínica prioritária" },
+    ].forEach((k, i) => {
+      const y = TOP + i * (ch + 0.3);
+      cartao(s, rx, y, rw, ch);
+      s.addText(`${k.p}%`, { x: rx + 0.3, y: y + 0.2, w: rw - 0.6, h: 0.95, fontSize: 48, bold: true, color: k.c, fontFace: FONT, valign: "middle" });
+      s.addText(k.a, { x: rx + 0.3, y: y + 1.15, w: rw - 0.6, h: 0.4, fontSize: 16, bold: true, color: C.PETROLEO, fontFace: FONT, fit: "shrink" });
+      s.addText(k.b, { x: rx + 0.3, y: y + 1.55, w: rw - 0.6, h: 0.4, fontSize: 14, color: C.CINZA, fontFace: FONT, fit: "shrink" });
     });
+    nota(s, `Base: ${r.baseGli} avaliados. ${r.gliNR} ${plural(r.gliNR, "colaborador sem aferição de glicemia ficou", "colaboradores sem aferição de glicemia ficaram")} fora do cálculo.`);
+  };
 
-    // Indicadores de tendência
-    const atual = historico[historico.length - 1];
-    const anterior = historico[historico.length - 2];
-    const trend = (
-      label: string, vAtual: number, vAnterior: number, unidade: "pp" | "n",
-    ) => {
-      const delta = vAtual - vAnterior;
-      const melhor = delta < 0;
-      const seta = delta === 0 ? "→" : melhor ? "↓" : "↑";
-      const cor = delta === 0 ? COLORS.GREY : melhor ? COLORS.GREEN : COLORS.RED;
-      const val = unidade === "pp"
-        ? `${vAtual}%  (${delta > 0 ? "+" : ""}${delta} p.p.)`
-        : `${vAtual}  (${delta > 0 ? "+" : ""}${delta})`;
-      return { label, texto: `${seta} ${val}`, cor };
-    };
-
-    const trends = [
-      trend("PA alterada", paPct[paPct.length - 1], paPct[paPct.length - 2], "pp"),
-      trend("Glicemia alterada", gliPct[gliPct.length - 1], gliPct[gliPct.length - 2], "pp"),
-      trend("Encaminhamentos", encam[encam.length - 1], encam[encam.length - 2], "n"),
+  // ---------------- 4. PRESSÃO ARTERIAL ----------------
+  const paginaPa = () => {
+    const s = novaPagina(r.tituloPa);
+    const lw = CW * 0.56, h = BOTTOM - TOP;
+    cartao(s, MX, TOP, lw, h);
+    const barras = [
+      { l: "Ótima", v: pa["Ótima"] ?? 0, c: C.OK_ESCURO },
+      { l: "Normal", v: pa["Normal"] ?? 0, c: C.OK },
+      { l: "PA elevada", v: pa["PA Elevada"] ?? 0, c: C.ATENCAO },
+      { l: "Hipertensão estágio 1", v: pa["Hipertensão Estágio 1"] ?? 0, c: C.ALERTA },
+      { l: "Hipertensão estágio 2", v: pa["Hipertensão Estágio 2"] ?? 0, c: C.PRIORIDADE },
+      { l: "Hipertensão estágio 3", v: pa["Hipertensão Estágio 3"] ?? 0, c: C.PRIORIDADE },
     ];
-    if (variouNR) trends.push(trend("Não realizadas", naoRealiz[naoRealiz.length - 1], naoRealiz[naoRealiz.length - 2], "n"));
-
-    const pX = SAFE.x + chW + 0.25;
-    const pW = SAFE.w - chW - 0.25;
-    painel(sEv, pX, SAFE.y, pW, SAFE.h - 0.55, "Tendência vs. ação anterior");
-    trends.forEach((t, i) => {
-      const y = SAFE.y + 0.75 + i * 0.72;
-      sEv.addText(t.label, {
-        x: pX + 0.25, y, w: pW - 0.5, h: 0.26,
-        fontSize: 11, color: COLORS.GREY, bold: true, fontFace: "Calibri",
-      });
-      sEv.addText(t.texto, {
-        x: pX + 0.25, y: y + 0.26, w: pW - 0.5, h: 0.32,
-        fontSize: 16, bold: true, color: t.cor, fontFace: "Calibri",
-      });
+    const max = Math.max(1, ...barras.map((b) => b.v));
+    const labelW = 2.5, trackX = MX + 0.3 + labelW, trackW = lw - 0.6 - labelW - 0.7, rowH = (h - 0.5) / barras.length;
+    barras.forEach((b, i) => {
+      const y = TOP + 0.25 + i * rowH;
+      s.addText(b.l, { x: MX + 0.3, y, w: labelW, h: rowH, fontSize: 14, color: C.PETROLEO, fontFace: FONT, valign: "middle" });
+      const bw = b.v > 0 ? Math.max((trackW * b.v) / max, 0.08) : 0;
+      if (bw > 0) s.addShape("roundRect", { x: trackX, y: y + rowH * 0.22, w: bw, h: rowH * 0.56, fill: { color: b.c }, line: { color: b.c, width: 0 }, rectRadius: 0.05 });
+      s.addText(String(b.v), { x: trackX + bw + 0.1, y, w: 0.7, h: rowH, fontSize: 15, bold: true, color: C.PETROLEO, fontFace: FONT, valign: "middle" });
     });
+    const rx = MX + lw + 0.3, rw = CW - lw - 0.3, ch = (h - 0.4) / 3;
+    [
+      { n: r.paOk, c: C.OK, a: `dentro do esperado (${pctDe(r.paOk, r.basePa)}%)`, b: "Ótima ou normal" },
+      { n: r.paAtencao, c: C.ATENCAO, a: "com PA elevada ou hipertensão estágio 1", b: "Acompanhamento preventivo" },
+      { n: r.paGrave, c: C.PRIORIDADE, a: "com hipertensão estágio 2 ou 3", b: "Prioridade clínica" },
+    ].forEach((k, i) => {
+      const y = TOP + i * (ch + 0.2);
+      cartao(s, rx, y, rw, ch);
+      s.addText(String(k.n), { x: rx + 0.25, y, w: 1.3, h: ch, fontSize: 40, bold: true, color: k.c, fontFace: FONT, align: "center", valign: "middle" });
+      s.addText(k.a, { x: rx + 1.6, y: y + 0.15, w: rw - 1.8, h: ch * 0.55, fontSize: 15, bold: true, color: C.PETROLEO, fontFace: FONT, valign: "bottom", fit: "shrink" });
+      s.addText(k.b, { x: rx + 1.6, y: y + 0.15 + ch * 0.55, w: rw - 1.8, h: ch * 0.35, fontSize: 13, color: C.CINZA, fontFace: FONT, valign: "top" });
+    });
+    nota(s, `Base: ${r.basePa} aferidos. ${r.paNR} ${plural(r.paNR, "colaborador", "colaboradores")} sem aferição de PA.`);
+  };
 
-    const deltaPa = paPct[paPct.length - 1] - paPct[paPct.length - 2];
-    const situacao = deltaPa < 0 ? "melhora" : deltaPa > 0 ? "piora" : "estabilidade";
-    sEv.addText(
-      `A empresa apresenta ${situacao} nos indicadores de pressão arterial desde a última ação, realizada em ${formatDateBR(anterior.data)}.`,
-      {
-        x: SAFE.x, y: SAFE.y + SAFE.h - 0.45, w: SAFE.w, h: 0.4,
-        fontSize: 13, italic: true, color: COLORS.NAVY, fontFace: "Calibri",
-      },
-    );
-    void atual;
+  if (r.paPrimeiro) { paginaPa(); paginaGlicemia(); } else { paginaGlicemia(); paginaPa(); }
+
+  // ---------------- 5. ONDE AGIR PRIMEIRO ----------------
+  const s5 = novaPagina(`Onde agir primeiro: ${m.encaminhamentos} ${plural(m.encaminhamentos, "colaborador foi encaminhado", "colaboradores foram encaminhados")}`);
+  {
+    const lw = CW * 0.36, h = BOTTOM - TOP;
+    cartao(s5, MX, TOP, lw, h);
+    const naoEnc = Math.max(0, m.total - m.encaminhamentos);
+    rosca(s5, MX + 0.3, TOP + 0.2, lw - 0.6, h - 1.4, [
+      { l: "Encaminhados", v: m.encaminhamentos, c: C.ATENCAO },
+      { l: "Não encaminhados", v: naoEnc, c: C.OK },
+    ], { showLegend: false, showValue: false, holeSize: 70 });
+    s5.addText(`${r.pctEnc}%`, { x: MX + 0.3, y: TOP + 0.2 + (h - 1.4) / 2 - 0.45, w: lw - 0.6, h: 0.9, fontSize: 36, bold: true, color: C.PETROLEO, fontFace: FONT, align: "center", valign: "middle" });
+    s5.addText("do total triado foi encaminhado para acompanhamento", { x: MX + 0.3, y: TOP + h - 1.15, w: lw - 0.6, h: 0.9, fontSize: 14, color: C.CINZA, fontFace: FONT, align: "center", valign: "middle" });
+
+    const rx = MX + lw + 0.3, rw = CW - lw - 0.3, ch = (h - 0.4) / 3;
+    const diab = gl["Diabetes"] ?? 0, pre = gl["Pré-Diabetes"] ?? 0, gNorm = gl["Normal"] ?? 0;
+    [
+      { c: C.PRIORIDADE, t: "PRIORIDADE CLÍNICA", a: `${diab} na faixa de diabetes · ${r.paGrave} com hipertensão estágio 2 ou 3`, b: "Sugere avaliação clínica e acompanhamento formal pela Medicina do Trabalho" },
+      { c: C.ATENCAO, t: "ATENÇÃO", a: `${pre} com pré-diabetes · ${r.paAtencao} com PA elevada ou estágio 1`, b: "Intervenção de estilo de vida: ainda é possível reverter o quadro" },
+      { c: C.OK, t: "DENTRO DO ESPERADO", a: `${gNorm} com glicemia normal · ${r.paOk} com PA ótima ou normal`, b: "Manter o monitoramento periódico" },
+    ].forEach((k, i) => {
+      const y = TOP + i * (ch + 0.2);
+      cartao(s5, rx, y, rw, ch);
+      s5.addShape("ellipse", { x: rx + 0.3, y: y + 0.28, w: 0.24, h: 0.24, fill: { color: k.c }, line: { color: k.c, width: 0 } });
+      s5.addText(k.t, { x: rx + 0.65, y: y + 0.18, w: rw - 0.9, h: 0.42, fontSize: 14, bold: true, color: k.c, fontFace: FONT, valign: "middle" });
+      s5.addText(k.a, { x: rx + 0.65, y: y + 0.6, w: rw - 0.9, h: 0.4, fontSize: 15, bold: true, color: C.PETROLEO, fontFace: FONT, fit: "shrink" });
+      s5.addText(k.b, { x: rx + 0.65, y: y + 1.0, w: rw - 0.9, h: 0.4, fontSize: 13, color: C.CINZA, fontFace: FONT, fit: "shrink" });
+    });
   }
+  nota(s5, "Contagens por indicador; um mesmo colaborador pode aparecer em mais de uma linha.");
 
-
-  // ============================================================
-  // Slide 4 — Classificação PA (barra horizontal)
-  // ============================================================
-  const s4 = pptx.addSlide();
-  s4.background = conteudoBg;
-  slideTitle(s4, "Classificação — Pressão Arterial", "Distribuição detalhada por categoria");
-
-  const paLabels = ["Ótima", "Normal", "PA Elevada", "Hipertensão Estágio 1", "Hipertensão Estágio 2", "Hipertensão Estágio 3", "Não realizado"];
-  s4.addChart(pptx.ChartType.bar,
-    [{ name: "Colaboradores", labels: paLabels, values: paLabels.map((l) => (paCounts as any)[l]) }],
-    {
-      x: SAFE.x, y: SAFE.y, w: SAFE.w, h: SAFE.h,
-      barDir: "bar",
-      chartColors: [COLORS.NAVY],
-      showValue: true,
-      dataLabelFontSize: 11,
-      dataLabelColor: COLORS.NAVY,
-      dataLabelPosition: "outEnd",
-      catAxisLabelFontSize: 11,
-      valAxisLabelFontSize: 10,
-      showLegend: false,
-    },
-  );
-
-  // ============================================================
-  // Slide 5 — Classificação Glicemia (barra horizontal)
-  // ============================================================
-  const s5 = pptx.addSlide();
-  s5.background = conteudoBg;
-  slideTitle(s5, "Classificação — Glicemia", "Distribuição detalhada por categoria");
-
-  const gliLabels = ["Normal", "Pré-Diabetes", "Alterada pós-prandial", "Diabetes", "Não realizado"];
-  s5.addChart(pptx.ChartType.bar,
-    [{ name: "Colaboradores", labels: gliLabels, values: gliLabels.map((l) => (gliCounts as any)[l]) }],
-    {
-      x: SAFE.x, y: SAFE.y, w: SAFE.w, h: SAFE.h,
-      barDir: "bar",
-      chartColors: [COLORS.GREEN],
-      showValue: true,
-      dataLabelFontSize: 11,
-      dataLabelColor: COLORS.GREEN,
-      dataLabelPosition: "outEnd",
-      catAxisLabelFontSize: 11,
-      valAxisLabelFontSize: 10,
-      showLegend: false,
-    },
-  );
-
-  // ============================================================
-  // Slide 6 — OBSERVAÇÕES E RECOMENDAÇÕES
-  // ============================================================
-  const s6 = pptx.addSlide();
-  s6.background = conteudoBg;
-  slideTitle(s6, "Observações e Recomendações", "Análise consultiva e direcionamentos para a gestão");
-
-  const colW = (SAFE.w - 0.3) / 2;
-
-  // Coluna 1: Principais Achados (síntese qualitativa)
-  const sintese: string[] = [];
-  sintese.push(
-    `O perfil de saúde dos colaboradores avaliados aponta as alterações ${predominante} como o principal fator de atenção da campanha, ` +
-    `com relevância clínica suficiente para orientar as prioridades do próximo ciclo preventivo.`,
-  );
-  if (hasGrave > 0 || diabetes > 0) {
-    sintese.push("Parte dos participantes apresenta condições que demandam avaliação clínica prioritária e acompanhamento formal pela Medicina do Trabalho.");
-  }
-  if (preDiabetes > 0) {
-    sintese.push("Há um grupo em estágio intermediário de risco metabólico, cujo desfecho ainda pode ser revertido por meio de intervenções de estilo de vida.");
-  }
-  if (naoRealizadas > 0) {
-    sintese.push("A adesão parcial às aferições limita a leitura completa do quadro e indica espaço para maior mobilização interna nas próximas ações.");
-  }
-  sintese.push("Insight executivo: agir agora sobre esse grupo tende a reduzir absenteísmo, afastamentos e custos assistenciais futuros.");
-
-  painel(s6, SAFE.x, SAFE.y, colW, SAFE.h, "Principais Achados");
-  s6.addText(
-    sintese.map((t) => ({ text: t, options: { color: COLORS.NAVY } })) as any,
-    {
-      x: SAFE.x + 0.3, y: SAFE.y + 0.7, w: colW - 0.6, h: SAFE.h - 1.0,
-      fontSize: 12.5, fontFace: "Calibri", color: COLORS.NAVY, valign: "top",
-      paraSpaceAfter: 8,
-    },
-  );
-
-  // Coluna 2: Recomendações Estratégicas
-  painel(s6, SAFE.x + colW + 0.3, SAFE.y, colW, SAFE.h, "Recomendações Estratégicas");
-  const recomendacoes: string[] = [];
-  if (gliPctAlt >= paPctAlt) {
-    recomendacoes.push("Intensificar ações de educação em saúde voltadas ao controle glicêmico.");
-  } else {
-    recomendacoes.push("Intensificar ações de prevenção cardiovascular e controle da pressão arterial.");
-  }
-  if (hasGrave > 0 || diabetes > 0) {
-    recomendacoes.push("Assegurar acompanhamento clínico formal dos casos de maior risco identificados.");
-  }
-  recomendacoes.push("Estimular hábitos saudáveis: alimentação equilibrada, atividade física e sono adequado.");
-  recomendacoes.push("Manter o monitoramento dos colaboradores encaminhados até a conclusão do cuidado.");
-  if (naoRealizadas > 0) {
-    recomendacoes.push("Ampliar a mobilização interna para elevar a adesão às aferições na próxima ação.");
-  }
-  recomendacoes.push("Planejar nova ação preventiva para comparação de indicadores ao longo do tempo.");
-  recomendacoes.push("Integrar os resultados às diretrizes do PCMSO e do PGR da empresa.");
-  s6.addText(
-    recomendacoes.slice(0, 7).map((r) => ({ text: r, options: { bullet: { code: "25CF" }, color: COLORS.NAVY } })) as any,
-    {
-      x: SAFE.x + colW + 0.6, y: SAFE.y + 0.7, w: colW - 0.6, h: SAFE.h - 1.0,
-      fontSize: 12.5, fontFace: "Calibri", paraSpaceAfter: 6,
-    },
-  );
-
-
-  // ============================================================
-  // Slide 7B — CONSIDERAÇÕES FINAIS
-  // ============================================================
-  const sFim = pptx.addSlide();
-  sFim.background = conteudoBg;
-  slideTitle(sFim, "Considerações Finais", "Encerramento executivo · Saúde corporativa como estratégia de gestão");
-
-  const focoTxt =
-    diabetes > 0 || hasGrave > 0
-      ? "com destaque para situações que demandam acompanhamento clínico mais próximo"
-      : "predominando alterações de caráter leve, passíveis de reversão com acompanhamento e mudança de hábitos";
-  const adesaoTxt =
-    naoRealizadas > 0
-      ? " A adesão observada indica ainda espaço para ampliar o alcance das próximas ações, fortalecendo a cultura de prevenção interna."
-      : " O engajamento observado demonstra maturidade da empresa na condução de iniciativas de saúde preventiva.";
-
-  const resumoTxt =
-    `A ação realizada permitiu identificar, entre os colaboradores participantes, sinais precoces relacionados a risco cardiovascular e metabólico, ${focoTxt}. ` +
-    `Achados dessa natureza costumam evoluir de forma silenciosa e, quando reconhecidos em fase inicial, permitem intervenções simples, de baixo custo e alto impacto — evitando afastamentos, perda de produtividade e agravos assistenciais futuros.` +
-    adesaoTxt;
-
-  painel(sFim, SAFE.x, SAFE.y, SAFE.w, 1.85, "Resumo Executivo");
-  sFim.addText(resumoTxt, {
-    x: SAFE.x + 0.3, y: SAFE.y + 0.62, w: SAFE.w - 0.6, h: 1.1,
-    fontSize: 12.5, color: COLORS.NAVY, fontFace: "Calibri", valign: "top",
+  // ---------------- 6. IMPACTO ----------------
+  const s6 = novaPagina("Achados silenciosos hoje viram afastamentos amanhã");
+  const imp = [
+    { t: "Afastamentos", d: "Diabetes e hipertensão sem acompanhamento são causas frequentes de afastamento e de complicações agudas." },
+    { t: "Produtividade", d: "Quadros metabólicos não controlados reduzem a disposição e aumentam o absenteísmo e as paradas na operação." },
+    { t: "Custo assistencial", d: "Intervir na fase de pré-diabetes e de PA elevada é simples e de baixo custo, e evita tratamentos complexos depois." },
+  ];
+  const g6 = 0.3, iW = (CW - g6 * 2) / 3, iH = 3.4;
+  imp.forEach((k, i) => {
+    const x = MX + i * (iW + g6);
+    cartao(s6, x, TOP, iW, iH);
+    s6.addShape("ellipse", { x: x + 0.35, y: TOP + 0.35, w: 0.75, h: 0.75, fill: { color: C.VERDE }, line: { color: C.VERDE, width: 0 } });
+    s6.addText(String(i + 1), { x: x + 0.35, y: TOP + 0.35, w: 0.75, h: 0.75, fontSize: 24, bold: true, color: C.BRANCO, fontFace: FONT, align: "center", valign: "middle" });
+    s6.addText(k.t, { x: x + 0.35, y: TOP + 1.3, w: iW - 0.7, h: 0.5, fontSize: 20, bold: true, color: C.PETROLEO, fontFace: FONT });
+    s6.addText(k.d, { x: x + 0.35, y: TOP + 1.85, w: iW - 0.7, h: 1.4, fontSize: 14, color: C.PETROLEO, fontFace: FONT, valign: "top", fit: "shrink" });
   });
-
-  const colFimW = (SAFE.w - 0.4) / 2;
-  const yBloco = SAFE.y + 2.05;
-
-  painel(sFim, SAFE.x, yBloco, colFimW, 1.85, "Promoção da Saúde no Ambiente Corporativo");
-  sFim.addText(
-    "A promoção da saúde no ambiente corporativo vai além da identificação de alterações clínicas. Ela representa uma estratégia para incentivar hábitos saudáveis, contribuir para a qualidade de vida dos colaboradores e apoiar a construção de ambientes de trabalho mais seguros e produtivos.",
-    {
-      x: SAFE.x + 0.3, y: yBloco + 0.62, w: colFimW - 0.6, h: 1.1,
-      fontSize: 12, color: COLORS.NAVY, fontFace: "Calibri", valign: "top",
-    },
-  );
-
-  painel(sFim, SAFE.x + colFimW + 0.4, yBloco, colFimW, 1.85, "Compromisso Samel");
-  sFim.addText(
-    "A Samel agradece a confiança depositada em nossa equipe e reafirma seu compromisso em apoiar empresas na promoção da saúde ocupacional, por meio de ações preventivas, acompanhamento contínuo e soluções que contribuam para o bem-estar dos colaboradores.",
-    {
-      x: SAFE.x + colFimW + 0.7, y: yBloco + 0.62, w: colFimW - 0.6, h: 1.1,
-      fontSize: 12, color: COLORS.NAVY, fontFace: "Calibri", valign: "top",
-    },
-  );
-
-  sFim.addText(
-    "Cuidar da saúde é investir no futuro das pessoas e no desenvolvimento sustentável das organizações.",
-    {
-      x: SAFE.x, y: SAFE.y + SAFE.h - 0.45, w: SAFE.w, h: 0.35,
-      fontSize: 11.5, italic: true, color: COLORS.GREEN, fontFace: "Calibri", align: "center",
-    },
-  );
-
-
-
-  // ============================================================
-  // Slide 8 — OBSERVAÇÕES (condicional)
-  // ============================================================
-  if (acao.observacoes && acao.observacoes.trim()) {
-    const s8 = pptx.addSlide();
-    s8.background = conteudoBg;
-    slideTitle(s8, "Observações", "Notas da enfermeira responsável");
-    painel(s8, SAFE.x, SAFE.y, SAFE.w, SAFE.h, "Observações da Ação");
-    s8.addText(acao.observacoes, {
-      x: SAFE.x + 0.3, y: SAFE.y + 0.7, w: SAFE.w - 0.6, h: SAFE.h - 1.0,
-      fontSize: 14, color: COLORS.NAVY, fontFace: "Calibri", valign: "top",
-    });
-  }
+  s6.addText("A atuação preventiva sobre esse perfil tende a reduzir afastamentos e custos assistenciais no médio prazo.", {
+    x: MX, y: TOP + iH + 0.4, w: CW, h: 0.7, fontSize: 18, italic: true, color: C.VERDE, fontFace: FONT, align: "center", valign: "middle",
+  });
 
   const fname = `Saude_${safeName(acao.empresa?.nome ?? "Empresa")}_${acao.data_acao.split("-").reverse().join("-")}.pptx`;
   await pptx.writeFile({ fileName: fname });
