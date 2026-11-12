@@ -209,3 +209,7 @@
 - [x] "Reajustes": etiqueta verde "Contratos", traço verde na descrição e botões que quebram linha em telas menores.
 - [x] "Demandas": etiqueta verde "Reclamações", traço verde na descrição, contagem de registros na mesma linha e cabeçalho de tabela em verde suave. Conferido na prévia com sessão real (1000 registros, sem erros novos).
 - [ ] Dashboard, janelas abertas, telas vazias e revisão do modo escuro.
+
+## Padronização dos calendários
+- [x] Mesmo calendário mensal e programação do dia em Plantões, Palestras, Sinais Vitais, Preventivo, PSA e Ações de Coleta; consultas e regras preservadas.
+- [x] Sessão autenticada conferiu programação real nas seis telas, sem erros; programação abaixo em telas pequenas.

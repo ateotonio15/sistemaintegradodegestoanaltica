@@ -1,5 +1,6 @@
+import { AgendaCalendar } from "@/components/ui/agenda-calendar";
 import { useMemo, useState } from "react";
-import { addMonths, eachDayOfInterval, endOfMonth, format, isToday, startOfMonth, startOfWeek, endOfWeek, isSameMonth } from "date-fns";
+import { endOfMonth, format, startOfMonth } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import * as XLSX from "xlsx";
 import { ChevronLeft, ChevronRight, Plus, FileSpreadsheet, Users } from "lucide-react";
@@ -17,12 +18,6 @@ import { feriadoEm } from "../lib/feriados";
 import { ColetaAgendamento, ColetaStatus, fmtHora, useColetaAgendamentos, useColetaMutations } from "../hooks/useColeta";
 import { ColetaDetalheSheet } from "../components/ColetaDetalheSheet";
 
-const COR: Record<ColetaStatus, string> = {
-  agendada: "bg-sky-500/10 border-l-4 border-sky-500 hover:bg-sky-500/20",
-  pendente: "bg-orange-500/10 border-l-4 border-orange-500 hover:bg-orange-500/20",
-  concluida: "bg-emerald-500/10 border-l-4 border-emerald-500 hover:bg-emerald-500/20",
-  cancelada: "bg-muted border-l-4 border-border opacity-60",
-};
 const STATUS_LABEL: Record<ColetaStatus, string> = { agendada: "Agendada", pendente: "A definir", concluida: "Concluída", cancelada: "Cancelada" };
 const iso = (d: Date) => format(d, "yyyy-MM-dd");
 
@@ -30,6 +25,7 @@ type Form = Partial<ColetaAgendamento>;
 
 export default function AcoesColeta() {
   const [mes, setMes] = useState(() => startOfMonth(new Date()));
+  const [selectedDay, setSelectedDay] = useState<Date>(new Date());
   const from = iso(startOfMonth(mes)), to = iso(endOfMonth(mes));
   const { data: ags = [] } = useColetaAgendamentos(from, to);
   const { data: empresas = [] } = useEmpresasAtivas();
@@ -37,12 +33,6 @@ export default function AcoesColeta() {
   const [detalheId, setDetalheId] = useState<string | null>(null);
   const [form, setForm] = useState<Form | null>(null);
   const detalhe = ags.find((a) => a.id === detalheId) ?? null;
-
-  const dias = useMemo(
-    () => eachDayOfInterval({ start: startOfWeek(startOfMonth(mes), { weekStartsOn: 1 }), end: endOfWeek(endOfMonth(mes), { weekStartsOn: 1 }) })
-      .filter((d) => d.getDay() !== 0 && d.getDay() !== 6),
-    [mes],
-  );
 
   const stats = useMemo(() => {
     let insc = 0, real = 0, falt = 0;
@@ -93,47 +83,20 @@ export default function AcoesColeta() {
         <Button onClick={() => setForm({ status: "agendada" })}><Plus className="h-4 w-4 mr-1" />Novo agendamento</Button>
       </div>
 
-      <div className="flex items-center gap-2">
-        <Button size="icon" variant="outline" onClick={() => setMes(addMonths(mes, -1))}><ChevronLeft className="h-4 w-4" /></Button>
-        <Button variant="outline" onClick={() => setMes(startOfMonth(new Date()))}>Hoje</Button>
-        <Button size="icon" variant="outline" onClick={() => setMes(addMonths(mes, 1))}><ChevronRight className="h-4 w-4" /></Button>
-        <span className="font-medium capitalize ml-2">{format(mes, "MMMM 'de' yyyy", { locale: ptBR })}</span>
-      </div>
-
       <Tabs defaultValue="calendario">
         <TabsList><TabsTrigger value="calendario">Calendário</TabsTrigger><TabsTrigger value="dashboard">Dashboard</TabsTrigger></TabsList>
 
         <TabsContent value="calendario">
-          <Card className="p-2 overflow-x-auto">
-            <div className="grid grid-cols-5 gap-1 min-w-[700px]">
-              {["Segunda", "Terça", "Quarta", "Quinta", "Sexta"].map((d) => <div key={d} className="text-xs font-medium text-muted-foreground p-2">{d}</div>)}
-              {dias.map((d) => {
-                const fer = feriadoEm(d);
-                const doDia = ags.filter((a) => a.data === iso(d));
-                return (
-                  <div key={iso(d)} className={`min-h-[110px] rounded-md border border-border p-1.5 space-y-1 ${!isSameMonth(d, mes) ? "opacity-40" : ""} ${fer ? "bg-destructive/5" : ""}`}>
-                    <div className={`text-xs font-medium ${isToday(d) ? "text-primary" : ""}`}>{format(d, "d")}</div>
-                    {fer && <div className="text-[10px] text-destructive leading-tight">Feriado · {fer.nome}</div>}
-                    {doDia.map((a) => {
-                      const insc = (a.inscricoes ?? []).filter((x) => x.status !== "cancelada").length;
-                      const real = (a.inscricoes ?? []).filter((x) => x.status === "realizada").length;
-                      return (
-                        <button key={a.id} onClick={() => setDetalheId(a.id)} className={`w-full text-left rounded px-1.5 py-1 text-[11px] leading-tight ${COR[a.status]}`}>
-                          <div className="font-medium">{fmtHora(a.horario_inicio)}{a.horario_fim ? ` – ${fmtHora(a.horario_fim)}` : ""}</div>
-                          <div className="truncate">{a.empresa?.nome}</div>
-                          {a.responsavel && <div className="truncate text-muted-foreground">{a.responsavel}</div>}
-                          <div className="mt-0.5 flex items-center gap-1 text-[10px] font-medium">
-                            <Users className="h-3 w-3" />
-                            <span>{insc} inscrita{insc === 1 ? "" : "s"} · {real} realizada{real === 1 ? "" : "s"}</span>
-                          </div>
-                        </button>
-                      );
-                    })}
-                  </div>
-                );
-              })}
-            </div>
-          </Card>
+          <AgendaCalendar
+            month={mes} onMonthChange={setMes} selected={selectedDay} onSelect={setSelectedDay}
+            holiday={(date) => feriadoEm(date)?.nome}
+            items={ags.map((a) => ({ id: a.id, date: a.data, title: a.empresa?.nome ?? "—",
+              time: `${fmtHora(a.horario_inicio)}${a.horario_fim ? ` – ${fmtHora(a.horario_fim)}` : ""}`,
+              status: STATUS_LABEL[a.status], onOpen: () => setDetalheId(a.id),
+              details: <>{a.responsavel && <p>Responsável: {a.responsavel}</p>}{a.local && <p>{a.local}</p>}<p>{(a.inscricoes ?? []).filter((x) => x.status !== "cancelada").length} inscritas · {(a.inscricoes ?? []).filter((x) => x.status === "realizada").length} realizadas</p>{a.observacoes && <p>{a.observacoes}</p>}</>,
+            }))}
+            dayActions={(date) => <Button size="sm" variant="outline" onClick={() => setForm({ status: "agendada", data: iso(date) })}><Plus className="mr-1 h-4 w-4" />Novo</Button>}
+          />
           <div className="flex gap-4 text-xs text-muted-foreground mt-2">
             <span className="flex items-center gap-1"><span className="h-2 w-2 rounded-full bg-sky-500" />Agendada</span>
             <span className="flex items-center gap-1"><span className="h-2 w-2 rounded-full bg-orange-500" />A definir</span>

@@ -1,8 +1,8 @@
+import { AgendaCalendar } from "@/components/ui/agenda-calendar";
 import { useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import {
-  addMonths, eachDayOfInterval, endOfMonth, format,
-  isSameMonth, isToday, startOfMonth,
+  endOfMonth, format, startOfMonth,
 } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import {
@@ -32,18 +32,6 @@ import { HistoricoDiaPalestrasDialog } from "../components/HistoricoDiaPalestras
 import { RelatorioMensalDialog } from "../components/RelatorioMensalDialog";
 
 // Card style: fundo tintado + borda lateral colorida (status)
-const STATUS_CARD: Record<string, string> = {
-  a_confirmar: "bg-amber-500/10 border-l-4 border-amber-500 hover:bg-amber-500/20",
-  confirmado: "bg-sky-500/10 border-l-4 border-sky-500 hover:bg-sky-500/20",
-  concluido: "bg-emerald-500/10 border-l-4 border-emerald-500 hover:bg-emerald-500/20",
-  cancelado: "bg-rose-500/10 border-l-4 border-rose-500 hover:bg-rose-500/20",
-};
-const STATUS_TIME: Record<string, string> = {
-  a_confirmar: "text-amber-400",
-  confirmado: "text-sky-400",
-  concluido: "text-emerald-400",
-  cancelado: "text-rose-400",
-};
 const STATUS_LEGEND: Record<string, string> = {
   a_confirmar: "bg-amber-500",
   confirmado: "bg-sky-500",
@@ -68,12 +56,13 @@ export default function CalendarioPalestras() {
     enabled: !!user?.id,
     queryFn: async () => {
       const { data } = await (supabase as any)
-        .from("profiles").select("display_name").eq("user_id", user!.id).maybeSingle();
+        .from("profiles").select("display_name").eq("user_id", user?.id).maybeSingle();
       return data as { display_name: string | null } | null;
     },
   });
 
   const [cursor, setCursor] = useState<Date>(startOfMonth(new Date()));
+  const [selectedDay, setSelectedDay] = useState<Date>(new Date());
   const [fEmpresa, setFEmpresa] = useState("all");
   const [fExec, setFExec] = useState("all");
   const [fStatus, setFStatus] = useState("all");
@@ -108,22 +97,6 @@ export default function CalendarioPalestras() {
     if (fStatus !== "all" && p.status !== fStatus) return false;
     return true;
   }), [palestras, fEmpresa, fExec, fStatus]);
-
-  const porDia = useMemo(() => {
-    const m = new Map<string, Palestra[]>();
-    filtradas.forEach((e) => {
-      const arr = m.get(e.data) ?? [];
-      arr.push(e); m.set(e.data, arr);
-    });
-    m.forEach((arr) => arr.sort((a, b) => (a.horario_inicio ?? "").localeCompare(b.horario_inicio ?? "")));
-    return m;
-  }, [filtradas]);
-
-  const diasUteis = useMemo(() =>
-    eachDayOfInterval({ start: monthStart, end: monthEnd })
-      .filter((d) => d.getDay() >= 1 && d.getDay() <= 5),
-    [monthStart, monthEnd]
-  );
 
   const bloqueioLookup = (d: Date) => {
     const b = bloqByDate.get(isoDate(d));
@@ -269,121 +242,21 @@ export default function CalendarioPalestras() {
             </div>
           </Card>
 
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <Button variant="outline" size="icon" onClick={() => setCursor(addMonths(cursor, -1))}>
-                <ChevronLeft className="h-4 w-4" />
-              </Button>
-              <Button variant="outline" onClick={() => setCursor(startOfMonth(new Date()))}>Hoje</Button>
-              <Button variant="outline" size="icon" onClick={() => setCursor(addMonths(cursor, 1))}>
-                <ChevronRight className="h-4 w-4" />
-              </Button>
-            </div>
-            <div className="text-lg font-semibold capitalize">
-              {format(cursor, "MMMM 'de' yyyy", { locale: ptBR })}
-            </div>
-            <div className="text-xs text-muted-foreground">
-              Campanha do mês: <span className="font-medium" style={{ color: CAMPANHAS[cursor.getMonth()].hex }}>
-                {CAMPANHAS[cursor.getMonth()].tema}
-              </span>
-            </div>
-          </div>
-
-          <div className="rounded-2xl border border-border/60 bg-card/40 overflow-hidden">
-            <div className="grid grid-cols-5 border-b border-border/60 bg-muted/30">
-              {["Segunda", "Terça", "Quarta", "Quinta", "Sexta"].map((d) => (
-                <div key={d} className="py-3 text-center text-[10px] uppercase font-bold text-muted-foreground tracking-widest border-r last:border-r-0 border-border/60">
-                  {d}
-                </div>
-              ))}
-            </div>
-            <div className="grid grid-cols-5 auto-rows-fr">
-              {diasUteis.length > 0 && Array.from({ length: Math.max(0, (diasUteis[0].getDay() || 7) - 1) }).map((_, i) => (
-                <div key={`pad-start-${i}`} className="min-h-[160px] border-r border-b border-border/60 bg-muted/10" />
-              ))}
-              {diasUteis.map((d) => {
-                const key = isoDate(d);
-                const evs = porDia.get(key) ?? [];
-                const isOut = !isSameMonth(d, cursor);
-                const fer = feriadoEm(d);
-                const bl = bloqByDate.get(key);
-                const fullBlock = !!fer || (bl?.periodo === "dia_todo");
-                const today = isToday(d);
-
-                return (
-                  <div
-                    key={key}
-                    onClick={() => setDiaHist(d)}
-                    className={[
-                      "min-h-[160px] p-2 relative border-r border-b border-border/60 transition-colors",
-                      isOut ? "opacity-40" : "",
-                      fer ? "bg-amber-500/5" : today ? "bg-primary/5" : "bg-transparent",
-                      "cursor-pointer hover:bg-accent/30",
-                    ].join(" ")}
-                  >
-                    <div className="flex items-center justify-between mb-1">
-                      <span className={`text-xs font-bold tabular-nums ${today ? "text-primary" : "text-foreground"}`}>
-                        {format(d, "d")}
-                      </span>
-                      {today && (
-                        <span className="inline-flex items-center gap-1 text-[9px] font-bold text-primary uppercase tracking-tighter">
-                          <span className="w-1 h-1 rounded-full bg-primary" /> Hoje
-                        </span>
-                      )}
-                    </div>
-                    {fer && (
-                      <div className="mb-1 inline-block bg-amber-500/15 text-amber-500 border border-amber-500/30 rounded px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wide">
-                        FERIADO · {fer.nome}
-                      </div>
-                    )}
-                    {bl && (
-                      <button
-                        onClick={(e) => { e.stopPropagation(); if (podeEditar) openBloqEdit(bl); }}
-                        className="mb-1.5 w-full text-left bg-red-500/20 text-red-400 border border-red-500/50 rounded px-2 py-1.5 hover:bg-red-500/30"
-                        title={bl.motivo}
-                      >
-                        <span className="flex items-center gap-1 text-[10px] font-bold uppercase tracking-wide">
-                          <Ban className="h-3 w-3 shrink-0" />
-                          {bl.periodo === "dia_todo"
-                            ? "Dia bloqueado"
-                            : bl.periodo === "manha"
-                              ? "Manhã bloqueada"
-                              : bl.periodo === "tarde"
-                                ? "Tarde bloqueada"
-                                : `${(bl.hora_inicio ?? "").slice(0, 5)}–${(bl.hora_fim ?? "").slice(0, 5)} bloqueado`}
-                        </span>
-                        {bl.motivo && (
-                          <span className="mt-1 block text-[11px] font-semibold normal-case leading-snug text-red-200 break-words">
-                            {bl.motivo}
-                          </span>
-                        )}
-                      </button>
-                    )}
-
-                    <div className="space-y-1.5">
-                      {evs.map((ev) => (
-                        <button
-                          key={ev.id}
-                          onClick={(e) => { e.stopPropagation(); openEdit(ev); }}
-                          title={`${ev.horario_inicio?.slice(0, 5) ?? "--:--"} - ${ev.horario_fim?.slice(0, 5) ?? "--:--"} · ${ev.empresa}`}
-                          className={`w-full text-left rounded-r px-2 py-1.5 transition-colors ${STATUS_CARD[ev.status]}`}
-                        >
-                          <div className={`text-[10px] font-mono font-bold tabular-nums ${STATUS_TIME[ev.status]}`}>
-                            {(ev.horario_inicio?.slice(0, 5) ?? "--:--")} – {(ev.horario_fim?.slice(0, 5) ?? "--:--")}
-                          </div>
-                          <div className="text-[11px] font-semibold text-foreground uppercase truncate leading-tight mt-0.5">
-                            {ev.empresa}
-                          </div>
-                          <div className="text-[10px] text-muted-foreground truncate mt-0.5">{ev.executiva}</div>
-                          {ev.tema && <div className="text-[10px] text-muted-foreground/80 italic truncate">{ev.tema}</div>}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
+          <p className="text-xs text-muted-foreground">Campanha do mês: {CAMPANHAS[cursor.getMonth()].tema}</p>
+          <AgendaCalendar
+            month={cursor} onMonthChange={setCursor} selected={selectedDay} onSelect={setSelectedDay}
+            holiday={(date) => feriadoEm(date)?.nome}
+            items={filtradas.map((ev) => ({ id: ev.id, date: ev.data, title: ev.empresa,
+              time: `${ev.horario_inicio?.slice(0, 5) ?? "--:--"} – ${ev.horario_fim?.slice(0, 5) ?? "--:--"}`,
+              status: STATUS_LABEL[ev.status], onOpen: () => openEdit(ev),
+              details: <><p>Executiva: {ev.executiva || "—"}</p>{ev.tema && <p>{ev.tema}</p>}{ev.endereco && <p>{ev.endereco}</p>}{ev.observacao && <p>{ev.observacao}</p>}</>,
+            }))}
+            dayNote={(date) => {
+              const block = bloqByDate.get(isoDate(date));
+              return block ? <div className="space-y-2 rounded-lg border border-destructive/30 bg-destructive/5 p-3 text-xs"><p>{block.periodo === "dia_todo" ? "Dia bloqueado" : `Bloqueio: ${block.periodo}`}</p><p>{block.motivo}</p>{podeEditar && <Button variant="outline" size="sm" onClick={() => openBloqEdit(block)}>Editar bloqueio</Button>}</div> : null;
+            }}
+            dayActions={(date) => <div className="flex flex-wrap gap-1"><Button size="sm" variant="ghost" onClick={() => setDiaHist(date)}>Histórico</Button>{podeEditar && !feriadoEm(date) && bloqByDate.get(isoDate(date))?.periodo !== "dia_todo" && <Button size="sm" variant="outline" onClick={() => openNewForDay(date)}><Plus className="mr-1 h-4 w-4" />Nova</Button>}</div>}
+          />
 
           <div className="flex flex-wrap gap-4 text-xs text-muted-foreground items-center pt-2">
             <span className="font-semibold uppercase tracking-wider text-[10px]">Legenda:</span>
