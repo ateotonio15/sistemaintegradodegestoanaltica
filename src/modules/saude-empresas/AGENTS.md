@@ -1,0 +1,1 @@
+- The health-action report button opens an interactive fullscreen presentation built from the same aggregated counts as the static export; group filters hide groups below the anonymity minimum and nothing individual is ever rendered.
