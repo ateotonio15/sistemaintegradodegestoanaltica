@@ -19,7 +19,8 @@ import { BioimpedanciaDialog } from "../components/BioimpedanciaDialog";
 import { PaBadge } from "../components/PaBadge";
 import { useAcao, useTriagens, useSaudeMutations, useSaudeRealtime, type Triagem } from "../hooks/useSaudeEmpresas";
 import { classificarPa, classificarGlicemia, corGlicemia, PA_ALTERADAS } from "../lib/saude-rules";
-import { exportTriagensExcel, exportRelatorioPptx } from "../lib/saude-export";
+import { exportTriagensExcel } from "../lib/saude-export";
+import { ApresentacaoCampanha } from "../components/apresentacao/ApresentacaoCampanha";
 
 const PA_ORDER = ["Ótima", "Normal", "PA Elevada", "Hipertensão Estágio 1", "Hipertensão Estágio 2", "Hipertensão Estágio 3", "Não realizado"] as const;
 const PA_COLORS: Record<string, string> = {
@@ -56,6 +57,7 @@ export default function SaudeAcaoTriagens() {
   const [bioOpen, setBioOpen] = useState(false);
   const [toDelete, setToDelete] = useState<Triagem | null>(null);
   const [search, setSearch] = useState("");
+  const [apresentando, setApresentando] = useState(false);
 
   const { data: acao } = useAcao(acaoId);
   const { data: triagens = [], isLoading } = useTriagens(acaoId);
@@ -187,8 +189,8 @@ export default function SaudeAcaoTriagens() {
             <Button variant="outline" size="sm" onClick={() => exportTriagensExcel(acao, triagens)}>
               <FileSpreadsheet className="h-4 w-4 mr-1" />Excel
             </Button>
-            <Button size="sm" onClick={() => exportRelatorioPptx(acao, triagens)}>
-              <FileType className="h-4 w-4 mr-1" />PowerPoint
+            <Button size="sm" onClick={() => setApresentando(true)}>
+              <FileType className="h-4 w-4 mr-1" />Apresentação
             </Button>
           </div>
         </div>
@@ -399,6 +401,7 @@ export default function SaudeAcaoTriagens() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+      {apresentando && acao && <ApresentacaoCampanha acao={acao} triagens={triagens} onClose={() => setApresentando(false)} />}
       </div>
     </div>
 

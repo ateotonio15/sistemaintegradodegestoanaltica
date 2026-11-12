@@ -792,3 +792,24 @@
 .dark input:focus-visible, .dark textarea:focus-visible { border-color: hsl(var(--primary)); }
 .dark .siga-home-hero-photo { opacity: 0.1; }
 .dark .bg-red-100, .dark .bg-green-100, .dark .bg-yellow-100, .dark .bg-amber-100, .dark .bg-sky-100, .dark .bg-blue-100, .dark .bg-orange-100 { background-color: hsl(150 15% 100% / 0.07) !important; }
+
+/* Apresentação da campanha de saúde (paleta definida pela área de Saúde) */
+.ap-raiz, .ap-print {
+  --ap-verde: #2E5F2E; --ap-petroleo: #1E3A4C; --ap-cinza: #5B6B77;
+  --ap-ok: #2E8B57; --ap-ok-escuro: #1F6B40; --ap-atencao: #E0A800; --ap-alerta: #E67E22; --ap-prioridade: #C0392B;
+  --ap-borda: #DCE3E8; --ap-fundo: #EEF3F2;
+  font-family: Calibri, "Inter", system-ui, sans-serif;
+  color-scheme: light;
+}
+.ap-pagina { background-color: #F6FAF9; background-size: cover; background-position: center; }
+.ap-cartao { background: #FFFFFF; box-shadow: 0 2px 10px rgba(30, 58, 76, 0.08); }
+.ap-print { position: fixed; left: -20000px; top: 0; width: 1280px; pointer-events: none; }
+.ap-print-pagina { width: 1280px; height: 720px; overflow: hidden; }
+@media print {
+  @page { size: 1280px 720px; margin: 0; }
+  body.ap-imprimindo > *:not(.ap-portal) { display: none !important; }
+  body.ap-imprimindo .ap-sem-print { display: none !important; }
+  body.ap-imprimindo .ap-print { position: static !important; left: 0 !important; }
+  .ap-print-pagina { width: 1280px; height: 720px; overflow: hidden; break-after: page; page-break-after: always;
+    -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+}

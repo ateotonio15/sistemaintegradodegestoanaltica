@@ -48,3 +48,62 @@ export function resumoApresentacao(c: ContagensApresentacao) {
     paPrimeiro: pctPaAlt > pctGliAlt,
   };
 }
+
+// ---------- Contagem agregada e grupos (filtros) ----------
+import { classificarPa, classificarGlicemia, PA_ALTERADAS } from "./saude-rules";
+
+export interface TriagemAgregavel {
+  pas_mmhg: number | null; pad_mmhg: number | null; glicemia_mg_dl: number | null; jejum?: boolean | null;
+  setor?: string | null; sexo?: string | null; idade?: number | null;
+}
+
+/** Contagens agregadas (sem nenhum dado individual). */
+export function contarTriagens(triagens: TriagemAgregavel[]): ContagensApresentacao {
+  const paCounts: Record<string, number> = { "Ótima": 0, Normal: 0, "PA Elevada": 0, "Hipertensão Estágio 1": 0, "Hipertensão Estágio 2": 0, "Hipertensão Estágio 3": 0, "Não realizado": 0 };
+  const gliCounts: Record<string, number> = { Normal: 0, "Pré-Diabetes": 0, "Alterada pós-prandial": 0, Diabetes: 0, "Não realizado": 0 };
+  let encaminhamentos = 0;
+  triagens.forEach((t) => {
+    const pa = classificarPa(t.pas_mmhg, t.pad_mmhg);
+    paCounts[pa] = (paCounts[pa] ?? 0) + 1;
+    const gli = classificarGlicemia(t.glicemia_mg_dl, !!t.jejum);
+    gliCounts[gli ?? "Não realizado"]++;
+    if (PA_ALTERADAS.includes(pa) || (gli && gli !== "Normal")) encaminhamentos++;
+  });
+  return { total: triagens.length, paCounts, gliCounts, encaminhamentos };
+}
+
+/** Grupos com menos colaboradores que isto nunca são exibidos (anonimato). */
+export const GRUPO_MINIMO = 5;
+export type DimensaoGrupo = "setor" | "sexo" | "faixa";
+
+export function faixaEtaria(idade?: number | null): string | null {
+  if (idade == null || !Number.isFinite(idade)) return null;
+  if (idade < 30) return "Até 29 anos";
+  if (idade < 40) return "30 a 39 anos";
+  if (idade < 50) return "40 a 49 anos";
+  if (idade < 60) return "50 a 59 anos";
+  return "60 anos ou mais";
+}
+
+export function valorGrupo(t: TriagemAgregavel, d: DimensaoGrupo): string | null {
+  const v = d === "faixa" ? faixaEtaria(t.idade) : d === "setor" ? t.setor : t.sexo;
+  const s = (v ?? "").toString().trim();
+  return s ? s.toUpperCase() : null;
+}
+
+/** Opções de grupo disponíveis; dimensões sem nenhum valor preenchido são omitidas. */
+export function opcoesGrupo(triagens: TriagemAgregavel[]) {
+  const out: Partial<Record<DimensaoGrupo, { valor: string; n: number }[]>> = {};
+  (["setor", "sexo", "faixa"] as DimensaoGrupo[]).forEach((d) => {
+    const m = new Map<string, number>();
+    triagens.forEach((t) => { const v = valorGrupo(t, d); if (v) m.set(v, (m.get(v) ?? 0) + 1); });
+    if (m.size) out[d] = [...m.entries()].map(([valor, n]) => ({ valor, n })).sort((a, b) => a.valor.localeCompare(b.valor));
+  });
+  return out;
+}
+
+export function filtrarGrupo<T extends TriagemAgregavel>(triagens: T[], d: DimensaoGrupo | null, valor: string | null) {
+  if (!d || !valor) return { triagens, pequeno: false };
+  const sel = triagens.filter((t) => valorGrupo(t, d) === valor);
+  return { triagens: sel, pequeno: sel.length < GRUPO_MINIMO };
+}
