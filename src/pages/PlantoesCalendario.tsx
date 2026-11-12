@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { Link } from "react-router-dom";
-import { ChevronLeft, ChevronRight, ArrowLeft, Download, Plus, X } from "lucide-react";
+import { ChevronLeft, ChevronRight, ArrowLeft, Download, Plus, X, Pencil } from "lucide-react";
 import * as XLSX from "xlsx";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -72,23 +72,23 @@ export default function PlantoesCalendario() {
     return true;
   }), [agendamentos, empresaId, execFiltro, statusFiltro]);
 
-  // Grade Seg–Sex do mês
-  const dias: (Date | null)[] = useMemo(() => {
-    const arr: (Date | null)[] = [];
-    const firstWeekday = monthStart.getDay(); // 0=Dom
-    // Ajuste para segunda como início
-    const offset = firstWeekday === 0 ? 6 : firstWeekday - 1;
-    // Só mostramos seg–sex, então descartamos offsets fora do intervalo
-    for (let i = 0; i < offset; i++) {
-      if (i < 5) arr.push(null);
-    }
-    for (let d = 1; d <= monthEnd.getDate(); d++) {
-      const date = new Date(cursor.getFullYear(), cursor.getMonth(), d);
-      const wd = date.getDay();
-      if (wd >= 1 && wd <= 5) arr.push(date);
+  // Grade completa Dom–Sáb (com dias dos meses vizinhos)
+  const dias = useMemo(() => {
+    const arr: { date: Date; fora: boolean }[] = [];
+    const inicio = new Date(monthStart.getFullYear(), monthStart.getMonth(), 1 - monthStart.getDay());
+    const total = Math.ceil((monthStart.getDay() + monthEnd.getDate()) / 7) * 7;
+    for (let i = 0; i < total; i++) {
+      const date = new Date(inicio.getFullYear(), inicio.getMonth(), inicio.getDate() + i);
+      arr.push({ date, fora: date.getMonth() !== monthStart.getMonth() });
     }
     return arr;
-  }, [cursor, monthStart, monthEnd]);
+  }, [cursor]);
+
+  const [selecionado, setSelecionado] = useState<string | null>(today);
+  const doDia = useMemo(
+    () => filtrados.filter((a) => a.data === selecionado).sort((x, y) => x.hora_inicio.localeCompare(y.hora_inicio)),
+    [filtrados, selecionado],
+  );
 
   const byDay = useMemo(() => {
     const m = new Map<string, AgendamentoPlantao[]>();
@@ -189,73 +189,114 @@ export default function PlantoesCalendario() {
         <span className="inline-flex items-center gap-1.5"><span className="h-2.5 w-2.5 rounded-full bg-orange-400" /> Feriado Municipal - Manaus</span>
       </div>
 
-      <div className="flex items-center justify-center gap-3">
-        <Button size="icon" variant="outline" onClick={() => setCursor(new Date(cursor.getFullYear(), cursor.getMonth() - 1, 1))}>
-          <ChevronLeft className="h-4 w-4" />
-        </Button>
-        <Button variant="outline" size="sm" onClick={() => setCursor(startOfMonth(new Date()))}>Hoje</Button>
-        <div className="font-semibold capitalize min-w-[180px] text-center">
-          {format(cursor, "MMMM 'de' yyyy", { locale: ptBR })}
+      <div className="grid gap-4 lg:grid-cols-[1fr_320px] items-start">
+      <Card className="rounded-2xl"><CardContent className="p-4">
+        <div className="flex items-center justify-between mb-3">
+          <div className="text-lg font-semibold capitalize">
+            {format(cursor, "MMMM 'de' yyyy", { locale: ptBR })}
+          </div>
+          <div className="flex items-center gap-1">
+            <Button size="icon" variant="ghost" onClick={() => setCursor(new Date(cursor.getFullYear(), cursor.getMonth() - 1, 1))}>
+              <ChevronLeft className="h-4 w-4" />
+            </Button>
+            <Button variant="secondary" size="sm" className="rounded-full" onClick={() => { setCursor(startOfMonth(new Date())); setSelecionado(today); }}>Hoje</Button>
+            <Button size="icon" variant="ghost" onClick={() => setCursor(new Date(cursor.getFullYear(), cursor.getMonth() + 1, 1))}>
+              <ChevronRight className="h-4 w-4" />
+            </Button>
+          </div>
         </div>
-        <Button size="icon" variant="outline" onClick={() => setCursor(new Date(cursor.getFullYear(), cursor.getMonth() + 1, 1))}>
-          <ChevronRight className="h-4 w-4" />
-        </Button>
-      </div>
-
-      <Card><CardContent className="p-4">
-        <div className="grid grid-cols-5 gap-1 text-xs font-medium text-muted-foreground mb-1">
-          {["Seg", "Ter", "Qua", "Qui", "Sex"].map((d) => <div key={d} className="text-center">{d}</div>)}
+        <div className="grid grid-cols-7 gap-1.5 text-xs font-medium text-muted-foreground mb-1.5">
+          {["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"].map((d) => <div key={d} className="text-center">{d}</div>)}
         </div>
-        <div className="grid grid-cols-5 gap-1">
-          {dias.map((d, i) => {
-            if (!d) return <div key={i} />;
+        <div className="grid grid-cols-7 gap-1.5">
+          {dias.map(({ date: d, fora }, i) => {
             const key = toISO(d);
-            const items = byDay.get(key) ?? [];
+            const items = fora ? [] : (byDay.get(key) ?? []);
             const isHoje = key === today;
+            const isSel = key === selecionado;
             const fer = feriadoMap.get(key);
-            const bg = fer?.tipo === "Municipal" ? "bg-orange-50" : fer ? "bg-rose-50" : "";
+            const fim = d.getDay() === 0 || d.getDay() === 6;
+            const bg = fer?.tipo === "Municipal" ? "bg-orange-50 dark:bg-orange-950/30" : fer ? "bg-rose-50 dark:bg-rose-950/30" : fim ? "bg-muted/40" : "bg-card";
             const dot = fer?.tipo === "Municipal" ? "bg-orange-400" : fer ? "bg-rose-400" : "";
             return (
               <button
                 key={i}
+                type="button"
                 onClick={() => {
-                  if (fer || !canEdit) return;
-                  setEditing(null);
-                  setNovoData(key);
-                  setNovoOpen(true);
+                  if (fora) { setCursor(startOfMonth(d)); }
+                  setSelecionado(key);
                 }}
-                disabled={!!fer}
                 className={cn(
-                  "min-h-[110px] p-1.5 border rounded text-left text-xs transition",
+                  "min-h-[92px] p-1.5 border rounded-xl text-left text-xs transition flex flex-col",
                   bg,
-                  fer ? "cursor-not-allowed opacity-70" : "hover:bg-muted/50",
-                  isHoje ? "border-primary ring-1 ring-primary" : "",
+                  fora ? "opacity-40" : "hover:border-primary/50 hover:shadow-sm",
+                  isSel ? "border-primary border-2 shadow-md" : "",
                 )}
                 title={fer?.nome ?? ""}
               >
                 <div className="flex items-center justify-between">
-                  <span className={`font-semibold ${isHoje ? "text-primary" : ""}`}>{d.getDate()}</span>
+                  <span className={cn(
+                    "h-6 w-6 inline-flex items-center justify-center rounded-full font-semibold",
+                    isHoje ? "bg-primary text-primary-foreground" : "",
+                  )}>{d.getDate()}</span>
                   {fer && <span className={`h-2 w-2 rounded-full ${dot}`} title={fer.nome} />}
                 </div>
-                {fer && <div className="text-[10px] text-muted-foreground truncate">{fer.nome}</div>}
-                <div className="mt-1 space-y-0.5">
-                  {items.map((a) => (
-                    <div
-                      key={a.id}
-                      role="button"
-                      onClick={(e) => { e.stopPropagation(); if (canEdit) { setEditing(a); setNovoOpen(true); } }}
-                      className={cn("rounded border px-1 py-0.5 text-[10px] leading-tight cursor-pointer", STATUS_CHIP[a.status])}
-                    >
-                      <div className="font-semibold truncate">{a.hora_inicio.slice(0, 5)} · {a.empresa_nome}</div>
-                      <div className="truncate opacity-90">{a.executiva ?? "sem executiva"}</div>
+                {fer && !fora && <div className="text-[10px] text-muted-foreground truncate">{fer.nome}</div>}
+                <div className="mt-1 space-y-0.5 w-full">
+                  {items.slice(0, 2).map((a) => (
+                    <div key={a.id} className={cn("rounded-md border px-1 py-0.5 text-[10px] leading-tight truncate", STATUS_CHIP[a.status])}>
+                      {a.hora_inicio.slice(0, 5)} · {a.empresa_nome}
                     </div>
                   ))}
+                  {items.length > 2 && <div className="text-[10px] text-muted-foreground">+{items.length - 2} mais</div>}
                 </div>
               </button>
             );
           })}
         </div>
       </CardContent></Card>
+
+      <Card className="rounded-2xl lg:sticky lg:top-4"><CardContent className="p-4 space-y-3">
+        <div className="flex items-center justify-between gap-2">
+          <h2 className="text-lg font-semibold">
+            {selecionado ? format(new Date(selecionado + "T00:00:00"), "dd 'de' MMMM", { locale: ptBR }) : "Selecione um dia"}
+          </h2>
+          {selecionado && canEdit && !feriadoMap.get(selecionado) && (
+            <Button size="sm" variant="outline" onClick={() => { setEditing(null); setNovoData(selecionado); setNovoOpen(true); }}>
+              <Plus className="h-4 w-4 mr-1" /> Novo
+            </Button>
+          )}
+        </div>
+        {selecionado && feriadoMap.get(selecionado) && (
+          <div className="rounded-lg border bg-muted/50 p-2 text-xs">Feriado: {feriadoMap.get(selecionado)!.nome}</div>
+        )}
+        {!selecionado ? (
+          <p className="text-sm text-muted-foreground">Clique em um dia do calendário para ver a programação.</p>
+        ) : doDia.length === 0 ? (
+          <p className="text-sm text-muted-foreground">Nenhuma programação agendada neste dia.</p>
+        ) : (
+          <div className="space-y-2">
+            {doDia.map((a) => (
+              <div key={a.id} className={cn("rounded-xl border p-3 space-y-1", STATUS_CHIP[a.status])}>
+                <div className="flex items-start justify-between gap-2">
+                  <div className="font-semibold text-sm leading-tight">{a.empresa_nome}</div>
+                  {canEdit && (
+                    <Button size="icon" variant="ghost" className="h-7 w-7 shrink-0" onClick={() => { setEditing(a); setNovoOpen(true); }} aria-label="Editar">
+                      <Pencil className="h-3.5 w-3.5" />
+                    </Button>
+                  )}
+                </div>
+                <div className="text-xs">{a.hora_inicio.slice(0, 5)} – {a.hora_fim.slice(0, 5)}</div>
+                <div className="text-xs">Executiva: {a.executiva ?? "sem executiva"}</div>
+                <div className="text-xs">Status: {STATUS_LABELS[a.status]}</div>
+                {a.status === "cancelado" && a.motivo_cancelamento && <div className="text-xs">Motivo: {a.motivo_cancelamento}</div>}
+                {a.observacao && <div className="text-xs opacity-90">{a.observacao}</div>}
+              </div>
+            ))}
+          </div>
+        )}
+      </CardContent></Card>
+      </div>
 
       {novoOpen && (
         <AgendamentoPlantaoDialog
