@@ -843,3 +843,12 @@ Tabela append-only `integracao_auditoria`: `id, entidade, entidade_id, origem (S
 - **movimentacoes** — `User view linked movimentacoes` (SELECT) USING: `((EXISTS ( SELECT 1 FROM empresa_usuarios eu WHERE ((eu.empresa_id = movimentacoes.empresa_id) AND (eu.user_id = auth.uid())))) OR (EXISTS ( SELECT 1 FROM empresas e WHERE ((e.id = movimentacoes.empresa_id) AND (e.responsavel_user_id = auth.uid())))))` CHECK: `<nil>`
 - **movimentacoes** — `Visualizacao view all movimentacoes` (SELECT) USING: `has_role(auth.uid(), 'visualizacao'::app_role)` CHECK: `<nil>`
 - **movimentacoes** — `admin_empresa pode ver movimentacoes da propria empresa` (SELECT) USING: `user_pode_ver_empresa(empresa_id)` CHECK: `<nil>`
+
+## Fase 1 — implementado (somente leitura)
+
+- **URL**: `https://gdojlriuewowyomypwzl.supabase.co/functions/v1/siga-api` (rotas `/v1/...`; somente GET; sem CORS; `verify_jwt = false`, autenticação HMAC).
+- **Assinatura**: `canonical = ts\nMETHOD\ncanonicalPath\nsha256hex(body)`; `X-Siga-Signature: v1=hex(HMAC_SHA256(PORTAL_FINANCEIRO_HMAC_SECRET, canonical))`; `X-Siga-Client: portal-financeiro`; janela 300 s; `canonicalPath` = trecho após `/siga-api` + `search` como recebido. Script: `deno run --allow-env scripts/assinar-requisicao.ts "/v1/..."`.
+- **Rotas**: `/v1/movimentacoes` (competencia, periodo, status, contrato, cnpj, tipo_contrato, cursor, limit ≤ 500), `/v1/movimentacoes/{id}`, `/{id}/anexos` (URL assinada 120 s), `/{id}/historico`, `/v1/resumo-periodos` (competencia, tipo_contrato opcional), `/v1/contratos-suspensos`. Erros `application/problem+json`.
+- **Banco** (migration `0090_integracao_fase1_leitura`): schema `integracao` (USAGE só `service_role`; `COMMENT ON SCHEMA` proíbe conceder a anon/authenticated); wrappers `public.integracao_*` SECURITY INVOKER com `search_path = ''` — chamados por anon/authenticated retornam **42501**. `public.status_faturamento_competencia` mantém a guarda `auth.uid()` e delega a `integracao._status_faturamento_core` (corpo idêntico).
+- **faturamento_siga**: `status` (valor bruto da RPC) e `label` (texto da coluna "Status Faturamento": "Aguardando nota" → "Aguardando Emissão"; suspenso encaminhado sem lançamento → "Encaminhado ao Financeiro").
+- **Validação 2026-11**: 264 Empresas / 19 Administradoras / 283 total (resumo idem); status e faturamento sem divergência com a tela em 283 linhas; saída do faturamento 301 linhas, md5 `ead7f2826745d48a044632af5838c2ff` antes e depois.

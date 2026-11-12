@@ -7151,6 +7151,36 @@ export type Database = {
         }
         Returns: Json
       }
+      integracao_contratos_suspensos: {
+        Args: { p_competencia: string }
+        Returns: Json
+      }
+      integracao_historico_movimentacao: {
+        Args: { p_id: string }
+        Returns: Json
+      }
+      integracao_listar_anexos: {
+        Args: { p_movimentacao_id: string }
+        Returns: Json
+      }
+      integracao_listar_movimentacoes: {
+        Args: {
+          p_after_id?: string
+          p_cnpj?: string
+          p_competencia: string
+          p_contrato?: string
+          p_limit?: number
+          p_periodo?: string
+          p_status?: string
+          p_tipo_contrato?: string
+        }
+        Returns: Json
+      }
+      integracao_obter_movimentacao: { Args: { p_id: string }; Returns: Json }
+      integracao_resumo_periodos: {
+        Args: { p_competencia: string; p_tipo_contrato?: string }
+        Returns: Json
+      }
       is_admin_interno: { Args: never; Returns: boolean }
       is_saude_editor: { Args: { _uid: string }; Returns: boolean }
       is_saude_reader: { Args: { _uid: string }; Returns: boolean }
