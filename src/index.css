@@ -369,26 +369,80 @@
 }
 
 @layer components {
-  :root:not(.dark) .cadastro-analysis-surface {
-    --background: 220 20% 97%;
-    --foreground: 222 47% 11%;
-    --card: 0 0% 100%;
-    --card-foreground: 222 47% 11%;
-    --popover: 0 0% 100%;
-    --popover-foreground: 222 47% 11%;
-    --secondary: 220 14% 96%;
-    --secondary-foreground: 222 47% 11%;
-    --muted: 220 14% 96%;
-    --muted-foreground: 220 9% 46%;
-    --accent: 220 14% 96%;
-    --accent-foreground: 222 47% 11%;
-    --border: 220 13% 91%;
-    --input: 220 13% 91%;
-    --surface-2: 220 14% 96%;
-    --surface-3: 220 13% 93%;
-    --border-subtle: 220 13% 91%;
-    background-color: hsl(var(--card));
-    color: hsl(var(--card-foreground));
+  /* Análise de Implantação (Cadastro) — superfície escura permanente,
+     integrada ao padrão verde-petróleo do SIGA, em qualquer modo de tema. */
+  .cadastro-analysis-surface {
+    --background: 152 24% 7%;
+    --foreground: 150 12% 96%;
+    --card: 152 22% 11%;
+    --card-foreground: 150 12% 96%;
+    --popover: 152 22% 12%;
+    --popover-foreground: 150 12% 96%;
+    --primary: 142 65% 52%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 150 18% 13%;
+    --secondary-foreground: 150 12% 96%;
+    --muted: 150 16% 14%;
+    --muted-foreground: 150 6% 65%;
+    --accent: 148 22% 16%;
+    --accent-foreground: 142 69% 70%;
+    --destructive: 0 72% 55%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 148 20% 20%;
+    --input: 148 18% 22%;
+    --ring: 142 65% 52%;
+    --surface-1: 150 22% 12%;
+    --surface-2: 150 18% 14%;
+    --surface-3: 148 18% 17%;
+    --border-subtle: 150 14% 20%;
+    background: linear-gradient(180deg, hsl(150 24% 9%) 0%, hsl(152 26% 6%) 100%);
+    color: hsl(var(--foreground));
+    border: 1px solid hsl(142 65% 52% / 0.16);
+    box-shadow: 0 24px 60px -20px hsl(150 60% 3% / 0.8), 0 0 0 1px hsl(142 65% 52% / 0.06);
+  }
+
+  /* Cards e seções: borda verde discreta, sem cinza forte */
+  .cadastro-analysis-surface .rounded-lg.border,
+  .cadastro-analysis-surface .rounded-md.border {
+    border-color: hsl(142 65% 52% / 0.13);
+  }
+
+  /* Título com indicador vertical verde */
+  .cadastro-analysis-surface h2 {
+    position: relative;
+    padding-left: 0.75rem;
+  }
+  .cadastro-analysis-surface h2::before {
+    content: "";
+    position: absolute;
+    left: 0;
+    top: 0.15em;
+    bottom: 0.15em;
+    width: 3px;
+    border-radius: 9999px;
+    background: hsl(var(--primary));
+  }
+
+  /* Alertas âmbar/vermelho suaves sobre fundo escuro */
+  .cadastro-analysis-surface .text-amber-700,
+  .cadastro-analysis-surface .text-amber-600 {
+    color: hsl(38 92% 65%);
+  }
+  .cadastro-analysis-surface .text-red-600 {
+    color: hsl(0 72% 68%);
+  }
+
+  /* Botão principal (Aprovar): verde institucional com glow discreto */
+  .cadastro-analysis-surface .bg-emerald-600 {
+    background-color: hsl(142 65% 40%);
+    box-shadow: 0 0 0 1px hsl(142 65% 52% / 0.35), 0 8px 24px -8px hsl(142 65% 52% / 0.45);
+  }
+  .cadastro-analysis-surface .bg-emerald-600:hover:not(:disabled) {
+    background-color: hsl(142 65% 47%);
+  }
+  .cadastro-analysis-surface .bg-emerald-600:disabled {
+    opacity: 0.5;
+    box-shadow: none;
   }
 }
 
