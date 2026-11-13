@@ -44,6 +44,7 @@ import { PrioridadeInfoCard } from "@/components/prioridade/PrioridadeInfoCard";
 import { PrioridadeHistoricoDialog } from "@/components/prioridade/PrioridadeHistoricoDialog";
 import { usePrioridadeMaxima } from "@/hooks/usePrioridadeMaxima";
 import { Star, History as HistoryIcon, Lock, Unlock } from "lucide-react";
+import { HistoricoContratoSheet } from "@/components/empresas/HistoricoContratoSheet";
 import { useGrupoFinanceiro } from "@/hooks/useGrupoFinanceiro";
 import { ResponsavelLockDialog } from "@/components/empresas/ResponsavelLockDialog";
 import { EmpresaEnderecosFields, EmpresaEnderecosConsulta } from "@/components/empresas/EmpresaEnderecosFields";
@@ -409,6 +410,7 @@ export default function Empresas() {
   const { canManage: canManagePrioridade } = usePrioridadeMaxima();
   const [prioridadeDialog, setPrioridadeDialog] = useState<{ open: boolean; empresa: Empresa | null; mode: "marcar" | "remover" }>({ open: false, empresa: null, mode: "marcar" });
   const [historicoPrioridade, setHistoricoPrioridade] = useState<Empresa | null>(null);
+  const [historicoContrato, setHistoricoContrato] = useState<Empresa | null>(null);
   const [deleteEmpresa, setDeleteEmpresa] = useState<Empresa | null>(null);
   const [filtroSuspensao, setFiltroSuspensao] = useState<"todos" | "ativos" | "suspensos">("todos");
   const [filtroPrioridade, setFiltroPrioridade] = useState<"todas" | "somente" | "ativas" | "concluidas">("todas");
@@ -2302,6 +2304,10 @@ export default function Empresas() {
                                       Histórico de prioridade
                                     </DropdownMenuItem>
                                   )}
+                                  <DropdownMenuItem onClick={() => setHistoricoContrato(e)}>
+                                    <HistoryIcon className="h-4 w-4" />
+                                    Histórico do Contrato
+                                  </DropdownMenuItem>
                                   <DropdownMenuItem onClick={() => setValoresEmpresa(e)}>
                                     <Wallet className="h-4 w-4" />
                                     Valores e faixa etária
@@ -2398,6 +2404,8 @@ export default function Empresas() {
           </AlertDialogContent>
         </AlertDialog>
 
+
+        <HistoricoContratoSheet empresa={historicoContrato} onOpenChange={(o) => { if (!o) setHistoricoContrato(null); }} />
 
         {/* Detail Modal */}
         <Dialog open={!!detailEmpresa} onOpenChange={(open) => { if (!open) { setDetailEmpresa(null); setShowRescisaoInput(false); setRescisaoDate(""); } }}>
@@ -2656,6 +2664,12 @@ export default function Empresas() {
                 >
                   <Ban className="h-4 w-4" />
                   {(detailEmpresa as any).contrato_suspenso ? "Reativar / Histórico" : "Suspender Contrato"}
+                </Button>
+              )}
+              {detailEmpresa && (
+                <Button variant="outline" className="rounded-lg gap-2" onClick={() => setHistoricoContrato(detailEmpresa)}>
+                  <HistoryIcon className="h-4 w-4" />
+                  Histórico
                 </Button>
               )}
               {isEnfermeira && detailEmpresa && (

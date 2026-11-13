@@ -638,6 +638,13 @@
       "when": 1794520163380,
       "tag": "0090_integracao_fase1_leitura",
       "breakpoints": true
+    },
+    {
+      "idx": 91,
+      "version": "7",
+      "when": 1794571058489,
+      "tag": "0091_historico_contrato",
+      "breakpoints": true
     }
   ]
 }

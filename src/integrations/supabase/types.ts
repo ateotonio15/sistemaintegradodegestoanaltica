@@ -2266,6 +2266,51 @@ export type Database = {
           },
         ]
       }
+      empresa_historico: {
+        Row: {
+          acao: string
+          alteracoes: Json
+          categoria: string
+          codigo_contrato: string | null
+          created_at: string
+          empresa_id: string
+          id: string
+          motivo: string | null
+          origem: string
+          usuario_id: string | null
+          usuario_nome: string | null
+          usuario_perfil: string | null
+        }
+        Insert: {
+          acao: string
+          alteracoes?: Json
+          categoria: string
+          codigo_contrato?: string | null
+          created_at?: string
+          empresa_id: string
+          id?: string
+          motivo?: string | null
+          origem: string
+          usuario_id?: string | null
+          usuario_nome?: string | null
+          usuario_perfil?: string | null
+        }
+        Update: {
+          acao?: string
+          alteracoes?: Json
+          categoria?: string
+          codigo_contrato?: string | null
+          created_at?: string
+          empresa_id?: string
+          id?: string
+          motivo?: string | null
+          origem?: string
+          usuario_id?: string | null
+          usuario_nome?: string | null
+          usuario_perfil?: string | null
+        }
+        Relationships: []
+      }
       empresa_implantacao_historico: {
         Row: {
           created_at: string
@@ -6795,6 +6840,8 @@ export type Database = {
         Args: { p_reajuste: string; p_role: string; p_tipo: string }
         Returns: undefined
       }
+      _historico_nome_usuario: { Args: { _id: string }; Returns: string }
+      _historico_usuario: { Args: never; Returns: Record<string, unknown> }
       _log_impl: {
         Args: { _acao: string; _detalhes: Json; _impl: string }
         Returns: undefined
