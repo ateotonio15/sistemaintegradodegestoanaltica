@@ -1121,6 +1121,73 @@ function ResumoCadastro({ impl, processo }: {
   );
 }
 
+/**
+ * Cartão "Plano" — exclusivo da visualização do Cadastro.
+ * Mostra o(s) plano(s) e a Classificação gravados na empresa cadastrada
+ * (impl.empresa_id). Enquanto a empresa não existir, exibe "Não informado".
+ */
+function PlanoClassificacaoCard({ impl }: { impl: any }) {
+  const empresaId = impl.empresa_id as string | null;
+
+  const { data: empresa } = useQuery({
+    queryKey: ["impl-plano-empresa", empresaId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("empresas")
+        .select("classificacao, plano, produto_enfermaria_codigo, produto_apartamento_codigo")
+        .eq("id", empresaId!)
+        .maybeSingle();
+      if (error) throw error;
+      return data as any;
+    },
+    enabled: !!empresaId,
+  });
+
+  const { data: produtos = [] } = useQuery({
+    queryKey: ["impl-plano-produtos"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("produtos_planos")
+        .select("codigo_produto, nome_produto");
+      if (error) throw error;
+      return data as any[];
+    },
+    enabled: !!empresaId,
+  });
+
+  const nomeProduto = (codigo: unknown) => {
+    if (codigo == null) return null;
+    const p = produtos.find((p) => p.codigo_produto === Number(codigo));
+    return p ? `${p.codigo_produto} - ${p.nome_produto}` : `Produto ${codigo}`;
+  };
+
+  const planos: string[] = [];
+  if (empresa) {
+    const enf = nomeProduto(empresa.produto_enfermaria_codigo);
+    const apt = nomeProduto(empresa.produto_apartamento_codigo);
+    if (enf) planos.push(enf);
+    if (apt) planos.push(apt);
+    if (planos.length === 0 && empresa.plano?.trim()) planos.push(empresa.plano.trim());
+  }
+  const classificacao: string | null = empresa?.classificacao || null;
+
+  return (
+    <Card className="overflow-hidden border-border bg-card shadow-sm">
+      <CardContent className="p-4 sm:p-5">
+        <p className="text-[10px] font-semibold uppercase text-muted-foreground">Plano</p>
+        <p className="mt-1 break-words text-lg font-bold leading-tight">
+          {planos.length ? planos.join(" · ") : "Não informado"}
+        </p>
+        {classificacao && (
+          <Badge variant="secondary" className="mt-2">
+            {classificacao}
+          </Badge>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+
 function EmpresaDadosCadastraisSection({ impl, onVerDocumentos }: {
   impl: any;
   onVerDocumentos?: () => void;
@@ -1971,6 +2038,7 @@ export function AnaliseImplantacaoDialog({ implantacaoId, open, onClose, readOnl
             {isCadastro && (
               <>
                 <ResumoCadastro impl={impl} processo={processo} />
+                <PlanoClassificacaoCard impl={impl} />
                 <EmpresaDadosCadastraisSection
                   impl={impl}
                   onVerDocumentos={handleVerDocumentos}
