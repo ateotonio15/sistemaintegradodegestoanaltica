@@ -12,6 +12,7 @@ const ALIAS: Record<string, string> = {
   THAWNNY: "TAWNNY",
   JOSEANE: "JOSIANE",
   LORENA: "LORENN",
+  JAINA: "JAINA OLIVEIRA",
 };
 
 const semAcento = (s: string) => s.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
