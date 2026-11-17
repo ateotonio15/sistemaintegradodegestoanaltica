@@ -6,7 +6,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Ban, AlertTriangle } from "lucide-react";
+import { Ban, AlertTriangle, ChevronDown } from "lucide-react";
 
 export interface EncaminhamentoSuspenso {
   id: string;
@@ -110,31 +110,37 @@ const corNivel = {
   critico: "bg-destructive/15 text-destructive border-destructive/40",
 } as const;
 
+const seloBase = "rounded-md h-5 px-2 text-[11px] font-medium leading-none";
+
 function ItemSuspenso({ i }: { i: EncaminhamentoSuspenso }) {
   const [aberto, setAberto] = useState(false);
   const dias = diasSuspenso(i.data_suspensao);
   const nivel = nivelSuspensao(dias);
   return (
-    <li className={cn("py-1.5 px-2 -mx-2 rounded-md", nivel === "critico" && "border border-destructive/40 bg-destructive/5 my-1")}>
-      <button type="button" onClick={() => setAberto((v) => !v)} className="w-full text-left flex flex-wrap items-center gap-2">
-        <span className="font-medium">{i.empresa_nome}</span>
-        <span className="text-muted-foreground">#{i.codigo_contrato ?? "—"} · Período {i.periodo}</span>
-        <Badge className="bg-destructive text-destructive-foreground rounded-md">Contrato suspenso</Badge>
+    <li className={cn("py-1.5 px-2 -mx-2 rounded-md transition-colors hover:bg-muted/40", nivel === "critico" && "border border-destructive/40 bg-destructive/5 my-1 hover:bg-destructive/10")}>
+      <button type="button" onClick={() => setAberto((v) => !v)} className="w-full text-left flex flex-wrap items-center gap-2" aria-expanded={aberto}>
+        <span className="font-semibold text-foreground">{i.empresa_nome}</span>
+        <span className="text-xs text-muted-foreground">#{i.codigo_contrato ?? "—"} · Período {i.periodo}</span>
+        <Badge className={cn(seloBase, "bg-destructive text-destructive-foreground")}>Contrato suspenso</Badge>
         {dias != null && (
-          <Badge variant="outline" className={cn("rounded-md gap-1", corNivel[nivel])} title={`Suspenso há ${rotuloDias(dias)}`}>
+          <Badge variant="outline" className={cn(seloBase, "gap-1", corNivel[nivel])} title={`Suspenso há ${rotuloDias(dias)}`}>
             {nivel !== "normal" && <AlertTriangle className="h-3 w-3" />}{rotuloDias(dias)}
           </Badge>
         )}
-        <Badge variant="outline" className="rounded-md">Encaminhado ao Financeiro</Badge>
-        <span className="text-xs text-muted-foreground">
+        <Badge variant="outline" className={seloBase}>Encaminhado ao Financeiro</Badge>
+        <span className="text-xs text-muted-foreground ml-auto">
           {i.data_suspensao ? `Suspenso em ${formatDateBR(i.data_suspensao)} · ` : ""}encaminhado em {fmt(i.encaminhado_em)} · {i.encaminhado_por_nome}
+        </span>
+        <span className="flex items-center gap-1 text-xs text-muted-foreground">
+          Detalhes
+          <ChevronDown className={cn("h-3.5 w-3.5 transition-transform", aberto && "rotate-180")} />
         </span>
       </button>
       {nivel === "critico" && dias != null && (
         <p className="text-xs text-destructive flex items-center gap-1 mt-1"><AlertTriangle className="h-3 w-3" />Contrato suspenso há {rotuloDias(dias)}</p>
       )}
       {aberto && (
-        <div className="mt-2 grid gap-x-6 gap-y-1 text-xs sm:grid-cols-2 rounded-md bg-muted/40 p-2">
+        <div className="mt-2 grid gap-x-6 gap-y-1 text-xs sm:grid-cols-2 rounded-md border border-border bg-muted/40 p-2">
           <p><span className="text-muted-foreground">Suspenso em: </span>{i.data_suspensao ? formatDateBR(i.data_suspensao) : "—"}</p>
           <p><span className="text-muted-foreground">Responsável: </span>{i.suspenso_por_nome || "—"}</p>
           <p><span className="text-muted-foreground">Tempo de suspensão: </span>{dias != null ? rotuloDias(dias) : "—"}</p>
@@ -156,14 +162,14 @@ export function SuspensosEncaminhadosPainel({ itens, comMovimentacao }: { itens:
       <CardContent className="pt-4 space-y-3 text-sm">
         {semMov.length > 0 && (
           <div className="space-y-2">
-            <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
-              <p className="font-semibold flex items-center gap-2"><Ban className="h-4 w-4 text-muted-foreground" />Contratos suspensos no período</p>
-              <span className="text-xs text-muted-foreground">
+            <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+              <p className="font-semibold flex items-center gap-2 text-primary"><Ban className="h-4 w-4" />Contratos suspensos no período</p>
+              <Badge variant="outline" className={cn(seloBase, "ml-auto")}>
                 {semMov.length} {semMov.length === 1 ? "contrato suspenso" : "contratos suspensos"}{criticos > 0 ? ` • ${criticos} em alerta` : ""}
-              </span>
+              </Badge>
             </div>
             {criticos > 0 && (
-              <p className="text-xs flex items-center gap-1.5 rounded-md border border-destructive/40 bg-destructive/5 text-destructive px-2 py-1">
+              <p className="text-xs flex items-center gap-1.5 border-l-2 border-warning pl-2 text-warning">
                 <AlertTriangle className="h-3.5 w-3.5" />
                 {criticos === 1 ? "1 contrato precisa de atenção" : `${criticos} contratos precisam de atenção`} — suspensos há 30 dias ou mais.
               </p>
