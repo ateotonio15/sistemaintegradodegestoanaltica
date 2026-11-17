@@ -1,3 +1,4 @@
+import { diasSuspenso } from "@/lib/contrato-suspenso";
 import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -162,6 +163,12 @@ export function HistoricoContratoSheet({ empresa, onOpenChange }: {
                               </div>
                             </div>
                           ))}
+                          {ev.acao === "Contrato reativado" && (() => {
+                            const a = ev.alteracoes.find((x) => x.campo === "data_suspensao");
+                            const ini = typeof a?.valor_anterior === "string" ? a.valor_anterior : null;
+                            const d = diasSuspenso(ini, ev.created_at);
+                            return d != null ? <p className="text-xs font-semibold">Tempo total de suspensão: {d} {d === 1 ? "dia" : "dias"}</p> : null;
+                          })()}
                           {ev.motivo && <p className="text-xs"><span className="text-muted-foreground">Motivo: </span>{ev.motivo}</p>}
                           <p className="text-[11px] text-muted-foreground pt-1 border-t border-border/50">
                             Origem: {ev.origem}{ev.usuario_perfil && ` • Perfil: ${ev.usuario_perfil}`}
