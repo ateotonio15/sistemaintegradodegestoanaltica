@@ -652,6 +652,13 @@
       "when": 1794571330134,
       "tag": "0092_assinaturas_email_select_owner_only",
       "breakpoints": true
+    },
+    {
+      "idx": 93,
+      "version": "7",
+      "when": 1794929372050,
+      "tag": "0093_migration",
+      "breakpoints": true
     }
   ]
 }
