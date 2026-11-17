@@ -2036,6 +2036,35 @@ export type Database = {
           },
         ]
       }
+      demandas_cirurgia_ciencias: {
+        Row: {
+          created_at: string
+          notificacao_id: string
+          observacao: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          notificacao_id: string
+          observacao: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          notificacao_id?: string
+          observacao?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "demandas_cirurgia_ciencias_notificacao_id_fkey"
+            columns: ["notificacao_id"]
+            isOneToOne: false
+            referencedRelation: "demandas_cirurgia_notificacoes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       demandas_cirurgia_lidas: {
         Row: {
           lida_em: string
@@ -6942,6 +6971,18 @@ export type Database = {
       }
       ativar_contratos_pendentes: { Args: never; Returns: number }
       avaliacao_tipo_por_token: { Args: { p_token: string }; Returns: string }
+      avisos_cirurgia_pendentes_executivo: {
+        Args: never
+        Returns: {
+          created_at: string
+          data_cirurgia: string
+          demanda_id: string
+          empresa: string
+          id: string
+          nome_medico: string
+          nome_paciente: string
+        }[]
+      }
       calc_pascoa: { Args: { _ano: number }; Returns: string }
       calcular_idade: { Args: { p_nasc: string }; Returns: number }
       calcular_imc: {
@@ -7327,6 +7368,10 @@ export type Database = {
       reatribuir_ferias_empresa: {
         Args: { p_fce_id: string; p_new_user_id: string }
         Returns: Json
+      }
+      registrar_ciencia_cirurgia: {
+        Args: { _notificacao_id: string; _observacao: string }
+        Returns: undefined
       }
       registrar_documento_fechamento: {
         Args: {

@@ -13,6 +13,7 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { CirurgiaCardBadge } from "@/components/demandas/CirurgiaCardBadge";
+import { AlertaCirurgiaExecutivo } from "@/components/demandas/AlertaCirurgiaExecutivo";
 import {
   Search,
   ArrowLeft,
@@ -587,6 +588,8 @@ export default function Home() {
             O que você deseja gerenciar hoje no SIGA?
           </p>
         </div>
+
+        <AlertaCirurgiaExecutivo />
 
         {/* Search */}
         <div className="siga-motion-search relative w-full max-w-2xl group">

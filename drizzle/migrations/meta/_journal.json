@@ -659,6 +659,13 @@
       "when": 1794929372050,
       "tag": "0093_migration",
       "breakpoints": true
+    },
+    {
+      "idx": 94,
+      "version": "7",
+      "when": 1794939871043,
+      "tag": "0094_cirurgia_ciencia_executivo",
+      "breakpoints": true
     }
   ]
 }
