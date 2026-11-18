@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Building2, Users, CalendarClock, FileSignature, ArrowLeftRight, Search, Paperclip, FileSpreadsheet, TrendingUp, TrendingDown, Scale, RefreshCw, AlertTriangle } from "lucide-react";
+import { Building2, Users, CalendarClock, FileSignature, ArrowLeftRight, Search, Paperclip, FileSpreadsheet, TrendingUp, TrendingDown, Scale, RefreshCw, AlertTriangle, Send } from "lucide-react";
 import type { Tables } from "@/integrations/supabase/types";
 import { formatDateBR, todayLocalISO } from "@/lib/date-utils";
 import { periodoDaDataCorte } from "@/lib/movimentacao-utils";
@@ -22,6 +22,7 @@ import { toast } from "sonner";
 import { computeEntradasSaidas, layoutsForEmpresaMes, type EmpresaEntradaSaida } from "@/lib/entradas-saidas-analyzer";
 import { conferirInclusoesEmpresa } from "@/lib/inclusoes-vigencia-conferencia";
 import { lerVidasRelatorio, compararVidas, type ComparacaoVidas } from "@/lib/vidas-contrato-comparacao";
+import { EnviarFechamentoFinanceiroDialog } from "@/components/administradoras/EnviarFechamentoFinanceiroDialog";
 import { gerarRelatorioPortal } from "@/services/portalEmpresaRelatorios";
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, Legend, LineChart, Line } from "recharts";
 import { labelStatusFinanceiro, statusFinanceiroColor, type StatusFinanceiro } from "@/lib/financeiro-utils";
@@ -56,6 +57,7 @@ export default function DashboardAdministradoras() {
   const [editEnvio, setEditEnvio] = useState<string>("");
   const [anexosViewer, setAnexosViewer] = useState<{ empresa: Empresa; periodo: string } | null>(null);
   const [importOpen, setImportOpen] = useState(false);
+  const [fechOpen, setFechOpen] = useState(false);
   const { isAdmin, isComum } = useAuth();
   const queryClient = useQueryClient();
 
@@ -538,6 +540,12 @@ export default function DashboardAdministradoras() {
             </Button>
           )}
           {(isAdmin || isComum) && (
+            <Button variant="outline" onClick={() => setFechOpen(true)} className="rounded-lg">
+              <Send className="mr-2 h-4 w-4" />
+              Enviar fechamento ao Financeiro
+            </Button>
+          )}
+          {(isAdmin || isComum) && (
             <Button onClick={() => setImportOpen(true)} className="rounded-lg">
               <FileSpreadsheet className="mr-2 h-4 w-4" />
               Importar Administradoras
@@ -635,6 +643,7 @@ export default function DashboardAdministradoras() {
           )}
         </DialogContent>
       </Dialog>
+      <EnviarFechamentoFinanceiroDialog open={fechOpen} onOpenChange={setFechOpen} empresas={empresas as any} mesRef={mesRef} />
       <ImportarAdministradorasDialog open={importOpen} onOpenChange={setImportOpen} />
 
       {/* Alerta de variação grande */}
