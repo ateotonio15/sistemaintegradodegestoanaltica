@@ -1,0 +1,1 @@
+ALTER TABLE public.vidas_historico_administradoras ADD COLUMN IF NOT EXISTS reativacoes integer NOT NULL DEFAULT 0;

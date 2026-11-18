@@ -298,6 +298,7 @@ export default function DashboardAdministradoras() {
         empresa_id: h.empresa_id,
         entradas: h.entradas,
         saidas: h.saidas,
+        reativacoes: h.reativacoes ?? 0,
         total_atual: h.total_atual,
         total_anterior: h.total_anterior,
       };
@@ -369,6 +370,27 @@ export default function DashboardAdministradoras() {
     }
   };
 
+  const [salvandoVidas, setSalvandoVidas] = useState(false);
+  const salvarVidasContrato = async () => {
+    const vc = vidasContrato;
+    if (!vc?.res) return;
+    setSalvandoVidas(true);
+    try {
+      const { error: e1 } = await supabase.from("vidas_historico_administradoras").upsert({
+        empresa_id: vc.empresa.id, mes_referencia: mesRef,
+        entradas: vc.res.entradas.length, saidas: vc.res.saidas.length, reativacoes: vc.res.reativacoes.length,
+        total_anterior: vc.res.periodo, total_atual: vc.res.atualizado, calculado_em: new Date().toISOString(),
+      }, { onConflict: "empresa_id,mes_referencia" });
+      if (e1) throw e1;
+      const { error: e2 } = await supabase.from("empresas").update({ vidas: vc.res.atualizado }).eq("id", vc.empresa.id);
+      if (e2) throw e2;
+      toast.success("Atualização de vidas salva.");
+      queryClient.invalidateQueries();
+      setVidasContrato(null);
+    } catch (e: any) {
+      toast.error("Não foi possível salvar: " + (e?.message ?? String(e)));
+    } finally { setSalvandoVidas(false); }
+  };
   const [vidasContrato, setVidasContrato] = useState<{ empresa: Empresa; carregando: boolean; erro?: string; arquivoPeriodo?: string; arquivoAtual?: string; res?: ComparacaoVidas } | null>(null);
   const recalcularVidasContrato = async (empresa: Empresa) => {
     setVidasContrato({ empresa, carregando: true });
@@ -605,7 +627,10 @@ export default function DashboardAdministradoras() {
                   </ul>
                 </div>
               ))}
-              <p className="text-xs text-muted-foreground">Só consulta: nenhum número do fechamento foi alterado.</p>
+              <div className="flex items-center justify-between gap-2 border-t pt-3">
+                <p className="text-xs text-muted-foreground">Ao salvar, as vidas ativas passam a {vidasContrato.res.atualizado} e o mês grava entradas, saídas e reativações.</p>
+                <Button size="sm" disabled={salvandoVidas} onClick={salvarVidasContrato}>{salvandoVidas ? "Salvando..." : "Salvar atualização"}</Button>
+              </div>
             </div>
           )}
         </DialogContent>
@@ -822,6 +847,7 @@ export default function DashboardAdministradoras() {
                       <TableHead className="font-semibold text-center">Vidas Ativas</TableHead>
                       <TableHead className="font-semibold text-center">Entradas</TableHead>
                       <TableHead className="font-semibold text-center">Saídas</TableHead>
+                      <TableHead className="font-semibold text-center">Reativações</TableHead>
                       <TableHead className="font-semibold">Corte</TableHead>
                       <TableHead className="font-semibold">Implantação</TableHead>
                       <TableHead className="font-semibold">Enviado Financ.</TableHead>
@@ -832,9 +858,9 @@ export default function DashboardAdministradoras() {
                   </TableHeader>
                   <TableBody>
                     {isLoading ? (
-                      <TableRow><TableCell colSpan={11} className="text-center py-12 text-muted-foreground">Carregando...</TableCell></TableRow>
+                      <TableRow><TableCell colSpan={12} className="text-center py-12 text-muted-foreground">Carregando...</TableCell></TableRow>
                     ) : filtered.length === 0 ? (
-                      <TableRow><TableCell colSpan={11} className="text-center py-12 text-muted-foreground">Nenhuma administradora encontrada</TableCell></TableRow>
+                      <TableRow><TableCell colSpan={12} className="text-center py-12 text-muted-foreground">Nenhuma administradora encontrada</TableCell></TableRow>
                     ) : (
                       filtered.map((e) => {
                         const mov = movsPorEmpresa[e.id];
@@ -883,6 +909,13 @@ export default function DashboardAdministradoras() {
                             {es ? (
                               <span className={es.saidas > 0 ? "text-destructive font-semibold" : "text-muted-foreground"}>
                                 {es.saidas > 0 ? `-${es.saidas}` : "0"}
+                              </span>
+                            ) : <span className="text-muted-foreground">—</span>}
+                          </TableCell>
+                          <TableCell className="text-center tabular-nums">
+                            {es ? (
+                              <span className={(es as any).reativacoes > 0 ? "text-warning font-semibold" : "text-muted-foreground"}>
+                                {(es as any).reativacoes > 0 ? `+${(es as any).reativacoes}` : "0"}
                               </span>
                             ) : <span className="text-muted-foreground">—</span>}
                           </TableCell>

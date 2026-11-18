@@ -6866,6 +6866,7 @@ export type Database = {
           entradas: number
           id: string
           mes_referencia: string
+          reativacoes: number
           saidas: number
           total_anterior: number
           total_atual: number
@@ -6876,6 +6877,7 @@ export type Database = {
           entradas?: number
           id?: string
           mes_referencia: string
+          reativacoes?: number
           saidas?: number
           total_anterior?: number
           total_atual?: number
@@ -6886,6 +6888,7 @@ export type Database = {
           entradas?: number
           id?: string
           mes_referencia?: string
+          reativacoes?: number
           saidas?: number
           total_anterior?: number
           total_atual?: number
