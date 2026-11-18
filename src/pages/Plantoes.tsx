@@ -169,27 +169,42 @@ export default function Plantoes() {
       const atend: any[] = [];
       const pids = lista.map((p) => p.id);
       for (let i = 0; i < pids.length; i += 200) {
-        const { data, error } = await supabase
-          .from("plantoes_atendimentos")
-          .select("*")
-          .in("plantao_id", pids.slice(i, i + 200));
-        if (error) throw error;
-        atend.push(...(data ?? []));
+        for (let off = 0; ; off += 1000) {
+          const { data, error } = await supabase
+            .from("plantoes_atendimentos")
+            .select("*")
+            .in("plantao_id", pids.slice(i, i + 200))
+            .order("id")
+            .range(off, off + 999);
+          if (error) throw error;
+          atend.push(...(data ?? []));
+          if (!data || data.length < 1000) break;
+        }
       }
       const fmtData = (d: string) => { const [y, m, dd] = d.split("-"); return `${dd}/${m}/${y}`; };
+      const loc = (iso?: string | null) => { const d = iso ? new Date(iso) : null; return d && !isNaN(d.getTime()) ? d : null; };
+      const pad = (n: number) => String(n).padStart(2, "0");
+      const dataAtend = (p: any, a: any) => {
+        if (p?.data && /^\d{4}-\d{2}-\d{2}/.test(p.data)) return fmtData(p.data.slice(0, 10));
+        const d = loc(a?.created_at); return d ? `${pad(d.getDate())}/${pad(d.getMonth() + 1)}/${d.getFullYear()}` : "";
+      };
+      const horaAtend = (a: any) => {
+        if (a?.hora && /^\d{2}:\d{2}/.test(a.hora)) return a.hora.slice(0, 5);
+        const d = loc(a?.created_at); return d ? `${pad(d.getHours())}:${pad(d.getMinutes())}` : "";
+      };
       const comAtend = new Set(atend.map((a) => a.plantao_id));
       const rows = atend.map((a) => {
         const p = porPlantao.get(a.plantao_id)!;
         return { p, a };
       });
-      for (const p of lista) if (!comAtend.has(p.id)) rows.push({ p, a: null });
+      const semAtend = lista.filter((p) => !comAtend.has(p.id));
       rows.sort((x, y) => (x.p.data + (x.a?.hora ?? "")).localeCompare(y.p.data + (y.a?.hora ?? "")));
       const out = rows.map(({ p, a }) => ({
-        "Data do atendimento": fmtData(p.data),
-        "Hora do atendimento": (a?.hora ?? "").slice(0, 5),
+        "Data": dataAtend(p, a),
+        "Hora": horaAtend(a),
         "Empresa": p.empresa?.nome ?? porEmpresa.find((e) => e.empresaId === p.empresa_id)?.nome ?? "",
         "Atendente / Responsável": p.plantonista ?? "",
-        "Cliente / Beneficiário": a?.nome_cliente ?? "",
+        "Beneficiário": (a?.nome_cliente ?? "").trim(),
         "CPF": a?.cpf ?? "",
         "Assunto / Tipo de atendimento": a?.assunto ?? "",
         "Resolvido": a ? (a.resolvido ? "Sim" : "Não") : "",
@@ -205,6 +220,13 @@ export default function Plantoes() {
       ws["!cols"] = Object.keys(out[0]).map((k) => ({ wch: Math.min(60, Math.max(12, k.length + 2)) }));
       const wb = XLSX.utils.book_new();
       XLSX.utils.book_append_sheet(wb, ws, "Relatório completo");
+      if (semAtend.length) {
+        const ws2 = XLSX.utils.json_to_sheet(semAtend.map((p) => ({
+          "Data": dataAtend(p, null), "Empresa": p.empresa?.nome ?? "", "Atendente / Responsável": p.plantonista ?? "",
+          "Turno": p.turno ?? "", "Status do plantão": p.status ?? "", "Observações do plantão": p.observacao ?? "",
+        })));
+        XLSX.utils.book_append_sheet(wb, ws2, "Plantões sem atendimento");
+      }
       XLSX.writeFile(wb, `plantoes_completo_${from}_a_${to}.xlsx`);
     } catch (e: any) {
       toast.error(e?.message ?? "Erro ao gerar relatório");
