@@ -6,7 +6,10 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Ban, AlertTriangle, ChevronDown } from "lucide-react";
+import { Ban, AlertTriangle, ChevronDown, RotateCcw } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { useAuth } from "@/hooks/useAuth";
+import { SuspensaoDialog } from "@/components/empresas/SuspensaoDialog";
 
 export interface EncaminhamentoSuspenso {
   id: string;
@@ -116,6 +119,9 @@ function ItemSuspenso({ i }: { i: EncaminhamentoSuspenso }) {
   const [aberto, setAberto] = useState(false);
   const dias = diasSuspenso(i.data_suspensao);
   const nivel = nivelSuspensao(dias);
+  const { isAdmin, isComum } = useAuth();
+  const qc = useQueryClient();
+  const [liberar, setLiberar] = useState(false);
   return (
     <li className={cn("py-1.5 px-2 -mx-2 rounded-md transition-colors hover:bg-muted/40", nivel === "critico" && "border border-destructive/40 bg-destructive/5 my-1 hover:bg-destructive/10")}>
       <button type="button" onClick={() => setAberto((v) => !v)} className="w-full text-left flex flex-wrap items-center gap-2" aria-expanded={aberto}>
@@ -146,7 +152,21 @@ function ItemSuspenso({ i }: { i: EncaminhamentoSuspenso }) {
           <p><span className="text-muted-foreground">Tempo de suspensão: </span>{dias != null ? rotuloDias(dias) : "—"}</p>
           <p><span className="text-muted-foreground">Motivo: </span>{i.motivo_suspensao || "—"}</p>
           <p className="sm:col-span-2"><span className="text-muted-foreground">Observação: </span>{i.suspensao_observacao || "—"}</p>
+          {(isAdmin || isComum) && (
+            <div className="sm:col-span-2 flex justify-end pt-1">
+              <Button size="sm" className="gap-1.5 h-8" onClick={() => setLiberar(true)}>
+                <RotateCcw className="h-3.5 w-3.5" />Liberar atendimentos
+              </Button>
+            </div>
+          )}
         </div>
+      )}
+      {liberar && (
+        <SuspensaoDialog
+          open={liberar}
+          onOpenChange={(o) => { setLiberar(o); if (!o) qc.invalidateQueries({ queryKey: ["suspensos-encaminhados"] }); }}
+          empresa={{ id: i.empresa_id, nome: i.empresa_nome, contrato_suspenso: true, data_suspensao: i.data_suspensao ?? null, motivo_suspensao: i.motivo_suspensao ?? null, codigo_contrato: i.codigo_contrato }}
+        />
       )}
     </li>
   );
