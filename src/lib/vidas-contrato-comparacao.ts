@@ -3,7 +3,7 @@ import { normalizarCpf } from "@/lib/inclusoes-vigencia";
 import { dataIso } from "@/lib/inclusoes-vigencia-conferencia";
 
 export interface VidaRelatorio { chave: string; cpf: string | null; nome: string | null; adesao?: string | null }
-export interface ComparacaoVidas { periodo: number; atualizado: number; entradas: VidaRelatorio[]; saidas: VidaRelatorio[] }
+export interface ComparacaoVidas { periodo: number; atualizado: number; entradas: VidaRelatorio[]; reativacoes: VidaRelatorio[]; saidas: VidaRelatorio[] }
 
 const norm = (s: unknown) => String(s ?? "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().replace(/[_.\-/]+/g, " ").replace(/\s+/g, " ").trim();
 
@@ -33,13 +33,25 @@ export function lerVidasRelatorio(buffer: ArrayBuffer): VidaRelatorio[] {
 }
 
 /** Compara o relatório do período com o atualizado: quem entrou e quem saiu. */
-export function compararVidas(periodo: VidaRelatorio[], atualizado: VidaRelatorio[]): ComparacaoVidas {
+/** Adesão no mês de referência (AAAA-MM) ou no mês anterior. Sem data de adesão, não dá para afirmar reativação. */
+export function adesaoRecente(adesao: string | null | undefined, mesRef: string): boolean {
+  if (!adesao) return true;
+  const [y, m] = mesRef.slice(0, 7).split("-").map(Number);
+  const ant = m === 1 ? `${y - 1}-12` : `${y}-${String(m - 1).padStart(2, "0")}`;
+  const mes = adesao.slice(0, 7);
+  return mes === mesRef.slice(0, 7) || mes === ant;
+}
+
+/** Compara o relatório do período com o atualizado. Novos com adesão antiga (fora do mês e do anterior) são reativações, não inclusões. */
+export function compararVidas(periodo: VidaRelatorio[], atualizado: VidaRelatorio[], mesRef?: string): ComparacaoVidas {
   const a = new Set(periodo.map((v) => v.chave));
   const b = new Set(atualizado.map((v) => v.chave));
+  const novos = atualizado.filter((v) => !a.has(v.chave));
   return {
     periodo: a.size,
     atualizado: b.size,
-    entradas: atualizado.filter((v) => !a.has(v.chave)),
+    entradas: novos.filter((v) => !mesRef || adesaoRecente(v.adesao, mesRef)),
+    reativacoes: mesRef ? novos.filter((v) => !adesaoRecente(v.adesao, mesRef)) : [],
     saidas: periodo.filter((v) => !b.has(v.chave)),
   };
 }

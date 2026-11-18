@@ -412,7 +412,7 @@ export default function DashboardAdministradoras() {
       }
       if (!nomesUsados.length) throw new Error("Os arquivos anexados no mês não puderam ser lidos como relatório de vidas.");
       const atual = await gerarRelatorioPortal(empresa.codigo_contrato, "xlsx", new AbortController().signal);
-      const res = compararVidas([...vidasPeriodo.values()], lerVidasRelatorio(await atual.blob.arrayBuffer()));
+      const res = compararVidas([...vidasPeriodo.values()], lerVidasRelatorio(await atual.blob.arrayBuffer()), mesRef);
       setVidasContrato({ empresa, carregando: false, arquivoPeriodo: "Arquivos do Cadastro: " + nomesUsados.join(", "), arquivoAtual: atual.nome_arquivo, res });
     } catch (e: any) {
       setVidasContrato({ empresa, carregando: false, erro: e?.message ?? String(e) });
@@ -588,17 +588,17 @@ export default function DashboardAdministradoras() {
               <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
                 <div className="rounded-lg border p-2"><p className="text-[10px] uppercase text-muted-foreground">Vidas no período</p><p className="text-lg font-bold">{vidasContrato.res.periodo}</p></div>
                 <div className="rounded-lg border p-2"><p className="text-[10px] uppercase text-muted-foreground">Vidas atualizado</p><p className="text-lg font-bold">{vidasContrato.res.atualizado}</p></div>
-                <div className="rounded-lg border p-2"><p className="text-[10px] uppercase text-muted-foreground">Entradas</p><p className="text-lg font-bold text-success">+{vidasContrato.res.entradas.length}</p></div>
+                <div className="rounded-lg border p-2"><p className="text-[10px] uppercase text-muted-foreground">Entradas</p><p className="text-lg font-bold text-success">+{vidasContrato.res.entradas.length}</p>{vidasContrato.res.reativacoes?.length > 0 && <p className="text-[10px] text-muted-foreground">+{vidasContrato.res.reativacoes.length} reativação(ões)</p>}</div>
                 <div className="rounded-lg border p-2"><p className="text-[10px] uppercase text-muted-foreground">Saídas</p><p className="text-lg font-bold text-destructive">-{vidasContrato.res.saidas.length}</p></div>
               </div>
               <p className="text-xs text-muted-foreground">Período: {vidasContrato.arquivoPeriodo} • Atualizado: {vidasContrato.arquivoAtual}</p>
-              {[["Entraram", vidasContrato.res.entradas, "text-success"], ["Saíram", vidasContrato.res.saidas, "text-destructive"]].map(([t, lista, cor]: any) => lista.length > 0 && (
+              {[["Entraram", vidasContrato.res.entradas, "text-success"], ["Reativações (adesão antiga — não contam como inclusão)", vidasContrato.res.reativacoes ?? [], "text-warning"], ["Saíram", vidasContrato.res.saidas, "text-destructive"]].map(([t, lista, cor]: any) => lista.length > 0 && (
                 <div key={t}>
                   <p className={`font-semibold ${cor}`}>{t} ({lista.length})</p>
                   <ul className="mt-1 max-h-48 overflow-y-auto rounded border divide-y">
                     {lista.map((v: any) => (
                       <li key={v.chave} className="flex justify-between px-2 py-1">
-                        <span>{v.nome ?? "—"}{t === "Entraram" && <span className="ml-2 text-xs text-success">Adesão: {v.adesao ? formatDateBR(v.adesao) : "não informada"}</span>}</span>
+                        <span>{v.nome ?? "—"}{t !== "Saíram" && <span className="ml-2 text-xs text-success">Adesão: {v.adesao ? formatDateBR(v.adesao) : "não informada"}</span>}</span>
                         <span className="tabular-nums text-muted-foreground">{v.cpf ? `***.***.***-${v.cpf.slice(-2)}` : ""}</span>
                       </li>
                     ))}
