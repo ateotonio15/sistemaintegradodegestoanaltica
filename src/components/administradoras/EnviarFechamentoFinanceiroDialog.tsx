@@ -9,10 +9,12 @@ import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { FunctionsHttpError } from "@supabase/supabase-js";
 import { gerarRelatorioPortal } from "@/services/portalEmpresaRelatorios";
+import { periodoDaDataCorte } from "@/lib/movimentacao-utils";
+import { useQueryClient } from "@tanstack/react-query";
 import { agruparPorAdministradora, resumirVidasRelatorio, type ResumoVidasContrato } from "@/lib/administradora-fechamento";
 
 type Emp = { id: string; nome: string; codigo_contrato: string | null; data_corte?: number | string | null };
-type Linha = { codigo: string; nome: string; resumo?: ResumoVidasContrato; erro?: string };
+type Linha = { empresaId: string; dataCorte?: number | string | null; arquivo?: { nome: string; blob: Blob }; codigo: string; nome: string; resumo?: ResumoVidasContrato; erro?: string };
 const CHAVE_EMAILS = "siga-fechamento-adm-emails";
 const lista = (s: string) => s.split(/[;,\s]+/).map((x) => x.trim()).filter(Boolean);
 
@@ -28,6 +30,37 @@ export function EnviarFechamentoFinanceiroDialog({ open, onOpenChange, empresas,
   const [linhas, setLinhas] = useState<Linha[]>([]);
   const [carregando, setCarregando] = useState(false);
   const [enviando, setEnviando] = useState(false);
+  const qc = useQueryClient();
+  // Depois do envio: anexa o Excel atualizado na movimentação do mês de cada contrato e marca "Enviado Financ." com hoje.
+  const registrarNosContratos = async () => {
+    const { data: { user } } = await supabase.auth.getUser();
+    const d = new Date();
+    const hoje = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+    const falhas: string[] = [];
+    for (const l of linhas) {
+      try {
+        const { data: movs } = await supabase.from("movimentacoes").select("id").eq("empresa_id", l.empresaId).eq("mes_referencia", mesRef).limit(1);
+        let movId = movs?.[0]?.id as string | undefined;
+        if (!movId) {
+          const { data, error } = await supabase.from("movimentacoes").upsert({ empresa_id: l.empresaId, mes_referencia: mesRef, periodo: l.dataCorte ? periodoDaDataCorte(Number(l.dataCorte)) : "01-05", data_envio_financeiro: hoje }, { onConflict: "empresa_id,mes_referencia,periodo" }).select("id").single();
+          if (error) throw error;
+          movId = data.id;
+        } else {
+          const { error } = await supabase.from("movimentacoes").update({ data_envio_financeiro: hoje }).eq("id", movId);
+          if (error) throw error;
+        }
+        if (l.arquivo) {
+          const path = `${l.empresaId}/${movId}/${crypto.randomUUID()}.xlsx`;
+          const { error: upErr } = await supabase.storage.from("anexos-movimentacoes").upload(path, l.arquivo.blob);
+          if (upErr) throw upErr;
+          const { error: insErr } = await supabase.from("anexos_movimentacao").insert({ movimentacao_id: movId!, empresa_id: l.empresaId, nome_arquivo: l.arquivo.nome, storage_path: path, mime_type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", tamanho_bytes: l.arquivo.blob.size, uploaded_by: user?.id ?? null });
+          if (insErr) throw insErr;
+        }
+      } catch (e: any) { falhas.push(`${l.codigo}: ${e?.message ?? e}`); }
+    }
+    qc.invalidateQueries();
+    if (falhas.length) toast.error("E-mail enviado, mas não foi possível registrar em: " + falhas.join("; "));
+  };
   const g = grupos.find((x) => x.nome === grupo);
 
   const escolher = (nome: string) => {
@@ -45,8 +78,9 @@ export function EnviarFechamentoFinanceiroDialog({ open, onOpenChange, empresas,
       try {
         const r = await gerarRelatorioPortal(e.codigo_contrato!, "xlsx", new AbortController().signal);
         const resumo = resumirVidasRelatorio(await r.blob.arrayBuffer());
-        out.push(resumo ? { codigo: e.codigo_contrato!, nome: e.nome, resumo } : { codigo: e.codigo_contrato!, nome: e.nome, erro: "Relatório sem lista de beneficiários" });
-      } catch (err: any) { out.push({ codigo: e.codigo_contrato!, nome: e.nome, erro: err?.message ?? String(err) }); }
+        const base = { empresaId: e.id, dataCorte: e.data_corte, codigo: e.codigo_contrato!, nome: e.nome };
+        out.push(resumo ? { ...base, resumo, arquivo: { nome: r.nome_arquivo, blob: r.blob } } : { ...base, erro: "Relatório sem lista de beneficiários" });
+      } catch (err: any) { out.push({ empresaId: e.id, codigo: e.codigo_contrato!, nome: e.nome, erro: err?.message ?? String(err) }); }
       setLinhas([...out]);
     }
     setCarregando(false);
@@ -66,7 +100,8 @@ export function EnviarFechamentoFinanceiroDialog({ open, onOpenChange, empresas,
       } });
       if (error) throw new Error(error instanceof FunctionsHttpError ? (await error.context.json().catch(() => ({})))?.error ?? error.message : error.message);
       if ((data as any)?.error) throw new Error((data as any).error);
-      toast.success("Fechamento enviado ao Financeiro.");
+      await registrarNosContratos();
+      toast.success("Fechamento enviado ao Financeiro. Relatórios anexados e data de envio preenchida.");
       onOpenChange(false);
     } catch (e: any) { toast.error("Não foi possível enviar: " + (e?.message ?? String(e))); }
     finally { setEnviando(false); }
