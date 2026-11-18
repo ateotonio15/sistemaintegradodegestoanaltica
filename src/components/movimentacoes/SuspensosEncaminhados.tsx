@@ -9,6 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { Ban, AlertTriangle, ChevronDown, RotateCcw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/useAuth";
+import { SuspenderContratoButton } from "./SuspenderContratoButton";
 import { SuspensaoDialog } from "@/components/empresas/SuspensaoDialog";
 
 export interface EncaminhamentoSuspenso {
@@ -175,7 +176,17 @@ function ItemSuspenso({ i }: { i: EncaminhamentoSuspenso }) {
 export function SuspensosEncaminhadosPainel({ itens, comMovimentacao }: { itens: EncaminhamentoSuspenso[]; comMovimentacao: Set<string> }) {
   const semMov = ordenarPorSuspensao(itens.filter((i) => i.status === "encaminhado"), (i) => diasSuspenso(i.data_suspensao));
   const analise = itens.filter((i) => i.status === "analise_humana");
-  if (!semMov.length && !analise.length) return null;
+  const { isAdmin, isComum } = useAuth();
+  const podeSuspender = isAdmin || isComum;
+  if (!semMov.length && !analise.length) {
+    return podeSuspender ? (
+      <Card className="rounded-xl"><CardContent className="py-3 flex items-center gap-2 text-sm">
+        <p className="font-semibold flex items-center gap-2 text-primary"><Ban className="h-4 w-4" />Contratos suspensos no período</p>
+        <span className="text-xs text-muted-foreground">Nenhum contrato suspenso.</span>
+        <span className="ml-auto"><SuspenderContratoButton /></span>
+      </CardContent></Card>
+    ) : null;
+  }
   const criticos = semMov.filter((i) => nivelSuspensao(diasSuspenso(i.data_suspensao)) === "critico").length;
   return (
     <Card className="rounded-xl">
@@ -184,7 +195,9 @@ export function SuspensosEncaminhadosPainel({ itens, comMovimentacao }: { itens:
           <div className="space-y-2">
             <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
               <p className="font-semibold flex items-center gap-2 text-primary"><Ban className="h-4 w-4" />Contratos suspensos no período</p>
-              <Badge variant="outline" className={cn(seloBase, "ml-auto")}>
+              <span className="ml-auto" />
+              {podeSuspender && <SuspenderContratoButton />}
+              <Badge variant="outline" className={seloBase}>
                 {semMov.length} {semMov.length === 1 ? "contrato suspenso" : "contratos suspensos"}{criticos > 0 ? ` • ${criticos} em alerta` : ""}
               </Badge>
             </div>
