@@ -5,7 +5,7 @@ import { cn } from "@/lib/utils";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Badge } from "@/components/ui/badge";
-import { Ban, AlertTriangle, ChevronRight, RotateCcw, Building2, CalendarDays } from "lucide-react";
+import { Ban, AlertTriangle, ChevronDown, ChevronRight, RotateCcw, Building2, CalendarDays } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/useAuth";
 import { SuspenderContratoButton } from "./SuspenderContratoButton";
@@ -116,6 +116,28 @@ const corNivel = {
 const seloBase = "susp-badge";
 const rotuloDiasPainel = (d: number) => (d === 0 ? "Hoje" : rotuloDias(d));
 
+/** O painel abre recolhido, mostrando só o resumo; a preferência fica salva no computador. */
+const CHAVE_PAINEL_ABERTO = "siga-susp-painel-aberto";
+
+function usePainelAberto() {
+  const [aberto, setAberto] = useState(() => {
+    try {
+      return window.localStorage.getItem(CHAVE_PAINEL_ABERTO) === "1";
+    } catch {
+      return false;
+    }
+  });
+  const alternar = (abrir: boolean) => {
+    setAberto(abrir);
+    try {
+      window.localStorage.setItem(CHAVE_PAINEL_ABERTO, abrir ? "1" : "0");
+    } catch {
+      /* sem armazenamento local: o painel continua funcionando */
+    }
+  };
+  return [aberto, alternar] as const;
+}
+
 function ItemSuspenso({ i }: { i: EncaminhamentoSuspenso }) {
   const [aberto, setAberto] = useState(false);
   const dias = diasSuspenso(i.data_suspensao);
@@ -191,6 +213,7 @@ export function SuspensosEncaminhadosPainel({ itens, comMovimentacao }: { itens:
   const semMov = ordenarPorSuspensao(itensEmSuspensaoAtiva(itens), (i) => diasSuspenso(i.data_suspensao));
   const { isAdmin, isComum } = useAuth();
   const podeSuspender = isAdmin || isComum;
+  const [aberto, alternarAberto] = usePainelAberto();
   if (!semMov.length) {
     return podeSuspender ? (
       <div className="siga-susp-painel rounded-xl p-4 flex flex-wrap items-center gap-2 text-sm">
@@ -204,22 +227,55 @@ export function SuspensosEncaminhadosPainel({ itens, comMovimentacao }: { itens:
   return (
     <section className="siga-susp-painel rounded-xl p-4 space-y-3 text-sm animate-fade-in">
       <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
-        <p className="font-semibold text-base flex items-center gap-2 susp-texto-forte"><Ban className="h-4 w-4 susp-texto-verde" />Contratos suspensos no período</p>
+        <button
+          type="button"
+          onClick={() => alternarAberto(!aberto)}
+          aria-expanded={aberto}
+          className="flex items-center gap-2 rounded-md text-left text-base font-semibold susp-texto-forte transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+        >
+          <Ban className="h-4 w-4 susp-texto-verde" />
+          Contratos suspensos no período
+          <ChevronDown
+            className={cn("h-4 w-4 susp-texto-suave transition-transform", aberto && "rotate-180")}
+            aria-hidden="true"
+          />
+        </button>
         <span className="ml-auto" />
         <Badge variant="outline" className={cn(seloBase, "susp-badge-neutro")}>
           {semMov.length} {semMov.length === 1 ? "suspenso" : "suspensos"}{criticos > 0 ? ` • ${criticos} ${criticos === 1 ? "crítico" : "críticos"}` : ""}
         </Badge>
         {podeSuspender && <SuspenderContratoButton />}
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          className="h-9 gap-1.5"
+          onClick={() => alternarAberto(!aberto)}
+          aria-expanded={aberto}
+        >
+          {aberto ? "Ocultar contratos" : "Ver contratos"}
+          <ChevronDown
+            className={cn("h-4 w-4 transition-transform", aberto && "rotate-180")}
+            aria-hidden="true"
+          />
+        </Button>
       </div>
+      {!aberto && (
+        <p className="text-xs susp-texto-suave">
+          Lista recolhida — clique em "Ver contratos" para abrir {semMov.length === 1 ? "o contrato suspenso" : `os ${semMov.length} contratos suspensos`}.
+        </p>
+      )}
       {criticos > 0 && (
         <div className="susp-alerta flex items-center gap-2 text-xs">
           <AlertTriangle className="h-4 w-4 shrink-0" />
           <span><strong>{criticos === 1 ? "1 contrato em alerta de suspensão" : `${criticos} contratos em alerta de suspensão`}</strong> — suspensos há 30 dias ou mais.</span>
         </div>
       )}
-      <ul className="space-y-2">
-        {semMov.map((i) => <ItemSuspenso key={i.id} i={i} />)}
-      </ul>
+      {aberto && (
+        <ul className="space-y-2">
+          {semMov.map((i) => <ItemSuspenso key={i.id} i={i} />)}
+        </ul>
+      )}
     </section>
   );
 }
