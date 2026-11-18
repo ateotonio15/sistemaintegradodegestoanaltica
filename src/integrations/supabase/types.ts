@@ -4280,6 +4280,66 @@ export type Database = {
         }
         Relationships: []
       }
+      inclusoes_vigencia: {
+        Row: {
+          beneficiario_nome: string | null
+          contrato_id: string
+          cpf: string
+          created_at: string
+          criado_por: string | null
+          data_adesao: string
+          data_identificacao: string
+          empresa_id: string
+          fechamento_id: string
+          id: string
+          origem: string
+          status: string
+        }
+        Insert: {
+          beneficiario_nome?: string | null
+          contrato_id: string
+          cpf: string
+          created_at?: string
+          criado_por?: string | null
+          data_adesao: string
+          data_identificacao?: string
+          empresa_id: string
+          fechamento_id: string
+          id?: string
+          origem?: string
+          status?: string
+        }
+        Update: {
+          beneficiario_nome?: string | null
+          contrato_id?: string
+          cpf?: string
+          created_at?: string
+          criado_por?: string | null
+          data_adesao?: string
+          data_identificacao?: string
+          empresa_id?: string
+          fechamento_id?: string
+          id?: string
+          origem?: string
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "inclusoes_vigencia_empresa_id_fkey"
+            columns: ["empresa_id"]
+            isOneToOne: false
+            referencedRelation: "empresas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "inclusoes_vigencia_fechamento_id_fkey"
+            columns: ["fechamento_id"]
+            isOneToOne: false
+            referencedRelation: "movimentacoes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       indicador_metas: {
         Row: {
           atencao: number
