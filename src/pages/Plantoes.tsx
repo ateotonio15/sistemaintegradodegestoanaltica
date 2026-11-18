@@ -41,6 +41,9 @@ import { PlantaoDialog } from "@/components/plantoes/PlantaoDialog";
 import { PlantaoLoteDialog } from "@/components/plantoes/PlantaoLoteDialog";
 import { EmpresaPlantaoCard } from "@/components/plantoes/EmpresaPlantaoCard";
 import { format } from "date-fns";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 
 export default function Plantoes() {
   const { role } = useAuth();
@@ -156,6 +159,60 @@ export default function Plantoes() {
     XLSX.writeFile(wb, `plantoes_${format(new Date(), "yyyy-MM-dd")}.xlsx`);
   };
 
+  const [exportando, setExportando] = useState(false);
+  const exportCompleto = async () => {
+    setExportando(true);
+    try {
+      const ids = new Set(filtered.map((e) => e.empresaId));
+      const lista = plantoes.filter((p) => ids.has(p.empresa_id));
+      const porPlantao = new Map(lista.map((p) => [p.id, p]));
+      const atend: any[] = [];
+      const pids = lista.map((p) => p.id);
+      for (let i = 0; i < pids.length; i += 200) {
+        const { data, error } = await supabase
+          .from("plantoes_atendimentos")
+          .select("*")
+          .in("plantao_id", pids.slice(i, i + 200));
+        if (error) throw error;
+        atend.push(...(data ?? []));
+      }
+      const fmtData = (d: string) => { const [y, m, dd] = d.split("-"); return `${dd}/${m}/${y}`; };
+      const comAtend = new Set(atend.map((a) => a.plantao_id));
+      const rows = atend.map((a) => {
+        const p = porPlantao.get(a.plantao_id)!;
+        return { p, a };
+      });
+      for (const p of lista) if (!comAtend.has(p.id)) rows.push({ p, a: null });
+      rows.sort((x, y) => (x.p.data + (x.a?.hora ?? "")).localeCompare(y.p.data + (y.a?.hora ?? "")));
+      const out = rows.map(({ p, a }) => ({
+        "Data do atendimento": fmtData(p.data),
+        "Hora do atendimento": (a?.hora ?? "").slice(0, 5),
+        "Empresa": p.empresa?.nome ?? porEmpresa.find((e) => e.empresaId === p.empresa_id)?.nome ?? "",
+        "Atendente / Responsável": p.plantonista ?? "",
+        "Cliente / Beneficiário": a?.nome_cliente ?? "",
+        "CPF": a?.cpf ?? "",
+        "Assunto / Tipo de atendimento": a?.assunto ?? "",
+        "Resolvido": a ? (a.resolvido ? "Sim" : "Não") : "",
+        "Observações do atendimento": a?.observacao ?? "",
+        "Turno": p.turno ?? "",
+        "Horário do plantão": [p.hora_inicio, p.hora_fim].filter(Boolean).map((h) => String(h).slice(0, 5)).join(" - "),
+        "Status do plantão": p.status ?? "",
+        "Observações do plantão": p.observacao ?? "",
+        "Demanda vinculada": a?.demanda_id ? "Sim" : "",
+      }));
+      if (!out.length) { toast.info("Nenhum registro para os filtros aplicados."); return; }
+      const ws = XLSX.utils.json_to_sheet(out);
+      ws["!cols"] = Object.keys(out[0]).map((k) => ({ wch: Math.min(60, Math.max(12, k.length + 2)) }));
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, "Relatório completo");
+      XLSX.writeFile(wb, `plantoes_completo_${from}_a_${to}.xlsx`);
+    } catch (e: any) {
+      toast.error(e?.message ?? "Erro ao gerar relatório");
+    } finally {
+      setExportando(false);
+    }
+  };
+
   const exportPDF = () => window.print();
 
   return (
@@ -181,9 +238,17 @@ export default function Plantoes() {
               <BarChart3 className="h-4 w-4 mr-1" /> Evolução
             </Link>
           </Button>
-          <Button variant="outline" onClick={exportExcel}>
-            <FileSpreadsheet className="h-4 w-4 mr-1" /> Excel
-          </Button>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="outline" disabled={exportando}>
+                <FileSpreadsheet className="h-4 w-4 mr-1" /> {exportando ? "Gerando..." : "Excel"}
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem onClick={exportCompleto}>Relatório completo</DropdownMenuItem>
+              <DropdownMenuItem onClick={exportExcel}>Resumo por empresa</DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
           <Button variant="outline" onClick={exportPDF}>
             <FileText className="h-4 w-4 mr-1" /> PDF
           </Button>
