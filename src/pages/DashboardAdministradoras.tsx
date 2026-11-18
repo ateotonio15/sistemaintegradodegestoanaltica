@@ -540,12 +540,6 @@ export default function DashboardAdministradoras() {
             </Button>
           )}
           {(isAdmin || isComum) && (
-            <Button variant="outline" onClick={() => setFechOpen(true)} className="rounded-lg">
-              <Send className="mr-2 h-4 w-4" />
-              Enviar fechamento ao Financeiro
-            </Button>
-          )}
-          {(isAdmin || isComum) && (
             <Button onClick={() => setImportOpen(true)} className="rounded-lg">
               <FileSpreadsheet className="mr-2 h-4 w-4" />
               Importar Administradoras
@@ -643,7 +637,7 @@ export default function DashboardAdministradoras() {
           )}
         </DialogContent>
       </Dialog>
-      <EnviarFechamentoFinanceiroDialog open={fechOpen} onOpenChange={setFechOpen} empresas={empresas as any} mesRef={mesRef} />
+      <EnviarFechamentoFinanceiroDialog open={fechOpen} onOpenChange={setFechOpen} empresas={empresas as any} mesRef={mesRef} fechamentoInicial={corteFilter !== "all" ? corteFilter : null} />
       <ImportarAdministradorasDialog open={importOpen} onOpenChange={setImportOpen} />
 
       {/* Alerta de variação grande */}
@@ -841,10 +835,26 @@ export default function DashboardAdministradoras() {
           </Card>
 
           <Card className="rounded-xl shadow-sm overflow-hidden">
-            <CardHeader className="pb-3">
+            <CardHeader className="pb-3 flex flex-row items-center justify-between gap-3 flex-wrap">
               <CardTitle className="text-base font-semibold">
                 Contratos <span className="text-muted-foreground font-normal ml-1">({filtered.length})</span>
               </CardTitle>
+              {(isAdmin || isComum) && (
+                <Button
+                  onClick={() => setFechOpen(true)}
+                  className="rounded-lg shrink-0"
+                  disabled={filtered.length === 0}
+                  title="Enviar o fechamento dos contratos listados ao Financeiro"
+                >
+                  <Send className="mr-2 h-4 w-4" />
+                  Enviar fechamento ao Financeiro
+                  {corteFilter !== "all" && (
+                    <span className="ml-2 rounded-full bg-primary-foreground/20 px-2 py-0.5 text-[11px] font-semibold tabular-nums">
+                      dia {corteFilter}
+                    </span>
+                  )}
+                </Button>
+              )}
             </CardHeader>
             <CardContent className="p-0">
               <div className="overflow-x-auto">

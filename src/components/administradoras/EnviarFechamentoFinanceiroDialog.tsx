@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -18,9 +18,17 @@ type Linha = { empresaId: string; dataCorte?: number | string | null; arquivo?: 
 const CHAVE_EMAILS = "siga-fechamento-adm-emails";
 const lista = (s: string) => s.split(/[;,\s]+/).map((x) => x.trim()).filter(Boolean);
 
-export function EnviarFechamentoFinanceiroDialog({ open, onOpenChange, empresas, mesRef }: { open: boolean; onOpenChange: (o: boolean) => void; empresas: Emp[]; mesRef: string }) {
+export function EnviarFechamentoFinanceiroDialog({ open, onOpenChange, empresas, mesRef, fechamentoInicial }: { open: boolean; onOpenChange: (o: boolean) => void; empresas: Emp[]; mesRef: string; fechamentoInicial?: string | number | null }) {
   const [fechamento, setFechamento] = useState<string>("");
   const fechamentos = useMemo(() => [...new Set(empresas.filter((e) => e.codigo_contrato && e.data_corte).map((e) => Number(e.data_corte)))].sort((a, b) => a - b), [empresas]);
+  // Ao abrir, já vem marcado o fechamento que está filtrado na lista de contratos.
+  useEffect(() => {
+    if (!open) return;
+    const alvo = fechamentoInicial == null ? "" : String(fechamentoInicial);
+    setFechamento(alvo && fechamentos.includes(Number(alvo)) ? alvo : "");
+    setGrupo("");
+    setLinhas([]);
+  }, [open, fechamentoInicial, fechamentos]);
   const grupos = useMemo(() => agruparPorAdministradora(empresas.filter((e) => e.codigo_contrato && fechamento && Number(e.data_corte) === Number(fechamento))), [empresas, fechamento]);
   const salvos = (() => { try { return JSON.parse(localStorage.getItem(CHAVE_EMAILS) ?? "{}"); } catch { return {}; } })();
   const [grupo, setGrupo] = useState<string>("");
