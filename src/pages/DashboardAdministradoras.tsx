@@ -21,6 +21,8 @@ import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
 import { computeEntradasSaidas, type EmpresaEntradaSaida } from "@/lib/entradas-saidas-analyzer";
 import { conferirInclusoesEmpresa } from "@/lib/inclusoes-vigencia-conferencia";
+import { lerVidasRelatorio, compararVidas, type ComparacaoVidas } from "@/lib/vidas-contrato-comparacao";
+import { gerarRelatorioPortal } from "@/services/portalEmpresaRelatorios";
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, Legend, LineChart, Line } from "recharts";
 import { labelStatusFinanceiro, statusFinanceiroColor, type StatusFinanceiro } from "@/lib/financeiro-utils";
 
@@ -367,6 +369,27 @@ export default function DashboardAdministradoras() {
     }
   };
 
+  const [vidasContrato, setVidasContrato] = useState<{ empresa: Empresa; carregando: boolean; erro?: string; arquivoPeriodo?: string; arquivoAtual?: string; res?: ComparacaoVidas } | null>(null);
+  const recalcularVidasContrato = async (empresa: Empresa) => {
+    setVidasContrato({ empresa, carregando: true });
+    try {
+      const { data: arqs, error } = await supabase.from("envios_empresa_arquivos")
+        .select("bucket, storage_path, nome_arquivo, versao")
+        .eq("empresa_id", empresa.id).eq("competencia", mesRef)
+        .order("versao", { ascending: true });
+      if (error) throw error;
+      const doPeriodo = (arqs ?? []).find((a: any) => /\.xlsx?$/i.test(a.nome_arquivo));
+      if (!doPeriodo) throw new Error("Não há relatório de vidas (Excel) deste contrato no Repositório de Envios para o mês escolhido.");
+      const { data: blobPer, error: e2 } = await supabase.storage.from(doPeriodo.bucket).download(doPeriodo.storage_path);
+      if (e2 || !blobPer) throw new Error("Não foi possível abrir o relatório do período.");
+      const atual = await gerarRelatorioPortal(empresa.codigo_contrato, "xlsx", new AbortController().signal);
+      const res = compararVidas(lerVidasRelatorio(await blobPer.arrayBuffer()), lerVidasRelatorio(await atual.blob.arrayBuffer()));
+      setVidasContrato({ empresa, carregando: false, arquivoPeriodo: doPeriodo.nome_arquivo, arquivoAtual: atual.nome_arquivo, res });
+    } catch (e: any) {
+      setVidasContrato({ empresa, carregando: false, erro: e?.message ?? String(e) });
+    }
+  };
+
   const recomputeEmpresa = async (empresaId: string) => {
     await computeEntradasSaidas([empresaId], mesRef);
     queryClient.invalidateQueries({ queryKey: ["vidas-historico-adm"] });
@@ -524,6 +547,38 @@ export default function DashboardAdministradoras() {
               })}
             </TableBody>
           </Table>
+        </DialogContent>
+      </Dialog>
+      <Dialog open={!!vidasContrato} onOpenChange={(o) => !o && setVidasContrato(null)}>
+        <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
+          <DialogHeader><DialogTitle>Recalcular vidas — {vidasContrato?.empresa.codigo_contrato} {vidasContrato?.empresa.nome}</DialogTitle></DialogHeader>
+          {vidasContrato?.carregando && <p className="text-sm text-muted-foreground flex items-center gap-2"><RefreshCw className="h-4 w-4 animate-spin" />Buscando o relatório atualizado no sistema interno...</p>}
+          {vidasContrato?.erro && <p className="text-sm text-destructive">{vidasContrato.erro}</p>}
+          {vidasContrato?.res && (
+            <div className="space-y-3 text-sm">
+              <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+                <div className="rounded-lg border p-2"><p className="text-[10px] uppercase text-muted-foreground">Vidas no período</p><p className="text-lg font-bold">{vidasContrato.res.periodo}</p></div>
+                <div className="rounded-lg border p-2"><p className="text-[10px] uppercase text-muted-foreground">Vidas atualizado</p><p className="text-lg font-bold">{vidasContrato.res.atualizado}</p></div>
+                <div className="rounded-lg border p-2"><p className="text-[10px] uppercase text-muted-foreground">Entradas</p><p className="text-lg font-bold text-success">+{vidasContrato.res.entradas.length}</p></div>
+                <div className="rounded-lg border p-2"><p className="text-[10px] uppercase text-muted-foreground">Saídas</p><p className="text-lg font-bold text-destructive">-{vidasContrato.res.saidas.length}</p></div>
+              </div>
+              <p className="text-xs text-muted-foreground">Período: {vidasContrato.arquivoPeriodo} • Atualizado: {vidasContrato.arquivoAtual}</p>
+              {[["Entraram", vidasContrato.res.entradas, "text-success"], ["Saíram", vidasContrato.res.saidas, "text-destructive"]].map(([t, lista, cor]: any) => lista.length > 0 && (
+                <div key={t}>
+                  <p className={`font-semibold ${cor}`}>{t} ({lista.length})</p>
+                  <ul className="mt-1 max-h-48 overflow-y-auto rounded border divide-y">
+                    {lista.map((v: any) => (
+                      <li key={v.chave} className="flex justify-between px-2 py-1">
+                        <span>{v.nome ?? "—"}</span>
+                        <span className="tabular-nums text-muted-foreground">{v.cpf ? `***.***.***-${v.cpf.slice(-2)}` : ""}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              ))}
+              <p className="text-xs text-muted-foreground">Só consulta: nenhum número do fechamento foi alterado.</p>
+            </div>
+          )}
         </DialogContent>
       </Dialog>
       <ImportarAdministradorasDialog open={importOpen} onOpenChange={setImportOpen} />
@@ -771,7 +826,19 @@ export default function DashboardAdministradoras() {
                         >
                           <TableCell className="font-medium">{e.nome}</TableCell>
                           <TableCell className="text-sm">{e.codigo_contrato || "—"}</TableCell>
-                          <TableCell className="text-center tabular-nums">{(e.vidas ?? 0).toLocaleString("pt-BR")}</TableCell>
+                          <TableCell className="text-center tabular-nums">
+                            <div className="flex items-center justify-center gap-1">
+                              {(e.vidas ?? 0).toLocaleString("pt-BR")}
+                              <button
+                                type="button"
+                                title="Recalcular vidas do contrato (período x atualizado)"
+                                className="rounded p-1 text-muted-foreground hover:text-primary hover:bg-primary/10"
+                                onClick={(ev) => { ev.stopPropagation(); recalcularVidasContrato(e); }}
+                              >
+                                <RefreshCw className="h-3.5 w-3.5" />
+                              </button>
+                            </div>
+                          </TableCell>
                           <TableCell className="text-center tabular-nums">
                             {es || vig ? (() => {
                               const ent = (es?.entradas ?? 0) + vig;
