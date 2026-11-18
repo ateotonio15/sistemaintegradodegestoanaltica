@@ -19,7 +19,7 @@ import { AnexosViewerDialog } from "@/components/dashboard/AnexosViewerDialog";
 import { ImportarAdministradorasDialog } from "@/components/dashboard/ImportarAdministradorasDialog";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
-import { computeEntradasSaidas, type EmpresaEntradaSaida } from "@/lib/entradas-saidas-analyzer";
+import { computeEntradasSaidas, layoutsForEmpresaMes, type EmpresaEntradaSaida } from "@/lib/entradas-saidas-analyzer";
 import { conferirInclusoesEmpresa } from "@/lib/inclusoes-vigencia-conferencia";
 import { lerVidasRelatorio, compararVidas, type ComparacaoVidas } from "@/lib/vidas-contrato-comparacao";
 import { gerarRelatorioPortal } from "@/services/portalEmpresaRelatorios";
@@ -378,13 +378,24 @@ export default function DashboardAdministradoras() {
         .eq("empresa_id", empresa.id).eq("competencia", mesRef)
         .order("versao", { ascending: true });
       if (error) throw error;
-      const doPeriodo = (arqs ?? []).find((a: any) => /\.xlsx?$/i.test(a.nome_arquivo));
-      if (!doPeriodo) throw new Error("Não há relatório de vidas (Excel) deste contrato no Repositório de Envios para o mês escolhido.");
-      const { data: blobPer, error: e2 } = await supabase.storage.from(doPeriodo.bucket).download(doPeriodo.storage_path);
-      if (e2 || !blobPer) throw new Error("Não foi possível abrir o relatório do período.");
+      // Período: relatório do Repositório de Envios; se não houver, os anexos manuais do mês (fechamento, Faturamento, implantação)
+      const doRepo = (arqs ?? []).find((a: any) => /\.xlsx?$/i.test(a.nome_arquivo));
+      const fontes = doRepo ? [doRepo] : await layoutsForEmpresaMes(empresa.id, mesRef);
+      if (!fontes.length) throw new Error("Não há relatório de vidas (Excel) deste contrato para o mês escolhido — nem no Repositório de Envios, nem nos anexos.");
+      const vidasPeriodo = new Map<string, ReturnType<typeof lerVidasRelatorio>[number]>();
+      const nomesUsados: string[] = [];
+      for (const f of fontes as any[]) {
+        const { data: blob } = await supabase.storage.from(f.bucket).download(f.storage_path);
+        if (!blob) continue;
+        const lidas = lerVidasRelatorio(await blob.arrayBuffer());
+        if (!lidas.length) continue;
+        lidas.forEach((v) => vidasPeriodo.set(v.chave, v));
+        nomesUsados.push(f.nome_arquivo);
+      }
+      if (!nomesUsados.length) throw new Error("Os arquivos anexados no mês não puderam ser lidos como relatório de vidas.");
       const atual = await gerarRelatorioPortal(empresa.codigo_contrato, "xlsx", new AbortController().signal);
-      const res = compararVidas(lerVidasRelatorio(await blobPer.arrayBuffer()), lerVidasRelatorio(await atual.blob.arrayBuffer()));
-      setVidasContrato({ empresa, carregando: false, arquivoPeriodo: doPeriodo.nome_arquivo, arquivoAtual: atual.nome_arquivo, res });
+      const res = compararVidas([...vidasPeriodo.values()], lerVidasRelatorio(await atual.blob.arrayBuffer()));
+      setVidasContrato({ empresa, carregando: false, arquivoPeriodo: (doRepo ? "" : "Anexos: ") + nomesUsados.join(", "), arquivoAtual: atual.nome_arquivo, res });
     } catch (e: any) {
       setVidasContrato({ empresa, carregando: false, erro: e?.message ?? String(e) });
     }
