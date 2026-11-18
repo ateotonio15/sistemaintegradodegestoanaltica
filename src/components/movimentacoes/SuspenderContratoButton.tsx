@@ -27,7 +27,7 @@ export function SuspenderContratoButton() {
     <>
       <Popover open={aberto} onOpenChange={setAberto}>
         <PopoverTrigger asChild>
-          <Button size="sm" variant="outline" className="h-7 gap-1.5 text-xs"><Ban className="h-3.5 w-3.5" />Suspender contrato</Button>
+          <Button size="sm" className="h-8 gap-1.5 rounded-lg px-3 text-xs font-semibold shadow-sm"><Ban className="h-3.5 w-3.5" />Suspender contrato</Button>
         </PopoverTrigger>
         <PopoverContent className="w-80 p-0" align="end">
           <Command>
