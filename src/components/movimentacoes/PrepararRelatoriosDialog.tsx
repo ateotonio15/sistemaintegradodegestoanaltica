@@ -25,7 +25,7 @@ export function PrepararRelatoriosDialog({ resultado, contexto, onClose }: {
         <div className="flex justify-between gap-4"><dt className="text-muted-foreground">Com erro</dt><dd className="font-medium text-destructive">{resultado.comErro}</dd></div>
       </dl>
       {!!resultado.suspensos && <p className="text-sm text-muted-foreground">{resultado.suspensos === 1 ? "1 contrato suspenso foi ignorado no preparo." : `${resultado.suspensos} contratos suspensos foram ignorados no preparo.`}</p>}
-      <p className="text-xs text-muted-foreground">Nenhum relatório foi enviado. Use "Enviar Relatórios" para registrar o envio das empresas prontas.</p>
+      <p className="text-xs text-muted-foreground">Nenhum e-mail foi enviado. Esta ação só gerou os arquivos PDF e Excel. Use "Enviar Relatórios" para registrar o envio das empresas prontas.</p>
       <DialogFooter><Button onClick={onClose}>Fechar</Button></DialogFooter>
     </DialogContent>
   </Dialog>;

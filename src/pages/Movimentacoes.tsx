@@ -15,7 +15,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useToast } from "@/hooks/use-toast";
-import { Plus, Pencil, Trash2, Download, Search, Plane, LayoutDashboard, RefreshCw, Sparkles, Mail, Send, MoreHorizontal, Eye, RotateCcw } from "lucide-react";
+import { Plus, Pencil, Trash2, Download, Search, Plane, LayoutDashboard, RefreshCw, Sparkles, FileSpreadsheet, Send, MoreHorizontal, Eye, RotateCcw } from "lucide-react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 
 import { useAuth } from "@/hooks/useAuth";
@@ -889,9 +889,9 @@ export default function Movimentacoes() {
                 className="rounded-lg"
                 onClick={() => prepararRelatorios.mutate()}
                 disabled={prepararRelatorios.isPending || !movsDoMes.length || carregandoRelatorios || erroRelatorios}
-                title="Preparar os relatórios de vidas das empresas do filtro atual"
+                title="Gerar os relatórios de vidas (PDF e Excel) das empresas do filtro atual. Nenhum e-mail é enviado."
               >
-                <Mail className={`mr-2 h-4 w-4 ${prepararRelatorios.isPending ? "animate-pulse" : ""}`} />
+                <FileSpreadsheet className={`mr-2 h-4 w-4 ${prepararRelatorios.isPending ? "animate-pulse" : ""}`} />
                 {prepararRelatorios.isPending ? "Preparando..." : "Preparar Relatórios"}
               </Button>
             )}
