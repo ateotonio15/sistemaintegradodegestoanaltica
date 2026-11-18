@@ -580,7 +580,7 @@ export default function DashboardAdministradoras() {
                   <ul className="mt-1 max-h-48 overflow-y-auto rounded border divide-y">
                     {lista.map((v: any) => (
                       <li key={v.chave} className="flex justify-between px-2 py-1">
-                        <span>{v.nome ?? "—"}</span>
+                        <span>{v.nome ?? "—"}{t === "Entraram" && <span className="ml-2 text-xs text-success">Adesão: {v.adesao ? formatDateBR(v.adesao) : "não informada"}</span>}</span>
                         <span className="tabular-nums text-muted-foreground">{v.cpf ? `***.***.***-${v.cpf.slice(-2)}` : ""}</span>
                       </li>
                     ))}

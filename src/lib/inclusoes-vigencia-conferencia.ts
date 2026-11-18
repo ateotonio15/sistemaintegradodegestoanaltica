@@ -46,7 +46,7 @@ export function conferirInclusoes(
 
 const norm = (s: unknown) => String(s ?? "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().replace(/[_.\-/]+/g, " ").replace(/\s+/g, " ").trim();
 
-function dataIso(v: unknown): string | null {
+export function dataIso(v: unknown): string | null {
   if (v instanceof Date && !isNaN(v.getTime())) return `${v.getFullYear()}-${String(v.getMonth() + 1).padStart(2, "0")}-${String(v.getDate()).padStart(2, "0")}`;
   if (typeof v === "number" && v > 20000) { const p = XLSX.SSF.parse_date_code(v); return p ? `${p.y}-${String(p.m).padStart(2, "0")}-${String(p.d).padStart(2, "0")}` : null; }
   const s = String(v ?? "").trim();
