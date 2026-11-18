@@ -52,3 +52,12 @@ export function ordenarPorSuspensao<T>(itens: T[], dias: (i: T) => number | null
 }
 
 export const rotuloDias = (n: number) => `${n} ${n === 1 ? "dia" : "dias"}`;
+
+/**
+ * Só contratos ainda suspensos aparecem no quadro.
+ * Reativados (dentro ou fora do período) saem da lista: fora do período a
+ * movimentação ocorre no mês seguinte, sem aviso pendente.
+ */
+export function itensEmSuspensaoAtiva<T extends { status: string }>(itens: T[]): T[] {
+  return itens.filter((i) => i.status === "encaminhado");
+}

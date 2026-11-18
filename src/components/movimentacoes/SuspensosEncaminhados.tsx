@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { diasSuspenso, nivelSuspensao, ordenarPorSuspensao, rotuloDias } from "@/lib/contrato-suspenso";
+import { diasSuspenso, itensEmSuspensaoAtiva, nivelSuspensao, ordenarPorSuspensao, rotuloDias } from "@/lib/contrato-suspenso";
 import { formatDateBR } from "@/lib/date-utils";
 import { cn } from "@/lib/utils";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -174,11 +174,10 @@ function ItemSuspenso({ i }: { i: EncaminhamentoSuspenso }) {
 }
 
 export function SuspensosEncaminhadosPainel({ itens, comMovimentacao }: { itens: EncaminhamentoSuspenso[]; comMovimentacao: Set<string> }) {
-  const semMov = ordenarPorSuspensao(itens.filter((i) => i.status === "encaminhado"), (i) => diasSuspenso(i.data_suspensao));
-  const analise = itens.filter((i) => i.status === "analise_humana");
+  const semMov = ordenarPorSuspensao(itensEmSuspensaoAtiva(itens), (i) => diasSuspenso(i.data_suspensao));
   const { isAdmin, isComum } = useAuth();
   const podeSuspender = isAdmin || isComum;
-  if (!semMov.length && !analise.length) {
+  if (!semMov.length) {
     return podeSuspender ? (
       <Card className="rounded-xl"><CardContent className="py-3 flex items-center gap-2 text-sm">
         <p className="font-semibold flex items-center gap-2 text-primary"><Ban className="h-4 w-4" />Contratos suspensos no período</p>
@@ -209,20 +208,6 @@ export function SuspensosEncaminhadosPainel({ itens, comMovimentacao }: { itens:
             )}
             <ul className="divide-y divide-border">
               {semMov.map((i) => <ItemSuspenso key={i.id} i={i} />)}
-            </ul>
-          </div>
-        )}
-        {analise.length > 0 && (
-          <div className="space-y-2">
-            <p className="font-semibold flex items-center gap-2 text-warning"><AlertTriangle className="h-4 w-4" />Reativados após o período — precisam de análise</p>
-            <ul className="divide-y divide-border">
-              {analise.map((i) => (
-                <li key={i.id} className="py-1.5">
-                  <span className="font-medium">{i.empresa_nome}</span>{" "}
-                  <span className="text-muted-foreground">#{i.codigo_contrato ?? "—"} · Período {i.periodo}</span>
-                  <p className="text-xs text-muted-foreground">Nenhuma movimentação retroativa foi criada automaticamente.</p>
-                </li>
-              ))}
             </ul>
           </div>
         )}

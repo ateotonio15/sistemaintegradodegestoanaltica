@@ -25,3 +25,16 @@ _d("tempo de suspensão", () => {
     _e(_os([5, 25, 31, 45, 12], (x) => x)).toEqual([45, 31, 25, 12, 5]);
   });
 });
+
+import { itensEmSuspensaoAtiva } from "@/lib/contrato-suspenso";
+import { describe as _d2, it as _it2, expect as _e2 } from "vitest";
+_d2("quadro de suspensos: reativados fora do período", () => {
+  _it2("só o contrato ainda suspenso aparece; reativado fora do período não gera aviso", () => {
+    const itens = [
+      { status: "encaminhado", empresa_nome: "A.M. TECNOLOGIA" },
+      { status: "analise_humana", empresa_nome: "RISADINHA" },
+      { status: "devolvido_fluxo_normal", empresa_nome: "CIBEA MANAUS" },
+    ];
+    _e2(itensEmSuspensaoAtiva(itens).map((i) => i.empresa_nome)).toEqual(["A.M. TECNOLOGIA"]);
+  });
+});
