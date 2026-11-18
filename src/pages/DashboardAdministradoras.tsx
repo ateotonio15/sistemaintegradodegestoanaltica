@@ -373,15 +373,20 @@ export default function DashboardAdministradoras() {
   const recalcularVidasContrato = async (empresa: Empresa) => {
     setVidasContrato({ empresa, carregando: true });
     try {
-      const { data: arqs, error } = await supabase.from("envios_empresa_arquivos")
-        .select("bucket, storage_path, nome_arquivo, versao")
-        .eq("empresa_id", empresa.id).eq("competencia", mesRef)
-        .order("versao", { ascending: true });
+      // Período: SOMENTE os anexos colocados manualmente pelo Cadastro no fechamento do mês
+      // (não usa Repositório, Faturamento, implantação nem arquivos importados por API)
+      const { data: movs, error } = await supabase.from("movimentacoes").select("id")
+        .eq("empresa_id", empresa.id).eq("mes_referencia", mesRef);
       if (error) throw error;
-      // Período: relatório do Repositório de Envios; se não houver, os anexos manuais do mês (fechamento, Faturamento, implantação)
-      const doRepo = (arqs ?? []).find((a: any) => /\.xlsx?$/i.test(a.nome_arquivo));
-      const fontes = doRepo ? [doRepo] : await layoutsForEmpresaMes(empresa.id, mesRef);
-      if (!fontes.length) throw new Error("Não há relatório de vidas (Excel) deste contrato para o mês escolhido — nem no Repositório de Envios, nem nos anexos.");
+      const movIds = (movs ?? []).map((m: any) => m.id);
+      const { data: anexos, error: eAnx } = movIds.length
+        ? await supabase.from("anexos_movimentacao").select("storage_path, nome_arquivo")
+            .in("movimentacao_id", movIds).is("origem_importacao", null)
+        : { data: [], error: null } as any;
+      if (eAnx) throw eAnx;
+      const fontes = (anexos ?? []).filter((a: any) => /\.xlsx?$/i.test(a.nome_arquivo))
+        .map((a: any) => ({ ...a, bucket: "anexos-movimentacoes" }));
+      if (!fontes.length) throw new Error("Não há relatório de vidas (Excel) anexado pelo Cadastro no fechamento deste contrato no mês escolhido.");
       const vidasPeriodo = new Map<string, ReturnType<typeof lerVidasRelatorio>[number]>();
       const nomesUsados: string[] = [];
       for (const f of fontes as any[]) {
@@ -395,7 +400,7 @@ export default function DashboardAdministradoras() {
       if (!nomesUsados.length) throw new Error("Os arquivos anexados no mês não puderam ser lidos como relatório de vidas.");
       const atual = await gerarRelatorioPortal(empresa.codigo_contrato, "xlsx", new AbortController().signal);
       const res = compararVidas([...vidasPeriodo.values()], lerVidasRelatorio(await atual.blob.arrayBuffer()));
-      setVidasContrato({ empresa, carregando: false, arquivoPeriodo: (doRepo ? "" : "Anexos: ") + nomesUsados.join(", "), arquivoAtual: atual.nome_arquivo, res });
+      setVidasContrato({ empresa, carregando: false, arquivoPeriodo: "Anexos do Cadastro: " + nomesUsados.join(", "), arquivoAtual: atual.nome_arquivo, res });
     } catch (e: any) {
       setVidasContrato({ empresa, carregando: false, erro: e?.message ?? String(e) });
     }
