@@ -17,7 +17,9 @@ const CHAVE_EMAILS = "siga-fechamento-adm-emails";
 const lista = (s: string) => s.split(/[;,\s]+/).map((x) => x.trim()).filter(Boolean);
 
 export function EnviarFechamentoFinanceiroDialog({ open, onOpenChange, empresas, mesRef }: { open: boolean; onOpenChange: (o: boolean) => void; empresas: Emp[]; mesRef: string }) {
-  const grupos = useMemo(() => agruparPorAdministradora(empresas.filter((e) => e.codigo_contrato)), [empresas]);
+  const [fechamento, setFechamento] = useState<string>("");
+  const fechamentos = useMemo(() => [...new Set(empresas.filter((e) => e.codigo_contrato && e.data_corte).map((e) => Number(e.data_corte)))].sort((a, b) => a - b), [empresas]);
+  const grupos = useMemo(() => agruparPorAdministradora(empresas.filter((e) => e.codigo_contrato && fechamento && Number(e.data_corte) === Number(fechamento))), [empresas, fechamento]);
   const salvos = (() => { try { return JSON.parse(localStorage.getItem(CHAVE_EMAILS) ?? "{}"); } catch { return {}; } })();
   const [grupo, setGrupo] = useState<string>("");
   const [vigencia, setVigencia] = useState("");
@@ -75,8 +77,14 @@ export function EnviarFechamentoFinanceiroDialog({ open, onOpenChange, empresas,
       <DialogContent className="max-w-3xl max-h-[88vh] overflow-y-auto">
         <DialogHeader><DialogTitle>Enviar fechamento ao Financeiro</DialogTitle></DialogHeader>
         <div className="grid gap-3 sm:grid-cols-2">
-          <div className="sm:col-span-2"><Label>Administradora</Label>
-            <Select value={grupo} onValueChange={escolher}>
+          <div><Label>Fechamento</Label>
+            <Select value={fechamento} onValueChange={(v) => { setFechamento(v); setGrupo(""); setLinhas([]); }}>
+              <SelectTrigger><SelectValue placeholder="Escolha o fechamento" /></SelectTrigger>
+              <SelectContent>{fechamentos.map((d) => <SelectItem key={d} value={String(d)}>Fechamento dia {String(d).padStart(2, "0")} ({empresas.filter((e) => Number(e.data_corte) === d && e.codigo_contrato).map((e) => e.codigo_contrato).join(", ")})</SelectItem>)}</SelectContent>
+            </Select>
+          </div>
+          <div><Label>Administradora</Label>
+            <Select value={grupo} onValueChange={escolher} disabled={!fechamento}>
               <SelectTrigger><SelectValue placeholder="Escolha a Administradora" /></SelectTrigger>
               <SelectContent>{grupos.map((x) => <SelectItem key={x.nome} value={x.nome}>{x.nome} ({x.itens.map((i) => i.codigo_contrato).join(", ")})</SelectItem>)}</SelectContent>
             </Select>
