@@ -20,6 +20,7 @@ import { ImportarAdministradorasDialog } from "@/components/dashboard/ImportarAd
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
 import { computeEntradasSaidas, type EmpresaEntradaSaida } from "@/lib/entradas-saidas-analyzer";
+import { conferirInclusoesEmpresa } from "@/lib/inclusoes-vigencia-conferencia";
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, Legend, LineChart, Line } from "recharts";
 import { labelStatusFinanceiro, statusFinanceiroColor, type StatusFinanceiro } from "@/lib/financeiro-utils";
 
@@ -300,15 +301,30 @@ export default function DashboardAdministradoras() {
 
   const [calculando, setCalculando] = useState(false);
   const [progressoCalc, setProgressoCalc] = useState<{ done: number; total: number } | null>(null);
+  const [resumoCalc, setResumoCalc] = useState<{ entradas: number; novas: number; divergencias: number; saidas: number; falhas: number } | null>(null);
   const handleCalcular = async () => {
     if (empresaIds.length === 0) return;
     setCalculando(true);
     setProgressoCalc({ done: 0, total: empresaIds.length });
     try {
-      await computeEntradasSaidas(empresaIds, mesRef, (done, total) => {
+      const res = await computeEntradasSaidas(empresaIds, mesRef, (done, total) => {
         setProgressoCalc({ done, total });
       });
-      toast.success("Entradas e saídas recalculadas");
+      // Conferência de Inclusões por Vigência (não altera o resultado original do fechamento)
+      let novas = 0, divergencias = 0, falhas = 0;
+      setProgressoCalc({ done: 0, total: empresaIds.length });
+      for (let i = 0; i < empresaIds.length; i++) {
+        try {
+          const r = await conferirInclusoesEmpresa(empresaIds[i]);
+          novas += r.novas; divergencias += r.divergencias;
+        } catch (err) { falhas++; console.warn("Conferência de inclusões falhou", err); }
+        setProgressoCalc({ done: i + 1, total: empresaIds.length });
+      }
+      setResumoCalc({
+        entradas: res.reduce((s, r) => s + r.entradas, 0),
+        saidas: res.reduce((s, r) => s + r.saidas, 0),
+        novas, divergencias, falhas,
+      });
       queryClient.invalidateQueries({ queryKey: ["vidas-historico-adm"] });
       queryClient.invalidateQueries({ queryKey: ["vidas-historico-adm-6"] });
     } catch (e: any) {
@@ -424,6 +440,25 @@ export default function DashboardAdministradoras() {
         </div>
       </div>
 
+      <Dialog open={!!resumoCalc} onOpenChange={(o) => !o && setResumoCalc(null)}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader><DialogTitle>Recálculo concluído</DialogTitle></DialogHeader>
+          {resumoCalc && (
+            <div className="space-y-2 text-sm">
+              <div className="flex justify-between"><span>Entradas dos fechamentos</span><strong>{resumoCalc.entradas}</strong></div>
+              <div className="flex justify-between"><span>Novas inclusões por vigência</span><strong className="text-primary">+{resumoCalc.novas}</strong></div>
+              <div className="flex justify-between"><span>Saídas</span><strong>{resumoCalc.saidas}</strong></div>
+              <div className="flex justify-between border-t pt-2"><span>Entradas consolidadas</span><strong>{resumoCalc.entradas + resumoCalc.novas}</strong></div>
+              {resumoCalc.divergencias > 0 && (
+                <p className="rounded-md bg-muted p-2 text-muted-foreground">{resumoCalc.divergencias} com Divergência na Data de Adesão — conferir manualmente.</p>
+              )}
+              {resumoCalc.falhas > 0 && (
+                <p className="text-destructive">Não foi possível conferir {resumoCalc.falhas} empresa(s).</p>
+              )}
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
       <ImportarAdministradorasDialog open={importOpen} onOpenChange={setImportOpen} />
 
       {/* Alerta de variação grande */}
