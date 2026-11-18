@@ -868,3 +868,35 @@
   .ap-print-pagina { width: 1280px; height: 720px; overflow: hidden; break-after: page; page-break-after: always;
     -webkit-print-color-adjust: exact; print-color-adjust: exact; }
 }
+
+/* Painel "Contratos suspensos no período" — sempre escuro */
+.siga-susp-painel {
+  --sp-bg: 160 35% 7%; --sp-card: 160 28% 10%; --sp-borda: 152 40% 22%;
+  --sp-forte: 150 20% 96%; --sp-suave: 155 12% 62%; --sp-verde: 152 60% 48%;
+  --sp-ambar: 38 92% 55%; --sp-vermelho: 0 78% 62%;
+  background: linear-gradient(180deg, hsl(var(--sp-card)), hsl(var(--sp-bg)));
+  border: 1px solid hsl(var(--sp-borda) / 0.7);
+  box-shadow: 0 10px 30px -14px hsl(var(--sp-bg) / 0.9), inset 0 1px 0 hsl(var(--sp-verde) / 0.08);
+  color: hsl(var(--sp-forte));
+}
+.siga-susp-painel .susp-texto-forte { color: hsl(var(--sp-forte)); }
+.siga-susp-painel .susp-texto-suave { color: hsl(var(--sp-suave)); }
+.siga-susp-painel .susp-texto-verde { color: hsl(var(--sp-verde)); }
+.siga-susp-painel .susp-texto-critico { color: hsl(var(--sp-vermelho)); }
+.siga-susp-painel .susp-alerta { background: hsl(var(--sp-ambar) / 0.08); border: 1px solid hsl(var(--sp-ambar) / 0.45); color: hsl(var(--sp-forte)); border-radius: 0.6rem; padding: 0.55rem 0.75rem; }
+.siga-susp-painel .susp-alerta svg { color: hsl(var(--sp-ambar)); }
+.siga-susp-painel .susp-item { background: hsl(var(--sp-card) / 0.7); border: 1px solid hsl(var(--sp-borda) / 0.5); border-radius: 0.75rem; padding: 0.75rem 0.9rem; transition: border-color .2s, box-shadow .2s, background-color .2s; }
+.siga-susp-painel .susp-item:hover { border-color: hsl(var(--sp-verde) / 0.6); box-shadow: 0 0 0 1px hsl(var(--sp-verde) / 0.15); }
+.siga-susp-painel .susp-item-critico { background: hsl(var(--sp-vermelho) / 0.07); border-color: hsl(var(--sp-vermelho) / 0.5); }
+.siga-susp-painel .susp-item-critico:hover { border-color: hsl(var(--sp-vermelho) / 0.75); box-shadow: 0 0 0 1px hsl(var(--sp-vermelho) / 0.15); }
+.siga-susp-painel .susp-icone { display: inline-flex; align-items: center; justify-content: center; height: 2.1rem; width: 2.1rem; flex-shrink: 0; border-radius: 0.55rem; background: hsl(var(--sp-verde) / 0.12); color: hsl(var(--sp-verde)); border: 1px solid hsl(var(--sp-verde) / 0.25); }
+.siga-susp-painel .susp-icone-critico { background: hsl(var(--sp-vermelho) / 0.12); color: hsl(var(--sp-vermelho)); border-color: hsl(var(--sp-vermelho) / 0.4); }
+.siga-susp-painel .susp-badge { border-radius: 0.4rem; height: 1.35rem; padding: 0 0.5rem; font-size: 11px; font-weight: 500; line-height: 1; transition: background-color .2s, border-color .2s; box-shadow: none; }
+.siga-susp-painel .susp-badge-neutro { background: hsl(var(--sp-suave) / 0.1); color: hsl(var(--sp-forte) / 0.85); border: 1px solid hsl(var(--sp-suave) / 0.3); }
+.siga-susp-painel .susp-badge-suspenso { background: hsl(var(--sp-vermelho) / 0.18); color: hsl(var(--sp-vermelho)); border: 1px solid hsl(var(--sp-vermelho) / 0.35); }
+.siga-susp-painel .susp-badge-suspenso:hover { background: hsl(var(--sp-vermelho) / 0.24); }
+.siga-susp-painel .susp-badge-atencao { background: hsl(var(--sp-ambar) / 0.14); color: hsl(var(--sp-ambar)); border: 1px solid hsl(var(--sp-ambar) / 0.45); }
+.siga-susp-painel .susp-badge-critico { background: hsl(var(--sp-vermelho) / 0.2); color: hsl(var(--sp-vermelho)); border: 1px solid hsl(var(--sp-vermelho) / 0.55); font-weight: 600; }
+.siga-susp-painel .susp-detalhes { display: inline-flex; align-items: center; gap: 0.25rem; white-space: nowrap; font-size: 0.75rem; font-weight: 500; padding: 0.35rem 0.7rem; border-radius: 0.5rem; background: hsl(var(--sp-bg)); color: hsl(var(--sp-forte)); border: 1px solid hsl(var(--sp-verde) / 0.45); transition: border-color .2s, box-shadow .2s; }
+.siga-susp-painel .susp-detalhes:hover { border-color: hsl(var(--sp-verde) / 0.9); box-shadow: 0 0 12px -2px hsl(var(--sp-verde) / 0.35); }
+.siga-susp-painel .susp-detalhe-painel { background: hsl(var(--sp-bg) / 0.8); border: 1px solid hsl(var(--sp-borda) / 0.5); border-radius: 0.6rem; padding: 0.6rem 0.75rem; color: hsl(var(--sp-forte)); }

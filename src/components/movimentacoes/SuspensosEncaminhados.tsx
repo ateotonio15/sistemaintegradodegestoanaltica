@@ -4,9 +4,8 @@ import { formatDateBR } from "@/lib/date-utils";
 import { cn } from "@/lib/utils";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Ban, AlertTriangle, ChevronDown, RotateCcw } from "lucide-react";
+import { Ban, AlertTriangle, ChevronRight, RotateCcw, Building2, CalendarDays } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/useAuth";
 import { SuspenderContratoButton } from "./SuspenderContratoButton";
@@ -109,50 +108,65 @@ export function useEncaminhamentosSuspensos(mes: string, userId?: string | null)
 const fmt = (iso: string) => new Date(iso).toLocaleString("pt-BR", { dateStyle: "short", timeStyle: "short" });
 
 const corNivel = {
-  normal: "bg-muted text-muted-foreground border-border",
-  atencao: "bg-warning/15 text-warning border-warning/40",
-  critico: "bg-destructive/15 text-destructive border-destructive/40",
+  normal: "susp-badge-neutro",
+  atencao: "susp-badge-atencao",
+  critico: "susp-badge-critico",
 } as const;
 
-const seloBase = "rounded-md h-5 px-2 text-[11px] font-medium leading-none";
+const seloBase = "susp-badge";
+const rotuloDiasPainel = (d: number) => (d === 0 ? "Hoje" : rotuloDias(d));
 
 function ItemSuspenso({ i }: { i: EncaminhamentoSuspenso }) {
   const [aberto, setAberto] = useState(false);
   const dias = diasSuspenso(i.data_suspensao);
   const nivel = nivelSuspensao(dias);
+  const critico = nivel === "critico";
   const { isAdmin, isComum } = useAuth();
   const qc = useQueryClient();
   const [liberar, setLiberar] = useState(false);
   return (
-    <li className={cn("py-1.5 px-2 -mx-2 rounded-md transition-colors hover:bg-muted/40", nivel === "critico" && "border border-destructive/40 bg-destructive/5 my-1 hover:bg-destructive/10")}>
-      <button type="button" onClick={() => setAberto((v) => !v)} className="w-full text-left flex flex-wrap items-center gap-2" aria-expanded={aberto}>
-        <span className="font-semibold text-foreground">{i.empresa_nome}</span>
-        <span className="text-xs text-muted-foreground">#{i.codigo_contrato ?? "—"} · Período {i.periodo}</span>
-        <Badge className={cn(seloBase, "bg-destructive text-destructive-foreground")}>Contrato suspenso</Badge>
-        {dias != null && (
-          <Badge variant="outline" className={cn(seloBase, "gap-1", corNivel[nivel])} title={`Suspenso há ${rotuloDias(dias)}`}>
-            {nivel !== "normal" && <AlertTriangle className="h-3 w-3" />}{rotuloDias(dias)}
-          </Badge>
-        )}
-        <Badge variant="outline" className={seloBase}>Encaminhado ao Financeiro</Badge>
-        <span className="text-xs text-muted-foreground ml-auto">
-          {i.data_suspensao ? `Suspenso em ${formatDateBR(i.data_suspensao)} · ` : ""}encaminhado em {fmt(i.encaminhado_em)} · {i.encaminhado_por_nome}
-        </span>
-        <span className="flex items-center gap-1 text-xs text-muted-foreground">
-          Detalhes
-          <ChevronDown className={cn("h-3.5 w-3.5 transition-transform", aberto && "rotate-180")} />
-        </span>
-      </button>
-      {nivel === "critico" && dias != null && (
-        <p className="text-xs text-destructive flex items-center gap-1 mt-1"><AlertTriangle className="h-3 w-3" />Contrato suspenso há {rotuloDias(dias)}</p>
-      )}
+    <li className={cn("susp-item", critico && "susp-item-critico")}>
+      <div className="flex flex-col md:flex-row md:flex-wrap lg:flex-nowrap md:items-center gap-3">
+        <div className="flex items-start gap-3 min-w-0 md:w-[30%] lg:w-[26%]">
+          <span className={cn("susp-icone", critico && "susp-icone-critico")}><Building2 className="h-4 w-4" /></span>
+          <div className="min-w-0">
+            <p className="font-semibold susp-texto-forte truncate" title={i.empresa_nome}>{i.empresa_nome}</p>
+            <p className="text-xs susp-texto-suave">#{i.codigo_contrato ?? "—"} • Período {i.periodo}</p>
+          </div>
+        </div>
+        <div className="flex-1 min-w-0 space-y-1.5">
+          <div className="flex flex-wrap items-center gap-1.5">
+            <Badge className={cn(seloBase, "susp-badge-suspenso")}>Contrato suspenso</Badge>
+            {dias != null && (
+              <Badge variant="outline" className={cn(seloBase, "gap-1", corNivel[nivel])} title={`Suspenso há ${rotuloDias(dias)}`}>
+                {nivel !== "normal" && <AlertTriangle className="h-3 w-3" />}{rotuloDiasPainel(dias)}{critico ? " • Crítico" : ""}
+              </Badge>
+            )}
+            <Badge variant="outline" className={cn(seloBase, "susp-badge-neutro")}>Encaminhado ao Financeiro</Badge>
+          </div>
+          {critico && dias != null && (
+            <p className="text-xs susp-texto-critico flex items-center gap-1"><AlertTriangle className="h-3 w-3 shrink-0" />Suspensão prolongada — {dias - 30} {dias - 30 === 1 ? "dia" : "dias"} acima do alerta de 30 dias</p>
+          )}
+        </div>
+        <div className="md:text-right text-xs space-y-0.5 md:w-full lg:w-auto lg:min-w-[250px]">
+          <p className="text-sm font-semibold susp-texto-forte flex items-center md:justify-end gap-1.5">
+            <CalendarDays className="h-3.5 w-3.5 susp-texto-verde" />
+            {i.data_suspensao ? `Suspenso desde ${formatDateBR(i.data_suspensao)}` : "Data de suspensão não informada"}
+          </p>
+          <p className="susp-texto-suave">Encaminhado em {fmt(i.encaminhado_em)} • {i.encaminhado_por_nome}</p>
+        </div>
+        <button type="button" onClick={() => setAberto((v) => !v)} className="susp-detalhes self-start md:self-center" aria-expanded={aberto}>
+          {aberto ? "Ocultar detalhes" : "Ver detalhes"}
+          <ChevronRight className={cn("h-3.5 w-3.5 susp-texto-verde transition-transform", aberto && "rotate-90")} />
+        </button>
+      </div>
       {aberto && (
-        <div className="mt-2 grid gap-x-6 gap-y-1 text-xs sm:grid-cols-2 rounded-md border border-border bg-muted/40 p-2">
-          <p><span className="text-muted-foreground">Suspenso em: </span>{i.data_suspensao ? formatDateBR(i.data_suspensao) : "—"}</p>
-          <p><span className="text-muted-foreground">Responsável: </span>{i.suspenso_por_nome || "—"}</p>
-          <p><span className="text-muted-foreground">Tempo de suspensão: </span>{dias != null ? rotuloDias(dias) : "—"}</p>
-          <p><span className="text-muted-foreground">Motivo: </span>{i.motivo_suspensao || "—"}</p>
-          <p className="sm:col-span-2"><span className="text-muted-foreground">Observação: </span>{i.suspensao_observacao || "—"}</p>
+        <div className="susp-detalhe-painel mt-3 grid gap-x-6 gap-y-1 text-xs sm:grid-cols-2">
+          <p><span className="susp-texto-suave">Suspenso em: </span>{i.data_suspensao ? formatDateBR(i.data_suspensao) : "—"}</p>
+          <p><span className="susp-texto-suave">Responsável: </span>{i.suspenso_por_nome || "—"}</p>
+          <p><span className="susp-texto-suave">Tempo de suspensão: </span>{dias != null ? rotuloDias(dias) : "—"}</p>
+          <p><span className="susp-texto-suave">Motivo: </span>{i.motivo_suspensao || "—"}</p>
+          <p className="sm:col-span-2"><span className="susp-texto-suave">Observação: </span>{i.suspensao_observacao || "—"}</p>
           {(isAdmin || isComum) && (
             <div className="sm:col-span-2 flex justify-end pt-1">
               <Button size="sm" className="gap-1.5 h-8" onClick={() => setLiberar(true)}>
@@ -179,39 +193,33 @@ export function SuspensosEncaminhadosPainel({ itens, comMovimentacao }: { itens:
   const podeSuspender = isAdmin || isComum;
   if (!semMov.length) {
     return podeSuspender ? (
-      <Card className="rounded-xl"><CardContent className="py-3 flex items-center gap-2 text-sm">
-        <p className="font-semibold flex items-center gap-2 text-primary"><Ban className="h-4 w-4" />Contratos suspensos no período</p>
-        <span className="text-xs text-muted-foreground">Nenhum contrato suspenso.</span>
+      <div className="siga-susp-painel rounded-xl p-4 flex flex-wrap items-center gap-2 text-sm">
+        <p className="font-semibold flex items-center gap-2 susp-texto-verde"><Ban className="h-4 w-4" />Contratos suspensos no período</p>
+        <span className="text-xs susp-texto-suave">Nenhum contrato suspenso.</span>
         <span className="ml-auto"><SuspenderContratoButton /></span>
-      </CardContent></Card>
+      </div>
     ) : null;
   }
   const criticos = semMov.filter((i) => nivelSuspensao(diasSuspenso(i.data_suspensao)) === "critico").length;
   return (
-    <Card className="rounded-xl">
-      <CardContent className="pt-4 space-y-3 text-sm">
-        {semMov.length > 0 && (
-          <div className="space-y-2">
-            <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
-              <p className="font-semibold flex items-center gap-2 text-primary"><Ban className="h-4 w-4" />Contratos suspensos no período</p>
-              <span className="ml-auto" />
-              {podeSuspender && <SuspenderContratoButton />}
-              <Badge variant="outline" className={seloBase}>
-                {semMov.length} {semMov.length === 1 ? "contrato suspenso" : "contratos suspensos"}{criticos > 0 ? ` • ${criticos} em alerta` : ""}
-              </Badge>
-            </div>
-            {criticos > 0 && (
-              <p className="text-xs flex items-center gap-1.5 border-l-2 border-warning pl-2 text-warning">
-                <AlertTriangle className="h-3.5 w-3.5" />
-                {criticos === 1 ? "1 contrato precisa de atenção" : `${criticos} contratos precisam de atenção`} — suspensos há 30 dias ou mais.
-              </p>
-            )}
-            <ul className="divide-y divide-border">
-              {semMov.map((i) => <ItemSuspenso key={i.id} i={i} />)}
-            </ul>
-          </div>
-        )}
-      </CardContent>
-    </Card>
+    <section className="siga-susp-painel rounded-xl p-4 space-y-3 text-sm animate-fade-in">
+      <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
+        <p className="font-semibold text-base flex items-center gap-2 susp-texto-forte"><Ban className="h-4 w-4 susp-texto-verde" />Contratos suspensos no período</p>
+        <span className="ml-auto" />
+        <Badge variant="outline" className={cn(seloBase, "susp-badge-neutro")}>
+          {semMov.length} {semMov.length === 1 ? "suspenso" : "suspensos"}{criticos > 0 ? ` • ${criticos} ${criticos === 1 ? "crítico" : "críticos"}` : ""}
+        </Badge>
+        {podeSuspender && <SuspenderContratoButton />}
+      </div>
+      {criticos > 0 && (
+        <div className="susp-alerta flex items-center gap-2 text-xs">
+          <AlertTriangle className="h-4 w-4 shrink-0" />
+          <span><strong>{criticos === 1 ? "1 contrato em alerta de suspensão" : `${criticos} contratos em alerta de suspensão`}</strong> — suspensos há 30 dias ou mais.</span>
+        </div>
+      )}
+      <ul className="space-y-2">
+        {semMov.map((i) => <ItemSuspenso key={i.id} i={i} />)}
+      </ul>
+    </section>
   );
 }
