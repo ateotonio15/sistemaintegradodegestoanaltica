@@ -869,14 +869,21 @@
     -webkit-print-color-adjust: exact; print-color-adjust: exact; }
 }
 
-/* Painel "Contratos suspensos no período" — sempre escuro */
+/* Painel "Contratos suspensos no período" — segue o tema */
 .siga-susp-painel {
+  --sp-bg: 150 30% 97%; --sp-card: 0 0% 100%; --sp-borda: 152 30% 82%;
+  --sp-forte: 160 30% 12%; --sp-suave: 158 10% 40%; --sp-verde: 152 65% 32%;
+  --sp-ambar: 32 90% 40%; --sp-vermelho: 0 70% 46%;
+}
+.dark .siga-susp-painel {
   --sp-bg: 160 35% 7%; --sp-card: 160 28% 10%; --sp-borda: 152 40% 22%;
   --sp-forte: 150 20% 96%; --sp-suave: 155 12% 62%; --sp-verde: 152 60% 48%;
   --sp-ambar: 38 92% 55%; --sp-vermelho: 0 78% 62%;
+}
+.siga-susp-painel {
   background: linear-gradient(180deg, hsl(var(--sp-card)), hsl(var(--sp-bg)));
   border: 1px solid hsl(var(--sp-borda) / 0.7);
-  box-shadow: 0 10px 30px -14px hsl(var(--sp-bg) / 0.9), inset 0 1px 0 hsl(var(--sp-verde) / 0.08);
+  box-shadow: 0 10px 30px -18px hsl(var(--sp-forte) / 0.25), inset 0 1px 0 hsl(var(--sp-verde) / 0.08);
   color: hsl(var(--sp-forte));
 }
 .siga-susp-painel .susp-texto-forte { color: hsl(var(--sp-forte)); }
