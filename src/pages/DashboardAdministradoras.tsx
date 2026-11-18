@@ -384,9 +384,22 @@ export default function DashboardAdministradoras() {
             .in("movimentacao_id", movIds).is("origem_importacao", null)
         : { data: [], error: null } as any;
       if (eAnx) throw eAnx;
-      const fontes = (anexos ?? []).filter((a: any) => /\.xlsx?$/i.test(a.nome_arquivo))
+      const fontes: any[] = (anexos ?? []).filter((a: any) => /\.xlsx?$/i.test(a.nome_arquivo))
         .map((a: any) => ({ ...a, bucket: "anexos-movimentacoes" }));
-      if (!fontes.length) throw new Error("Não há relatório de vidas (Excel) anexado pelo Cadastro no fechamento deste contrato no mês escolhido.");
+      // Repositório de Envios: somente arquivos enviados por usuários do Cadastro, versão original do período
+      const { data: repo, error: eRepo } = await supabase.from("envios_empresa_arquivos")
+        .select("bucket, storage_path, nome_arquivo, versao, enviado_por")
+        .eq("empresa_id", empresa.id).eq("competencia", mesRef).order("versao", { ascending: true });
+      if (eRepo) throw eRepo;
+      const repoExcel = (repo ?? []).filter((a: any) => /\.xlsx?$/i.test(a.nome_arquivo) && a.enviado_por);
+      if (repoExcel.length) {
+        const ids = [...new Set(repoExcel.map((a: any) => a.enviado_por))];
+        const { data: papeis } = await supabase.from("user_roles").select("user_id").eq("role", "comum").in("user_id", ids);
+        const cadastro = new Set((papeis ?? []).map((p: any) => p.user_id));
+        const doCadastro = repoExcel.find((a: any) => cadastro.has(a.enviado_por));
+        if (doCadastro) fontes.push(doCadastro);
+      }
+      if (!fontes.length) throw new Error("Não há relatório de vidas (Excel) do Cadastro deste contrato no mês escolhido — nem anexado no fechamento, nem no Repositório de Envios.");
       const vidasPeriodo = new Map<string, ReturnType<typeof lerVidasRelatorio>[number]>();
       const nomesUsados: string[] = [];
       for (const f of fontes as any[]) {
@@ -400,7 +413,7 @@ export default function DashboardAdministradoras() {
       if (!nomesUsados.length) throw new Error("Os arquivos anexados no mês não puderam ser lidos como relatório de vidas.");
       const atual = await gerarRelatorioPortal(empresa.codigo_contrato, "xlsx", new AbortController().signal);
       const res = compararVidas([...vidasPeriodo.values()], lerVidasRelatorio(await atual.blob.arrayBuffer()));
-      setVidasContrato({ empresa, carregando: false, arquivoPeriodo: "Anexos do Cadastro: " + nomesUsados.join(", "), arquivoAtual: atual.nome_arquivo, res });
+      setVidasContrato({ empresa, carregando: false, arquivoPeriodo: "Arquivos do Cadastro: " + nomesUsados.join(", "), arquivoAtual: atual.nome_arquivo, res });
     } catch (e: any) {
       setVidasContrato({ empresa, carregando: false, erro: e?.message ?? String(e) });
     }
