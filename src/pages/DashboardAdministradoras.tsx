@@ -1,4 +1,4 @@
-import { useMemo, useState, useEffect } from "react";
+import { useMemo, useState, useEffect, type ReactNode } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -260,6 +260,35 @@ export default function DashboardAdministradoras() {
     },
   });
 
+  // Inclusões por Vigência (somente leitura) — atribuídas pelo mês do fechamento
+  const { data: inclusoesVig = [] } = useQuery({
+    queryKey: ["inclusoes-vigencia-adm", ultimos6.join(","), empresaIds.join(",")],
+    enabled: empresaIds.length > 0,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("inclusoes_vigencia")
+        .select("id, empresa_id, cpf, beneficiario_nome, data_adesao, data_identificacao, origem, status, fechamento_id, movimentacoes!inner(mes_referencia, periodo)")
+        .in("empresa_id", empresaIds)
+        .in("movimentacoes.mes_referencia", ultimos6)
+        .order("data_identificacao", { ascending: false });
+      if (error) throw error;
+      return (data ?? []) as any[];
+    },
+  });
+  const vigValidas = useMemo(() => inclusoesVig.filter((i) => i.status !== "divergencia_data_adesao"), [inclusoesVig]);
+  const vigPorEmpresaMes = useMemo(() => {
+    const m: Record<string, number> = {};
+    for (const i of vigValidas) if (i.movimentacoes?.mes_referencia === mesRef) m[i.empresa_id] = (m[i.empresa_id] ?? 0) + 1;
+    return m;
+  }, [vigValidas, mesRef]);
+  const vigPorMes = useMemo(() => {
+    const m: Record<string, number> = {};
+    for (const i of vigValidas) { const k = i.movimentacoes?.mes_referencia; if (k) m[k] = (m[k] ?? 0) + 1; }
+    return m;
+  }, [vigValidas]);
+  const totalVigMes = useMemo(() => Object.values(vigPorEmpresaMes).reduce((s, n) => s + n, 0), [vigPorEmpresaMes]);
+  const [vigOpen, setVigOpen] = useState(false);
+
   const entradasSaidasPorEmpresa = useMemo(() => {
     const map: Record<string, EmpresaEntradaSaida> = {};
     for (const h of historicoMes as any[]) {
@@ -282,22 +311,24 @@ export default function DashboardAdministradoras() {
     () => Object.values(entradasSaidasPorEmpresa).reduce((s, e) => s + e.saidas, 0),
     [entradasSaidasPorEmpresa]
   );
-  const saldoVidas = totalEntradas - totalSaidas;
+  const entradasConsolidadas = totalEntradas + totalVigMes;
+  const saldoVidas = entradasConsolidadas - totalSaidas;
 
   const evolucaoChart = useMemo(() => {
     const grouped: Record<string, { mes: string; entradas: number; saidas: number; total: number }> = {};
     for (const m of ultimos6) {
       const [y, mm] = m.split("-");
-      grouped[m] = { mes: `${mm}/${y.slice(2)}`, entradas: 0, saidas: 0, total: 0 };
+      grouped[m] = { mes: `${mm}/${y.slice(2)}`, entradas: vigPorMes[m] ?? 0, fechamento: 0, vigencia: vigPorMes[m] ?? 0, saidas: 0, total: 0 } as any;
     }
     for (const h of historico6 as any[]) {
       if (!grouped[h.mes_referencia]) continue;
       grouped[h.mes_referencia].entradas += h.entradas;
+      (grouped[h.mes_referencia] as any).fechamento += h.entradas;
       grouped[h.mes_referencia].saidas += h.saidas;
       grouped[h.mes_referencia].total += h.total_atual;
     }
     return Object.values(grouped);
-  }, [ultimos6, historico6]);
+  }, [ultimos6, historico6, vigPorMes]);
 
   const [calculando, setCalculando] = useState(false);
   const [progressoCalc, setProgressoCalc] = useState<{ done: number; total: number } | null>(null);
@@ -327,6 +358,7 @@ export default function DashboardAdministradoras() {
       });
       queryClient.invalidateQueries({ queryKey: ["vidas-historico-adm"] });
       queryClient.invalidateQueries({ queryKey: ["vidas-historico-adm-6"] });
+      queryClient.invalidateQueries({ queryKey: ["inclusoes-vigencia-adm"] });
     } catch (e: any) {
       toast.error("Erro ao calcular: " + (e?.message ?? String(e)));
     } finally {
@@ -459,6 +491,41 @@ export default function DashboardAdministradoras() {
           )}
         </DialogContent>
       </Dialog>
+      <Dialog open={vigOpen} onOpenChange={setVigOpen}>
+        <DialogContent className="max-w-4xl max-h-[85vh] overflow-y-auto">
+          <DialogHeader><DialogTitle>Inclusões por vigência</DialogTitle></DialogHeader>
+          <p className="text-xs text-muted-foreground">Beneficiários encontrados depois, cuja data de adesão pertence a um fechamento já feito. É uma atualização normal de consolidação.</p>
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Beneficiário</TableHead><TableHead>CPF</TableHead><TableHead>Adesão</TableHead>
+                <TableHead>Identificado</TableHead><TableHead>Empresa</TableHead><TableHead>Fechamento</TableHead><TableHead>Origem</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {inclusoesVig.map((i) => {
+                const emp = empresas.find((x) => x.id === i.empresa_id);
+                const mr = i.movimentacoes?.mes_referencia as string | undefined;
+                const div = i.status === "divergencia_data_adesao";
+                return (
+                  <TableRow key={i.id}>
+                    <TableCell className="font-medium">{i.beneficiario_nome || "—"}</TableCell>
+                    <TableCell className="tabular-nums">***.***.***-{String(i.cpf).slice(-2)}</TableCell>
+                    <TableCell>{formatDateBR(i.data_adesao)}</TableCell>
+                    <TableCell>{formatDateBR(i.data_identificacao)}</TableCell>
+                    <TableCell className="text-sm">{emp?.nome ?? "—"}</TableCell>
+                    <TableCell className="text-sm">
+                      {mr ? `${mr.slice(5)}/${mr.slice(0, 4)}` : "—"}{i.movimentacoes?.periodo ? ` · ${i.movimentacoes.periodo}` : ""}
+                      {div && <Badge variant="outline" className="ml-1 border-amber-500/40 text-amber-600">Divergência na Data de Adesão</Badge>}
+                    </TableCell>
+                    <TableCell><Badge variant="secondary" className="bg-success/10 text-success">{i.origem}</Badge></TableCell>
+                  </TableRow>
+                );
+              })}
+            </TableBody>
+          </Table>
+        </DialogContent>
+      </Dialog>
       <ImportarAdministradorasDialog open={importOpen} onOpenChange={setImportOpen} />
 
       {/* Alerta de variação grande */}
@@ -484,7 +551,20 @@ export default function DashboardAdministradoras() {
 
       {/* KPI Entradas / Saídas */}
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-        <KpiCard icon={TrendingUp} label="Entradas do Mês" value={`+${totalEntradas}`} accent="success" />
+        <KpiCard
+          icon={TrendingUp}
+          label="Entradas do Mês"
+          value={`+${entradasConsolidadas}`}
+          accent="success"
+          sub={
+            <span>
+              {totalEntradas} fechamento • <span className="text-success font-medium">+{totalVigMes} vigência</span>
+              {inclusoesVig.length > 0 && (
+                <button type="button" onClick={() => setVigOpen(true)} className="ml-1 underline-offset-2 hover:underline text-primary">Ver inclusões por vigência</button>
+              )}
+            </span>
+          }
+        />
         <KpiCard icon={TrendingDown} label="Saídas do Mês" value={`-${totalSaidas}`} accent="destructive" />
         <KpiCard icon={Scale} label="Saldo de Vidas" value={`${saldoVidas > 0 ? "+" : ""}${saldoVidas}`} accent={saldoVidas >= 0 ? "success" : "destructive"} />
         <KpiCard icon={FileSignature} label="Contratos Pendentes" value={aguardando.length} />
@@ -501,7 +581,19 @@ export default function DashboardAdministradoras() {
               <CartesianGrid strokeDasharray="3 3" className="stroke-border" />
               <XAxis dataKey="mes" className="text-xs" />
               <YAxis className="text-xs" />
-              <Tooltip contentStyle={{ background: "hsl(var(--popover))", border: "1px solid hsl(var(--border))", borderRadius: 8 }} />
+              <Tooltip content={({ active, payload, label }: any) => {
+                if (!active || !payload?.length) return null;
+                const d = payload[0].payload;
+                return (
+                  <div className="rounded-lg border bg-popover p-2 text-xs shadow-sm space-y-0.5">
+                    <p className="font-semibold">{label}</p>
+                    <p>Entradas consolidadas: <strong>{d.entradas}</strong></p>
+                    <p className="text-muted-foreground">Fechamento: {d.fechamento}</p>
+                    <p className="text-success">Inclusões por vigência: {d.vigencia}</p>
+                    <p className="text-destructive">Saídas: {d.saidas}</p>
+                  </div>
+                );
+              }} />
               <Legend />
               <Bar dataKey="entradas" name="Entradas" fill="hsl(var(--success))" radius={[4, 4, 0, 0]} />
               <Bar dataKey="saidas" name="Saídas" fill="hsl(var(--destructive))" radius={[4, 4, 0, 0]} />
@@ -667,6 +759,7 @@ export default function DashboardAdministradoras() {
                         const periodoFin = mov?.periodo ?? getPeriodoAdministradora(e);
                         const finInfo = finStatusMap.get(`${e.id}|${periodoFin}`) ?? null;
                         const es = entradasSaidasPorEmpresa[e.id];
+                        const vig = vigPorEmpresaMes[e.id] ?? 0;
                         return (
                         <TableRow
                           key={e.id}
@@ -680,11 +773,15 @@ export default function DashboardAdministradoras() {
                           <TableCell className="text-sm">{e.codigo_contrato || "—"}</TableCell>
                           <TableCell className="text-center tabular-nums">{(e.vidas ?? 0).toLocaleString("pt-BR")}</TableCell>
                           <TableCell className="text-center tabular-nums">
-                            {es ? (
-                              <span className={es.entradas > 0 ? "text-success font-semibold" : "text-muted-foreground"}>
-                                {es.entradas > 0 ? `+${es.entradas}` : "0"}
-                              </span>
-                            ) : <span className="text-muted-foreground">—</span>}
+                            {es || vig ? (() => {
+                              const ent = (es?.entradas ?? 0) + vig;
+                              return (
+                                <div className="flex flex-col items-center leading-tight" title={vig ? `${es?.entradas ?? 0} fechamento + ${vig} vigência` : undefined}>
+                                  <span className={ent > 0 ? "text-success font-semibold" : "text-muted-foreground"}>{ent > 0 ? `+${ent}` : "0"}</span>
+                                  {vig > 0 && <span className="text-[10px] text-muted-foreground">{es?.entradas ?? 0} fech. <span className="text-success">+{vig} vig.</span></span>}
+                                </div>
+                              );
+                            })() : <span className="text-muted-foreground">—</span>}
                           </TableCell>
                           <TableCell className="text-center tabular-nums">
                             {es ? (
@@ -957,10 +1054,12 @@ function KpiCard({
   value,
   highlight,
   accent,
+  sub,
 }: {
   icon: any;
   label: string;
   value: number | string;
+  sub?: ReactNode;
   highlight?: boolean;
   accent?: "amber" | "success" | "destructive";
 }) {
@@ -978,6 +1077,7 @@ function KpiCard({
         <div className="min-w-0">
           <p className={`text-[10px] font-bold uppercase tracking-wider truncate ${highlight ? "text-primary" : "text-muted-foreground"}`}>{label}</p>
           <p className="text-xl font-bold tabular-nums mt-0.5 truncate">{value}</p>
+          {sub && <div className="text-[11px] text-muted-foreground mt-0.5">{sub}</div>}
         </div>
       </CardContent>
     </Card>
