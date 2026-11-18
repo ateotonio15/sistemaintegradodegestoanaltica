@@ -298,7 +298,7 @@ export default function DashboardAdministradoras() {
         empresa_id: h.empresa_id,
         entradas: h.entradas,
         saidas: h.saidas,
-        reativacoes: h.reativacoes ?? 0,
+        ...({ reativacoes: h.reativacoes ?? 0 } as any),
         total_atual: h.total_atual,
         total_anterior: h.total_anterior,
       };
