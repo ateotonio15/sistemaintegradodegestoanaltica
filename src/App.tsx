@@ -23,6 +23,7 @@ import Reajustes from "./pages/Reajustes";
 import Arquivos from "./pages/Arquivos";
 import RepositorioEnvios from "./pages/RepositorioEnvios";
 import Cartas from "./pages/Cartas";
+import Assinaturas from "./pages/Assinaturas";
 import Implantacao from "./pages/Implantacao";
 import ContratosRecemImplantados from "./pages/ContratosRecemImplantados";
 import VidasSamel from "./pages/VidasSamel";
@@ -255,6 +256,10 @@ const AppRoutes = () => (
 
       <Route element={<RoleGate allow={["admin", "financeiro", "comum", "administradoras", "visualizacao", "diretora"]} />}>
         <Route path="/financeiro" element={<Financeiro />} />
+      </Route>
+
+      <Route element={<RoleGate allow={["admin", "comum", "administradoras"]} />}>
+        <Route path="/assinaturas" element={<Assinaturas />} />
       </Route>
 
       <Route element={<RoleGate allow={["admin", "financeiro"]} />}>

@@ -414,6 +414,84 @@ export type Database = {
         }
         Relationships: []
       }
+      assinantes: {
+        Row: {
+          assinatura_path: string | null
+          ativo: boolean
+          atualizado_em: string
+          cargo: string | null
+          criado_em: string
+          criado_por: string | null
+          id: string
+          nome: string
+          observacao: string | null
+          rubrica_path: string | null
+        }
+        Insert: {
+          assinatura_path?: string | null
+          ativo?: boolean
+          atualizado_em?: string
+          cargo?: string | null
+          criado_em?: string
+          criado_por?: string | null
+          id?: string
+          nome: string
+          observacao?: string | null
+          rubrica_path?: string | null
+        }
+        Update: {
+          assinatura_path?: string | null
+          ativo?: boolean
+          atualizado_em?: string
+          cargo?: string | null
+          criado_em?: string
+          criado_por?: string | null
+          id?: string
+          nome?: string
+          observacao?: string | null
+          rubrica_path?: string | null
+        }
+        Relationships: []
+      }
+      assinaturas_processamentos: {
+        Row: {
+          arquivos: Json
+          assinante_id: string | null
+          assinante_nome: string
+          criado_em: string
+          erro: number
+          id: string
+          sucesso: number
+          total: number
+          usuario_id: string
+          usuario_nome: string | null
+        }
+        Insert: {
+          arquivos?: Json
+          assinante_id?: string | null
+          assinante_nome: string
+          criado_em?: string
+          erro?: number
+          id?: string
+          sucesso?: number
+          total?: number
+          usuario_id?: string
+          usuario_nome?: string | null
+        }
+        Update: {
+          arquivos?: Json
+          assinante_id?: string | null
+          assinante_nome?: string
+          criado_em?: string
+          erro?: number
+          id?: string
+          sucesso?: number
+          total?: number
+          usuario_id?: string
+          usuario_nome?: string | null
+        }
+        Relationships: []
+      }
       atendimentos: {
         Row: {
           atualizado_em: string

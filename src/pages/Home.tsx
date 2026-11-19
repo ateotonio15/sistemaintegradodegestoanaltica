@@ -413,6 +413,14 @@ const SHORTCUTS: Shortcut[] = [
     show: (c) => c.isAdmin,
   },
   {
+    to: "/assinaturas",
+    label: "Assinaturas",
+    description: "Assinar cartas em PDF, inclusive em lote",
+    icon: FileSignature,
+    group: "utilitarios",
+    show: (c) => c.isAdmin || c.role === "comum" || c.role === "administradoras",
+  },
+  {
     to: "/cartas",
     label: "Cartas",
     description: "Carta de cancelamento preenchida a partir da nota fiscal",
