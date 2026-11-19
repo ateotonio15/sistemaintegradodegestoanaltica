@@ -24,6 +24,8 @@ import { assinarPdf, nomeAssinado, RUBRICA_LARGURA } from "@/lib/assinatura-cart
 import { emParalelo, statusLote, ROTULO_STATUS_LOTE, posicoesParecidas, type StatusLote } from "@/lib/assinatura-lote";
 import { criarModelo, localizarAssinatura, ROTULO_CONFIANCA, type Localizacao, type ModeloPosicao, type PaginaTexto } from "@/lib/assinatura-localizar";
 import { lerTextoPdf } from "@/lib/assinatura-pdf-texto";
+import { fundoTransparente } from "@/lib/assinatura-fundo";
+import { Sparkles } from "lucide-react";
 
 (pdfjsLib as any).GlobalWorkerOptions.workerSrc = workerSrc;
 const BUCKET = "assinaturas-cartas";
@@ -76,11 +78,28 @@ function AssinanteDialog({ aberto, onClose, editar }: { aberto: boolean; onClose
   const [assin, setAssin] = useState<File | null>(null); const [rub, setRub] = useState<File | null>(null);
   const [salvando, setSalvando] = useState(false);
   const [largura, setLargura] = useState(30);
+  const [limpando, setLimpando] = useState(false);
+  const [limpa, setLimpa] = useState<string | null>(null);
+  const limparIA = async () => {
+    setLimpando(true);
+    try {
+      const origem: Blob = assin ?? await baixar(editar!.assinatura_path!);
+      const dataUrl = await new Promise<string>((ok, err) => { const fr = new FileReader(); fr.onload = () => ok(fr.result as string); fr.onerror = err; fr.readAsDataURL(origem); });
+      const { data, error } = await supabase.functions.invoke("limpar-assinatura", { body: { imagem: dataUrl } });
+      if (error || !data?.imagem) throw new Error(data?.error ?? error?.message);
+      const png = await fundoTransparente(data.imagem);
+      setAssin(new File([png], "assinatura-limpa.png", { type: "image/png" }));
+      setLimpa(URL.createObjectURL(png));
+      toast.success("Assinatura limpa. Confira a prévia e clique em Salvar.");
+    } catch (e: any) {
+      toast.error("Não foi possível limpar a assinatura.", { description: e?.message });
+    } finally { setLimpando(false); }
+  };
   useEffect(() => {
     if (!aberto) return;
     setLargura(Math.round(Number(editar?.largura_padrao ?? 0.3) * 100));
     setNome(editar?.nome ?? ""); setCargo(editar?.cargo ?? ""); setObs(editar?.observacao ?? "");
-    setAtivo(editar?.ativo ?? true); setAssin(null); setRub(null);
+    setAtivo(editar?.ativo ?? true); setAssin(null); setRub(null); setLimpa(null);
   }, [aberto, editar]);
 
   const escolher = (f: File | undefined, set: (f: File | null) => void) => {
@@ -128,8 +147,20 @@ function AssinanteDialog({ aberto, onClose, editar }: { aberto: boolean; onClose
           </div>
           <div>
             <Label>Imagem da assinatura (PNG ou JPG)</Label>
-            <Input type="file" accept="image/png,image/jpeg" onChange={(e) => escolher(e.target.files?.[0], setAssin)} />
+            <Input type="file" accept="image/png,image/jpeg" onChange={(e) => { setLimpa(null); escolher(e.target.files?.[0], setAssin); }} />
             {!assin && editar?.assinatura_path && <div className="mt-2"><Miniatura path={editar.assinatura_path} /></div>}
+            {(assin || editar?.assinatura_path) && (
+              <Button type="button" size="sm" variant="outline" className="mt-2" onClick={limparIA} disabled={limpando || !!limpa}>
+                {limpando ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : <Sparkles className="h-4 w-4 mr-1" />}
+                {limpa ? "Assinatura limpa" : "Limpar assinatura com IA"}
+              </Button>
+            )}
+            {limpa && (
+              <div className="mt-2 rounded-md border p-2 bg-white">
+                <img src={limpa} alt="Assinatura limpa" className="h-16 max-w-full object-contain" />
+                <p className="text-[11px] text-muted-foreground mt-1">Fundo removido e traço escurecido. Se não ficou boa, escolha a imagem de novo.</p>
+              </div>
+            )}
           </div>
           <div>
             <Label>Rubrica (opcional)</Label>
