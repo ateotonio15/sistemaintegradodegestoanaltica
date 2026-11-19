@@ -614,7 +614,15 @@ function AbaProcessar({ assinantes, onConcluido, reprocesso, onReprocessoFim }: 
 }
 
 function ListaArquivos({ arquivos, nomeZip = "cartas-assinadas" }: { arquivos: ArquivoProc[]; nomeZip?: string }) {
-  const ver = async (a: ArquivoProc) => { try { window.open(URL.createObjectURL(await baixar(a.path!)), "_blank"); } catch { toast.error("Arquivo não encontrado."); } };
+  const [visualizando, setVisualizando] = useState<{ nome: string; url: string } | null>(null);
+  const fecharVisualizacao = () => { if (visualizando) URL.revokeObjectURL(visualizando.url); setVisualizando(null); };
+  const ver = async (a: ArquivoProc) => {
+    try {
+      const url = URL.createObjectURL(await baixar(a.path!));
+      if (visualizando) URL.revokeObjectURL(visualizando.url);
+      setVisualizando({ nome: a.nome, url });
+    } catch { toast.error("Arquivo não encontrado."); }
+  };
   const baixarUm = async (a: ArquivoProc) => { try { salvarBlob(await baixar(a.path!), a.nome); } catch { toast.error("Arquivo não encontrado."); } };
   const baixarTodos = async () => {
     const t = toast.loading("Montando o ZIP…");
@@ -644,6 +652,12 @@ function ListaArquivos({ arquivos, nomeZip = "cartas-assinadas" }: { arquivos: A
           </div>
         ))}
       </div>
+      <Dialog open={!!visualizando} onOpenChange={(o) => { if (!o) fecharVisualizacao(); }}>
+        <DialogContent className="max-w-4xl h-[85vh] flex flex-col">
+          <DialogHeader><DialogTitle className="text-base truncate pr-6">{visualizando?.nome}</DialogTitle></DialogHeader>
+          {visualizando && <iframe src={visualizando.url} title={visualizando.nome} className="flex-1 w-full rounded-md border bg-muted/30" />}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
