@@ -364,6 +364,25 @@ function AbaProcessar({ assinantes, onConcluido, reprocesso, onReprocessoFim }: 
   const [nomeModelo, setNomeModelo] = useState("");
   const [nomeLote, setNomeLote] = useState("");
   const assinante = ativos.find((a) => a.id === assinanteId) ?? null;
+  const perfilNome = useQuery({
+    queryKey: ["assinatura-meu-nome", user?.id],
+    enabled: !!user?.id,
+    queryFn: async () => {
+      const { data } = await supabase.from("profiles").select("display_name, username").eq("user_id", user!.id).maybeSingle();
+      return [data?.display_name, data?.username].filter(Boolean) as string[];
+    },
+  });
+  useEffect(() => {
+    if (assinanteId || !perfilNome.data?.length || !ativos.length) return;
+    const norm = (t: string) => t.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().replace(/[^a-z ]/g, " ").split(/\s+/).filter(Boolean);
+    for (const nome of perfilNome.data) {
+      const p = norm(nome);
+      if (!p.length) continue;
+      const exato = ativos.find((a) => norm(a.nome).join(" ") === p.join(" "));
+      const parcial = exato ?? ativos.find((a) => { const n = norm(a.nome); return n[0] === p[0] && (p.length === 1 || p.slice(1).every((x) => n.includes(x))); });
+      if (parcial) { setAssinanteId(parcial.id); return; }
+    }
+  }, [perfilNome.data, ativos, assinanteId]);
   const assinaturaUrl = useImagem(assinante?.assinatura_path);
   const rubricaUrl = useImagem(assinante?.rubrica_path);
   const modelos = useQuery({
