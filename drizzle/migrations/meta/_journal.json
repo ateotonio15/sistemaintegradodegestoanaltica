@@ -694,6 +694,13 @@
       "when": 1795089835591,
       "tag": "0098_assinatura_email_administradoras",
       "breakpoints": true
+    },
+    {
+      "idx": 99,
+      "version": "7",
+      "when": 1795090128439,
+      "tag": "0099_administradoras_equivale_cadastro",
+      "breakpoints": true
     }
   ]
 }

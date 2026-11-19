@@ -657,7 +657,7 @@ export default function Home() {
 
 
         {/* Inteligência de Relacionamento — oculto para Cadastro (Comum) e Financeiro */}
-        {!query && !activeGroup && !isFinanceiro && role !== "comum" && (
+        {!query && !activeGroup && !isFinanceiro && role !== "comum" && role !== "administradoras" && (
           <div className="w-full flex flex-col gap-5 pt-6">
             <div className="flex items-center gap-3">
               <div className="flex items-center justify-center h-8 w-8 rounded-lg bg-primary text-primary-foreground shadow-sm">
