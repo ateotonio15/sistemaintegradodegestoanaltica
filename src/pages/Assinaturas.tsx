@@ -613,14 +613,49 @@ function AbaProcessar({ assinantes, onConcluido, reprocesso, onReprocessoFim }: 
   );
 }
 
+function PaginasPdf({ bytes }: { bytes: Uint8Array }) {
+  const ref = useRef<HTMLDivElement>(null);
+  const [carregando, setCarregando] = useState(true);
+  const [erro, setErro] = useState(false);
+  useEffect(() => {
+    let cancelado = false;
+    const alvo = ref.current;
+    if (!alvo) return;
+    alvo.innerHTML = "";
+    setCarregando(true); setErro(false);
+    (async () => {
+      try {
+        const doc = await (pdfjsLib as any).getDocument({ data: bytes.slice() }).promise;
+        for (let n = 1; n <= doc.numPages && !cancelado; n++) {
+          const pg = await doc.getPage(n);
+          const vp = pg.getViewport({ scale: 1.6 });
+          const c = document.createElement("canvas");
+          c.width = vp.width; c.height = vp.height;
+          c.className = "w-full h-auto rounded shadow-sm bg-background";
+          await pg.render({ canvasContext: c.getContext("2d")!, viewport: vp }).promise;
+          if (!cancelado) alvo.appendChild(c);
+        }
+      } catch { if (!cancelado) setErro(true); }
+      finally { if (!cancelado) setCarregando(false); }
+    })();
+    return () => { cancelado = true; };
+  }, [bytes]);
+  return (
+    <div className="flex-1 overflow-auto rounded-md border bg-muted/30 p-3">
+      {carregando && <div className="flex items-center justify-center gap-2 py-10 text-sm text-muted-foreground"><Loader2 className="h-4 w-4 animate-spin" /> Carregando carta…</div>}
+      {erro && <p className="py-10 text-center text-sm text-destructive">Não foi possível mostrar esta carta.</p>}
+      <div ref={ref} className="mx-auto flex max-w-3xl flex-col gap-3" />
+    </div>
+  );
+}
+
 function ListaArquivos({ arquivos, nomeZip = "cartas-assinadas" }: { arquivos: ArquivoProc[]; nomeZip?: string }) {
-  const [visualizando, setVisualizando] = useState<{ nome: string; url: string } | null>(null);
-  const fecharVisualizacao = () => { if (visualizando) URL.revokeObjectURL(visualizando.url); setVisualizando(null); };
+  const [visualizando, setVisualizando] = useState<{ nome: string; bytes: Uint8Array } | null>(null);
+  const fecharVisualizacao = () => setVisualizando(null);
   const ver = async (a: ArquivoProc) => {
     try {
-      const url = URL.createObjectURL(await baixar(a.path!));
-      if (visualizando) URL.revokeObjectURL(visualizando.url);
-      setVisualizando({ nome: a.nome, url });
+      const bytes = new Uint8Array(await (await baixar(a.path!)).arrayBuffer());
+      setVisualizando({ nome: a.nome, bytes });
     } catch { toast.error("Arquivo não encontrado."); }
   };
   const baixarUm = async (a: ArquivoProc) => { try { salvarBlob(await baixar(a.path!), a.nome); } catch { toast.error("Arquivo não encontrado."); } };
@@ -655,7 +690,7 @@ function ListaArquivos({ arquivos, nomeZip = "cartas-assinadas" }: { arquivos: A
       <Dialog open={!!visualizando} onOpenChange={(o) => { if (!o) fecharVisualizacao(); }}>
         <DialogContent className="max-w-4xl h-[85vh] flex flex-col">
           <DialogHeader><DialogTitle className="text-base truncate pr-6">{visualizando?.nome}</DialogTitle></DialogHeader>
-          {visualizando && <iframe src={visualizando.url} title={visualizando.nome} className="flex-1 w-full rounded-md border bg-muted/30" />}
+          {visualizando && <PaginasPdf bytes={visualizando.bytes} />}
         </DialogContent>
       </Dialog>
     </div>
