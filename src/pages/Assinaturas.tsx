@@ -178,14 +178,44 @@ function AbaAssinantes({ assinantes }: { assinantes: Assinante[] }) {
 
 /* ------------------------------ Processar ------------------------------ */
 type StatusCarta = "pronta" | "revisao" | "ajustada" | "erro_leitura";
-interface CartaAnalise { arquivo: File; paginas: PaginaTexto[]; numPaginas: number; loc: Localizacao; status: StatusCarta }
+interface CartaAnalise { arquivo: File; paginas: PaginaTexto[]; numPaginas: number; loc: Localizacao; status: StatusCarta; rascunho?: Localizacao }
 
 const COR_CONF: Record<string, string> = {
   alta: "bg-primary/15 text-primary border-primary/30",
   media: "bg-amber-500/15 text-amber-600 dark:text-amber-400 border-amber-500/30",
   baixa: "bg-destructive/15 text-destructive border-destructive/30",
 };
-const ROTULO_STATUS: Record<StatusCarta, string> = { pronta: "Pronta", revisao: "Revisão necessária", ajustada: "Ajustada manualmente", erro_leitura: "Não foi possível ler" };
+const ROTULO_STATUS: Record<StatusCarta, string> = { pronta: "Pronta para assinar", revisao: "Precisa revisão", ajustada: "Ajuste salvo", erro_leitura: "Erro ao localizar" };
+
+function MiniPrevia({ carta, assinaturaUrl }: { carta: CartaAnalise; assinaturaUrl: string | null }) {
+  const ref = useRef<HTMLCanvasElement>(null);
+  const [prop, setProp] = useState(1.414);
+  const loc = carta.rascunho ?? carta.loc;
+  useEffect(() => {
+    let cancel = false;
+    (async () => {
+      try {
+        const doc = await (pdfjsLib as any).getDocument({ data: new Uint8Array(await carta.arquivo.arrayBuffer()) }).promise;
+        const pg = await doc.getPage(Math.min(loc.pagina, doc.numPages));
+        const v1 = pg.getViewport({ scale: 1 });
+        const vp = pg.getViewport({ scale: 180 / v1.width });
+        const c = ref.current; if (!c || cancel) return;
+        c.width = vp.width; c.height = vp.height; setProp(vp.height / vp.width);
+        await pg.render({ canvasContext: c.getContext("2d")!, viewport: vp }).promise;
+      } catch { /* prévia indisponível */ }
+    })();
+    return () => { cancel = true; };
+  }, [carta.arquivo, loc.pagina]);
+  return (
+    <div className="relative w-full bg-white rounded overflow-hidden" style={{ aspectRatio: `1 / ${prop}` }}>
+      <canvas ref={ref} className="w-full h-full" />
+      {assinaturaUrl && carta.status !== "erro_leitura" && (
+        <img src={assinaturaUrl} alt="" className="absolute pointer-events-none"
+          style={{ left: `${loc.x * 100}%`, top: `${loc.y * 100}%`, width: `${loc.largura * 100}%`, transform: "translate(-50%, -50%)" }} />
+      )}
+    </div>
+  );
+}
 
 function PreviaPosicao({ carta, assinaturaUrl, rubricaUrl, onAjustar }: {
   carta: CartaAnalise; assinaturaUrl: string | null; rubricaUrl: string | null; onAjustar: (l: Localizacao) => void;
@@ -193,7 +223,8 @@ function PreviaPosicao({ carta, assinaturaUrl, rubricaUrl, onAjustar }: {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [proporcao, setProporcao] = useState(1.414);
   const [carregando, setCarregando] = useState(true);
-  const { loc } = carta;
+  const loc = carta.rascunho ?? carta.loc;
+  const arrastando = useRef(false);
   useEffect(() => {
     let cancel = false;
     (async () => {
@@ -212,9 +243,11 @@ function PreviaPosicao({ carta, assinaturaUrl, rubricaUrl, onAjustar }: {
     return () => { cancel = true; };
   }, [carta.arquivo, loc.pagina]);
 
-  const clicar = (e: React.MouseEvent<HTMLDivElement>) => {
+  const mover = (e: React.PointerEvent<HTMLDivElement>) => {
     const r = e.currentTarget.getBoundingClientRect();
-    onAjustar({ ...loc, x: (e.clientX - r.left) / r.width, y: (e.clientY - r.top) / r.height, origem: "manual" });
+    const x = Math.min(Math.max((e.clientX - r.left) / r.width, 0), 1);
+    const y = Math.min(Math.max((e.clientY - r.top) / r.height, 0), 1);
+    onAjustar({ ...loc, x, y, origem: "manual" });
   };
   return (
     <div className="space-y-3">
@@ -223,8 +256,11 @@ function PreviaPosicao({ carta, assinaturaUrl, rubricaUrl, onAjustar }: {
         <span className="text-muted-foreground">Página {loc.pagina} de {carta.numPaginas}</span>
         <span className="text-muted-foreground">· Referência: {loc.referencia ? `"${loc.referencia}"` : "nenhuma encontrada"}</span>
       </div>
-      <p className="text-xs text-muted-foreground">Clique na página para ajustar a posição desta carta.</p>
-      <div className="relative w-full max-w-[520px] cursor-crosshair border rounded-md overflow-hidden bg-white" style={{ aspectRatio: `1 / ${proporcao}` }} onClick={clicar}>
+      <p className="text-xs text-muted-foreground">Arraste a assinatura (ou clique na página) para mover. Depois clique em "Salvar ajuste".</p>
+      <div className="relative w-full max-w-[520px] cursor-crosshair border rounded-md overflow-hidden bg-white" style={{ aspectRatio: `1 / ${proporcao}`, touchAction: "none" }}
+        onPointerDown={(e) => { arrastando.current = true; e.currentTarget.setPointerCapture(e.pointerId); mover(e); }}
+        onPointerMove={(e) => { if (arrastando.current) mover(e); }}
+        onPointerUp={() => { arrastando.current = false; }}>
         <canvas ref={canvasRef} className="w-full h-full" />
         {carregando && <div className="absolute inset-0 flex items-center justify-center"><Loader2 className="h-6 w-6 animate-spin text-primary" /></div>}
         {assinaturaUrl && (
@@ -309,12 +345,14 @@ function AbaProcessar({ assinantes, onConcluido }: { assinantes: Assinante[]; on
     if (rev) toast.warning(`${rev} carta(s) precisam de revisão: posição não encontrada com segurança.`);
   };
 
-  const ajustar = (l: Localizacao) => setCartas((cs) => cs.map((c, i) => i === sel ? { ...c, loc: l, status: c.status === "erro_leitura" ? c.status : "ajustada" } : c));
+  const ajustar = (l: Localizacao) => setCartas((cs) => cs.map((c, i) => i === sel ? { ...c, rascunho: l } : c));
+  const salvarAjuste = () => setCartas((cs) => cs.map((c, i) => i === sel && c.rascunho ? { ...c, loc: c.rascunho, rascunho: undefined, status: "ajustada" } : c));
+  const descartarAjuste = () => setCartas((cs) => cs.map((c, i) => i === sel ? { ...c, rascunho: undefined } : c));
   const atual = cartas[sel];
 
   const salvarModelo = async () => {
     if (!atual || !nomeModelo.trim() || !atual.paginas.length) return;
-    const m = criarModelo(nomeModelo.trim(), atual.paginas, atual.loc);
+    const m = criarModelo(nomeModelo.trim(), atual.paginas, atual.rascunho ?? atual.loc);
     const { error } = await supabase.from("assinatura_modelos").upsert({ ...m, atualizado_em: new Date().toISOString() } as any, { onConflict: "impressao" });
     if (error) return toast.error("Não foi possível salvar o modelo.", { description: error.message });
     toast.success(`Posição salva no modelo "${m.nome}". Cartas parecidas usarão esta posição.`);
@@ -331,7 +369,11 @@ function AbaProcessar({ assinantes, onConcluido }: { assinantes: Assinante[]; on
   };
 
   const aptas = cartas.filter((c) => c.status === "pronta" || c.status === "ajustada");
-  const pendentes = cartas.length - aptas.length;
+  const pendentes = cartas.filter((c) => c.status === "revisao").length;
+  const errosLoc = cartas.filter((c) => c.status === "erro_leitura").length;
+  const contagem = resultado
+    ? { total: resultado.length, sucesso: resultado.filter((r) => r.status === "ok").length, pendentes: resultado.filter((r) => r.status === "revisao").length, erro: resultado.filter((r) => r.status === "erro").length }
+    : null;
 
   const processar = async () => {
     if (!assinante || !user) return;
@@ -397,22 +439,39 @@ function AbaProcessar({ assinantes, onConcluido }: { assinantes: Assinante[]; on
             {analisando && <p className="text-xs text-muted-foreground mt-1 flex items-center gap-1"><Loader2 className="h-3 w-3 animate-spin" />Procurando o local da assinatura…</p>}
           </div>
           {cartas.length > 0 && (
-            <div className="rounded-md border divide-y max-h-80 overflow-auto">
+            <div className="grid grid-cols-4 gap-2 text-center">
+              {[["Total", cartas.length, ""], ["Prontas", aptas.length, "text-primary"], ["Precisam revisão", pendentes, "text-amber-600 dark:text-amber-400"], ["Erro ao localizar", errosLoc, "text-destructive"]].map(([t, n, cor]) => (
+                <div key={t as string} className="rounded-md border p-2"><div className={`text-lg font-semibold ${cor}`}>{n}</div><div className="text-[11px] text-muted-foreground">{t}</div></div>
+              ))}
+            </div>
+          )}
+          {cartas.length > 0 && (
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 max-h-[520px] overflow-auto pr-1">
               {cartas.map((c, i) => (
                 <button key={i} type="button" onClick={() => setSel(i)}
-                  className={`w-full text-left px-3 py-2 text-sm flex items-center gap-2 hover:bg-muted/50 ${i === sel ? "bg-primary/10" : ""}`}>
-                  <span className="truncate flex-1">{c.arquivo.name}</span>
-                  <Badge variant="outline" className={COR_CONF[c.loc.confianca]}>{ROTULO_CONFIANCA[c.loc.confianca]}</Badge>
-                  <Badge variant={c.status === "revisao" || c.status === "erro_leitura" ? "destructive" : "secondary"} className="shrink-0">{ROTULO_STATUS[c.status]}</Badge>
+                  className={`text-left rounded-md border p-1.5 space-y-1 hover:border-primary/60 ${i === sel ? "border-primary ring-1 ring-primary" : ""}`}>
+                  <MiniPrevia carta={c} assinaturaUrl={assinaturaUrl} />
+                  <div className="truncate text-xs" title={c.arquivo.name}>{c.arquivo.name}</div>
+                  <div className="flex flex-wrap gap-1">
+                    <Badge variant="outline" className={`text-[10px] px-1.5 ${COR_CONF[c.loc.confianca]}`}>{ROTULO_CONFIANCA[c.loc.confianca]}</Badge>
+                    <Badge variant={c.status === "revisao" || c.status === "erro_leitura" ? "destructive" : "secondary"} className="text-[10px] px-1.5">{ROTULO_STATUS[c.status]}</Badge>
+                  </div>
                 </button>
               ))}
             </div>
           )}
-          {pendentes > 0 && <p className="text-xs text-destructive">{pendentes} carta(s) com revisão necessária não serão assinadas. Abra cada uma e clique na posição correta.</p>}
+          {pendentes + errosLoc > 0 && <p className="text-xs text-destructive">{pendentes + errosLoc} carta(s) ficarão pendentes. Abra cada uma, posicione a assinatura e clique em "Salvar ajuste".</p>}
           {assinante?.rubrica_path && <p className="text-xs text-muted-foreground">A rubrica será colocada no canto inferior direito de todas as páginas.</p>}
           <Button onClick={processar} disabled={!assinante || !aptas.length || processando || analisando} className="w-full">
-            {processando ? <><Loader2 className="h-4 w-4 animate-spin mr-1" />Assinando {progresso} de {cartas.length}…</> : <><Upload className="h-4 w-4 mr-1" />Assinar {aptas.length || ""} carta(s)</>}
+            {processando ? <><Loader2 className="h-4 w-4 animate-spin mr-1" />Assinando {progresso} de {cartas.length}…</> : <><Upload className="h-4 w-4 mr-1" />Assinar em lote ({aptas.length})</>}
           </Button>
+          {contagem && (
+            <div className="grid grid-cols-4 gap-2 text-center">
+              {[["Total", contagem.total, ""], ["Assinadas", contagem.sucesso, "text-primary"], ["Pendentes", contagem.pendentes, "text-amber-600 dark:text-amber-400"], ["Com erro", contagem.erro, "text-destructive"]].map(([t, n, cor]) => (
+                <div key={t as string} className="rounded-md border p-2"><div className={`text-lg font-semibold ${cor}`}>{n}</div><div className="text-[11px] text-muted-foreground">{t}</div></div>
+              ))}
+            </div>
+          )}
           {resultado && <ListaArquivos arquivos={resultado} />}
         </CardContent>
       </Card>
@@ -422,6 +481,11 @@ function AbaProcessar({ assinantes, onConcluido }: { assinantes: Assinante[]; on
           {atual ? (
             <>
               <PreviaPosicao carta={atual} assinaturaUrl={assinaturaUrl} rubricaUrl={rubricaUrl} onAjustar={ajustar} />
+              <div className="flex gap-2 max-w-[520px]">
+                <Button onClick={salvarAjuste} disabled={!atual.rascunho}>Salvar ajuste</Button>
+                <Button variant="outline" onClick={descartarAjuste} disabled={!atual.rascunho}>Descartar</Button>
+                {atual.rascunho && <span className="text-xs text-amber-600 dark:text-amber-400 self-center">Ajuste não salvo</span>}
+              </div>
               {atual.paginas.length > 0 && (
                 <div className="max-w-[520px] space-y-1 border-t pt-3">
                   <Label className="text-xs">Salvar esta posição como modelo de carta</Label>
