@@ -453,6 +453,60 @@ export type Database = {
         }
         Relationships: []
       }
+      assinatura_modelos: {
+        Row: {
+          atualizado_em: string
+          criado_em: string
+          criado_por: string | null
+          desloc_x: number
+          desloc_y: number
+          id: string
+          impressao: string
+          largura: number
+          margem_inferior: number
+          margem_superior: number
+          nome: string
+          pagina: string
+          pos_x: number
+          pos_y: number
+          referencia: string | null
+        }
+        Insert: {
+          atualizado_em?: string
+          criado_em?: string
+          criado_por?: string | null
+          desloc_x?: number
+          desloc_y?: number
+          id?: string
+          impressao: string
+          largura?: number
+          margem_inferior?: number
+          margem_superior?: number
+          nome: string
+          pagina?: string
+          pos_x: number
+          pos_y: number
+          referencia?: string | null
+        }
+        Update: {
+          atualizado_em?: string
+          criado_em?: string
+          criado_por?: string | null
+          desloc_x?: number
+          desloc_y?: number
+          id?: string
+          impressao?: string
+          largura?: number
+          margem_inferior?: number
+          margem_superior?: number
+          nome?: string
+          pagina?: string
+          pos_x?: number
+          pos_y?: number
+          referencia?: string | null
+        }
+        Relationships: []
+      }
       assinaturas_processamentos: {
         Row: {
           arquivos: Json

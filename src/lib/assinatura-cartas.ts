@@ -39,15 +39,16 @@ async function embutir(doc: PDFDocument, bytes: Uint8Array, tipo: string) {
 
 export interface ImagemAssinatura { bytes: Uint8Array; tipo: string }
 
-/** Assina a última página e, se houver rubrica, rubrica todas as páginas. */
+/** Assina a página indicada (padrão: última) e, se houver rubrica, rubrica todas as páginas. */
 export async function assinarPdf(
   pdf: Uint8Array, assinatura: ImagemAssinatura, rubrica: ImagemAssinatura | null, pos: PosicaoAssinatura,
+  pagina?: number, // 1-based; padrão: última
 ): Promise<Uint8Array> {
   const doc = await PDFDocument.load(pdf);
   const paginas = doc.getPages();
   if (!paginas.length) throw new Error("PDF sem páginas");
   const img = await embutir(doc, assinatura.bytes, assinatura.tipo);
-  const ultima = paginas[paginas.length - 1];
+  const ultima = paginas[Math.min(Math.max((pagina ?? paginas.length) - 1, 0), paginas.length - 1)];
   const { width, height } = ultima.getSize();
   ultima.drawImage(img, retanguloPdf(pos, width, height, img.width, img.height));
   if (rubrica) {

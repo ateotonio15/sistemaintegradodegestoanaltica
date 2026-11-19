@@ -708,6 +708,13 @@
       "when": 1795095620536,
       "tag": "0100_assinaturas_cartas",
       "breakpoints": true
+    },
+    {
+      "idx": 101,
+      "version": "7",
+      "when": 1795096977505,
+      "tag": "0101_assinatura_modelos",
+      "breakpoints": true
     }
   ]
 }

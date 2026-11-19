@@ -20,7 +20,9 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { assinarPdf, nomeAssinado, POSICAO_PADRAO, RUBRICA_LARGURA, type PosicaoAssinatura } from "@/lib/assinatura-cartas";
+import { assinarPdf, nomeAssinado, RUBRICA_LARGURA } from "@/lib/assinatura-cartas";
+import { criarModelo, localizarAssinatura, ROTULO_CONFIANCA, type Localizacao, type ModeloPosicao, type PaginaTexto } from "@/lib/assinatura-localizar";
+import { lerTextoPdf } from "@/lib/assinatura-pdf-texto";
 
 (pdfjsLib as any).GlobalWorkerOptions.workerSrc = workerSrc;
 const BUCKET = "assinaturas-cartas";
@@ -30,7 +32,7 @@ interface Assinante {
   id: string; nome: string; cargo: string | null; assinatura_path: string | null;
   rubrica_path: string | null; ativo: boolean; observacao: string | null;
 }
-interface ArquivoProc { nome: string; status: "ok" | "erro"; path?: string; erro?: string }
+interface ArquivoProc { nome: string; status: "ok" | "erro" | "revisao"; path?: string; erro?: string; pagina?: number; referencia?: string | null; confianca?: string; origem?: string }
 interface Processamento {
   id: string; criado_em: string; usuario_nome: string | null; assinante_nome: string;
   total: number; sucesso: number; erro: number; arquivos: ArquivoProc[];
@@ -175,19 +177,30 @@ function AbaAssinantes({ assinantes }: { assinantes: Assinante[] }) {
 }
 
 /* ------------------------------ Processar ------------------------------ */
-function PreviaPosicao({ arquivo, assinaturaUrl, rubricaUrl, pos, setPos }: {
-  arquivo: File; assinaturaUrl: string | null; rubricaUrl: string | null; pos: PosicaoAssinatura; setPos: (p: PosicaoAssinatura) => void;
+type StatusCarta = "pronta" | "revisao" | "ajustada" | "erro_leitura";
+interface CartaAnalise { arquivo: File; paginas: PaginaTexto[]; numPaginas: number; loc: Localizacao; status: StatusCarta }
+
+const COR_CONF: Record<string, string> = {
+  alta: "bg-primary/15 text-primary border-primary/30",
+  media: "bg-amber-500/15 text-amber-600 dark:text-amber-400 border-amber-500/30",
+  baixa: "bg-destructive/15 text-destructive border-destructive/30",
+};
+const ROTULO_STATUS: Record<StatusCarta, string> = { pronta: "Pronta", revisao: "Revisão necessária", ajustada: "Ajustada manualmente", erro_leitura: "Não foi possível ler" };
+
+function PreviaPosicao({ carta, assinaturaUrl, rubricaUrl, onAjustar }: {
+  carta: CartaAnalise; assinaturaUrl: string | null; rubricaUrl: string | null; onAjustar: (l: Localizacao) => void;
 }) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [proporcao, setProporcao] = useState(1.414);
   const [carregando, setCarregando] = useState(true);
+  const { loc } = carta;
   useEffect(() => {
     let cancel = false;
     (async () => {
       setCarregando(true);
       try {
-        const doc = await (pdfjsLib as any).getDocument({ data: new Uint8Array(await arquivo.arrayBuffer()) }).promise;
-        const pagina = await doc.getPage(doc.numPages);
+        const doc = await (pdfjsLib as any).getDocument({ data: new Uint8Array(await carta.arquivo.arrayBuffer()) }).promise;
+        const pagina = await doc.getPage(Math.min(loc.pagina, doc.numPages));
         const vp1 = pagina.getViewport({ scale: 1 });
         const vp = pagina.getViewport({ scale: 520 / vp1.width });
         const c = canvasRef.current; if (!c || cancel) return;
@@ -197,30 +210,55 @@ function PreviaPosicao({ arquivo, assinaturaUrl, rubricaUrl, pos, setPos }: {
       finally { if (!cancel) setCarregando(false); }
     })();
     return () => { cancel = true; };
-  }, [arquivo]);
+  }, [carta.arquivo, loc.pagina]);
 
   const clicar = (e: React.MouseEvent<HTMLDivElement>) => {
     const r = e.currentTarget.getBoundingClientRect();
-    setPos({ ...pos, x: (e.clientX - r.left) / r.width, y: (e.clientY - r.top) / r.height });
+    onAjustar({ ...loc, x: (e.clientX - r.left) / r.width, y: (e.clientY - r.top) / r.height, origem: "manual" });
   };
   return (
-    <div className="space-y-2">
-      <p className="text-xs text-muted-foreground">Clique na última página para posicionar a assinatura. A posição vale para todas as cartas do lote.</p>
+    <div className="space-y-3">
+      <div className="flex flex-wrap items-center gap-2 text-xs">
+        <Badge variant="outline" className={COR_CONF[loc.confianca]}>Confiança {ROTULO_CONFIANCA[loc.confianca]}</Badge>
+        <span className="text-muted-foreground">Página {loc.pagina} de {carta.numPaginas}</span>
+        <span className="text-muted-foreground">· Referência: {loc.referencia ? `"${loc.referencia}"` : "nenhuma encontrada"}</span>
+      </div>
+      <p className="text-xs text-muted-foreground">Clique na página para ajustar a posição desta carta.</p>
       <div className="relative w-full max-w-[520px] cursor-crosshair border rounded-md overflow-hidden bg-white" style={{ aspectRatio: `1 / ${proporcao}` }} onClick={clicar}>
         <canvas ref={canvasRef} className="w-full h-full" />
         {carregando && <div className="absolute inset-0 flex items-center justify-center"><Loader2 className="h-6 w-6 animate-spin text-primary" /></div>}
         {assinaturaUrl && (
           <img src={assinaturaUrl} alt="" className="absolute pointer-events-none outline outline-1 outline-dashed outline-primary"
-            style={{ left: `${pos.x * 100}%`, top: `${pos.y * 100}%`, width: `${pos.largura * 100}%`, transform: "translate(-50%, -50%)" }} />
+            style={{ left: `${loc.x * 100}%`, top: `${loc.y * 100}%`, width: `${loc.largura * 100}%`, transform: "translate(-50%, -50%)" }} />
         )}
-        {rubricaUrl && (
-          <img src={rubricaUrl} alt="" className="absolute pointer-events-none opacity-80"
-            style={{ right: "4%", bottom: "4%", width: `${RUBRICA_LARGURA * 100}%` }} />
-        )}
+        {rubricaUrl && <img src={rubricaUrl} alt="" className="absolute pointer-events-none opacity-80" style={{ right: "4%", bottom: "4%", width: `${RUBRICA_LARGURA * 100}%` }} />}
       </div>
-      <div className="max-w-[520px]">
-        <Label className="text-xs">Tamanho da assinatura</Label>
-        <Slider min={10} max={60} step={1} value={[Math.round(pos.largura * 100)]} onValueChange={([v]) => setPos({ ...pos, largura: v / 100 })} />
+      <div className="grid grid-cols-2 gap-3 max-w-[520px]">
+        <div className="col-span-2">
+          <Label className="text-xs">Tamanho da assinatura</Label>
+          <Slider min={10} max={60} step={1} value={[Math.round(loc.largura * 100)]} onValueChange={([v]) => onAjustar({ ...loc, largura: v / 100, origem: "manual" })} />
+        </div>
+        <div>
+          <Label className="text-xs">Página</Label>
+          <Input type="number" min={1} max={carta.numPaginas} value={loc.pagina}
+            onChange={(e) => onAjustar({ ...loc, pagina: Math.min(Math.max(1, Number(e.target.value) || 1), carta.numPaginas), origem: "manual" })} />
+        </div>
+        <div>
+          <Label className="text-xs">Margem acima do texto (%)</Label>
+          <Input type="number" min={0} max={20} step={0.5} value={Math.round(loc.margem_superior * 1000) / 10}
+            onChange={(e) => {
+              const m = Math.max(0, Number(e.target.value) || 0) / 100;
+              onAjustar({ ...loc, y: loc.y - (m - loc.margem_superior), margem_superior: m, origem: "manual" });
+            }} />
+        </div>
+        <div>
+          <Label className="text-xs">Margem inferior mínima (%)</Label>
+          <Input type="number" min={0} max={20} step={0.5} value={Math.round(loc.margem_inferior * 1000) / 10}
+            onChange={(e) => {
+              const m = Math.max(0, Number(e.target.value) || 0) / 100;
+              onAjustar({ ...loc, y: Math.min(loc.y, 1 - m), margem_inferior: m, origem: "manual" });
+            }} />
+        </div>
       </div>
     </div>
   );
@@ -228,22 +266,72 @@ function PreviaPosicao({ arquivo, assinaturaUrl, rubricaUrl, pos, setPos }: {
 
 function AbaProcessar({ assinantes, onConcluido }: { assinantes: Assinante[]; onConcluido: () => void }) {
   const { user } = useAuth();
+  const qc = useQueryClient();
   const ativos = assinantes.filter((a) => a.ativo && a.assinatura_path);
   const [assinanteId, setAssinanteId] = useState("");
-  const [arquivos, setArquivos] = useState<File[]>([]);
-  const [pos, setPos] = useState<PosicaoAssinatura>(POSICAO_PADRAO);
+  const [cartas, setCartas] = useState<CartaAnalise[]>([]);
+  const [sel, setSel] = useState(0);
+  const [analisando, setAnalisando] = useState(false);
   const [processando, setProcessando] = useState(false);
   const [progresso, setProgresso] = useState(0);
   const [resultado, setResultado] = useState<ArquivoProc[] | null>(null);
+  const [nomeModelo, setNomeModelo] = useState("");
   const assinante = ativos.find((a) => a.id === assinanteId) ?? null;
   const assinaturaUrl = useImagem(assinante?.assinatura_path);
   const rubricaUrl = useImagem(assinante?.rubrica_path);
+  const modelos = useQuery({
+    queryKey: ["assinatura-modelos"],
+    queryFn: async () => {
+      const { data, error } = await supabase.from("assinatura_modelos").select("*").order("nome");
+      if (error) throw error; return (data ?? []) as unknown as ModeloPosicao[];
+    },
+  });
 
-  const escolher = (lista: FileList | null) => {
+  const escolher = async (lista: FileList | null) => {
     const pdfs = Array.from(lista ?? []).filter((f) => f.type === "application/pdf" || /\.pdf$/i.test(f.name));
     if (lista && pdfs.length < lista.length) toast.warning("Apenas arquivos PDF são aceitos; os demais foram ignorados.");
-    setArquivos(pdfs); setResultado(null);
+    setResultado(null); setSel(0); setCartas([]);
+    if (!pdfs.length) return;
+    setAnalisando(true);
+    const ms = modelos.data ?? [];
+    const out: CartaAnalise[] = [];
+    for (const f of pdfs) {
+      try {
+        const paginas = await lerTextoPdf(new Uint8Array(await f.arrayBuffer()));
+        const loc = localizarAssinatura(paginas, ms);
+        out.push({ arquivo: f, paginas, numPaginas: paginas.length, loc, status: loc.confianca === "baixa" ? "revisao" : "pronta" });
+      } catch {
+        out.push({ arquivo: f, paginas: [], numPaginas: 1, loc: localizarAssinatura([{ linhas: [] }]), status: "erro_leitura" });
+      }
+    }
+    setCartas(out); setAnalisando(false);
+    const rev = out.filter((c) => c.status === "revisao").length;
+    if (rev) toast.warning(`${rev} carta(s) precisam de revisão: posição não encontrada com segurança.`);
   };
+
+  const ajustar = (l: Localizacao) => setCartas((cs) => cs.map((c, i) => i === sel ? { ...c, loc: l, status: c.status === "erro_leitura" ? c.status : "ajustada" } : c));
+  const atual = cartas[sel];
+
+  const salvarModelo = async () => {
+    if (!atual || !nomeModelo.trim() || !atual.paginas.length) return;
+    const m = criarModelo(nomeModelo.trim(), atual.paginas, atual.loc);
+    const { error } = await supabase.from("assinatura_modelos").upsert({ ...m, atualizado_em: new Date().toISOString() } as any, { onConflict: "impressao" });
+    if (error) return toast.error("Não foi possível salvar o modelo.", { description: error.message });
+    toast.success(`Posição salva no modelo "${m.nome}". Cartas parecidas usarão esta posição.`);
+    const lista = await qc.fetchQuery({ queryKey: ["assinatura-modelos"], queryFn: async () => {
+      const { data } = await supabase.from("assinatura_modelos").select("*").order("nome"); return (data ?? []) as unknown as ModeloPosicao[];
+    }, staleTime: 0 });
+    // Reaplica o modelo nas outras cartas do lote que ainda não foram ajustadas.
+    setCartas((cs) => cs.map((c, i) => {
+      if (i === sel || c.status === "ajustada" || !c.paginas.length) return c;
+      const loc = localizarAssinatura(c.paginas, lista);
+      return { ...c, loc, status: loc.confianca === "baixa" ? "revisao" : "pronta" };
+    }));
+    setNomeModelo("");
+  };
+
+  const aptas = cartas.filter((c) => c.status === "pronta" || c.status === "ajustada");
+  const pendentes = cartas.length - aptas.length;
 
   const processar = async () => {
     if (!assinante || !user) return;
@@ -258,16 +346,21 @@ function AbaProcessar({ assinantes, onConcluido }: { assinantes: Assinante[]; on
         const imgR = await baixar(assinante.rubrica_path);
         rubrica = { bytes: new Uint8Array(await imgR.arrayBuffer()), tipo: imgR.type || assinante.rubrica_path };
       }
-      for (let i = 0; i < arquivos.length; i++) {
-        const f = arquivos[i];
+      for (let i = 0; i < cartas.length; i++) {
+        const c = cartas[i]; const l = c.loc;
+        const detalhe = { pagina: l.pagina, referencia: l.referencia, confianca: l.confianca, origem: l.origem, x: l.x, y: l.y, largura: l.largura, margem_superior: l.margem_superior, margem_inferior: l.margem_inferior };
+        if (c.status === "revisao" || c.status === "erro_leitura") {
+          res.push({ nome: c.arquivo.name, status: "revisao", erro: c.status === "erro_leitura" ? "Não foi possível ler o texto" : "Revisão necessária", ...detalhe });
+          setProgresso(i + 1); continue;
+        }
         try {
-          const saida = await assinarPdf(new Uint8Array(await f.arrayBuffer()), assinatura, rubrica, pos);
-          const path = `lotes/${loteId}/${i + 1}-${nomeAssinado(f.name).replace(/[^\w.\- ]/g, "_")}`;
+          const saida = await assinarPdf(new Uint8Array(await c.arquivo.arrayBuffer()), assinatura, rubrica, { x: l.x, y: l.y, largura: l.largura }, l.pagina);
+          const path = `lotes/${loteId}/${i + 1}-${nomeAssinado(c.arquivo.name).replace(/[^\w.\- ]/g, "_")}`;
           const { error } = await supabase.storage.from(BUCKET).upload(path, new Blob([saida as BlobPart], { type: "application/pdf" }), { contentType: "application/pdf" });
           if (error) throw error;
-          res.push({ nome: nomeAssinado(f.name), status: "ok", path });
+          res.push({ nome: nomeAssinado(c.arquivo.name), status: "ok", path, ...detalhe });
         } catch (e: any) {
-          res.push({ nome: f.name, status: "erro", erro: e?.message?.includes("encrypt") ? "PDF protegido por senha" : "Não foi possível assinar este PDF" });
+          res.push({ nome: c.arquivo.name, status: "erro", erro: e?.message?.includes("encrypt") ? "PDF protegido por senha" : "Não foi possível assinar este PDF", ...detalhe });
         }
         setProgresso(i + 1);
       }
@@ -301,20 +394,46 @@ function AbaProcessar({ assinantes, onConcluido }: { assinantes: Assinante[]; on
           <div>
             <Label>Cartas em PDF (uma ou várias)</Label>
             <Input type="file" accept="application/pdf,.pdf" multiple onChange={(e) => escolher(e.target.files)} />
-            {arquivos.length > 0 && <p className="text-xs text-muted-foreground mt-1">{arquivos.length} carta(s) selecionada(s)</p>}
+            {analisando && <p className="text-xs text-muted-foreground mt-1 flex items-center gap-1"><Loader2 className="h-3 w-3 animate-spin" />Procurando o local da assinatura…</p>}
           </div>
+          {cartas.length > 0 && (
+            <div className="rounded-md border divide-y max-h-80 overflow-auto">
+              {cartas.map((c, i) => (
+                <button key={i} type="button" onClick={() => setSel(i)}
+                  className={`w-full text-left px-3 py-2 text-sm flex items-center gap-2 hover:bg-muted/50 ${i === sel ? "bg-primary/10" : ""}`}>
+                  <span className="truncate flex-1">{c.arquivo.name}</span>
+                  <Badge variant="outline" className={COR_CONF[c.loc.confianca]}>{ROTULO_CONFIANCA[c.loc.confianca]}</Badge>
+                  <Badge variant={c.status === "revisao" || c.status === "erro_leitura" ? "destructive" : "secondary"} className="shrink-0">{ROTULO_STATUS[c.status]}</Badge>
+                </button>
+              ))}
+            </div>
+          )}
+          {pendentes > 0 && <p className="text-xs text-destructive">{pendentes} carta(s) com revisão necessária não serão assinadas. Abra cada uma e clique na posição correta.</p>}
           {assinante?.rubrica_path && <p className="text-xs text-muted-foreground">A rubrica será colocada no canto inferior direito de todas as páginas.</p>}
-          <Button onClick={processar} disabled={!assinante || !arquivos.length || processando} className="w-full">
-            {processando ? <><Loader2 className="h-4 w-4 animate-spin mr-1" />Assinando {progresso} de {arquivos.length}…</> : <><Upload className="h-4 w-4 mr-1" />Assinar {arquivos.length || ""} carta(s)</>}
+          <Button onClick={processar} disabled={!assinante || !aptas.length || processando || analisando} className="w-full">
+            {processando ? <><Loader2 className="h-4 w-4 animate-spin mr-1" />Assinando {progresso} de {cartas.length}…</> : <><Upload className="h-4 w-4 mr-1" />Assinar {aptas.length || ""} carta(s)</>}
           </Button>
           {resultado && <ListaArquivos arquivos={resultado} />}
         </CardContent>
       </Card>
       <Card>
         <CardHeader><CardTitle className="text-base">Posição da assinatura</CardTitle></CardHeader>
-        <CardContent>
-          {arquivos[0] ? <PreviaPosicao arquivo={arquivos[0]} assinaturaUrl={assinaturaUrl} rubricaUrl={rubricaUrl} pos={pos} setPos={setPos} />
-            : <p className="text-sm text-muted-foreground py-10 text-center">Selecione as cartas para ver a prévia.</p>}
+        <CardContent className="space-y-4">
+          {atual ? (
+            <>
+              <PreviaPosicao carta={atual} assinaturaUrl={assinaturaUrl} rubricaUrl={rubricaUrl} onAjustar={ajustar} />
+              {atual.paginas.length > 0 && (
+                <div className="max-w-[520px] space-y-1 border-t pt-3">
+                  <Label className="text-xs">Salvar esta posição como modelo de carta</Label>
+                  <div className="flex gap-2">
+                    <Input placeholder="Ex.: Carta de cancelamento" value={nomeModelo} onChange={(e) => setNomeModelo(e.target.value)} />
+                    <Button variant="outline" onClick={salvarModelo} disabled={!nomeModelo.trim()}>Salvar modelo</Button>
+                  </div>
+                  {atual.loc.origem === "modelo" && <p className="text-xs text-primary">Posição vinda de um modelo salvo.</p>}
+                </div>
+              )}
+            </>
+          ) : <p className="text-sm text-muted-foreground py-10 text-center">Selecione as cartas para ver a prévia.</p>}
         </CardContent>
       </Card>
     </div>
@@ -342,7 +461,7 @@ function ListaArquivos({ arquivos }: { arquivos: ArquivoProc[] }) {
                 <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => ver(a)} title="Visualizar"><Eye className="h-4 w-4" /></Button>
                 <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => baixarUm(a)} title="Baixar"><Download className="h-4 w-4" /></Button>
               </span>
-            ) : <Badge variant="destructive" className="shrink-0">{a.erro}</Badge>}
+            ) : <span className="flex items-center gap-1 shrink-0">{a.confianca && <span className="text-[11px] text-muted-foreground">Confiança {ROTULO_CONFIANCA[a.confianca as "alta"]}</span>}<Badge variant="destructive">{a.erro}</Badge></span>}
           </div>
         ))}
       </div>
