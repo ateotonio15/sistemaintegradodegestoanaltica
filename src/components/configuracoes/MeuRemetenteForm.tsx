@@ -81,6 +81,8 @@ export function MeuRemetenteForm() {
     let path = assinaturaPath;
     if (arquivo) {
       path = `${user!.id}.${TIPOS[arquivo.type]}`;
+      // Remove a assinatura anterior (inclusive gravada por outro dono) antes de enviar a nova.
+      await supabase.storage.from(BUCKET).remove([`${user!.id}.png`, `${user!.id}.jpg`]);
       const { error: errUp } = await supabase.storage.from(BUCKET).upload(path, arquivo, { upsert: true, contentType: arquivo.type });
       if (errUp) { setSalvando(false); setErro("Não foi possível salvar a imagem da assinatura. Tente novamente."); return; }
     }
