@@ -1,3 +1,4 @@
+import { lazy, Suspense } from "react";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -23,7 +24,7 @@ import Reajustes from "./pages/Reajustes";
 import Arquivos from "./pages/Arquivos";
 import RepositorioEnvios from "./pages/RepositorioEnvios";
 import Cartas from "./pages/Cartas";
-import Assinaturas from "./pages/Assinaturas";
+const Assinaturas = lazy(() => import("./pages/Assinaturas"));
 import Implantacao from "./pages/Implantacao";
 import ContratosRecemImplantados from "./pages/ContratosRecemImplantados";
 import VidasSamel from "./pages/VidasSamel";
@@ -259,7 +260,7 @@ const AppRoutes = () => (
       </Route>
 
       <Route element={<RoleGate allow={["admin", "comum", "administradoras"]} />}>
-        <Route path="/assinaturas" element={<Assinaturas />} />
+        <Route path="/assinaturas" element={<Suspense fallback={null}><Assinaturas /></Suspense>} />
       </Route>
 
       <Route element={<RoleGate allow={["admin", "financeiro"]} />}>
