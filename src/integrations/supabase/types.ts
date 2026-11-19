@@ -423,6 +423,7 @@ export type Database = {
           criado_em: string
           criado_por: string | null
           id: string
+          largura_padrao: number
           nome: string
           observacao: string | null
           rubrica_path: string | null
@@ -435,6 +436,7 @@ export type Database = {
           criado_em?: string
           criado_por?: string | null
           id?: string
+          largura_padrao?: number
           nome: string
           observacao?: string | null
           rubrica_path?: string | null
@@ -447,6 +449,7 @@ export type Database = {
           criado_em?: string
           criado_por?: string | null
           id?: string
+          largura_padrao?: number
           nome?: string
           observacao?: string | null
           rubrica_path?: string | null
@@ -515,6 +518,9 @@ export type Database = {
           criado_em: string
           erro: number
           id: string
+          nome_lote: string | null
+          reprocessado_em: string | null
+          status: string
           sucesso: number
           total: number
           usuario_id: string
@@ -527,6 +533,9 @@ export type Database = {
           criado_em?: string
           erro?: number
           id?: string
+          nome_lote?: string | null
+          reprocessado_em?: string | null
+          status?: string
           sucesso?: number
           total?: number
           usuario_id?: string
@@ -539,6 +548,9 @@ export type Database = {
           criado_em?: string
           erro?: number
           id?: string
+          nome_lote?: string | null
+          reprocessado_em?: string | null
+          status?: string
           sucesso?: number
           total?: number
           usuario_id?: string

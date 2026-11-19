@@ -5,7 +5,7 @@ import JSZip from "jszip";
 import * as pdfjsLib from "pdfjs-dist";
 // @ts-ignore — Vite resolve o worker como URL
 import workerSrc from "pdfjs-dist/build/pdf.worker.min.mjs?url";
-import { Download, Eye, FileSignature, History, Loader2, PenLine, Plus, Upload, Users } from "lucide-react";
+import { Download, Eye, FileSignature, History, Loader2, PenLine, Plus, RotateCcw, Upload, Users } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
@@ -21,6 +21,7 @@ import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { assinarPdf, nomeAssinado, RUBRICA_LARGURA } from "@/lib/assinatura-cartas";
+import { emParalelo, statusLote, ROTULO_STATUS_LOTE, posicoesParecidas, type StatusLote } from "@/lib/assinatura-lote";
 import { criarModelo, localizarAssinatura, ROTULO_CONFIANCA, type Localizacao, type ModeloPosicao, type PaginaTexto } from "@/lib/assinatura-localizar";
 import { lerTextoPdf } from "@/lib/assinatura-pdf-texto";
 
@@ -30,13 +31,15 @@ const TIPOS_IMG = ["image/png", "image/jpeg"];
 
 interface Assinante {
   id: string; nome: string; cargo: string | null; assinatura_path: string | null;
-  rubrica_path: string | null; ativo: boolean; observacao: string | null;
+  rubrica_path: string | null; ativo: boolean; observacao: string | null; largura_padrao: number | null;
 }
-interface ArquivoProc { nome: string; status: "ok" | "erro" | "revisao"; path?: string; erro?: string; pagina?: number; referencia?: string | null; confianca?: string; origem?: string }
+interface ArquivoProc { nome: string; original_nome?: string; original_path?: string; status: "ok" | "erro" | "revisao"; path?: string; erro?: string; pagina?: number; referencia?: string | null; confianca?: string; origem?: string }
 interface Processamento {
-  id: string; criado_em: string; usuario_nome: string | null; assinante_nome: string;
+  id: string; criado_em: string; usuario_nome: string | null; assinante_nome: string; assinante_id: string | null;
   total: number; sucesso: number; erro: number; arquivos: ArquivoProc[];
+  nome_lote: string | null; status: StatusLote; reprocessado_em: string | null; usuario_id: string;
 }
+interface Reprocesso { lote: Processamento; arquivos: File[] }
 
 async function baixar(path: string) {
   const { data, error } = await supabase.storage.from(BUCKET).download(path);
@@ -72,8 +75,10 @@ function AssinanteDialog({ aberto, onClose, editar }: { aberto: boolean; onClose
   const [obs, setObs] = useState(""); const [ativo, setAtivo] = useState(true);
   const [assin, setAssin] = useState<File | null>(null); const [rub, setRub] = useState<File | null>(null);
   const [salvando, setSalvando] = useState(false);
+  const [largura, setLargura] = useState(30);
   useEffect(() => {
     if (!aberto) return;
+    setLargura(Math.round(Number(editar?.largura_padrao ?? 0.3) * 100));
     setNome(editar?.nome ?? ""); setCargo(editar?.cargo ?? ""); setObs(editar?.observacao ?? "");
     setAtivo(editar?.ativo ?? true); setAssin(null); setRub(null);
   }, [aberto, editar]);
@@ -99,7 +104,7 @@ function AssinanteDialog({ aberto, onClose, editar }: { aberto: boolean; onClose
       };
       const assinatura_path = assin ? await enviar(assin, "assinatura") : editar?.assinatura_path ?? null;
       const rubrica_path = rub ? await enviar(rub, "rubrica") : editar?.rubrica_path ?? null;
-      const dados = { nome: nome.trim(), cargo: cargo.trim() || null, observacao: obs.trim() || null, ativo, assinatura_path, rubrica_path, atualizado_em: new Date().toISOString() };
+      const dados = { nome: nome.trim(), cargo: cargo.trim() || null, observacao: obs.trim() || null, ativo, assinatura_path, rubrica_path, largura_padrao: largura / 100, atualizado_em: new Date().toISOString() };
       const { error } = editar
         ? await supabase.from("assinantes").update(dados).eq("id", id)
         : await supabase.from("assinantes").insert({ id, ...dados });
@@ -131,6 +136,11 @@ function AssinanteDialog({ aberto, onClose, editar }: { aberto: boolean; onClose
             <Input type="file" accept="image/png,image/jpeg" onChange={(e) => escolher(e.target.files?.[0], setRub)} />
             {!rub && editar?.rubrica_path && <div className="mt-2"><Miniatura path={editar.rubrica_path} /></div>}
           </div>
+          <div>
+            <Label>Tamanho padrão da assinatura: {largura}% da largura da página</Label>
+            <Slider min={10} max={60} step={1} value={[largura]} onValueChange={([v]) => setLargura(v)} className="mt-2" />
+            <p className="text-[11px] text-muted-foreground mt-1">A proporção da imagem é sempre mantida; só a largura muda.</p>
+          </div>
           <div className="flex items-center gap-2"><Switch checked={ativo} onCheckedChange={setAtivo} /><Label>{ativo ? "Ativo" : "Inativo"}</Label></div>
           <div><Label>Observação</Label><Textarea rows={2} value={obs} onChange={(e) => setObs(e.target.value)} /></div>
         </div>
@@ -154,7 +164,7 @@ function AbaAssinantes({ assinantes }: { assinantes: Assinante[] }) {
       <CardContent>
         {assinantes.length === 0 ? <p className="text-sm text-muted-foreground py-6 text-center">Nenhum assinante cadastrado.</p> : (
           <Table>
-            <TableHeader><TableRow><TableHead>Nome</TableHead><TableHead>Cargo</TableHead><TableHead>Assinatura</TableHead><TableHead>Rubrica</TableHead><TableHead>Status</TableHead><TableHead>Observação</TableHead><TableHead /></TableRow></TableHeader>
+            <TableHeader><TableRow><TableHead>Nome</TableHead><TableHead>Cargo</TableHead><TableHead>Assinatura</TableHead><TableHead>Rubrica</TableHead><TableHead>Tamanho</TableHead><TableHead>Status</TableHead><TableHead>Observação</TableHead><TableHead /></TableRow></TableHeader>
             <TableBody>
               {assinantes.map((a) => (
                 <TableRow key={a.id}>
@@ -162,6 +172,7 @@ function AbaAssinantes({ assinantes }: { assinantes: Assinante[] }) {
                   <TableCell>{a.cargo ?? "—"}</TableCell>
                   <TableCell><Miniatura path={a.assinatura_path} /></TableCell>
                   <TableCell><Miniatura path={a.rubrica_path} /></TableCell>
+                  <TableCell>{Math.round(Number(a.largura_padrao ?? 0.3) * 100)}%</TableCell>
                   <TableCell><Badge variant={a.ativo ? "default" : "secondary"}>{a.ativo ? "Ativo" : "Inativo"}</Badge></TableCell>
                   <TableCell className="max-w-[220px] truncate text-muted-foreground">{a.observacao ?? "—"}</TableCell>
                   <TableCell><Button size="sm" variant="ghost" onClick={() => { setEditar(a); setAberto(true); }}><PenLine className="h-4 w-4" /></Button></TableCell>
@@ -191,7 +202,15 @@ function MiniPrevia({ carta, assinaturaUrl }: { carta: CartaAnalise; assinaturaU
   const ref = useRef<HTMLCanvasElement>(null);
   const [prop, setProp] = useState(1.414);
   const loc = carta.rascunho ?? carta.loc;
+  const caixa = useRef<HTMLDivElement>(null);
+  const [visivel, setVisivel] = useState(false);
   useEffect(() => {
+    const el = caixa.current; if (!el) return;
+    const ob = new IntersectionObserver(([e]) => { if (e.isIntersecting) { setVisivel(true); ob.disconnect(); } }, { rootMargin: "200px" });
+    ob.observe(el); return () => ob.disconnect();
+  }, []);
+  useEffect(() => {
+    if (!visivel) return;
     let cancel = false;
     (async () => {
       try {
@@ -205,9 +224,9 @@ function MiniPrevia({ carta, assinaturaUrl }: { carta: CartaAnalise; assinaturaU
       } catch { /* prévia indisponível */ }
     })();
     return () => { cancel = true; };
-  }, [carta.arquivo, loc.pagina]);
+  }, [carta.arquivo, loc.pagina, visivel]);
   return (
-    <div className="relative w-full bg-white rounded overflow-hidden" style={{ aspectRatio: `1 / ${prop}` }}>
+    <div ref={caixa} className="relative w-full bg-white rounded overflow-hidden" style={{ aspectRatio: `1 / ${prop}` }}>
       <canvas ref={ref} className="w-full h-full" />
       {assinaturaUrl && carta.status !== "erro_leitura" && (
         <img src={assinaturaUrl} alt="" className="absolute pointer-events-none"
@@ -300,7 +319,7 @@ function PreviaPosicao({ carta, assinaturaUrl, rubricaUrl, onAjustar }: {
   );
 }
 
-function AbaProcessar({ assinantes, onConcluido }: { assinantes: Assinante[]; onConcluido: () => void }) {
+function AbaProcessar({ assinantes, onConcluido, reprocesso, onReprocessoFim }: { assinantes: Assinante[]; onConcluido: () => void; reprocesso: Reprocesso | null; onReprocessoFim: () => void }) {
   const { user } = useAuth();
   const qc = useQueryClient();
   const ativos = assinantes.filter((a) => a.ativo && a.assinatura_path);
@@ -312,6 +331,7 @@ function AbaProcessar({ assinantes, onConcluido }: { assinantes: Assinante[]; on
   const [progresso, setProgresso] = useState(0);
   const [resultado, setResultado] = useState<ArquivoProc[] | null>(null);
   const [nomeModelo, setNomeModelo] = useState("");
+  const [nomeLote, setNomeLote] = useState("");
   const assinante = ativos.find((a) => a.id === assinanteId) ?? null;
   const assinaturaUrl = useImagem(assinante?.assinatura_path);
   const rubricaUrl = useImagem(assinante?.rubrica_path);
@@ -323,23 +343,38 @@ function AbaProcessar({ assinantes, onConcluido }: { assinantes: Assinante[]; on
     },
   });
 
-  const escolher = async (lista: FileList | null) => {
-    const pdfs = Array.from(lista ?? []).filter((f) => f.type === "application/pdf" || /\.pdf$/i.test(f.name));
+  const larguraPadrao = Number(assinante?.largura_padrao ?? 0.3);
+  const comLargura = (loc: Localizacao): Localizacao => loc.origem === "modelo" ? loc : { ...loc, largura: larguraPadrao };
+  // Ao trocar de assinante, aplica o tamanho padrão dele às cartas não ajustadas.
+  useEffect(() => {
+    setCartas((cs) => cs.map((c) => c.status === "ajustada" ? c : { ...c, loc: comLargura(c.loc) }));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [larguraPadrao]);
+  useEffect(() => {
+    if (!reprocesso) return;
+    setAssinanteId(reprocesso.lote.assinante_id ?? "");
+    setNomeLote(reprocesso.lote.nome_lote ?? "");
+    escolher(reprocesso.arquivos);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [reprocesso]);
+
+  const escolher = async (lista: File[] | null) => {
+    const pdfs = (lista ?? []).filter((f) => f.type === "application/pdf" || /\.pdf$/i.test(f.name));
     if (lista && pdfs.length < lista.length) toast.warning("Apenas arquivos PDF são aceitos; os demais foram ignorados.");
     setResultado(null); setSel(0); setCartas([]);
     if (!pdfs.length) return;
     setAnalisando(true);
     const ms = modelos.data ?? [];
-    const out: CartaAnalise[] = [];
-    for (const f of pdfs) {
+    setProgresso(0);
+    const out = await emParalelo(pdfs, 4, async (f): Promise<CartaAnalise> => {
       try {
         const paginas = await lerTextoPdf(new Uint8Array(await f.arrayBuffer()));
-        const loc = localizarAssinatura(paginas, ms);
-        out.push({ arquivo: f, paginas, numPaginas: paginas.length, loc, status: loc.confianca === "baixa" ? "revisao" : "pronta" });
+        const loc = comLargura(localizarAssinatura(paginas, ms));
+        return { arquivo: f, paginas, numPaginas: paginas.length, loc, status: loc.confianca === "baixa" ? "revisao" : "pronta" };
       } catch {
-        out.push({ arquivo: f, paginas: [], numPaginas: 1, loc: localizarAssinatura([{ linhas: [] }]), status: "erro_leitura" });
-      }
-    }
+        return { arquivo: f, paginas: [], numPaginas: 1, loc: comLargura(localizarAssinatura([{ linhas: [] }])), status: "erro_leitura" };
+      } finally { setProgresso((p) => p + 1); }
+    });
     setCartas(out); setAnalisando(false);
     const rev = out.filter((c) => c.status === "revisao").length;
     if (rev) toast.warning(`${rev} carta(s) precisam de revisão: posição não encontrada com segurança.`);
@@ -362,12 +397,15 @@ function AbaProcessar({ assinantes, onConcluido }: { assinantes: Assinante[]; on
     // Reaplica o modelo nas outras cartas do lote que ainda não foram ajustadas.
     setCartas((cs) => cs.map((c, i) => {
       if (i === sel || c.status === "ajustada" || !c.paginas.length) return c;
-      const loc = localizarAssinatura(c.paginas, lista);
+      const loc = comLargura(localizarAssinatura(c.paginas, lista));
       return { ...c, loc, status: loc.confianca === "baixa" ? "revisao" : "pronta" };
     }));
     setNomeModelo("");
   };
 
+  const locAtual = atual ? (atual.rascunho ?? atual.loc) : null;
+  const parecidas = locAtual && (atual?.status === "ajustada" || atual?.rascunho)
+    ? cartas.filter((c, i) => i !== sel && c.status === "ajustada" && posicoesParecidas(c.loc, locAtual)).length : 0;
   const aptas = cartas.filter((c) => c.status === "pronta" || c.status === "ajustada");
   const pendentes = cartas.filter((c) => c.status === "revisao").length;
   const errosLoc = cartas.filter((c) => c.status === "erro_leitura").length;
@@ -378,8 +416,8 @@ function AbaProcessar({ assinantes, onConcluido }: { assinantes: Assinante[]; on
   const processar = async () => {
     if (!assinante || !user) return;
     setProcessando(true); setProgresso(0); setResultado(null);
-    const loteId = crypto.randomUUID();
-    const res: ArquivoProc[] = [];
+    const loteId = reprocesso?.lote.id ?? crypto.randomUUID();
+    const marca = Date.now();
     try {
       const imgA = await baixar(assinante.assinatura_path!);
       const assinatura = { bytes: new Uint8Array(await imgA.arrayBuffer()), tipo: imgA.type || assinante.assinatura_path! };
@@ -388,33 +426,62 @@ function AbaProcessar({ assinantes, onConcluido }: { assinantes: Assinante[]; on
         const imgR = await baixar(assinante.rubrica_path);
         rubrica = { bytes: new Uint8Array(await imgR.arrayBuffer()), tipo: imgR.type || assinante.rubrica_path };
       }
-      for (let i = 0; i < cartas.length; i++) {
-        const c = cartas[i]; const l = c.loc;
-        const detalhe = { pagina: l.pagina, referencia: l.referencia, confianca: l.confianca, origem: l.origem, x: l.x, y: l.y, largura: l.largura, margem_superior: l.margem_superior, margem_inferior: l.margem_inferior };
-        if (c.status === "revisao" || c.status === "erro_leitura") {
-          res.push({ nome: c.arquivo.name, status: "revisao", erro: c.status === "erro_leitura" ? "Não foi possível ler o texto" : "Revisão necessária", ...detalhe });
-          setProgresso(i + 1); continue;
-        }
+      const seguro = (n: string) => n.replace(/[^\w.\- ]/g, "_");
+      const res = await emParalelo(cartas, 4, async (c, i): Promise<ArquivoProc> => {
+        const l = c.loc;
+        const base = { original_nome: c.arquivo.name };
+        // O PDF original é guardado intacto, separado do assinado, para reprocessar falhas.
+        let original_path: string | undefined;
         try {
-          const saida = await assinarPdf(new Uint8Array(await c.arquivo.arrayBuffer()), assinatura, rubrica, { x: l.x, y: l.y, largura: l.largura }, l.pagina);
-          const path = `lotes/${loteId}/${i + 1}-${nomeAssinado(c.arquivo.name).replace(/[^\w.\- ]/g, "_")}`;
-          const { error } = await supabase.storage.from(BUCKET).upload(path, new Blob([saida as BlobPart], { type: "application/pdf" }), { contentType: "application/pdf" });
-          if (error) throw error;
-          res.push({ nome: nomeAssinado(c.arquivo.name), status: "ok", path, ...detalhe });
-        } catch (e: any) {
-          res.push({ nome: c.arquivo.name, status: "erro", erro: e?.message?.includes("encrypt") ? "PDF protegido por senha" : "Não foi possível assinar este PDF", ...detalhe });
-        }
-        setProgresso(i + 1);
-      }
-      const { data: nomeUsuario } = await supabase.rpc("get_my_username" as any);
-      const sucesso = res.filter((r) => r.status === "ok").length;
-      const { error } = await supabase.from("assinaturas_processamentos").insert({
-        id: loteId, usuario_id: user.id, usuario_nome: (nomeUsuario as string) ?? user.email ?? null,
-        assinante_id: assinante.id, assinante_nome: assinante.nome, total: res.length, sucesso, erro: res.length - sucesso, arquivos: res as any,
+          const p = `lotes/${loteId}/originais/${marca}-${i + 1}-${seguro(c.arquivo.name)}`;
+          const { error } = await supabase.storage.from(BUCKET).upload(p, c.arquivo, { contentType: "application/pdf" });
+          if (!error) original_path = p;
+        } catch { /* segue sem cópia */ }
+        const detalhe = { pagina: l.pagina, referencia: l.referencia, confianca: l.confianca, origem: l.origem, x: l.x, y: l.y, largura: l.largura, margem_superior: l.margem_superior, margem_inferior: l.margem_inferior };
+        try {
+          if (c.status === "revisao" || c.status === "erro_leitura") {
+            return { ...base, original_path, nome: c.arquivo.name, status: "revisao", erro: c.status === "erro_leitura" ? "Não foi possível ler o texto do PDF" : "Local da assinatura não encontrado com segurança", ...detalhe };
+          }
+          try {
+            const saida = await assinarPdf(new Uint8Array(await c.arquivo.arrayBuffer()), assinatura, rubrica, { x: l.x, y: l.y, largura: l.largura }, l.pagina);
+            const path = `lotes/${loteId}/${marca}-${i + 1}-${seguro(nomeAssinado(c.arquivo.name))}`;
+            const { error } = await supabase.storage.from(BUCKET).upload(path, new Blob([saida as BlobPart], { type: "application/pdf" }), { contentType: "application/pdf" });
+            if (error) throw new Error("upload:" + error.message);
+            return { ...base, original_path, nome: nomeAssinado(c.arquivo.name), status: "ok", path, ...detalhe };
+          } catch (e: any) {
+            const m = String(e?.message ?? "");
+            const erro = m.includes("encrypt") ? "PDF protegido por senha"
+              : m.startsWith("upload:") ? "Falha ao salvar o PDF assinado (verifique a internet)"
+              : m.includes("Invalid PDF") || m.includes("parse") ? "PDF danificado ou inválido"
+              : "Não foi possível assinar este PDF";
+            return { ...base, original_path, nome: c.arquivo.name, status: "erro", erro, ...detalhe };
+          }
+        } finally { setProgresso((p) => p + 1); }
       });
+      const sucessoLote = res.filter((r) => r.status === "ok").length;
+      let error;
+      if (reprocesso) {
+        // Substitui só as cartas reprocessadas; as já assinadas continuam no lote.
+        const novos = new Set(res.map((r) => r.original_nome));
+        const todos = [...reprocesso.lote.arquivos.filter((a) => !novos.has(a.original_nome ?? a.nome)), ...res];
+        const sucesso = todos.filter((r) => r.status === "ok").length;
+        ({ error } = await supabase.from("assinaturas_processamentos").update({
+          arquivos: todos as any, total: todos.length, sucesso, erro: todos.length - sucesso,
+          status: statusLote(todos.length, sucesso), reprocessado_em: new Date().toISOString(), nome_lote: nomeLote.trim() || null,
+        }).eq("id", loteId));
+        onReprocessoFim();
+      } else {
+        const { data: nomeUsuario } = await supabase.rpc("get_my_username" as any);
+        ({ error } = await supabase.from("assinaturas_processamentos").insert({
+          id: loteId, usuario_id: user.id, usuario_nome: (nomeUsuario as string) ?? user.email ?? null,
+          assinante_id: assinante.id, assinante_nome: assinante.nome, total: res.length, sucesso: sucessoLote, erro: res.length - sucessoLote, arquivos: res as any,
+          nome_lote: nomeLote.trim() || `Lote ${new Date().toLocaleString("pt-BR", { dateStyle: "short", timeStyle: "short" })}`,
+          status: statusLote(res.length, sucessoLote),
+        }));
+      }
       if (error) toast.error("As cartas foram assinadas, mas o histórico não foi salvo.");
       setResultado(res);
-      toast.success(`${sucesso} de ${res.length} carta(s) assinada(s).`);
+      toast.success(`${sucessoLote} de ${res.length} carta(s) assinada(s).`);
       onConcluido();
     } catch (e: any) {
       toast.error("Não foi possível carregar a assinatura do assinante.", { description: e?.message });
@@ -426,6 +493,16 @@ function AbaProcessar({ assinantes, onConcluido }: { assinantes: Assinante[]; on
       <Card>
         <CardHeader><CardTitle className="text-base flex items-center gap-2"><FileSignature className="h-4 w-4 text-primary" />Processar Cartas</CardTitle></CardHeader>
         <CardContent className="space-y-4">
+          {reprocesso && (
+            <div className="rounded-md border border-amber-500/40 bg-amber-500/10 p-2 text-xs flex items-center justify-between gap-2">
+              <span>Reprocessando {reprocesso.arquivos.length} carta(s) com falha do lote "{reprocesso.lote.nome_lote ?? "sem nome"}". As já assinadas não serão alteradas.</span>
+              <Button size="sm" variant="ghost" onClick={() => { onReprocessoFim(); setCartas([]); setResultado(null); }}>Cancelar</Button>
+            </div>
+          )}
+          <div>
+            <Label>Nome do lote</Label>
+            <Input placeholder="Ex.: Cartas de cancelamento — novembro" value={nomeLote} onChange={(e) => setNomeLote(e.target.value)} />
+          </div>
           <div>
             <Label>Assinante</Label>
             <Select value={assinanteId} onValueChange={setAssinanteId}>
@@ -435,8 +512,8 @@ function AbaProcessar({ assinantes, onConcluido }: { assinantes: Assinante[]; on
           </div>
           <div>
             <Label>Cartas em PDF (uma ou várias)</Label>
-            <Input type="file" accept="application/pdf,.pdf" multiple onChange={(e) => escolher(e.target.files)} />
-            {analisando && <p className="text-xs text-muted-foreground mt-1 flex items-center gap-1"><Loader2 className="h-3 w-3 animate-spin" />Procurando o local da assinatura…</p>}
+            <Input type="file" accept="application/pdf,.pdf" multiple onChange={(e) => escolher(e.target.files ? Array.from(e.target.files) : null)} />
+            {analisando && <p className="text-xs text-muted-foreground mt-1 flex items-center gap-1"><Loader2 className="h-3 w-3 animate-spin" />Procurando o local da assinatura… {progresso} carta(s) analisada(s)</p>}
           </div>
           {cartas.length > 0 && (
             <div className="grid grid-cols-4 gap-2 text-center">
@@ -488,6 +565,7 @@ function AbaProcessar({ assinantes, onConcluido }: { assinantes: Assinante[]; on
               </div>
               {atual.paginas.length > 0 && (
                 <div className="max-w-[520px] space-y-1 border-t pt-3">
+                  {parecidas > 0 && <p className="text-xs text-primary">Você já ajustou {parecidas + 1} cartas nesta mesma posição. Salve como modelo para que as próximas sejam posicionadas sozinhas.</p>}
                   <Label className="text-xs">Salvar esta posição como modelo de carta</Label>
                   <div className="flex gap-2">
                     <Input placeholder="Ex.: Carta de cancelamento" value={nomeModelo} onChange={(e) => setNomeModelo(e.target.value)} />
@@ -504,13 +582,19 @@ function AbaProcessar({ assinantes, onConcluido }: { assinantes: Assinante[]; on
   );
 }
 
-function ListaArquivos({ arquivos }: { arquivos: ArquivoProc[] }) {
+function ListaArquivos({ arquivos, nomeZip = "cartas-assinadas" }: { arquivos: ArquivoProc[]; nomeZip?: string }) {
   const ver = async (a: ArquivoProc) => { try { window.open(URL.createObjectURL(await baixar(a.path!)), "_blank"); } catch { toast.error("Arquivo não encontrado."); } };
   const baixarUm = async (a: ArquivoProc) => { try { salvarBlob(await baixar(a.path!), a.nome); } catch { toast.error("Arquivo não encontrado."); } };
   const baixarTodos = async () => {
-    const zip = new JSZip();
-    for (const a of arquivos.filter((x) => x.status === "ok")) zip.file(a.nome, await baixar(a.path!));
-    salvarBlob(await zip.generateAsync({ type: "blob" }), "cartas-assinadas.zip");
+    const t = toast.loading("Montando o ZIP…");
+    try {
+      const zip = new JSZip();
+      const oks = arquivos.filter((x) => x.status === "ok");
+      const blobs = await emParalelo(oks, 6, (a) => baixar(a.path!));
+      oks.forEach((a, i) => zip.file(a.nome, blobs[i]));
+      salvarBlob(await zip.generateAsync({ type: "blob" }), `${nomeZip.replace(/[^\w\- ]/g, "_")}.zip`);
+      toast.success("ZIP baixado.", { id: t });
+    } catch { toast.error("Não foi possível montar o ZIP.", { id: t }); }
   };
   const ok = arquivos.filter((a) => a.status === "ok").length;
   return (
@@ -534,35 +618,125 @@ function ListaArquivos({ arquivos }: { arquivos: ArquivoProc[] }) {
 }
 
 /* ------------------------------ Histórico ------------------------------ */
-function AbaHistorico({ lista }: { lista: Processamento[] }) {
+const COR_LOTE: Record<StatusLote, string> = {
+  concluido: "bg-primary/15 text-primary border-primary/30",
+  parcial: "bg-amber-500/15 text-amber-600 dark:text-amber-400 border-amber-500/30",
+  falhou: "bg-destructive/15 text-destructive border-destructive/30",
+};
+function AbaHistorico({ lista, onReprocessar }: { lista: Processamento[]; onReprocessar: (r: Reprocesso) => void }) {
   const [aberto, setAberto] = useState<Processamento | null>(null);
+  const [de, setDe] = useState(""); const [ate, setAte] = useState("");
+  const [fAssin, setFAssin] = useState("todos"); const [fUser, setFUser] = useState("todos");
+  const [fStatus, setFStatus] = useState("todos"); const [busca, setBusca] = useState("");
+  const [carregando, setCarregando] = useState<string | null>(null);
+  const assinantesL = [...new Set(lista.map((p) => p.assinante_nome))].sort();
+  const usuariosL = [...new Set(lista.map((p) => p.usuario_nome ?? "—"))].sort();
+  const dia = (iso: string) => { const d = new Date(iso); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`; };
+  const filtrada = lista.filter((p) => {
+    const d = dia(p.criado_em);
+    if (de && d < de) return false; if (ate && d > ate) return false;
+    if (fAssin !== "todos" && p.assinante_nome !== fAssin) return false;
+    if (fUser !== "todos" && (p.usuario_nome ?? "—") !== fUser) return false;
+    if (fStatus !== "todos" && (p.status ?? statusLote(p.total, p.sucesso)) !== fStatus) return false;
+    if (busca.trim()) {
+      const q = busca.trim().toLowerCase();
+      if (!(p.nome_lote ?? "").toLowerCase().includes(q) && !p.arquivos.some((x) => (x.original_nome ?? x.nome).toLowerCase().includes(q))) return false;
+    }
+    return true;
+  });
+  const reprocessar = async (p: Processamento) => {
+    const falhas = p.arquivos.filter((x) => x.status !== "ok");
+    const comOriginal = falhas.filter((x) => x.original_path);
+    if (!comOriginal.length) return toast.error("Este lote é antigo e não guardou os PDFs originais. Envie as cartas novamente em \"Processar Cartas\".");
+    setCarregando(p.id);
+    try {
+      const arquivos = await emParalelo(comOriginal, 6, async (x) => new File([await baixar(x.original_path!)], x.original_nome ?? x.nome, { type: "application/pdf" }));
+      if (comOriginal.length < falhas.length) toast.warning(`${falhas.length - comOriginal.length} carta(s) sem PDF original guardado ficaram de fora.`);
+      setAberto(null);
+      onReprocessar({ lote: p, arquivos });
+    } catch { toast.error("Não foi possível carregar os PDFs originais."); }
+    finally { setCarregando(null); }
+  };
+  const limpar = () => { setDe(""); setAte(""); setFAssin("todos"); setFUser("todos"); setFStatus("todos"); setBusca(""); };
   return (
     <Card>
       <CardHeader><CardTitle className="text-base flex items-center gap-2"><History className="h-4 w-4 text-primary" />Histórico de Processamentos</CardTitle></CardHeader>
-      <CardContent>
-        {lista.length === 0 ? <p className="text-sm text-muted-foreground py-6 text-center">Nenhum processamento ainda.</p> : (
+      <CardContent className="space-y-4">
+        <div className="grid gap-2 md:grid-cols-6 rounded-md border p-3 bg-muted/30">
+          <div className="md:col-span-2"><Label className="text-xs">Buscar lote ou carta</Label><Input value={busca} onChange={(e) => setBusca(e.target.value)} placeholder="Nome do lote ou do arquivo" /></div>
+          <div><Label className="text-xs">De</Label><Input type="date" value={de} onChange={(e) => setDe(e.target.value)} /></div>
+          <div><Label className="text-xs">Até</Label><Input type="date" value={ate} onChange={(e) => setAte(e.target.value)} /></div>
+          <div><Label className="text-xs">Assinante</Label>
+            <Select value={fAssin} onValueChange={setFAssin}><SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectContent><SelectItem value="todos">Todos</SelectItem>{assinantesL.map((n) => <SelectItem key={n} value={n}>{n}</SelectItem>)}</SelectContent></Select></div>
+          <div><Label className="text-xs">Usuário</Label>
+            <Select value={fUser} onValueChange={setFUser}><SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectContent><SelectItem value="todos">Todos</SelectItem>{usuariosL.map((n) => <SelectItem key={n} value={n}>{n}</SelectItem>)}</SelectContent></Select></div>
+          <div><Label className="text-xs">Status</Label>
+            <Select value={fStatus} onValueChange={setFStatus}><SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectContent><SelectItem value="todos">Todos</SelectItem>{(Object.keys(ROTULO_STATUS_LOTE) as StatusLote[]).map((k) => <SelectItem key={k} value={k}>{ROTULO_STATUS_LOTE[k]}</SelectItem>)}</SelectContent></Select></div>
+          <div className="md:col-span-5 flex items-end text-xs text-muted-foreground">{filtrada.length} de {lista.length} lote(s)</div>
+          <div className="flex items-end"><Button size="sm" variant="ghost" onClick={limpar} className="w-full">Limpar filtros</Button></div>
+        </div>
+        {filtrada.length === 0 ? <p className="text-sm text-muted-foreground py-6 text-center">Nenhum processamento encontrado.</p> : (
           <Table>
-            <TableHeader><TableRow><TableHead>Data e hora</TableHead><TableHead>Usuário</TableHead><TableHead>Assinante</TableHead><TableHead className="text-right">Cartas</TableHead><TableHead className="text-right">Sucesso</TableHead><TableHead className="text-right">Erro</TableHead><TableHead /></TableRow></TableHeader>
+            <TableHeader><TableRow><TableHead>Lote</TableHead><TableHead>Data e hora</TableHead><TableHead>Usuário</TableHead><TableHead>Assinante</TableHead><TableHead className="text-right">Arquivos</TableHead><TableHead className="text-right">Assinadas</TableHead><TableHead className="text-right">Falhas</TableHead><TableHead>Status</TableHead><TableHead /></TableRow></TableHeader>
             <TableBody>
-              {lista.map((p) => (
-                <TableRow key={p.id}>
-                  <TableCell>{new Date(p.criado_em).toLocaleString("pt-BR", { dateStyle: "short", timeStyle: "short" })}</TableCell>
-                  <TableCell>{p.usuario_nome ?? "—"}</TableCell>
-                  <TableCell>{p.assinante_nome}</TableCell>
-                  <TableCell className="text-right">{p.total}</TableCell>
-                  <TableCell className="text-right text-primary font-medium">{p.sucesso}</TableCell>
-                  <TableCell className={`text-right ${p.erro ? "text-destructive font-medium" : ""}`}>{p.erro}</TableCell>
-                  <TableCell><Button size="sm" variant="ghost" onClick={() => setAberto(p)}><Eye className="h-4 w-4 mr-1" />Ver cartas</Button></TableCell>
-                </TableRow>
-              ))}
+              {filtrada.map((p) => {
+                const st = (p.status ?? statusLote(p.total, p.sucesso)) as StatusLote;
+                return (
+                  <TableRow key={p.id}>
+                    <TableCell className="font-medium max-w-[220px] truncate" title={p.nome_lote ?? ""}>{p.nome_lote ?? "—"}</TableCell>
+                    <TableCell className="whitespace-nowrap">{new Date(p.criado_em).toLocaleString("pt-BR", { dateStyle: "short", timeStyle: "short" })}
+                      {p.reprocessado_em && <div className="text-[11px] text-muted-foreground">Reprocessado {new Date(p.reprocessado_em).toLocaleString("pt-BR", { dateStyle: "short", timeStyle: "short" })}</div>}</TableCell>
+                    <TableCell>{p.usuario_nome ?? "—"}</TableCell>
+                    <TableCell>{p.assinante_nome}</TableCell>
+                    <TableCell className="text-right">{p.total}</TableCell>
+                    <TableCell className="text-right text-primary font-medium">{p.sucesso}</TableCell>
+                    <TableCell className={`text-right ${p.erro ? "text-destructive font-medium" : ""}`}>{p.erro}</TableCell>
+                    <TableCell><Badge variant="outline" className={COR_LOTE[st]}>{ROTULO_STATUS_LOTE[st]}</Badge></TableCell>
+                    <TableCell className="whitespace-nowrap text-right">
+                      <Button size="sm" variant="ghost" onClick={() => setAberto(p)}><Eye className="h-4 w-4 mr-1" />Ver / baixar</Button>
+                      {p.erro > 0 && <Button size="sm" variant="ghost" disabled={carregando === p.id} onClick={() => reprocessar(p)}>
+                        {carregando === p.id ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : <RotateCcw className="h-4 w-4 mr-1" />}Reprocessar falhas</Button>}
+                    </TableCell>
+                  </TableRow>
+                );
+              })}
             </TableBody>
           </Table>
         )}
       </CardContent>
       <Dialog open={!!aberto} onOpenChange={(o) => !o && setAberto(null)}>
-        <DialogContent className="max-w-xl">
-          <DialogHeader><DialogTitle>Cartas assinadas por {aberto?.assinante_nome}</DialogTitle></DialogHeader>
-          {aberto && <ListaArquivos arquivos={aberto.arquivos} />}
+        <DialogContent className="max-w-2xl">
+          <DialogHeader><DialogTitle>{aberto?.nome_lote ?? "Lote"} — {aberto?.assinante_nome}</DialogTitle></DialogHeader>
+          {aberto && (() => {
+            const falhas = aberto.arquivos.filter((x) => x.status !== "ok");
+            return (
+              <div className="space-y-4">
+                {falhas.length > 0 && (
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between">
+                      <h4 className="text-sm font-semibold text-destructive">Cartas não assinadas ({falhas.length})</h4>
+                      <Button size="sm" variant="outline" disabled={carregando === aberto.id} onClick={() => reprocessar(aberto)}><RotateCcw className="h-4 w-4 mr-1" />Reprocessar só as falhas</Button>
+                    </div>
+                    <div className="divide-y rounded-md border max-h-48 overflow-auto">
+                      {falhas.map((x, i) => (
+                        <div key={i} className="flex items-center justify-between gap-2 px-3 py-2 text-sm">
+                          <span className="truncate">{x.original_nome ?? x.nome}</span>
+                          <span className="text-xs text-destructive shrink-0">{x.erro ?? "Motivo não informado"}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+                <div className="space-y-2">
+                  <h4 className="text-sm font-semibold">Cartas assinadas ({aberto.arquivos.length - falhas.length})</h4>
+                  <ListaArquivos arquivos={aberto.arquivos.filter((x) => x.status === "ok")} nomeZip={aberto.nome_lote ?? "cartas-assinadas"} />
+                </div>
+              </div>
+            );
+          })()}
         </DialogContent>
       </Dialog>
     </Card>
@@ -581,25 +755,27 @@ export default function Assinaturas() {
   const historico = useQuery({
     queryKey: ["assinaturas-processamentos"],
     queryFn: async () => {
-      const { data, error } = await supabase.from("assinaturas_processamentos").select("*").order("criado_em", { ascending: false }).limit(200);
+      const { data, error } = await supabase.from("assinaturas_processamentos").select("*").order("criado_em", { ascending: false }).limit(1000);
       if (error) throw error; return (data ?? []) as unknown as Processamento[];
     },
   });
+  const [aba, setAba] = useState("processar");
+  const [reprocesso, setReprocesso] = useState<Reprocesso | null>(null);
   return (
     <div className="space-y-5 p-4 md:p-6">
       <div>
         <h1 className="text-2xl font-semibold flex items-center gap-2"><FileSignature className="h-6 w-6 text-primary" />Assinaturas</h1>
         <p className="text-sm text-muted-foreground">Coloque a imagem da assinatura nas cartas em PDF, uma a uma ou em lote.</p>
       </div>
-      <Tabs defaultValue="processar">
+      <Tabs value={aba} onValueChange={setAba}>
         <TabsList>
           <TabsTrigger value="processar">Processar Cartas</TabsTrigger>
           <TabsTrigger value="assinantes">Cadastro de Assinantes</TabsTrigger>
           <TabsTrigger value="historico">Histórico de Processamentos</TabsTrigger>
         </TabsList>
-        <TabsContent value="processar"><AbaProcessar assinantes={assinantes.data ?? []} onConcluido={() => qc.invalidateQueries({ queryKey: ["assinaturas-processamentos"] })} /></TabsContent>
+        <TabsContent value="processar"><AbaProcessar assinantes={assinantes.data ?? []} reprocesso={reprocesso} onReprocessoFim={() => setReprocesso(null)} onConcluido={() => qc.invalidateQueries({ queryKey: ["assinaturas-processamentos"] })} /></TabsContent>
         <TabsContent value="assinantes"><AbaAssinantes assinantes={assinantes.data ?? []} /></TabsContent>
-        <TabsContent value="historico"><AbaHistorico lista={historico.data ?? []} /></TabsContent>
+        <TabsContent value="historico"><AbaHistorico lista={historico.data ?? []} onReprocessar={(r) => { setReprocesso(r); setAba("processar"); }} /></TabsContent>
       </Tabs>
     </div>
   );

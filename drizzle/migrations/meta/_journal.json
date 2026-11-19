@@ -715,6 +715,13 @@
       "when": 1795096977505,
       "tag": "0101_assinatura_modelos",
       "breakpoints": true
+    },
+    {
+      "idx": 102,
+      "version": "7",
+      "when": 1795098087751,
+      "tag": "0102_assinaturas_lote_detalhado",
+      "breakpoints": true
     }
   ]
 }
