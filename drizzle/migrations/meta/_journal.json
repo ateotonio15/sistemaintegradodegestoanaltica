@@ -687,6 +687,13 @@
       "when": 1795034690340,
       "tag": "0097_reativacoes_vidas_historico",
       "breakpoints": true
+    },
+    {
+      "idx": 98,
+      "version": "7",
+      "when": 1795089835591,
+      "tag": "0098_assinatura_email_administradoras",
+      "breakpoints": true
     }
   ]
 }
