@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Send } from "lucide-react";
 import { RelatoriosPortal } from "./RelatoriosPortal";
@@ -70,6 +70,20 @@ export function RelatorioManualDialog({ movimentacaoId, empresaId = null, nome, 
   const corte = dataCorteMovimentacao(periodo, mesReferencia);
   const cenarioSugerido = sugerirCenario(hojeLocalISO(), corte);
   const [escolha, setEscolha] = useState<EscolhaCenario>({ cenario: cenarioSugerido, justificativa: "", motivoAlteracao: "" });
+  // Ao escolher "Envio direto ao Financeiro", preenche "Destinatários" com os e-mails do Financeiro já cadastrados.
+  const emailsFin = useQuery({ queryKey: ["config-emails-financeiro"], enabled: escolha.cenario === "financeiro", queryFn: async () => {
+    const { data } = await supabase.from("config_emails_financeiro").select("para, cc").eq("id", 1).maybeSingle();
+    return [...new Set([...(data?.para ?? []), ...(data?.cc ?? [])])];
+  } });
+  useEffect(() => {
+    if (escolha.cenario !== "financeiro" || !emailsFin.data?.length) return;
+    const lista = emailsFin.data;
+    setForm(f => {
+      const atuais = f.destinatarios.split(/[,;\s]+/).map(e => e.trim()).filter(Boolean);
+      const faltam = lista.filter(e => !atuais.includes(e));
+      return faltam.length ? { ...f, destinatarios: [...atuais, ...faltam].join(", ") } : f;
+    });
+  }, [escolha.cenario, emailsFin.data]);
   const enviarEmail = useMutation({
     mutationFn: async () => {
       const emails = form.destinatarios.split(/[,;\s]+/).map(e => e.trim()).filter(Boolean);
@@ -120,7 +134,9 @@ export function RelatorioManualDialog({ movimentacaoId, empresaId = null, nome, 
             <SelectTrigger id="relatorio-status"><SelectValue /></SelectTrigger><SelectContent>{STATUS_RELATORIO.map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}</SelectContent>
           </Select>
         </div>
-        <div className="space-y-2"><Label htmlFor="relatorio-destinatarios">Destinatários</Label><Textarea id="relatorio-destinatarios" value={form.destinatarios} disabled={!canEdit || save.isPending} onChange={e => setForm(f => ({ ...f, destinatarios: e.target.value }))} /></div>
+        <div className="space-y-2"><Label htmlFor="relatorio-destinatarios">Destinatários</Label><Textarea id="relatorio-destinatarios" value={form.destinatarios} disabled={!canEdit || save.isPending} onChange={e => setForm(f => ({ ...f, destinatarios: e.target.value }))} />
+          {escolha.cenario === "financeiro" && <p className="text-xs text-muted-foreground">E-mails do Financeiro preenchidos automaticamente{emailsFin.data?.length ? `: ${emailsFin.data.join(", ")}` : " (nenhum cadastrado ainda)"}. Você pode ajustar antes de enviar.</p>}
+        </div>
         <div className="space-y-2"><Label htmlFor="relatorio-copia">Com cópia (Cc)</Label><Textarea id="relatorio-copia" value={form.cc} disabled={!canEdit || save.isPending} placeholder="E-mails que recebem uma cópia visível (opcional)" onChange={e => setForm(f => ({ ...f, cc: e.target.value }))} /></div>
         <div className="space-y-2"><Label htmlFor="relatorio-data">Data de Envio</Label><Input id="relatorio-data" type="date" disabled={!canEdit || save.isPending} value={form.data_envio ?? ""} onChange={e => setForm(f => ({ ...f, data_envio: e.target.value || null }))} /></div>
         <div className="space-y-2"><Label htmlFor="relatorio-confirmacao">Confirmação da Empresa</Label>
