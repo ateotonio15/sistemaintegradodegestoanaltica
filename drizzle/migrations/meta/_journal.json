@@ -750,6 +750,13 @@
       "when": 1795456509289,
       "tag": "0106_email_envios_modelo_versao",
       "breakpoints": true
+    },
+    {
+      "idx": 107,
+      "version": "7",
+      "when": 1795458359146,
+      "tag": "0107_config_emails_financeiro",
+      "breakpoints": true
     }
   ]
 }

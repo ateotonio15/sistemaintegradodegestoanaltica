@@ -69,6 +69,8 @@ Deno.serve(async (req) => {
     const texto = [saud, "", intro, "", ...contratos.flatMap((c) => [`${c.codigo} ${c.nome}`, `Total de Dependentes: ${c.dependentes}`, `Total de Beneficiário Titular: ${c.titulares}`, `Total: ${c.total}`, ...(c.modulos.length ? ["Módulos:", ...c.modulos.map((m) => `  ${m.nome}: ${m.qtd}`)] : []), ""])].join("\n");
 
     await enviarSmtp({ fromNome: rem?.nome_remetente || "Samel", fromEmail, replyTo, para, cc, bcc: [fromEmail], assunto: `FECHAMENTO VIGÊNCIA ${vigencia} - ${administradora} - CONTRATOS ${codigos.join(", ")}`, html, texto, anexos: [] });
+    // Guarda os e-mails do Financeiro para o "Envio direto ao Financeiro" das Movimentações.
+    await admin.from("config_emails_financeiro").upsert({ id: 1, para, cc: cc ?? [], atualizado_em: new Date().toISOString() });
     return json({ ok: true });
   } catch (e) {
     console.error("enviar-fechamento-administradora", e);

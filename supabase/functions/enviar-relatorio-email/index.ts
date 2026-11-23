@@ -224,11 +224,17 @@ Deno.serve(async (req) => {
       });
     }
     const { data: perfil } = await admin.from("profiles").select("display_name").eq("user_id", u.user.id).maybeSingle();
+    // Envio direto ao Financeiro: inclui também os e-mails do Financeiro cadastrados no fechamento das Administradoras.
+    let paraFinal = destinatarios;
+    if (cenario === "financeiro") {
+      const { data: fin } = await admin.from("config_emails_financeiro").select("para, cc").eq("id", 1).maybeSingle();
+      paraFinal = [...new Map([...destinatarios, ...((fin?.para ?? []) as string[]), ...((fin?.cc ?? []) as string[])].map(e => [e.toLowerCase(), e])).values()];
+    }
     const envioId = crypto.randomUUID();
     let smtpConcluido = false;
     let erroRegistro: string | undefined;
     try { await concluirEnvioRelatorio(async () => { await enviarSmtp({
-      fromNome: nomeRem, fromEmail, replyTo, para: destinatarios,
+      fromNome: nomeRem, fromEmail, replyTo, para: paraFinal,
       // Cópia visível escolhida na tela; a empresa vê quem está em cópia.
       cc: cc ?? [],
       // Cópia oculta para quem enviou, para o Cadastro guardar o e-mail enviado.
@@ -242,7 +248,7 @@ Deno.serve(async (req) => {
       for (let tentativa = 0; tentativa < 3; tentativa++) {
         const { error } = await admin.rpc("registrar_envio_relatorio_concluido", {
           p_envio_id: envioId, p_principal: movimentacao_id, p_movimentacoes: movimentacoesEnviadas,
-          p_usuario: u.user.id, p_nome: perfil?.display_name ?? "", p_destinatarios: destinatarios.join(", "),
+          p_usuario: u.user.id, p_nome: perfil?.display_name ?? "", p_destinatarios: paraFinal.join(", "),
           p_cc: (cc ?? []).join(", "), p_contrato: String(contrato),
         });
         if (!error) {
@@ -251,7 +257,7 @@ Deno.serve(async (req) => {
             envio_id: envioId, movimentacao_id, empresa_id: (mov as any).empresa_id, empresa_nome: emp.nome ?? null,
             contrato: String(contrato), competencia: mov.mes_referencia, periodo: (mov as any).periodo ?? null,
             cenario_sugerido: cenarioSugerido, cenario, modelo: modeloInfo.nome, modelo_id: modeloInfo.id, modelo_versao: modeloInfo.versao, editado_no_envio: modeloInfo.editado,
-            destinatarios: destinatarios.join(", "), cc: (cc ?? []).join(", "),
+            destinatarios: paraFinal.join(", "), cc: (cc ?? []).join(", "),
             anexos: anexosEnviados.map(a => ({ nome: a.nome, contrato: a.contrato, tipo: a.tipo })),
             usuario_id: u.user.id, usuario_nome: perfil?.display_name ?? "",
             justificativa: cenario === "financeiro" ? parsed.data.justificativa?.trim() ?? null : null,

@@ -32,6 +32,10 @@ export function CenarioEnvioPainel({ movimentacaoId, sugerido, valor, onChange, 
     const { data, error } = await supabase.from("email_modelos").select("id, nome, versao, cenario, assunto, corpo, destino, anexos_esperados, atualizado_em").eq("status", "ativo").order("atualizado_em", { ascending: false });
     if (error) throw error; return data ?? [];
   } });
+  const emailsFin = useQuery({ queryKey: ["config-emails-financeiro"], enabled: valor.cenario === "financeiro", queryFn: async () => {
+    const { data } = await supabase.from("config_emails_financeiro").select("para, cc").eq("id", 1).maybeSingle();
+    return [...new Set([...(data?.para ?? []), ...(data?.cc ?? [])])];
+  } });
   const fonte = useQuery({ queryKey: ["email-fonte-mov", movimentacaoId], queryFn: async () => {
     const { data, error } = await supabase.from("movimentacoes").select("mes_referencia, periodo, responsavel_movimentacao, empresas(nome, codigo_contrato, razao_social, vidas, responsavel_contrato, contrato_suspenso)").eq("id", movimentacaoId).maybeSingle();
     if (error) throw error; return data as any;
@@ -84,7 +88,7 @@ export function CenarioEnvioPainel({ movimentacaoId, sugerido, valor, onChange, 
     </div>
     {valor.cenario === "financeiro" && <div className="space-y-1"><Label htmlFor="cenario-justificativa">Justificativa do envio direto ao Financeiro *</Label>
       <Textarea id="cenario-justificativa" disabled={disabled} value={valor.justificativa} placeholder="Ex.: Empresa não retornou a validação dentro do prazo." onChange={e => onChange({ ...valor, justificativa: e.target.value })} />
-      <p className="text-xs text-muted-foreground">Este envio será realizado sem confirmação da empresa. Os destinatários acima devem ser os e-mails do Financeiro.</p></div>}
+      <p className="text-xs text-muted-foreground">Este envio será realizado sem confirmação da empresa. Será enviado para os e-mails acima e também para o Financeiro: {emailsFin.data?.length ? <strong>{emailsFin.data.join(", ")}</strong> : <span>nenhum e-mail do Financeiro cadastrado ainda (use uma vez "Enviar fechamento ao Financeiro" nas Administradoras)</span>}.</p></div>}
     {alterado && valor.cenario !== "financeiro" && <div className="space-y-1"><Label htmlFor="cenario-motivo">Motivo da alteração *</Label>
       <Textarea id="cenario-motivo" disabled={disabled} value={valor.motivoAlteracao} onChange={e => onChange({ ...valor, motivoAlteracao: e.target.value })} /></div>}
     <div className="flex flex-wrap gap-2">

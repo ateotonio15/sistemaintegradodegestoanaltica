@@ -1307,6 +1307,27 @@ export type Database = {
         }
         Relationships: []
       }
+      config_emails_financeiro: {
+        Row: {
+          atualizado_em: string
+          cc: string[]
+          id: number
+          para: string[]
+        }
+        Insert: {
+          atualizado_em?: string
+          cc?: string[]
+          id?: number
+          para?: string[]
+        }
+        Update: {
+          atualizado_em?: string
+          cc?: string[]
+          id?: number
+          para?: string[]
+        }
+        Relationships: []
+      }
       config_sync: {
         Row: {
           chave: string
