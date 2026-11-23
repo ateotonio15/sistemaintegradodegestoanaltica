@@ -1,4 +1,4 @@
-import { useState, useMemo, useCallback, useEffect } from "react";
+import { useState, useMemo, useCallback, useEffect, useRef } from "react";
 import { SigaLoading } from "@/components/SigaLoading";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -38,6 +38,7 @@ import {
   labelStatusFinanceiro,
   type StatusFinanceiro,
 } from "@/lib/financeiro-utils";
+import { decidirFechamentoMovimentacao } from "@/lib/fechamento-movimentacao";
 
 import { PrioridadeBadge } from "@/components/prioridade/PrioridadeBadge";
 import { AnexosMovimentacao } from "@/components/movimentacoes/AnexosMovimentacao";
@@ -134,6 +135,9 @@ export default function Movimentacoes() {
   const [avisoSuspenso, setAvisoSuspenso] = useState(false);
   const [relatorioStatusInicial, setRelatorioStatusInicial] = useState<string | undefined>(undefined);
   const [relatorioFechamento, setRelatorioFechamento] = useState(false);
+  // Só o botão "Fechar sem ok da empresa" abre a janela de e-mail ao Financeiro.
+  // Um "Salvar" comum nunca abre essa janela.
+  const fecharSemOkRef = useRef(false);
   const [loteOpen, setLoteOpen] = useState(false);
   const [prepararResultado, setPrepararResultado] = useState<ResultadoPreparacao | null>(null);
   const [preparandoContrato, setPreparandoContrato] = useState("");
@@ -443,12 +447,23 @@ export default function Movimentacoes() {
   const upsert = useMutation({
     mutationFn: async (values: typeof emptyForm) => {
       // Anexos não são mais obrigatórios para registrar a Data de Envio ao Financeiro.
-      // Fechamento (preencher "Envio Financeiro" pela primeira vez): a data só é gravada
-      // após o e-mail "Envio direto ao Financeiro" ser enviado — somente quando a empresa NÃO deu o ok (sem "Retorno Empresa").
+      // Fechamento com e-mail ("Envio direto ao Financeiro"): acontece SOMENTE quando o
+      // usuário aperta "Fechar sem ok da empresa". O "Salvar" normal grava a data e fecha
+      // sem abrir nenhuma janela de e-mail.
+      const fecharSemOk = fecharSemOkRef.current;
+      fecharSemOkRef.current = false;
       let abrirFechamento = false;
-      if (editingId && values.data_envio_financeiro && !values.data_retorno_empresa) {
+      if (editingId && values.data_envio_financeiro) {
         const { data: atual } = await supabase.from("movimentacoes").select("data_envio_financeiro").eq("id", editingId).maybeSingle();
-        if (!atual?.data_envio_financeiro) { abrirFechamento = true; values = { ...values, data_envio_financeiro: null }; }
+        const decisao = decidirFechamentoMovimentacao({
+          fecharSemOk,
+          isEdicao: true,
+          dataEnvioFinanceiro: values.data_envio_financeiro,
+          dataRetornoEmpresa: values.data_retorno_empresa ?? null,
+          jaFechado: !!atual?.data_envio_financeiro,
+        });
+        abrirFechamento = decisao.abrirEmail;
+        values = { ...values, data_envio_financeiro: decisao.dataAserGravada };
       }
 
       const payload: TablesInsert<"movimentacoes"> = {
@@ -1125,6 +1140,7 @@ export default function Movimentacoes() {
                         onClick={() => {
                           const d = new Date();
                           const hoje = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+                          fecharSemOkRef.current = true;
                           upsert.mutate({ ...form, data_envio_financeiro: form.data_envio_financeiro ?? hoje });
                         }}
                       >
