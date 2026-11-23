@@ -106,7 +106,21 @@ export function RelatorioManualDialog({ movimentacaoId, empresaId = null, nome, 
     onSettled: () => setProgresso(""),
     onError: (e: Error) => toast({ title: "Não foi possível enviar o e-mail", description: e.message, variant: "destructive" }),
   });
-  const ocupado = save.isPending || enviarEmail.isPending || arquivosOcupados;
+  // Fechamento sem e-mail: quando a empresa já deu o ok, permite concluir o fechamento
+  // (preenche "Data Envio Financeiro" com a data de hoje) sem disparar o e-mail ao Financeiro.
+  const concluirSemEmail = useMutation({
+    mutationFn: async () => {
+      const { error } = await supabase.from("movimentacoes").update({ data_envio_financeiro: hojeLocalISO() }).eq("id", movimentacaoId).is("data_envio_financeiro", null);
+      if (error) throw error;
+    },
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ["movimentacoes"] });
+      await queryClient.invalidateQueries({ queryKey: ["movimentacoes-dashboard"] });
+      toast({ title: "Fechamento efetuado sem envio de e-mail" }); onClose();
+    },
+    onError: (e: Error) => toast({ title: "Não foi possível concluir o fechamento", description: e.message, variant: "destructive" }),
+  });
+  const ocupado = save.isPending || enviarEmail.isPending || concluirSemEmail.isPending || arquivosOcupados;
   if (somenteConsulta) return <Dialog open onOpenChange={open => { if (!open) onClose(); }}>
     <DialogContent className="sm:max-w-[860px] max-h-[90vh] overflow-y-auto">
       <DialogHeader><DialogTitle>Visualizar relatório</DialogTitle><DialogDescription>{contexto}</DialogDescription></DialogHeader>
@@ -150,6 +164,9 @@ export function RelatorioManualDialog({ movimentacaoId, empresaId = null, nome, 
           {progresso && <p role="status" className="text-sm">{progresso}</p>}
           {canEdit && !ehMembro && <Button type="button" className="w-full" disabled={ocupado || grupo.isLoading || arquivos.length !== 2 || !!escolha.bloqueio} onClick={() => { if (window.confirm(`${escolha.cenario === "financeiro" ? "Este envio será realizado sem confirmação da empresa. Deseja continuar?\n\n" : ""}Enviar os relatórios?\nCenário: ${CENARIOS_ENVIO[escolha.cenario].rotulo} (destino: ${CENARIOS_ENVIO[escolha.cenario].destino})\nEmpresa: ${nome} | Contrato: #${contrato}\nDestinatários: ${form.destinatarios}${form.cc.trim() ? `\nCom cópia (Cc): ${form.cc}` : ""}${grupo.data?.contratos.length ? `\nContratos do grupo junto: ${grupo.data.contratos.map(c => `#${c}`).join(", ")}` : ""}`)) enviarEmail.mutate(); }}>
             <Send className="mr-2 h-4 w-4" />{enviarEmail.isPending ? "Enviando e-mail..." : "Enviar por e-mail"}
+          </Button>}
+          {canEdit && modoFechamento && <Button type="button" variant="outline" className="w-full" disabled={ocupado} onClick={() => { if (window.confirm(`Concluir o fechamento SEM enviar e-mail ao Financeiro?\n\nUse esta opção quando a empresa já deu o ok.\nEmpresa: ${nome} | Contrato: #${contrato}`)) concluirSemEmail.mutate(); }}>
+            {concluirSemEmail.isPending ? "Concluindo..." : "Concluir sem enviar e-mail (empresa deu o ok)"}
           </Button>}
         </div>
         <DialogFooter><Button type="button" variant="outline" onClick={onClose} disabled={save.isPending || enviarEmail.isPending}>Fechar</Button>{canEdit && <Button type="submit" variant="outline" disabled={ocupado}>{save.isPending ? "Salvando..." : "Salvar registro manual"}</Button>}</DialogFooter>
