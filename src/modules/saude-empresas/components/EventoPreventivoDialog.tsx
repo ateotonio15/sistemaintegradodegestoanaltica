@@ -22,6 +22,7 @@ import {
   useAcaoPreventivaMutations, useEmpresasAtivas, useExecutivas,
 } from "../hooks/useAcoesPreventivas";
 import { feriadoEm } from "../lib/feriados";
+import { psaMesPermitido } from "../lib/psa-meses";
 import { PreventivaColetaVinculo } from "./PreventivaColetaVinculo";
 
 const STATUS_OPTIONS: { v: AcaoPreventivaStatus; label: string }[] = [
@@ -133,8 +134,8 @@ export function EventoPreventivoDialog({
       }
       const fer = feriadoEm(d);
       if (fer) { toast.info(`${format(d, "dd/MM")} é feriado (${fer.nome}).`); return false; }
-      if (tipo === "psa" && d.getMonth() !== 10) {
-        toast.warning("A Coleta de PSA só pode ser agendada em novembro.");
+      if (tipo === "psa" && !psaMesPermitido(d)) {
+        toast.warning("A Coleta de PSA só pode ser agendada em novembro ou dezembro.");
         return false;
       }
       return true;

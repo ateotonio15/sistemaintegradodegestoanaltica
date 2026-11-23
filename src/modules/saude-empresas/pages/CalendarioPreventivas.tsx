@@ -24,6 +24,7 @@ import {
   useAcoesPreventivas, useAcoesPreventivasRealtime, useEmpresasAtivas, useExecutivas,
 } from "../hooks/useAcoesPreventivas";
 import { feriadoEm } from "../lib/feriados";
+import { psaMesPermitido } from "../lib/psa-meses";
 import { EventoPreventivoDialog } from "../components/EventoPreventivoDialog";
 import { exportCalendarioPDF, exportCalendarioPNG, type CalEvento } from "../lib/palestras-calendario-export";
 
@@ -104,7 +105,12 @@ function CalendarioTipo({ tipo, onBack }: { tipo: AcaoPreventivaTipo; onBack: ()
   const today = new Date();
   const psaLocked = tipo === "psa";
   const initialCursor = psaLocked ? new Date(today.getFullYear(), 10, 1) : startOfMonth(today);
-  const [cursor, setCursor] = useState<Date>(initialCursor);
+  const [cursor, setCursorState] = useState<Date>(initialCursor);
+  // PSA: navegação livre apenas entre novembro e dezembro do ano corrente
+  const setCursor = (d: Date) => {
+    if (psaLocked && (d.getFullYear() !== today.getFullYear() || !psaMesPermitido(d))) return;
+    setCursorState(startOfMonth(d));
+  };
   const [selectedDay, setSelectedDay] = useState<Date>(today);
 
   // Filtros
@@ -138,8 +144,8 @@ function CalendarioTipo({ tipo, onBack }: { tipo: AcaoPreventivaTipo; onBack: ()
     if (!canEdit) return;
     const fer = feriadoEm(d);
     if (fer) { toast.info(`${format(d, "dd/MM")} é feriado (${fer.nome}). Não é possível agendar.`); return; }
-    if (psaLocked && d.getMonth() !== 10) {
-      toast.warning("A Coleta de PSA só pode ser agendada em novembro."); return;
+    if (psaLocked && !psaMesPermitido(d)) {
+      toast.warning("A Coleta de PSA só pode ser agendada em novembro ou dezembro."); return;
     }
     setEditing(null);
     setPreselect([d]);
@@ -256,7 +262,7 @@ function CalendarioTipo({ tipo, onBack }: { tipo: AcaoPreventivaTipo; onBack: ()
         <div className="flex items-start gap-2 rounded-lg border border-blue-300 bg-blue-50 text-blue-900 px-4 py-3 text-sm">
           <Info className="h-5 w-5 mt-0.5 shrink-0" />
           <div>
-            <strong>Novembro Azul.</strong> A Coleta de PSA fica disponível apenas em novembro; a navegação de mês está desabilitada.
+            <strong>Novembro Azul.</strong> A Coleta de PSA fica disponível em novembro e dezembro; os demais meses ficam bloqueados.
           </div>
         </div>
       )}
@@ -320,13 +326,13 @@ function CalendarioTipo({ tipo, onBack }: { tipo: AcaoPreventivaTipo; onBack: ()
 
       <AgendaCalendar
         month={cursor} onMonthChange={setCursor} selected={selectedDay} onSelect={setSelectedDay}
-        locked={psaLocked} holiday={(date) => feriadoEm(date)?.nome}
+        locked={false} holiday={(date) => feriadoEm(date)?.nome}
         items={filtrados.map((ev) => ({ id: ev.id, date: ev.data, title: ev.empresa?.nome ?? "—",
           time: `${ev.horario_inicio?.slice(0, 5) ?? "--:--"} – ${ev.horario_fim?.slice(0, 5) ?? "--:--"}`,
           status: STATUS_LABEL[ev.status], onOpen: () => openEdit(ev),
           details: <><p>Executiva: {ev.executiva_nome ?? "—"}</p>{ev.responsavel && <p>Responsável: {ev.responsavel}</p>}{ev.endereco && <p>{ev.endereco}</p>}{ev.observacao && <p>{ev.observacao}</p>}</>,
         }))}
-        dayActions={(date) => canEdit && !isReadOnly && !feriadoEm(date) && (!psaLocked || date.getMonth() === 10) ? <Button size="sm" variant="outline" onClick={() => openNewForDay(date)}><Plus className="mr-1 h-4 w-4" />Novo</Button> : null}
+        dayActions={(date) => canEdit && !isReadOnly && !feriadoEm(date) && (!psaLocked || psaMesPermitido(date)) ? <Button size="sm" variant="outline" onClick={() => openNewForDay(date)}><Plus className="mr-1 h-4 w-4" />Novo</Button> : null}
       />
 
       <div className="flex flex-wrap gap-4 text-xs text-muted-foreground items-center pt-2">
