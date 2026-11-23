@@ -4719,6 +4719,7 @@ export type Database = {
           contrato: string | null
           corpo: string
           destinatarios: string
+          editado_no_envio: boolean
           empresa_id: string | null
           empresa_nome: string | null
           enviado_em: string
@@ -4726,6 +4727,8 @@ export type Database = {
           id: string
           justificativa: string | null
           modelo: string
+          modelo_id: string | null
+          modelo_versao: number | null
           motivo_alteracao: string | null
           movimentacao_id: string
           periodo: string | null
@@ -4742,6 +4745,7 @@ export type Database = {
           contrato?: string | null
           corpo: string
           destinatarios: string
+          editado_no_envio?: boolean
           empresa_id?: string | null
           empresa_nome?: string | null
           enviado_em?: string
@@ -4749,6 +4753,8 @@ export type Database = {
           id?: string
           justificativa?: string | null
           modelo: string
+          modelo_id?: string | null
+          modelo_versao?: number | null
           motivo_alteracao?: string | null
           movimentacao_id: string
           periodo?: string | null
@@ -4765,6 +4771,7 @@ export type Database = {
           contrato?: string | null
           corpo?: string
           destinatarios?: string
+          editado_no_envio?: boolean
           empresa_id?: string | null
           empresa_nome?: string | null
           enviado_em?: string
@@ -4772,6 +4779,8 @@ export type Database = {
           id?: string
           justificativa?: string | null
           modelo?: string
+          modelo_id?: string | null
+          modelo_versao?: number | null
           motivo_alteracao?: string | null
           movimentacao_id?: string
           periodo?: string | null

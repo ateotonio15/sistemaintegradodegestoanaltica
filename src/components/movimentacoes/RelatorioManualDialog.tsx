@@ -81,7 +81,8 @@ export function RelatorioManualDialog({ movimentacaoId, empresaId = null, nome, 
       if (invalidoCopia) throw new Error(`E-mail inválido em "Com cópia": ${invalidoCopia}`);
       const bloqueio = validarEscolhaCenario({ sugerido: cenarioSugerido, escolhido: escolha.cenario, justificativa: escolha.justificativa, motivoAlteracao: escolha.motivoAlteracao });
       if (bloqueio) throw new Error(bloqueio);
-      return enviarRelatoriosPortal({ movimentacaoId, empresaId, onProgresso: setProgresso, contrato, destinatarios: emails, cc: emailsCopia, arquivos, cenario: escolha.cenario, justificativa: escolha.justificativa, motivoAlteracao: escolha.motivoAlteracao });
+      if (escolha.bloqueio) throw new Error(escolha.bloqueio);
+      return enviarRelatoriosPortal({ assuntoEditado: escolha.assuntoEditado, corpoEditado: escolha.corpoEditado, movimentacaoId, empresaId, onProgresso: setProgresso, contrato, destinatarios: emails, cc: emailsCopia, arquivos, cenario: escolha.cenario, justificativa: escolha.justificativa, motivoAlteracao: escolha.motivoAlteracao });
     },
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: ["movimentacao-relatorios"] });
@@ -129,9 +130,9 @@ export function RelatorioManualDialog({ movimentacaoId, empresaId = null, nome, 
         </div>
         <div className="space-y-2"><Label htmlFor="relatorio-observacoes">Observações do relatório</Label><Textarea id="relatorio-observacoes" disabled={!canEdit || save.isPending} value={form.observacoes} onChange={e => setForm(f => ({ ...f, observacoes: e.target.value }))} /></div>
         <div className="space-y-2 rounded-md border p-3">
-          {canEdit && !ehMembro && <CenarioEnvioPainel sugerido={cenarioSugerido} valor={escolha} onChange={setEscolha} anexos={arquivos.length + (grupo.data?.contratos.length ?? 0) * 2} codigo={contrato ?? ""} nome={nome} corte={corte} disabled={ocupado} />}
+          {canEdit && !ehMembro && <CenarioEnvioPainel movimentacaoId={movimentacaoId} sugerido={cenarioSugerido} valor={escolha} onChange={setEscolha} anexos={[...arquivos.map(a => a.nome_arquivo), ...(grupo.data?.contratos ?? []).flatMap(c => [`Contrato #${c} (PDF)`, `Contrato #${c} (Excel)`])]} corte={corte} destinatarios={form.destinatarios} cc={form.cc} disabled={ocupado} />}
           {progresso && <p role="status" className="text-sm">{progresso}</p>}
-          {canEdit && !ehMembro && <Button type="button" className="w-full" disabled={ocupado || grupo.isLoading || arquivos.length !== 2} onClick={() => { if (window.confirm(`Enviar os relatórios?\nCenário: ${CENARIOS_ENVIO[escolha.cenario].rotulo} (destino: ${CENARIOS_ENVIO[escolha.cenario].destino})\nEmpresa: ${nome} | Contrato: #${contrato}\nDestinatários: ${form.destinatarios}${form.cc.trim() ? `\nCom cópia (Cc): ${form.cc}` : ""}${grupo.data?.contratos.length ? `\nContratos do grupo junto: ${grupo.data.contratos.map(c => `#${c}`).join(", ")}` : ""}`)) enviarEmail.mutate(); }}>
+          {canEdit && !ehMembro && <Button type="button" className="w-full" disabled={ocupado || grupo.isLoading || arquivos.length !== 2 || !!escolha.bloqueio} onClick={() => { if (window.confirm(`${escolha.cenario === "financeiro" ? "Este envio será realizado sem confirmação da empresa. Deseja continuar?\n\n" : ""}Enviar os relatórios?\nCenário: ${CENARIOS_ENVIO[escolha.cenario].rotulo} (destino: ${CENARIOS_ENVIO[escolha.cenario].destino})\nEmpresa: ${nome} | Contrato: #${contrato}\nDestinatários: ${form.destinatarios}${form.cc.trim() ? `\nCom cópia (Cc): ${form.cc}` : ""}${grupo.data?.contratos.length ? `\nContratos do grupo junto: ${grupo.data.contratos.map(c => `#${c}`).join(", ")}` : ""}`)) enviarEmail.mutate(); }}>
             <Send className="mr-2 h-4 w-4" />{enviarEmail.isPending ? "Enviando e-mail..." : "Enviar por e-mail"}
           </Button>}
         </div>

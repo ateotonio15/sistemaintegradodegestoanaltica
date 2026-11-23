@@ -4,6 +4,7 @@ import { corsHeaders } from "npm:@supabase/supabase-js@2/cors";
 import { z } from "npm:zod@3";
 import { enviarSmtp, type Anexo } from "../_shared/smtp.ts";
 import { dataCorteMovimentacao } from "../_shared/data-corte.ts";
+import { montarVariaveis, renderizarModelo, temVariavel, corpoParaHtml, corpoParaTexto } from "../_shared/email-modelo-render.ts";
 import { CENARIOS_ENVIO, montarEmailCenario, sugerirCenario, validarEscolhaCenario } from "../_shared/cenario-envio.ts";
 import { baixarRelatorioPortal, validarContratoPortal, RELATORIOS_PORTAL } from "../_shared/portal-empresa-relatorios.ts";
 import { concluirEnvioRelatorio } from "../_shared/registrar-envio-relatorio.ts";
@@ -24,6 +25,9 @@ const Body = z.object({
   cenario: z.enum(["dentro_periodo", "fora_periodo", "financeiro"]).optional(),
   justificativa: z.string().max(1000).optional(),
   motivo_alteracao: z.string().max(1000).optional(),
+  // "Editar envio": vale só para este e-mail; o Modelo salvo não muda.
+  assunto_editado: z.string().trim().min(3).max(300).optional(),
+  corpo_editado: z.string().trim().min(10).max(20000).optional(),
 });
 
 const PNG_MAGIC = [0x89, 0x50, 0x4e, 0x47];
@@ -67,7 +71,7 @@ Deno.serve(async (req) => {
 
     // Leituras com a sessão do usuário: respeitam as permissões existentes.
     const { data: mov } = await userClient.from("movimentacoes")
-      .select("id, empresa_id, mes_referencia, periodo, data_envio_empresa, empresas(nome, codigo_contrato)")
+      .select("id, empresa_id, mes_referencia, periodo, data_envio_empresa, responsavel_movimentacao, empresas(nome, codigo_contrato, razao_social, vidas, responsavel_contrato, contrato_suspenso)")
       .eq("id", movimentacao_id).maybeSingle();
     if (!mov) return json({ error: "Movimentação não encontrada" }, 404);
     const empContrato = (mov as any).empresas;
@@ -139,7 +143,32 @@ Deno.serve(async (req) => {
       const bloqueio = validarEscolhaCenario({ sugerido: cenarioSugerido, escolhido: cenario, justificativa: parsed.data.justificativa, motivoAlteracao: parsed.data.motivo_alteracao });
       if (bloqueio) return json({ error: bloqueio }, 400);
     }
-    const { assunto, texto } = montarEmailCenario(cenario, { codigo, nome, corte, justificativa: parsed.data.justificativa });
+    // Contrato suspenso: nada de e-mail de conferência para a empresa (segue a regra de suspensos).
+    if (emp.contrato_suspenso && cenario !== "financeiro") return json({ error: "Contrato suspenso — envio para empresa não aplicável." }, 409);
+    const { data: perfilEnvio } = await admin.from("profiles").select("display_name").eq("user_id", u.user.id).maybeSingle();
+    let assunto: string; let texto: string;
+    let modeloInfo: { id: string | null; nome: string; versao: number | null; editado: boolean } = { id: null, nome: CENARIOS_ENVIO[cenario].modelo, versao: null, editado: false };
+    if (parsed.data.cenario) {
+      // Modelo ATIVO do cenário (Configurações > Modelos de E-mail). Sem modelo, não envia.
+      const { data: modelo } = await admin.from("email_modelos").select("id, nome, versao, assunto, corpo")
+        .eq("cenario", cenario).eq("status", "ativo").order("atualizado_em", { ascending: false }).limit(1).maybeSingle();
+      if (!modelo) return json({ error: "Nenhum modelo de e-mail ativo foi encontrado para este cenário." }, 409);
+      const dados = montarVariaveis({
+        empresa: emp.nome, razaoSocial: emp.razao_social, contrato: codigo, mesReferencia: mov.mes_referencia, periodo: mov.periodo, corte,
+        responsavelContrato: emp.responsavel_contrato, responsavelMovimentacao: (mov as any).responsavel_movimentacao, vidas: emp.vidas,
+        hojeISO: hojeManaus(), usuario: perfilEnvio?.display_name, justificativa: cenario === "financeiro" ? parsed.data.justificativa : "",
+      });
+      const r = renderizarModelo(modelo, dados);
+      const editado = !!(parsed.data.assunto_editado || parsed.data.corpo_editado);
+      assunto = parsed.data.assunto_editado ?? r.assunto;
+      texto = parsed.data.corpo_editado ?? r.corpo;
+      if (temVariavel(assunto) || temVariavel(texto)) return json({ error: "O e-mail ainda contém códigos de variável ({{...}}). Corrija antes de enviar." }, 400);
+      // Variável sem dado só bloqueia se o texto final ainda depende dela (sem edição manual).
+      if (r.faltando.length && !editado) return json({ error: "Existem informações obrigatórias não preenchidas.", faltando: r.faltando }, 400);
+      modeloInfo = { id: modelo.id, nome: modelo.nome, versao: modelo.versao, editado };
+    } else {
+      ({ assunto, texto } = montarEmailCenario(cenario, { codigo, nome, corte, justificativa: parsed.data.justificativa }));
+    }
     const fechamento = ["Permanecerei à disposição.", "", "Cordialmente,"];
     // Assinatura: a da pessoa que enviou (quando cadastrada); senão, a padrão da Samel.
     let assinatura: Uint8Array | null = null;
@@ -156,9 +185,11 @@ Deno.serve(async (req) => {
     // Resumo (última página do relatório) vai no corpo, entre o texto e a assinatura.
     const cidResumo = `resumo-${crypto.randomUUID()}@samel`;
     const imgResumo = resumoPng ? `<img src="cid:${cidResumo}" width="760" alt="Resumo do relatório" style="width:760px;max-width:100%;height:auto;margin-top:8px;display:block">` : "";
-    const paragrafos = texto.split("\n").filter(Boolean).map(l => `<p style="margin:0 0 12px">${esc(l)}</p>`).join("");
-    const html = `<div style="font-family:Arial,sans-serif;font-size:14px;color:#222">${paragrafos}${imgResumo}<p style="margin:20px 0 12px">Permanecerei à disposição.</p><p style="margin:0 0 8px">Cordialmente,</p><img src="cid:assinatura-samel" width="540" alt="Assinatura Samel" style="width:540px;max-width:100%;height:auto"></div>`;
-    const textoCompleto = [texto, "", ...fechamento].join("\n");
+    const comFechamento = /cordialmente/i.test(texto);
+    const paragrafos = modeloInfo.id ? corpoParaHtml(texto) : texto.split("\n").filter(Boolean).map(l => `<p style="margin:0 0 12px">${esc(l)}</p>`).join("");
+    const html = `<div style="font-family:Arial,sans-serif;font-size:14px;color:#222">${paragrafos}${imgResumo}${comFechamento ? "" : '<p style="margin:20px 0 12px">Permanecerei à disposição.</p><p style="margin:0 0 8px">Cordialmente,</p>'}<img src="cid:assinatura-samel" width="540" alt="Assinatura Samel" style="width:540px;max-width:100%;height:auto"></div>`;
+    const textoBase = modeloInfo.id ? corpoParaTexto(texto) : texto;
+    const textoCompleto = comFechamento ? textoBase : [textoBase, "", ...fechamento].join("\n");
 
     // Reconfere imediatamente antes do SMTP: alteração de contrato durante download bloqueia o envio.
     const { data: atual, error: erroAtual } = await userClient.from("movimentacoes").select("empresas(codigo_contrato)").eq("id", movimentacao_id).maybeSingle();
@@ -219,7 +250,7 @@ Deno.serve(async (req) => {
           await admin.from("movimentacao_email_envios").insert({
             envio_id: envioId, movimentacao_id, empresa_id: (mov as any).empresa_id, empresa_nome: emp.nome ?? null,
             contrato: String(contrato), competencia: mov.mes_referencia, periodo: (mov as any).periodo ?? null,
-            cenario_sugerido: cenarioSugerido, cenario, modelo: CENARIOS_ENVIO[cenario].modelo,
+            cenario_sugerido: cenarioSugerido, cenario, modelo: modeloInfo.nome, modelo_id: modeloInfo.id, modelo_versao: modeloInfo.versao, editado_no_envio: modeloInfo.editado,
             destinatarios: destinatarios.join(", "), cc: (cc ?? []).join(", "),
             anexos: anexosEnviados.map(a => ({ nome: a.nome, contrato: a.contrato, tipo: a.tipo })),
             usuario_id: u.user.id, usuario_nome: perfil?.display_name ?? "",
@@ -227,6 +258,8 @@ Deno.serve(async (req) => {
             motivo_alteracao: cenario !== cenarioSugerido ? (parsed.data.motivo_alteracao?.trim() || parsed.data.justificativa?.trim() || null) : null,
             assunto, corpo: textoCompleto,
           });
+          // Envio direto ao Financeiro: usa a data já existente "Enviado Financ." (só se vazia).
+          if (cenario === "financeiro") await admin.from("movimentacoes").update({ data_envio_financeiro: hojeManaus() }).eq("id", movimentacao_id).is("data_envio_financeiro", null);
           return;
         }
         erroRegistro = "O e-mail foi enviado, mas não foi possível registrar o histórico. Não reenvie apenas para corrigir o registro.";

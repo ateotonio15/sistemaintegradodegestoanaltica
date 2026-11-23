@@ -743,6 +743,13 @@
       "when": 1795455780405,
       "tag": "0105_restringir_leitura_modelos_email",
       "breakpoints": true
+    },
+    {
+      "idx": 106,
+      "version": "7",
+      "when": 1795456509289,
+      "tag": "0106_email_envios_modelo_versao",
+      "breakpoints": true
     }
   ]
 }

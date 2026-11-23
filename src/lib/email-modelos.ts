@@ -36,24 +36,4 @@ export function substituirVariaveis(texto: string, dados: Record<string, string>
   return (texto ?? "").replace(/\{\{\s*([a-z_]+)\s*\}\}/g, (orig, k) => (k in dados ? dados[k] : orig));
 }
 
-const esc = (s: string) => s.replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]!));
-function inline(s: string): string {
-  return esc(s)
-    .replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>")
-    .replace(/(^|[^*])\*(?!\s)(.+?)\*/g, "$1<em>$2</em>")
-    .replace(/\[([^\]]+)\]\((https?:\/\/[^\s)]+)\)/g, '<a href="$2" target="_blank" rel="noopener noreferrer">$1</a>');
-}
-/** Formatação simples: **negrito**, *itálico*, listas com "- ", [texto](https://link) e quebras de linha. */
-export function corpoParaHtml(texto: string): string {
-  const linhas = (texto ?? "").split("\n");
-  const out: string[] = [];
-  let lista = false;
-  for (const l of linhas) {
-    const item = /^\s*[-•]\s+(.*)$/.exec(l);
-    if (item) { if (!lista) { out.push("<ul>"); lista = true; } out.push(`<li>${inline(item[1])}</li>`); continue; }
-    if (lista) { out.push("</ul>"); lista = false; }
-    out.push(l.trim() ? `<p>${inline(l)}</p>` : "<br>");
-  }
-  if (lista) out.push("</ul>");
-  return out.join("");
-}
+export { corpoParaHtml } from "../../supabase/functions/_shared/email-modelo-render";

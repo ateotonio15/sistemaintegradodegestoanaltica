@@ -1,0 +1,1 @@
+ALTER TABLE public.movimentacao_email_envios ADD COLUMN IF NOT EXISTS modelo_id uuid, ADD COLUMN IF NOT EXISTS modelo_versao integer, ADD COLUMN IF NOT EXISTS editado_no_envio boolean NOT NULL DEFAULT false;
