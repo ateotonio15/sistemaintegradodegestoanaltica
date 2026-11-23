@@ -1115,6 +1115,22 @@ export default function Movimentacoes() {
 
                   <div className="shrink-0 flex justify-end gap-2 border-t border-border/40 bg-muted/20 px-6 py-3.5">
                     <Button type="button" variant="outline" onClick={() => { setDialogOpen(false); resetForm(); }} className="rounded-lg">{canEditDates ? "Cancelar" : "Fechar"}</Button>
+                    {canEditDates && editingId && !form.data_retorno_empresa && !movimentacoes.find((m: any) => m.id === editingId)?.data_envio_financeiro && (
+                      <Button
+                        type="button"
+                        variant="outline"
+                        className="rounded-lg"
+                        title="Fecha o contrato sem o ok da empresa e abre o envio de e-mail ao Financeiro"
+                        disabled={upsert.isPending || !form.empresa_id}
+                        onClick={() => {
+                          const d = new Date();
+                          const hoje = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+                          upsert.mutate({ ...form, data_envio_financeiro: form.data_envio_financeiro ?? hoje });
+                        }}
+                      >
+                        Fechar sem ok da empresa
+                      </Button>
+                    )}
                     {canEditDates && <Button type="submit" disabled={upsert.isPending || !form.empresa_id} className="rounded-lg">{upsert.isPending ? "Salvando..." : "Salvar"}</Button>}
                   </div>
 
