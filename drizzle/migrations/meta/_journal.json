@@ -729,6 +729,13 @@
       "when": 1795455062537,
       "tag": "0103_movimentacao_email_envios",
       "breakpoints": true
+    },
+    {
+      "idx": 104,
+      "version": "7",
+      "when": 1795455502182,
+      "tag": "0104_email_modelos",
+      "breakpoints": true
     }
   ]
 }

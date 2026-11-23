@@ -1,3 +1,4 @@
+import { Link } from "react-router-dom";
 import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import { Monitor, Moon, Sun, Settings, ShieldCheck, Info, Loader2, Eye, EyeOff } from "lucide-react";
@@ -220,6 +221,12 @@ export default function Configuracoes() {
         </p>
       </header>
 
+      <Card>
+        <CardHeader className="flex flex-row flex-wrap items-center justify-between gap-3 space-y-0">
+          <div><CardTitle className="text-base">Modelos de E-mail</CardTitle><CardDescription>Cadastre, edite e visualize os textos dos e-mails das Movimentações.</CardDescription></div>
+          <Button asChild variant="outline"><Link to="/configuracoes/modelos-email">Abrir Modelos de E-mail</Link></Button>
+        </CardHeader>
+      </Card>
       <EmailRelatoriosForm />
       <MeuRemetenteForm />
 

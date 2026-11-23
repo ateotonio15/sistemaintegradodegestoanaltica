@@ -1,1 +1,2 @@
 - Email scenarios (in/out of period, direct to Financeiro) live in supabase/functions/_shared/cenario-envio.ts, shared by UI and server; server re-derives the suggestion and stores an immutable subject/body copy in movimentacao_email_envios.
+- Email templates (Configurações > Modelos de E-mail) are versioned by DB triggers into email_modelo_versoes; scenarios list comes from cenario-envio.ts. Not yet wired to sending.

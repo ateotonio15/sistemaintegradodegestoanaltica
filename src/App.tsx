@@ -8,6 +8,7 @@ import { AuthProvider, useAuth } from "@/hooks/useAuth";
 import { ThemeProvider } from "@/hooks/useTheme";
 import { AppLayout } from "@/components/AppLayout";
 import Configuracoes from "./pages/Configuracoes";
+const ModelosEmail = lazy(() => import("./pages/ModelosEmail"));
 import Empresas from "./pages/Empresas";
 import Movimentacoes from "./pages/Movimentacoes";
 import Usuarios from "./pages/Usuarios";
@@ -203,6 +204,7 @@ const AppRoutes = () => (
       <Route path="/meu-painel" element={<MeuPainel />} />
       <Route path="/trocar-senha" element={<TrocarSenha />} />
       <Route path="/configuracoes" element={<Configuracoes />} />
+      <Route path="/configuracoes/modelos-email" element={<Suspense fallback={null}><ModelosEmail /></Suspense>} />
       <Route element={<AdminInternoGate />}>
         <Route path="/admin/cadastrar-empresa" element={<CadastrarEmpresa />} />
       </Route>

@@ -2401,6 +2401,113 @@ export type Database = {
         }
         Relationships: []
       }
+      email_modelo_versoes: {
+        Row: {
+          alterado_em: string
+          alterado_por: string | null
+          alterado_por_nome: string | null
+          dados: Json
+          id: string
+          modelo_id: string
+          versao: number
+        }
+        Insert: {
+          alterado_em?: string
+          alterado_por?: string | null
+          alterado_por_nome?: string | null
+          dados: Json
+          id?: string
+          modelo_id: string
+          versao: number
+        }
+        Update: {
+          alterado_em?: string
+          alterado_por?: string | null
+          alterado_por_nome?: string | null
+          dados?: Json
+          id?: string
+          modelo_id?: string
+          versao?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "email_modelo_versoes_modelo_id_fkey"
+            columns: ["modelo_id"]
+            isOneToOne: false
+            referencedRelation: "email_modelos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      email_modelos: {
+        Row: {
+          anexos_esperados: string[]
+          assinatura_texto: string | null
+          assinatura_tipo: string
+          assunto: string
+          atualizado_em: string
+          atualizado_por: string | null
+          atualizado_por_nome: string | null
+          cc_padrao: string | null
+          cenario: string
+          corpo: string
+          criado_em: string
+          criado_por: string | null
+          criado_por_nome: string | null
+          descricao: string | null
+          destino: string
+          id: string
+          nome: string
+          status: string
+          utilizado: boolean
+          versao: number
+        }
+        Insert: {
+          anexos_esperados?: string[]
+          assinatura_texto?: string | null
+          assinatura_tipo?: string
+          assunto: string
+          atualizado_em?: string
+          atualizado_por?: string | null
+          atualizado_por_nome?: string | null
+          cc_padrao?: string | null
+          cenario: string
+          corpo: string
+          criado_em?: string
+          criado_por?: string | null
+          criado_por_nome?: string | null
+          descricao?: string | null
+          destino?: string
+          id?: string
+          nome: string
+          status?: string
+          utilizado?: boolean
+          versao?: number
+        }
+        Update: {
+          anexos_esperados?: string[]
+          assinatura_texto?: string | null
+          assinatura_tipo?: string
+          assunto?: string
+          atualizado_em?: string
+          atualizado_por?: string | null
+          atualizado_por_nome?: string | null
+          cc_padrao?: string | null
+          cenario?: string
+          corpo?: string
+          criado_em?: string
+          criado_por?: string | null
+          criado_por_nome?: string | null
+          descricao?: string | null
+          destino?: string
+          id?: string
+          nome?: string
+          status?: string
+          utilizado?: boolean
+          versao?: number
+        }
+        Relationships: []
+      }
       empresa_cnpj_situacao: {
         Row: {
           cnpj: string
