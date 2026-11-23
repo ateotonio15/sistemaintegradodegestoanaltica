@@ -27,7 +27,7 @@ const fmtMes = (ym: string) => {
 };
 
 export default function UberCorridas() {
-  const { user, isAdmin, isViewOnly, isVendas } = useAuth();
+  const { user, isAdmin, isViewOnly, isVendas, isExecutivo } = useAuth();
   const canManageCorridas = !!user && !isViewOnly && !isVendas;
   const { data: corridas = [], isLoading } = useUberCorridas();
   const del = useDeleteCorrida();
@@ -137,7 +137,7 @@ export default function UberCorridas() {
           <Button variant="outline" size="sm" onClick={exportar}><Download className="h-4 w-4 mr-1" />Exportar</Button>
           {canManageCorridas && (
             <>
-              {isAdmin && <Button variant="outline" size="sm" onClick={() => setImportOpen(true)}><Upload className="h-4 w-4 mr-1" />Importar Excel</Button>}
+              {(isAdmin || isExecutivo) && <Button variant="outline" size="sm" onClick={() => setImportOpen(true)}><Upload className="h-4 w-4 mr-1" />Importar Excel</Button>}
               <Button size="sm" onClick={() => { setEdit(null); setDialogOpen(true); }}><Plus className="h-4 w-4 mr-1" />Nova corrida</Button>
             </>
           )}
