@@ -722,6 +722,13 @@
       "when": 1795098087751,
       "tag": "0102_assinaturas_lote_detalhado",
       "breakpoints": true
+    },
+    {
+      "idx": 103,
+      "version": "7",
+      "when": 1795455062537,
+      "tag": "0103_movimentacao_email_envios",
+      "breakpoints": true
     }
   ]
 }

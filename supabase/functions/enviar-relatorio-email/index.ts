@@ -4,6 +4,7 @@ import { corsHeaders } from "npm:@supabase/supabase-js@2/cors";
 import { z } from "npm:zod@3";
 import { enviarSmtp, type Anexo } from "../_shared/smtp.ts";
 import { dataCorteMovimentacao } from "../_shared/data-corte.ts";
+import { CENARIOS_ENVIO, montarEmailCenario, sugerirCenario, validarEscolhaCenario } from "../_shared/cenario-envio.ts";
 import { baixarRelatorioPortal, validarContratoPortal, RELATORIOS_PORTAL } from "../_shared/portal-empresa-relatorios.ts";
 import { concluirEnvioRelatorio } from "../_shared/registrar-envio-relatorio.ts";
 import { BUCKET_ENVIOS, bytesPorCaminho, montarItensEnvio, type AnexoEnviado, type DestinoEnvio } from "../_shared/envios-empresa.ts";
@@ -19,6 +20,10 @@ const Body = z.object({
   lote: z.boolean().optional(),
   // Opcional: PNG (base64) da última página do relatório, embutido no corpo do e-mail.
   resumo_png_base64: z.string().max(4_200_000).optional(),
+  // Motor de cenários: ausente = e-mail padrão de conferência (comportamento anterior).
+  cenario: z.enum(["dentro_periodo", "fora_periodo", "financeiro"]).optional(),
+  justificativa: z.string().max(1000).optional(),
+  motivo_alteracao: z.string().max(1000).optional(),
 });
 
 const PNG_MAGIC = [0x89, 0x50, 0x4e, 0x47];
@@ -128,19 +133,13 @@ Deno.serve(async (req) => {
     const nome = String(emp.nome ?? "").toUpperCase();
     const codigo = emp.codigo_contrato ?? "";
     const corte = dataCorteMovimentacao(mov.periodo, mov.mes_referencia);
-    const prazo = corte ? `até o dia ${corte}` : "até a data de corte";
-    const assunto = `RELATORIOS PARA CONFERENCIA EMPRESA ${codigo} - ${nome}`.replace(/\s+/g, " ").trim();
-    const texto = [
-      "Prezados!",
-      "",
-      "Segue, em anexo, o relatório atualizado de beneficiários para conferência e validação do faturamento.",
-      "",
-      `Caso identifiquem alguma divergência, solicito que nos informem ${prazo}, para que possamos realizar os ajustes necessários antes da emissão da Nota Fiscal.`,
-      "",
-      "Ressalto que a conferência dentro do prazo é fundamental para evitar cobranças indevidas. Após a data de corte, a Nota Fiscal será emitida automaticamente com base no relatório encaminhado.",
-      "",
-      "Peço, por gentileza, que confirmem o recebimento e a validação do relatório. Na ausência de manifestação até o prazo informado, o faturamento seguirá normalmente.",
-    ].join("\n");
+    const cenarioSugerido = sugerirCenario(hojeManaus(), corte);
+    const cenario = parsed.data.cenario ?? "dentro_periodo";
+    if (parsed.data.cenario) {
+      const bloqueio = validarEscolhaCenario({ sugerido: cenarioSugerido, escolhido: cenario, justificativa: parsed.data.justificativa, motivoAlteracao: parsed.data.motivo_alteracao });
+      if (bloqueio) return json({ error: bloqueio }, 400);
+    }
+    const { assunto, texto } = montarEmailCenario(cenario, { codigo, nome, corte, justificativa: parsed.data.justificativa });
     const fechamento = ["Permanecerei à disposição.", "", "Cordialmente,"];
     // Assinatura: a da pessoa que enviou (quando cadastrada); senão, a padrão da Samel.
     let assinatura: Uint8Array | null = null;
@@ -215,7 +214,21 @@ Deno.serve(async (req) => {
           p_usuario: u.user.id, p_nome: perfil?.display_name ?? "", p_destinatarios: destinatarios.join(", "),
           p_cc: (cc ?? []).join(", "), p_contrato: String(contrato),
         });
-        if (!error) return;
+        if (!error) {
+          // Cópia fiel do que foi enviado: alterar o modelo depois não muda este registro.
+          await admin.from("movimentacao_email_envios").insert({
+            envio_id: envioId, movimentacao_id, empresa_id: (mov as any).empresa_id, empresa_nome: emp.nome ?? null,
+            contrato: String(contrato), competencia: mov.mes_referencia, periodo: (mov as any).periodo ?? null,
+            cenario_sugerido: cenarioSugerido, cenario, modelo: CENARIOS_ENVIO[cenario].modelo,
+            destinatarios: destinatarios.join(", "), cc: (cc ?? []).join(", "),
+            anexos: anexosEnviados.map(a => ({ nome: a.nome, contrato: a.contrato, tipo: a.tipo })),
+            usuario_id: u.user.id, usuario_nome: perfil?.display_name ?? "",
+            justificativa: cenario === "financeiro" ? parsed.data.justificativa?.trim() ?? null : null,
+            motivo_alteracao: cenario !== cenarioSugerido ? (parsed.data.motivo_alteracao?.trim() || parsed.data.justificativa?.trim() || null) : null,
+            assunto, corpo: textoCompleto,
+          });
+          return;
+        }
         erroRegistro = "O e-mail foi enviado, mas não foi possível registrar o histórico. Não reenvie apenas para corrigir o registro.";
       }
       throw new Error(erroRegistro);

@@ -21,8 +21,8 @@ export async function buscarGrupoRelatorio(empresaId: string | null | undefined,
   return { papel, nomeGrupo: g.nome_grupo, contratos };
 }
 
-export async function enviarRelatoriosPortal({ movimentacaoId, empresaId, contrato, destinatarios, cc = [], arquivos, lote = false, onProgresso }: {
-  movimentacaoId: string; empresaId?: string | null; contrato: string | null; destinatarios: string[]; cc?: string[]; arquivos: ArquivoPortal[]; lote?: boolean; onProgresso?: (msg: string) => void;
+export async function enviarRelatoriosPortal({ movimentacaoId, empresaId, contrato, destinatarios, cc = [], arquivos, lote = false, onProgresso, cenario, justificativa, motivoAlteracao }: {
+  movimentacaoId: string; empresaId?: string | null; contrato: string | null; destinatarios: string[]; cc?: string[]; arquivos: ArquivoPortal[]; lote?: boolean; onProgresso?: (msg: string) => void; cenario?: string; justificativa?: string; motivoAlteracao?: string;
 }) {
   if (arquivos.length !== 2 || !arquivos.some(a => a.tipo === "pdf") || !arquivos.some(a => a.tipo === "xlsx")) throw new Error("Aguarde o PDF e o Excel da empresa selecionada.");
   arquivos.forEach(a => validarArquivoContrato(contrato, a, a.nome_arquivo));
@@ -47,6 +47,7 @@ export async function enviarRelatoriosPortal({ movimentacaoId, empresaId, contra
     portal_jobs: arquivos.map(({ job_id, nr_contrato, tipo }) => ({ job_id, nr_contrato, tipo })),
     grupo_jobs: grupoArquivos.map(({ job_id, nr_contrato, tipo }) => ({ job_id, nr_contrato, tipo })),
     ...(resumo_png_base64 ? { resumo_png_base64 } : {}),
+    ...(cenario ? { cenario, justificativa: justificativa || undefined, motivo_alteracao: motivoAlteracao || undefined } : {}),
   } });
   if (error) {
     const response = (error as { context?: Response }).context;

@@ -4601,6 +4601,78 @@ export type Database = {
         }
         Relationships: []
       }
+      movimentacao_email_envios: {
+        Row: {
+          anexos: Json
+          assunto: string
+          cc: string | null
+          cenario: string
+          cenario_sugerido: string
+          competencia: string | null
+          contrato: string | null
+          corpo: string
+          destinatarios: string
+          empresa_id: string | null
+          empresa_nome: string | null
+          enviado_em: string
+          envio_id: string
+          id: string
+          justificativa: string | null
+          modelo: string
+          motivo_alteracao: string | null
+          movimentacao_id: string
+          periodo: string | null
+          usuario_id: string | null
+          usuario_nome: string | null
+        }
+        Insert: {
+          anexos?: Json
+          assunto: string
+          cc?: string | null
+          cenario: string
+          cenario_sugerido: string
+          competencia?: string | null
+          contrato?: string | null
+          corpo: string
+          destinatarios: string
+          empresa_id?: string | null
+          empresa_nome?: string | null
+          enviado_em?: string
+          envio_id: string
+          id?: string
+          justificativa?: string | null
+          modelo: string
+          motivo_alteracao?: string | null
+          movimentacao_id: string
+          periodo?: string | null
+          usuario_id?: string | null
+          usuario_nome?: string | null
+        }
+        Update: {
+          anexos?: Json
+          assunto?: string
+          cc?: string | null
+          cenario?: string
+          cenario_sugerido?: string
+          competencia?: string | null
+          contrato?: string | null
+          corpo?: string
+          destinatarios?: string
+          empresa_id?: string | null
+          empresa_nome?: string | null
+          enviado_em?: string
+          envio_id?: string
+          id?: string
+          justificativa?: string | null
+          modelo?: string
+          motivo_alteracao?: string | null
+          movimentacao_id?: string
+          periodo?: string | null
+          usuario_id?: string | null
+          usuario_nome?: string | null
+        }
+        Relationships: []
+      }
       movimentacao_fechamento_historico: {
         Row: {
           anexo_id: string | null

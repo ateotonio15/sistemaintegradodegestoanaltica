@@ -14,14 +14,17 @@ import { STATUS_RELATORIO, CONFIRMACOES_RELATORIO, RELATORIO_VAZIO, ajustarRegis
 import type { ArquivoPortal } from "@/services/portalEmpresaRelatorios";
 import { enviarRelatoriosPortal, buscarGrupoRelatorio } from "@/services/enviarRelatoriosPortal";
 import { HistoricoEnvioRelatorio } from "./HistoricoEnvioRelatorio";
+import { CenarioEnvioPainel, type EscolhaCenario } from "./CenarioEnvioPainel";
+import { CENARIOS_ENVIO, sugerirCenario, validarEscolhaCenario } from "../../../supabase/functions/_shared/cenario-envio";
+import { dataCorteMovimentacao } from "../../../supabase/functions/_shared/data-corte";
 
 function hojeLocalISO(): string {
   const d = new Date();
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 }
 
-export function RelatorioManualDialog({ movimentacaoId, empresaId = null, nome, contrato, contexto, competencia, periodo, registro, statusInicial, dataEnvioEmpresa, canEdit, onClose }: {
-  movimentacaoId: string; empresaId?: string | null; nome: string; contrato: string | null; contexto: string; competencia: string; periodo: string | null; registro?: RegistroRelatorio; statusInicial?: string; dataEnvioEmpresa?: string | null; canEdit: boolean; onClose: () => void;
+export function RelatorioManualDialog({ movimentacaoId, empresaId = null, nome, contrato, contexto, competencia, mesReferencia = null, periodo, registro, statusInicial, dataEnvioEmpresa, canEdit, onClose }: {
+  movimentacaoId: string; empresaId?: string | null; nome: string; contrato: string | null; contexto: string; competencia: string; mesReferencia?: string | null; periodo: string | null; registro?: RegistroRelatorio; statusInicial?: string; dataEnvioEmpresa?: string | null; canEdit: boolean; onClose: () => void;
 }) {
   const somenteConsulta = !statusInicial;
   const [form, setForm] = useState<RegistroRelatorio>(() => {
@@ -64,6 +67,9 @@ export function RelatorioManualDialog({ movimentacaoId, empresaId = null, nome, 
   const [progresso, setProgresso] = useState("");
   const grupo = useQuery({ queryKey: ["relatorio-grupo", empresaId, contrato], queryFn: () => buscarGrupoRelatorio(empresaId, contrato), enabled: !!empresaId && !somenteConsulta });
   const ehMembro = grupo.data?.papel === "membro";
+  const corte = dataCorteMovimentacao(periodo, mesReferencia);
+  const cenarioSugerido = sugerirCenario(hojeLocalISO(), corte);
+  const [escolha, setEscolha] = useState<EscolhaCenario>({ cenario: cenarioSugerido, justificativa: "", motivoAlteracao: "" });
   const enviarEmail = useMutation({
     mutationFn: async () => {
       const emails = form.destinatarios.split(/[,;\s]+/).map(e => e.trim()).filter(Boolean);
@@ -73,7 +79,9 @@ export function RelatorioManualDialog({ movimentacaoId, empresaId = null, nome, 
       const emailsCopia = form.cc.split(/[,;\s]+/).map(e => e.trim()).filter(Boolean);
       const invalidoCopia = emailsCopia.find(e => !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e));
       if (invalidoCopia) throw new Error(`E-mail inválido em "Com cópia": ${invalidoCopia}`);
-      return enviarRelatoriosPortal({ movimentacaoId, empresaId, onProgresso: setProgresso, contrato, destinatarios: emails, cc: emailsCopia, arquivos });
+      const bloqueio = validarEscolhaCenario({ sugerido: cenarioSugerido, escolhido: escolha.cenario, justificativa: escolha.justificativa, motivoAlteracao: escolha.motivoAlteracao });
+      if (bloqueio) throw new Error(bloqueio);
+      return enviarRelatoriosPortal({ movimentacaoId, empresaId, onProgresso: setProgresso, contrato, destinatarios: emails, cc: emailsCopia, arquivos, cenario: escolha.cenario, justificativa: escolha.justificativa, motivoAlteracao: escolha.motivoAlteracao });
     },
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: ["movimentacao-relatorios"] });
@@ -121,8 +129,9 @@ export function RelatorioManualDialog({ movimentacaoId, empresaId = null, nome, 
         </div>
         <div className="space-y-2"><Label htmlFor="relatorio-observacoes">Observações do relatório</Label><Textarea id="relatorio-observacoes" disabled={!canEdit || save.isPending} value={form.observacoes} onChange={e => setForm(f => ({ ...f, observacoes: e.target.value }))} /></div>
         <div className="space-y-2 rounded-md border p-3">
+          {canEdit && !ehMembro && <CenarioEnvioPainel sugerido={cenarioSugerido} valor={escolha} onChange={setEscolha} anexos={arquivos.length + (grupo.data?.contratos.length ?? 0) * 2} codigo={contrato ?? ""} nome={nome} corte={corte} disabled={ocupado} />}
           {progresso && <p role="status" className="text-sm">{progresso}</p>}
-          {canEdit && !ehMembro && <Button type="button" className="w-full" disabled={ocupado || grupo.isLoading || arquivos.length !== 2} onClick={() => { if (window.confirm(`Enviar os relatórios?\nEmpresa: ${nome} | Contrato: #${contrato}\nDestinatários: ${form.destinatarios}${form.cc.trim() ? `\nCom cópia (Cc): ${form.cc}` : ""}${grupo.data?.contratos.length ? `\nContratos do grupo junto: ${grupo.data.contratos.map(c => `#${c}`).join(", ")}` : ""}`)) enviarEmail.mutate(); }}>
+          {canEdit && !ehMembro && <Button type="button" className="w-full" disabled={ocupado || grupo.isLoading || arquivos.length !== 2} onClick={() => { if (window.confirm(`Enviar os relatórios?\nCenário: ${CENARIOS_ENVIO[escolha.cenario].rotulo} (destino: ${CENARIOS_ENVIO[escolha.cenario].destino})\nEmpresa: ${nome} | Contrato: #${contrato}\nDestinatários: ${form.destinatarios}${form.cc.trim() ? `\nCom cópia (Cc): ${form.cc}` : ""}${grupo.data?.contratos.length ? `\nContratos do grupo junto: ${grupo.data.contratos.map(c => `#${c}`).join(", ")}` : ""}`)) enviarEmail.mutate(); }}>
             <Send className="mr-2 h-4 w-4" />{enviarEmail.isPending ? "Enviando e-mail..." : "Enviar por e-mail"}
           </Button>}
         </div>
