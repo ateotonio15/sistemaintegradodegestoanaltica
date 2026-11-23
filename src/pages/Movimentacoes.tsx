@@ -444,9 +444,9 @@ export default function Movimentacoes() {
     mutationFn: async (values: typeof emptyForm) => {
       // Anexos não são mais obrigatórios para registrar a Data de Envio ao Financeiro.
       // Fechamento (preencher "Envio Financeiro" pela primeira vez): a data só é gravada
-      // após o e-mail "Envio direto ao Financeiro" ser enviado pela janela de envio.
+      // após o e-mail "Envio direto ao Financeiro" ser enviado — somente quando a empresa NÃO deu o ok (sem "Retorno Empresa").
       let abrirFechamento = false;
-      if (editingId && values.data_envio_financeiro) {
+      if (editingId && values.data_envio_financeiro && !values.data_retorno_empresa) {
         const { data: atual } = await supabase.from("movimentacoes").select("data_envio_financeiro").eq("id", editingId).maybeSingle();
         if (!atual?.data_envio_financeiro) { abrirFechamento = true; values = { ...values, data_envio_financeiro: null }; }
       }
