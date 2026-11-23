@@ -736,6 +736,13 @@
       "when": 1795455502182,
       "tag": "0104_email_modelos",
       "breakpoints": true
+    },
+    {
+      "idx": 105,
+      "version": "7",
+      "when": 1795455780405,
+      "tag": "0105_restringir_leitura_modelos_email",
+      "breakpoints": true
     }
   ]
 }
