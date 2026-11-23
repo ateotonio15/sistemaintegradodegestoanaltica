@@ -1,0 +1,1 @@
+- Email scenarios (in/out of period, direct to Financeiro) live in supabase/functions/_shared/cenario-envio.ts, shared by UI and server; server re-derives the suggestion and stores an immutable subject/body copy in movimentacao_email_envios.
