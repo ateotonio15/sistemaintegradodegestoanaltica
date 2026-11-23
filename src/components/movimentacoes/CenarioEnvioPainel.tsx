@@ -20,8 +20,8 @@ export interface EscolhaCenario { cenario: CenarioEnvio; justificativa: string; 
 const hojeISO = () => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`; };
 const descricao = (k: string) => VARIAVEIS_MODELO.find(v => v.chave === k)?.descricao ?? k;
 
-export function CenarioEnvioPainel({ movimentacaoId, sugerido, valor, onChange, anexos, corte, destinatarios, cc, disabled }: {
-  movimentacaoId: string; sugerido: CenarioEnvio; valor: EscolhaCenario; onChange: (v: EscolhaCenario) => void; anexos: string[]; codigo?: string; nome?: string; corte: string | null; destinatarios: string; cc: string; disabled?: boolean;
+export function CenarioEnvioPainel({ movimentacaoId, sugerido, valor, onChange, anexos, corte, destinatarios, cc, disabled, modoFechamento = false }: {
+  modoFechamento?: boolean; movimentacaoId: string; sugerido: CenarioEnvio; valor: EscolhaCenario; onChange: (v: EscolhaCenario) => void; anexos: string[]; codigo?: string; nome?: string; corte: string | null; destinatarios: string; cc: string; disabled?: boolean;
 }) {
   const { user } = useAuth() as any;
   const [ver, setVer] = useState(false);
@@ -80,16 +80,16 @@ export function CenarioEnvioPainel({ movimentacaoId, sugerido, valor, onChange, 
     {bloqueio && !bloqueio.startsWith("Carregando") && <div className="flex items-start gap-2 rounded-md border border-destructive/40 bg-destructive/10 p-2 text-sm text-destructive">
       <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" /><div className="space-y-1"><p>{bloqueio}</p>
         {!modelo && <Button asChild size="sm" variant="outline"><Link to="/configuracoes/modelos-email">Ir para Modelos de E-mail</Link></Button>}</div></div>}
-    <div className="space-y-1"><Label htmlFor="cenario-envio">Alterar cenário</Label>
+    {!modoFechamento && <div className="space-y-1"><Label htmlFor="cenario-envio">Alterar cenário</Label>
       <Select disabled={disabled} value={valor.cenario} onValueChange={c => trocarCenario(c as CenarioEnvio)}>
         <SelectTrigger id="cenario-envio"><SelectValue /></SelectTrigger>
-        <SelectContent>{LISTA_CENARIOS.map(c => <SelectItem key={c} value={c}>{CENARIOS_ENVIO[c].rotulo}{c === sugerido ? " (sugerido)" : ""}</SelectItem>)}</SelectContent>
+        <SelectContent>{LISTA_CENARIOS.filter(c => c !== "financeiro" || valor.cenario === "financeiro").map(c => <SelectItem key={c} value={c}>{CENARIOS_ENVIO[c].rotulo}{c === sugerido ? " (sugerido)" : ""}</SelectItem>)}</SelectContent>
       </Select>
-    </div>
+    </div>}
     {valor.cenario === "financeiro" && <div className="space-y-1"><Label htmlFor="cenario-justificativa">Justificativa do envio direto ao Financeiro *</Label>
       <Textarea id="cenario-justificativa" disabled={disabled} value={valor.justificativa} placeholder="Ex.: Empresa não retornou a validação dentro do prazo." onChange={e => onChange({ ...valor, justificativa: e.target.value })} />
       <p className="text-xs text-muted-foreground">Este envio será realizado sem confirmação da empresa. Será enviado para os e-mails acima e também para o Financeiro: {emailsFin.data?.length ? <strong>{emailsFin.data.join(", ")}</strong> : <span>nenhum e-mail do Financeiro cadastrado ainda (use uma vez "Enviar fechamento ao Financeiro" nas Administradoras)</span>}.</p></div>}
-    {alterado && valor.cenario !== "financeiro" && <div className="space-y-1"><Label htmlFor="cenario-motivo">Motivo da alteração *</Label>
+    {alterado && !modoFechamento && valor.cenario !== "financeiro" && <div className="space-y-1"><Label htmlFor="cenario-motivo">Motivo da alteração *</Label>
       <Textarea id="cenario-motivo" disabled={disabled} value={valor.motivoAlteracao} onChange={e => onChange({ ...valor, motivoAlteracao: e.target.value })} /></div>}
     <div className="flex flex-wrap gap-2">
       <Button type="button" variant="outline" size="sm" disabled={!r} onClick={() => setVer(true)}><Eye className="mr-2 h-4 w-4" />Visualizar e-mail</Button>

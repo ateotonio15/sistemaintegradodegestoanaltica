@@ -133,6 +133,7 @@ export default function Movimentacoes() {
   const [relatorioMov, setRelatorioMov] = useState<Movimentacao | null>(null);
   const [avisoSuspenso, setAvisoSuspenso] = useState(false);
   const [relatorioStatusInicial, setRelatorioStatusInicial] = useState<string | undefined>(undefined);
+  const [relatorioFechamento, setRelatorioFechamento] = useState(false);
   const [loteOpen, setLoteOpen] = useState(false);
   const [prepararResultado, setPrepararResultado] = useState<ResultadoPreparacao | null>(null);
   const [preparandoContrato, setPreparandoContrato] = useState("");
@@ -442,6 +443,13 @@ export default function Movimentacoes() {
   const upsert = useMutation({
     mutationFn: async (values: typeof emptyForm) => {
       // Anexos não são mais obrigatórios para registrar a Data de Envio ao Financeiro.
+      // Fechamento (preencher "Envio Financeiro" pela primeira vez): a data só é gravada
+      // após o e-mail "Envio direto ao Financeiro" ser enviado pela janela de envio.
+      let abrirFechamento = false;
+      if (editingId && values.data_envio_financeiro) {
+        const { data: atual } = await supabase.from("movimentacoes").select("data_envio_financeiro").eq("id", editingId).maybeSingle();
+        if (!atual?.data_envio_financeiro) { abrirFechamento = true; values = { ...values, data_envio_financeiro: null }; }
+      }
 
       const payload: TablesInsert<"movimentacoes"> = {
         empresa_id: values.empresa_id,
@@ -539,16 +547,20 @@ export default function Movimentacoes() {
       if (editingId && payload.data_envio_financeiro) {
         await sincronizarEnvioDosAnexos(editingId, payload.data_envio_financeiro, values.mes_referencia);
       }
-
+      return abrirFechamento ? editingId : null;
     },
 
-    onSuccess: () => {
+    onSuccess: (fechamentoId) => {
+      if (fechamentoId) {
+        const mov = movimentacoes.find((m: any) => m.id === fechamentoId);
+        if (mov) { setRelatorioStatusInicial("Enviado"); setRelatorioFechamento(true); setRelatorioMov(mov as any); }
+      }
       queryClient.invalidateQueries({ queryKey: ["movimentacoes"] });
       queryClient.invalidateQueries({ queryKey: ["movimentacoes-dashboard"] });
       queryClient.invalidateQueries({ queryKey: ["empresas-dashboard"] });
       setDialogOpen(false);
       resetForm();
-      toast({ title: editingId ? "Movimentação atualizada!" : "Movimentação criada!" });
+      toast({ title: fechamentoId ? "Envie o e-mail ao Financeiro para concluir o fechamento" : editingId ? "Movimentação atualizada!" : "Movimentação criada!" });
     },
     onError: (e: any) => toast({ title: e?.message || "Erro ao salvar", variant: "destructive" }),
   });
@@ -1404,7 +1416,7 @@ export default function Movimentacoes() {
                                   </Button>
                                 </DropdownMenuTrigger>
                                 <DropdownMenuContent align="end">
-                                  <DropdownMenuItem onClick={() => { if (contratoSuspenso(m)) { setAvisoSuspenso(true); return; } setRelatorioStatusInicial(undefined); setRelatorioMov(m); }}>
+                                  <DropdownMenuItem onClick={() => { if (contratoSuspenso(m)) { setAvisoSuspenso(true); return; } setRelatorioStatusInicial(undefined); setRelatorioFechamento(false); setRelatorioMov(m); }}>
                                     <Eye className="mr-2 h-4 w-4" /> Visualizar relatório
                                   </DropdownMenuItem>
                                   {papelGrupoRelatorio(m.empresa_id, grupoLinha) === "membro" ? (
@@ -1412,11 +1424,11 @@ export default function Movimentacoes() {
                                       <Send className="mr-2 h-4 w-4" /> Enviado pelo contrato principal do grupo
                                     </DropdownMenuItem>
                                   ) : !relatorioFinalizado(relatorio) ? (
-                                    <DropdownMenuItem onClick={() => { if (contratoSuspenso(m)) { setAvisoSuspenso(true); return; } setRelatorioStatusInicial("Enviado"); setRelatorioMov(m); }}>
+                                    <DropdownMenuItem onClick={() => { if (contratoSuspenso(m)) { setAvisoSuspenso(true); return; } setRelatorioStatusInicial("Enviado"); setRelatorioFechamento(false); setRelatorioMov(m); }}>
                                       <Send className="mr-2 h-4 w-4" /> Enviar
                                     </DropdownMenuItem>
                                   ) : (
-                                    <DropdownMenuItem onClick={() => { if (contratoSuspenso(m)) { setAvisoSuspenso(true); return; } setRelatorioStatusInicial("Enviado"); setRelatorioMov(m); }}>
+                                    <DropdownMenuItem onClick={() => { if (contratoSuspenso(m)) { setAvisoSuspenso(true); return; } setRelatorioStatusInicial("Enviado"); setRelatorioFechamento(false); setRelatorioMov(m); }}>
                                       <RotateCcw className="mr-2 h-4 w-4" /> Reenviar
                                     </DropdownMenuItem>
                                   )}
@@ -1446,7 +1458,8 @@ export default function Movimentacoes() {
         onOpenChange={(o) => !o && setAnexosMov(null)}
       />
       {relatorioMov && <RelatorioManualDialog
-        key={`${relatorioMov.id}-${relatorioStatusInicial ?? "ver"}`}
+        key={`${relatorioMov.id}-${relatorioStatusInicial ?? "ver"}-${relatorioFechamento}`}
+        modoFechamento={relatorioFechamento}
         movimentacaoId={relatorioMov.id}
         empresaId={relatorioMov.empresa_id ?? null}
         nome={relatorioMov.empresas?.nome ?? "Sem empresa"}
@@ -1459,7 +1472,7 @@ export default function Movimentacoes() {
         statusInicial={relatorioStatusInicial}
         dataEnvioEmpresa={relatorioMov.data_envio_empresa ?? null}
         canEdit={canEditDates}
-        onClose={() => setRelatorioMov(null)}
+        onClose={() => { setRelatorioMov(null); setRelatorioFechamento(false); }}
       />}
       {loteOpen && canEditDates && <RelatorioLoteDialog
         items={aptosLote.map(m => ({ id: m.id, empresaId: m.empresa_id ?? null, nome: m.empresas?.nome ?? "Sem empresa", contrato: m.empresas?.codigo_contrato ?? null, periodo: m.periodo, destinatarios: relatoriosMap.get(m.id)?.destinatarios ?? "", cc: relatoriosMap.get(m.id)?.cc ?? "" }))}
