@@ -45,6 +45,7 @@ export function EnviarFechamentoFinanceiroDialog({ open, onOpenChange, empresas,
     const d = new Date();
     const hoje = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
     const falhas: string[] = [];
+    const anexoIds: string[] = [];
     for (const l of linhas) {
       try {
         const { data: movs } = await supabase.from("movimentacoes").select("id").eq("empresa_id", l.empresaId).eq("mes_referencia", mesRef).limit(1);
@@ -61,10 +62,16 @@ export function EnviarFechamentoFinanceiroDialog({ open, onOpenChange, empresas,
           const path = `${l.empresaId}/${movId}/${crypto.randomUUID()}.xlsx`;
           const { error: upErr } = await supabase.storage.from("anexos-movimentacoes").upload(path, l.arquivo.blob);
           if (upErr) throw upErr;
-          const { error: insErr } = await supabase.from("anexos_movimentacao").insert({ movimentacao_id: movId!, empresa_id: l.empresaId, nome_arquivo: l.arquivo.nome, storage_path: path, mime_type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", tamanho_bytes: l.arquivo.blob.size, uploaded_by: user?.id ?? null });
+          const { data: anexo, error: insErr } = await supabase.from("anexos_movimentacao").insert({ movimentacao_id: movId!, empresa_id: l.empresaId, nome_arquivo: l.arquivo.nome, storage_path: path, mime_type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", tamanho_bytes: l.arquivo.blob.size, uploaded_by: user?.id ?? null }).select("id").single();
           if (insErr) throw insErr;
+          if (anexo?.id) anexoIds.push(anexo.id);
         }
       } catch (e: any) { falhas.push(`${l.codigo}: ${e?.message ?? e}`); }
+    }
+    // Guarda também no Repositório de Envios (Utilitários), como nos envios às empresas.
+    if (anexoIds.length) {
+      const { data: arq, error: arqErr } = await supabase.functions.invoke("arquivar-envio-administradora", { body: { anexo_ids: anexoIds } });
+      if (arqErr || (arq as any)?.error || (arq as any)?.arquivados < anexoIds.length) falhas.push("Repositório de Envios: nem todos os relatórios foram guardados");
     }
     qc.invalidateQueries();
     if (falhas.length) toast.error("E-mail enviado, mas não foi possível registrar em: " + falhas.join("; "));
