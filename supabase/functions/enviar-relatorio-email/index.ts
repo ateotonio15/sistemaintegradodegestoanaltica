@@ -117,7 +117,7 @@ Deno.serve(async (req) => {
       .select("nome_remetente, email_remetente, email_resposta, assinatura_path").eq("user_id", u.user.id).maybeSingle();
     const { data: geral } = await admin.from("config_email_relatorios")
       .select("nome_remetente, email_remetente, email_resposta").eq("id", 1).maybeSingle();
-    const rem = (papeis.includes("comum") && proprio) ? proprio : geral;
+    const rem = ((papeis.includes("comum") || papeis.includes("administradoras")) && proprio) ? proprio : geral;
     const contaSmtp = Deno.env.get("SMTP_USER")!;
     const nomeRem = rem?.nome_remetente || "Samel";
     const replyTo = rem?.email_resposta || rem?.email_remetente || null;
@@ -145,7 +145,7 @@ Deno.serve(async (req) => {
     // Assinatura: a da pessoa que enviou (quando cadastrada); senão, a padrão da Samel.
     let assinatura: Uint8Array | null = null;
     let assinaturaMime = "image/png";
-    const pathProprio = (papeis.includes("comum") && proprio?.assinatura_path) ? String(proprio.assinatura_path) : null;
+    const pathProprio = ((papeis.includes("comum") || papeis.includes("administradoras")) && proprio?.assinatura_path) ? String(proprio.assinatura_path) : null;
     if (pathProprio && /^[0-9a-f-]{36}\.(png|jpg)$/.test(pathProprio)) {
       const { data: blob } = await admin.storage.from("assinaturas-email").download(pathProprio);
       if (blob) {

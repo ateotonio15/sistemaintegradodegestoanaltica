@@ -42,7 +42,7 @@ Deno.serve(async (req) => {
 
     const { data: proprio } = await admin.from("config_email_remetente_usuario").select("nome_remetente, email_remetente, email_resposta").eq("user_id", u.user.id).maybeSingle();
     const { data: geral } = await admin.from("config_email_relatorios").select("nome_remetente, email_remetente, email_resposta").eq("id", 1).maybeSingle();
-    const rem = (papeis.includes("comum") && proprio) ? proprio : geral;
+    const rem = ((papeis.includes("comum") || papeis.includes("administradoras")) && proprio) ? proprio : geral;
     const fromEmail = rem?.email_remetente || Deno.env.get("SMTP_USER")!;
     const replyTo = rem?.email_resposta || rem?.email_remetente || null;
 
