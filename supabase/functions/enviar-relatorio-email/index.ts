@@ -265,7 +265,11 @@ Deno.serve(async (req) => {
             assunto, corpo: textoCompleto,
           });
           // Envio direto ao Financeiro: usa a data já existente "Enviado Financ." (só se vazia).
-          if (cenario === "financeiro") await admin.from("movimentacoes").update({ data_envio_financeiro: hojeManaus() }).eq("id", movimentacao_id).is("data_envio_financeiro", null);
+          if (cenario === "financeiro") {
+            const hoje = hojeManaus();
+            await admin.from("movimentacoes").update({ data_envio_financeiro: hoje }).eq("id", movimentacao_id).is("data_envio_financeiro", null);
+            await replicarFechamentoGrupo(admin, movimentacao_id, hoje);
+          }
           return;
         }
         erroRegistro = "O e-mail foi enviado, mas não foi possível registrar o histórico. Não reenvie apenas para corrigir o registro.";
@@ -307,3 +311,24 @@ Deno.serve(async (req) => {
     return json({ error: e instanceof Error ? e.message : String(e) }, 500);
   }
 });
+
+
+// Grupo Financeiro: o fechamento do contrato principal vale para todo o grupo
+// (mesma competência/período). Preenche só datas vazias; os anexos continuam
+// sendo de cada contrato (cada arquivo precisa ter o número do próprio contrato).
+async function replicarFechamentoGrupo(admin: any, movimentacaoId: string, data: string) {
+  const { data: mov } = await admin.from("movimentacoes").select("id, empresa_id, mes_referencia, periodo").eq("id", movimentacaoId).maybeSingle();
+  if (!mov) return;
+  const { data: vinc } = await admin.from("grupos_financeiros_contratos").select("grupo_id").eq("empresa_id", mov.empresa_id).eq("ativo", true).maybeSingle();
+  if (!vinc) return;
+  const { data: grupo } = await admin.from("grupos_financeiros").select("contrato_principal_empresa_id").eq("id", vinc.grupo_id).maybeSingle();
+  if (grupo?.contrato_principal_empresa_id && grupo.contrato_principal_empresa_id !== mov.empresa_id) return;
+  const { data: membros } = await admin.from("grupos_financeiros_contratos").select("empresa_id").eq("grupo_id", vinc.grupo_id).eq("ativo", true);
+  const outras = (membros ?? []).map((m: any) => m.empresa_id).filter((id: string) => id !== mov.empresa_id);
+  if (!outras.length) return;
+  let q = admin.from("movimentacoes").select("id, empresa_id").in("empresa_id", outras).eq("mes_referencia", mov.mes_referencia);
+  q = mov.periodo ? q.eq("periodo", mov.periodo) : q.is("periodo", null);
+  const { data: irmas } = await q;
+  if (!irmas?.length) return;
+  await admin.from("movimentacoes").update({ data_envio_financeiro: data }).in("id", irmas.map((i: any) => i.id)).is("data_envio_financeiro", null);
+}

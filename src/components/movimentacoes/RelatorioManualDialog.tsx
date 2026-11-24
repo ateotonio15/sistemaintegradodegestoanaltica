@@ -110,8 +110,29 @@ export function RelatorioManualDialog({ movimentacaoId, empresaId = null, nome, 
   // (preenche "Data Envio Financeiro" com a data de hoje) sem disparar o e-mail ao Financeiro.
   const concluirSemEmail = useMutation({
     mutationFn: async () => {
-      const { error } = await supabase.from("movimentacoes").update({ data_envio_financeiro: hojeLocalISO() }).eq("id", movimentacaoId).is("data_envio_financeiro", null);
+      const hoje = hojeLocalISO();
+      const { error } = await supabase.from("movimentacoes").update({ data_envio_financeiro: hoje }).eq("id", movimentacaoId).is("data_envio_financeiro", null);
       if (error) throw error;
+      // Grupo Financeiro: o fechamento do principal vale para os demais contratos do grupo.
+      const db = supabase as any;
+      const { data: mov } = await db.from("movimentacoes").select("id, empresa_id, mes_referencia, periodo").eq("id", movimentacaoId).maybeSingle();
+      const { data: vinc } = mov ? await db.from("grupos_financeiros_contratos").select("grupo_id").eq("empresa_id", mov.empresa_id).eq("ativo", true).maybeSingle() : { data: null };
+      if (mov && vinc) {
+        const { data: grupo } = await db.from("grupos_financeiros").select("contrato_principal_empresa_id").eq("id", vinc.grupo_id).maybeSingle();
+        if (!grupo?.contrato_principal_empresa_id || grupo.contrato_principal_empresa_id === mov.empresa_id) {
+          const { data: membros } = await db.from("grupos_financeiros_contratos").select("empresa_id").eq("grupo_id", vinc.grupo_id).eq("ativo", true);
+          const outras = ((membros ?? []) as any[]).map((m) => m.empresa_id).filter((id: string) => id !== mov.empresa_id);
+          if (outras.length) {
+            let q = db.from("movimentacoes").select("id, empresa_id").in("empresa_id", outras).eq("mes_referencia", mov.mes_referencia);
+            q = mov.periodo ? q.eq("periodo", mov.periodo) : q.is("periodo", null);
+            const { data: irmas } = await q;
+            if (irmas?.length) {
+              const { error: e2 } = await db.from("movimentacoes").update({ data_envio_financeiro: hoje }).in("id", irmas.map((i: any) => i.id)).is("data_envio_financeiro", null);
+              if (e2) throw e2;
+            }
+          }
+        }
+      }
     },
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: ["movimentacoes"] });
