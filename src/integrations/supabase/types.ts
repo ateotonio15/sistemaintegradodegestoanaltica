@@ -558,6 +558,33 @@ export type Database = {
         }
         Relationships: []
       }
+      atendimento_classificacao_listas: {
+        Row: {
+          ativo: boolean
+          created_at: string
+          id: string
+          lista: string
+          ordem: number
+          valor: string
+        }
+        Insert: {
+          ativo?: boolean
+          created_at?: string
+          id?: string
+          lista: string
+          ordem?: number
+          valor: string
+        }
+        Update: {
+          ativo?: boolean
+          created_at?: string
+          id?: string
+          lista?: string
+          ordem?: number
+          valor?: string
+        }
+        Relationships: []
+      }
       atendimentos: {
         Row: {
           atualizado_em: string
@@ -5868,12 +5895,16 @@ export type Database = {
       plantoes_atendimentos: {
         Row: {
           assunto: string | null
+          classificacao_origem: string | null
+          classificado_em: string | null
           cpf: string | null
           created_at: string
           created_by: string | null
           demanda_id: string | null
+          especialidade: string | null
           hora: string | null
           id: string
+          motivo: string | null
           nome_cliente: string
           observacao: string | null
           plantao_id: string
@@ -5882,12 +5913,16 @@ export type Database = {
         }
         Insert: {
           assunto?: string | null
+          classificacao_origem?: string | null
+          classificado_em?: string | null
           cpf?: string | null
           created_at?: string
           created_by?: string | null
           demanda_id?: string | null
+          especialidade?: string | null
           hora?: string | null
           id?: string
+          motivo?: string | null
           nome_cliente: string
           observacao?: string | null
           plantao_id: string
@@ -5896,12 +5931,16 @@ export type Database = {
         }
         Update: {
           assunto?: string | null
+          classificacao_origem?: string | null
+          classificado_em?: string | null
           cpf?: string | null
           created_at?: string
           created_by?: string | null
           demanda_id?: string | null
+          especialidade?: string | null
           hora?: string | null
           id?: string
+          motivo?: string | null
           nome_cliente?: string
           observacao?: string | null
           plantao_id?: string

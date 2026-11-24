@@ -1,7 +1,13 @@
 import { useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
-import { ArrowLeft, Download, FileText } from "lucide-react";
+import { ArrowLeft, Download, FileText, BarChart3, Loader2, ListChecks } from "lucide-react";
+import { useQueryClient } from "@tanstack/react-query";
+import { toast } from "sonner";
+import { parseAssunto } from "@/components/plantoes/AtendimentoDialog";
+import { RelatorioVisualAtendimentos } from "@/components/plantoes/RelatorioVisualAtendimentos";
+import { ListasClassificacaoDialog, useListasClassificacao } from "@/components/plantoes/ListasClassificacaoDialog";
+import { periodoAnterior, validarPeriodo, type AtendRel } from "@/lib/relatorio-atendimentos";
 import * as XLSX from "xlsx";
 import { parseObservacaoPlantao } from "@/lib/plantoes-observacao";
 import { Button } from "@/components/ui/button";
@@ -15,7 +21,13 @@ import { usePlantaoEmpresas, usePlantoesRealtime } from "@/hooks/usePlantoes";
 
 export default function PlantoesRelatorios() {
   usePlantoesRealtime();
-  const { user, loading: authLoading } = useAuth();
+  const { user, loading: authLoading, isAdmin } = useAuth();
+  const qc = useQueryClient();
+  const { data: listas } = useListasClassificacao();
+  const [relOpen, setRelOpen] = useState(false);
+  const [listasOpen, setListasOpen] = useState(false);
+  const [gerando, setGerando] = useState(false);
+  const [relDados, setRelDados] = useState<{ rows: AtendRel[]; anteriores: AtendRel[]; aviso: string | null } | null>(null);
   const { data: empresas = [] } = usePlantaoEmpresas();
   const today = new Date();
   const monthStart = new Date(today.getFullYear(), today.getMonth(), 1).toISOString().slice(0, 10);
@@ -54,6 +66,55 @@ export default function PlantoesRelatorios() {
       }),
     [rows],
   );
+
+  const buscar = async (de: string, ate: string) => {
+    let q = supabase
+      .from("plantoes_atendimentos")
+      .select("id, hora, cpf, assunto, resolvido, motivo, especialidade, plantao:plantoes!inner(data, empresa_id)")
+      .gte("plantao.data", de).lte("plantao.data", ate);
+    if (empresaId !== "all") q = q.eq("plantao.empresa_id", empresaId);
+    const { data, error } = await q;
+    if (error) throw error;
+    return (data ?? []) as any[];
+  };
+  const paraRel = (r: any): AtendRel => {
+    const p = parseAssunto(r.assunto, r.resolvido);
+    return { data: r.plantao?.data, hora: r.hora, cpf: r.cpf, tipo: p.tipo, canal: p.canal, resolvido: !!r.resolvido, motivo: r.motivo, especialidade: r.especialidade };
+  };
+
+  const gerarRelatorio = async () => {
+    const erro = validarPeriodo(from, to);
+    if (erro) { toast.error(erro); return; }
+    setGerando(true);
+    try {
+      let atuais = await buscar(from, to);
+      let aviso: string | null = null;
+      const pend = atuais.filter((r) => !r.motivo).map((r) => r.id);
+      if (pend.length) {
+        const { data, error } = await supabase.functions.invoke("classificar-motivo-atendimento", { body: { ids: pend } });
+        if (error || (data as any)?.error || (data as any)?.falhas) {
+          aviso = "A classificação automática não conseguiu analisar alguns atendimentos; eles aparecem como \"Outros\".";
+        }
+        atuais = await buscar(from, to);
+        qc.invalidateQueries({ queryKey: ["plantoes-rel"] });
+      }
+      const ant = periodoAnterior(from, to);
+      const anteriores = await buscar(ant.de, ant.ate);
+      setRelDados({ rows: atuais.map(paraRel), anteriores: anteriores.map(paraRel), aviso });
+      setRelOpen(true);
+    } catch {
+      toast.error("Não foi possível gerar o relatório.");
+    } finally { setGerando(false); }
+  };
+
+  const corrigir = async (id: string, motivo: string, especialidade: string | null) => {
+    const { error } = await supabase.from("plantoes_atendimentos").update({
+      motivo, especialidade: motivo === "Consulta com especialista" ? (especialidade ?? "Outras especialidades") : null,
+      classificacao_origem: "manual", classificado_em: new Date().toISOString(),
+    }).eq("id", id);
+    if (error) toast.error("Sem permissão para corrigir esta classificação.");
+    else { toast.success("Classificação corrigida."); qc.invalidateQueries({ queryKey: ["plantoes-rel"] }); }
+  };
 
   const exportar = () => {
     const data = linhas.map((r: any) => ({
@@ -120,6 +181,8 @@ export default function PlantoesRelatorios() {
         </div>
         <h1 className="text-xl font-bold">Relatório de Atendimentos</h1>
         <div className="flex gap-2">
+          {isAdmin && <Button variant="ghost" size="sm" onClick={() => setListasOpen(true)}><ListChecks className="h-4 w-4 mr-1" /> Listas</Button>}
+          <Button variant="secondary" onClick={gerarRelatorio} disabled={gerando}>{gerando ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : <BarChart3 className="h-4 w-4 mr-1" />} Gerar relatório</Button>
           <Button variant="outline" onClick={() => exportarPdf()}><FileText className="h-4 w-4 mr-1" /> PDF</Button>
           <Button onClick={exportar}><Download className="h-4 w-4 mr-1" /> Exportar</Button>
         </div>
@@ -158,6 +221,8 @@ export default function PlantoesRelatorios() {
                 <th className="text-left p-2">Matrícula</th>
                 <th className="text-left p-2">Assunto</th>
                 <th className="text-left p-2">Observação</th>
+                <th className="text-left p-2">Motivo</th>
+                <th className="text-left p-2">Especialidade</th>
                 <th className="text-left p-2">Status</th>
               </tr>
             </thead>
@@ -171,14 +236,34 @@ export default function PlantoesRelatorios() {
                   <td className="p-2 font-mono text-xs font-semibold">{r.matricula || "—"}</td>
                   <td className="p-2">{r.assunto ?? "—"}</td>
                   <td className="p-2 max-w-[280px] truncate" title={r.observacaoLimpa}>{r.observacaoLimpa || "—"}</td>
+                  <td className="p-2 min-w-[170px]">
+                    <Select value={r.motivo ?? ""} onValueChange={(v) => corrigir(r.id, v, r.especialidade)}>
+                      <SelectTrigger className="h-8 text-xs"><SelectValue placeholder="Não classificado" /></SelectTrigger>
+                      <SelectContent>{(listas?.motivos ?? []).map((m) => <SelectItem key={m} value={m}>{m}</SelectItem>)}</SelectContent>
+                    </Select>
+                  </td>
+                  <td className="p-2 min-w-[160px]">
+                    {r.motivo === "Consulta com especialista" ? (
+                      <Select value={r.especialidade ?? ""} onValueChange={(v) => corrigir(r.id, r.motivo, v)}>
+                        <SelectTrigger className="h-8 text-xs"><SelectValue placeholder="—" /></SelectTrigger>
+                        <SelectContent>{(listas?.especialidades ?? []).map((m) => <SelectItem key={m} value={m}>{m}</SelectItem>)}</SelectContent>
+                      </Select>
+                    ) : <span className="text-muted-foreground">—</span>}
+                  </td>
                   <td className="p-2">{r.resolvido ? "Resolvido" : "Em aberto"}</td>
                 </tr>
               ))}
-              {linhas.length === 0 && <tr><td colSpan={8} className="p-6 text-center text-muted-foreground">Sem dados.</td></tr>}
+              {linhas.length === 0 && <tr><td colSpan={10} className="p-6 text-center text-muted-foreground">Sem dados.</td></tr>}
             </tbody>
           </table>
         </div>
       </CardContent></Card>
+      {relDados && (
+        <RelatorioVisualAtendimentos open={relOpen} onOpenChange={setRelOpen} rows={relDados.rows} anteriores={relDados.anteriores}
+          empresa={empresaId === "all" ? "Todas as empresas" : empresas.find((e) => e.id === empresaId)?.nome ?? ""}
+          de={from} ate={to} avisoIA={relDados.aviso} />
+      )}
+      <ListasClassificacaoDialog open={listasOpen} onOpenChange={setListasOpen} />
     </div>
   );
 }

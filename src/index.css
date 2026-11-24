@@ -907,3 +907,26 @@
 .siga-susp-painel .susp-detalhes { display: inline-flex; align-items: center; gap: 0.25rem; white-space: nowrap; font-size: 0.75rem; font-weight: 500; padding: 0.35rem 0.7rem; border-radius: 0.5rem; background: hsl(var(--sp-bg)); color: hsl(var(--sp-forte)); border: 1px solid hsl(var(--sp-verde) / 0.45); transition: border-color .2s, box-shadow .2s; }
 .siga-susp-painel .susp-detalhes:hover { border-color: hsl(var(--sp-verde) / 0.9); box-shadow: 0 0 12px -2px hsl(var(--sp-verde) / 0.35); }
 .siga-susp-painel .susp-detalhe-painel { background: hsl(var(--sp-bg) / 0.8); border: 1px solid hsl(var(--sp-borda) / 0.5); border-radius: 0.6rem; padding: 0.6rem 0.75rem; color: hsl(var(--sp-forte)); }
+
+/* Relatório visual de atendimentos: documento para clientes, sempre em fundo claro */
+.relatorio-doc {
+  --rel-bg: 140 20% 97%;
+  --rel-card: 0 0% 100%;
+  --rel-text: 150 25% 14%;
+  --rel-muted: 150 8% 42%;
+  --rel-border: 140 15% 88%;
+  --rel-verde: 152 64% 26%;
+  --rel-verde-claro: 120 45% 56%;
+  --rel-alerta: 30 90% 45%;
+  --rel-negativo: 0 70% 45%;
+  background: hsl(var(--rel-bg));
+  color: hsl(var(--rel-text));
+  font-family: "Inter", system-ui, sans-serif;
+}
+.relatorio-doc .rel-card { background: hsl(var(--rel-card)); border: 1px solid hsl(var(--rel-border)); border-radius: 14px; padding: 14px; break-inside: avoid; }
+.relatorio-doc .rel-muted { color: hsl(var(--rel-muted)); }
+.relatorio-doc .rel-verde { color: hsl(var(--rel-verde)); }
+.relatorio-doc .rel-bg-verde { background: hsl(var(--rel-verde)); color: hsl(0 0% 100%); }
+.relatorio-doc .rel-bg-verde-claro { background: hsl(var(--rel-verde-claro)); color: hsl(0 0% 100%); }
+.relatorio-doc .rel-alerta { color: hsl(var(--rel-alerta)); }
+.relatorio-doc .rel-negativo { color: hsl(var(--rel-negativo)); }
