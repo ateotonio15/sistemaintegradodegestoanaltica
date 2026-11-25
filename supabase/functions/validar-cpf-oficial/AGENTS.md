@@ -1,0 +1,1 @@
+- Official CPF lookup lives only here (single provider adapter, server-only credentials); history stores masked CPF + peppered hash for 30-day reuse; unavailable never becomes valid/invalid or blocks implantation.
