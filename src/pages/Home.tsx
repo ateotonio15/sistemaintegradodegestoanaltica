@@ -112,6 +112,7 @@ const INTELIGENCIA_SECTIONS: InteligenciaSection[] = [
     ],
   },
   {
+    allow: ["executivo", "enfermeira"],
     title: "Uber Corporativo",
     description: "Corridas e centro de custo",
     icon: Car,

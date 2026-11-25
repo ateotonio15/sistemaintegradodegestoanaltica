@@ -308,9 +308,11 @@ const AppRoutes = () => (
       <Route path="/plantoes/relatorios" element={<PlantoesRelatorios />} />
       <Route path="/plantoes/dashboard" element={<PlantoesDashboard />} />
 
-      <Route path="/uber" element={<UberCorridas />} />
-      <Route path="/uber/dashboard" element={<UberDashboard />} />
-      <Route path="/uber/passageiros" element={<UberPassageiros />} />
+      <Route element={<RoleGate allow={["admin", "executivo", "enfermeira"]} />}>
+        <Route path="/uber" element={<UberCorridas />} />
+        <Route path="/uber/dashboard" element={<UberDashboard />} />
+        <Route path="/uber/passageiros" element={<UberPassageiros />} />
+      </Route>
 
       <Route element={<RoleGate allow={["admin", "enfermeira", "tec_enfermagem", "executivo", "coordenadora", "diretora", "diretora_saude"]} />}>
         <Route path="/saude-empresas" element={<SaudeEmpresasLista />} />
