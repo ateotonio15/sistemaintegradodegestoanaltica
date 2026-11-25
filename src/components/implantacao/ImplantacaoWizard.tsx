@@ -22,6 +22,7 @@ import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { useAuth } from "@/hooks/useAuth";
+import { ParticipantesVidas } from "./ParticipantesVidas";
 import { validarRelatorioVidas, type ValidacaoResultado } from "@/lib/relatorio-vidas-validator";
 import { AnexoPreviewDialog } from "./AnexoPreviewDialog";
 
@@ -1256,6 +1257,8 @@ function Step5Vidas({ data, update, readOnly, relAnexo }: any) {
               </ScrollArea>
             </CardContent>
           </Card>
+
+          <ParticipantesVidas validacao={validacao} />
 
           {validacao.pendencias.length > 0 && (
             <Card>

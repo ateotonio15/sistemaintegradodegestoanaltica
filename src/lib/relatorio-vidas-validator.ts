@@ -48,7 +48,20 @@ export interface PendenciaLinha {
   severidade: Severidade;
 }
 
+export interface BeneficiarioLido {
+  linha: number;
+  nome: string;
+  cpf: string;
+  data_nasc: string;
+  sexo: string;
+  tipo: TipoBeneficiario;
+  grau: string;
+  /** Linha do titular ao qual o dependente pertence (ordem da planilha). */
+  titular_linha: number | null;
+}
+
 export interface ValidacaoResultado {
+  beneficiarios?: BeneficiarioLido[];
   verificado_em: string;
   total_linhas: number; // mantido por compatibilidade = linhas_validas
   total_vidas: number;  // = linhas_validas
@@ -202,6 +215,8 @@ export async function validarRelatorioVidas(
   });
 
   const pendencias: PendenciaLinha[] = [];
+  const beneficiarios: BeneficiarioLido[] = [];
+  let ultimoTitularLinha: number | null = null;
   let titulares = 0;
   let dependentes = 0;
 
@@ -275,6 +290,22 @@ export async function validarRelatorioVidas(
     const grauRaw = get("GRAU PARENTESCO");
     const tipoBenef = classificarParentesco(grauRaw);
     const grau = (grauRaw || "").trim();
+    if (tipoBenef === "TITULAR") ultimoTitularLinha = r;
+    if (beneficiarios.length < 3000) {
+      const dn = colIndex["DATA NASC"] !== undefined ? row.getCell(colIndex["DATA NASC"]).value : null;
+      beneficiarios.push({
+        linha: r,
+        nome: nomeVal,
+        cpf: get("CPF").trim(),
+        data_nasc: dn instanceof Date
+          ? `${String(dn.getUTCDate()).padStart(2, "0")}/${String(dn.getUTCMonth() + 1).padStart(2, "0")}/${dn.getUTCFullYear()}`
+          : cellToString(dn).trim(),
+        sexo: get("SEXO").trim(),
+        tipo: tipoBenef,
+        grau,
+        titular_linha: tipoBenef === "TITULAR" ? null : ultimoTitularLinha,
+      });
+    }
     if (tipoBenef === "TITULAR") { titulares++; titulares_auto++; }
     else {
       dependentes++;
@@ -355,6 +386,7 @@ export async function validarRelatorioVidas(
     dependentes,
     colunas,
     colunas_ausentes,
+    beneficiarios,
     pendencias: pendencias.slice(0, 500),
     erros,
     alertas,
