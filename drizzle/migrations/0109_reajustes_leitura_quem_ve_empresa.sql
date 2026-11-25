@@ -1,0 +1,2 @@
+CREATE POLICY "Read reajustes_anuais of visible empresas" ON public.reajustes_anuais FOR SELECT TO authenticated USING (EXISTS (SELECT 1 FROM public.empresas e WHERE e.id = reajustes_anuais.empresa_id));
+CREATE POLICY "Read reajuste_faixas of visible empresas" ON public.reajuste_faixas FOR SELECT TO authenticated USING (EXISTS (SELECT 1 FROM public.reajustes_anuais ra JOIN public.empresas e ON e.id = ra.empresa_id WHERE ra.id = reajuste_faixas.reajuste_id));

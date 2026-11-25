@@ -764,6 +764,13 @@
       "when": 1795548920548,
       "tag": "0108_classificacao_atendimentos_plantao",
       "breakpoints": true
+    },
+    {
+      "idx": 109,
+      "version": "7",
+      "when": 1795610195997,
+      "tag": "0109_reajustes_leitura_quem_ve_empresa",
+      "breakpoints": true
     }
   ]
 }
