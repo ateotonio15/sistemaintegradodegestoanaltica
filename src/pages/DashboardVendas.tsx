@@ -7,7 +7,12 @@ import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { Input } from "@/components/ui/input";
 import { IsoDatePicker } from "@/components/ui/iso-date-picker";
-import { FileSignature, Plus, Send, AlertTriangle, CheckCircle2, Clock, Users, TrendingUp, Search, ChevronRight, XCircle, ClipboardCheck, RotateCcw } from "lucide-react";
+import { FileSignature, Plus, Send, AlertTriangle, CheckCircle2, Clock, Users, TrendingUp, Search, ChevronRight, XCircle, ClipboardCheck, RotateCcw, Trash2 } from "lucide-react";
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { toast } from "sonner";
 import { useAuth } from "@/hooks/useAuth";
 import { ImplantacaoWizard } from "@/components/implantacao/ImplantacaoWizard";
 import { STATUS_META } from "@/lib/implantacao-status";
@@ -66,6 +71,28 @@ export default function DashboardVendas() {
   const [search, setSearch] = useState("");
   const [dataInicio, setDataInicio] = useState<string | null>(null);
   const [dataFim, setDataFim] = useState<string | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<{ id: string; nome: string } | null>(null);
+  const [deleting, setDeleting] = useState(false);
+
+  const handleDelete = async () => {
+    if (!deleteTarget) return;
+    setDeleting(true);
+    try {
+      const { data, error } = await supabase.rpc("excluir_implantacao" as any, { p_id: deleteTarget.id });
+      if (error) throw error;
+      const paths = ((data as any)?.storage_paths || []) as string[];
+      if (paths.length > 0) {
+        await supabase.storage.from("implantacao-anexos").remove(paths).catch(() => {});
+      }
+      toast.success("Implantação excluída");
+      qc.invalidateQueries({ queryKey: ["implantacoes-vendas"] });
+      setDeleteTarget(null);
+    } catch (e: any) {
+      toast.error(e.message || "Erro ao excluir implantação");
+    } finally {
+      setDeleting(false);
+    }
+  };
 
   const { data: profile } = useQuery({
     queryKey: ["profile-nome", user?.id],
@@ -314,6 +341,25 @@ export default function DashboardVendas() {
                            <Progress value={i.progresso || 0} className="h-1.5 mt-2" />
                            {isVendas && <ReguaImplantacao item={i} />}
                         </div>
+                        <span
+                          role="button"
+                          tabIndex={0}
+                          className="h-8 w-8 shrink-0 rounded-md inline-flex items-center justify-center text-muted-foreground hover:text-red-600 hover:bg-red-500/10 transition-colors"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setDeleteTarget({ id: i.id, nome: i.nome_empresa || "Sem nome" });
+                          }}
+                          onKeyDown={(e) => {
+                            if (e.key === "Enter" || e.key === " ") {
+                              e.stopPropagation();
+                              setDeleteTarget({ id: i.id, nome: i.nome_empresa || "Sem nome" });
+                            }
+                          }}
+                          title="Excluir implantação"
+                          aria-label="Excluir implantação"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </span>
                         <ChevronRight className="h-4 w-4 text-muted-foreground group-hover:translate-x-0.5 transition-transform" />
                       </button>
                     </li>
@@ -334,6 +380,27 @@ export default function DashboardVendas() {
           readOnly={false}
         />
       )}
+
+      <AlertDialog open={!!deleteTarget} onOpenChange={(open) => !open && setDeleteTarget(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Excluir implantação</AlertDialogTitle>
+            <AlertDialogDescription>
+              Tem certeza que deseja excluir a implantação de <strong>{deleteTarget?.nome}</strong>? Essa ação remove também os anexos e o histórico, e não pode ser desfeita.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={deleting}>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={(e) => { e.preventDefault(); handleDelete(); }}
+              disabled={deleting}
+              className="bg-red-600 hover:bg-red-700"
+            >
+              {deleting ? "Excluindo..." : "Excluir"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </>
   );
 }
