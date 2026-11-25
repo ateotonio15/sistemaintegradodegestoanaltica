@@ -1,3 +1,4 @@
+import { statusCpfLocal, type StatusCpf } from "./cpf-status";
 import ExcelJS from "exceljs";
 
 export const COLUNAS_OBRIGATORIAS = [
@@ -58,6 +59,8 @@ export interface BeneficiarioLido {
   grau: string;
   /** Linha do titular ao qual o dependente pertence (ordem da planilha). */
   titular_linha: number | null;
+  /** Status de validação do CPF (camada local; consulta oficial futura). */
+  cpf_status?: StatusCpf;
 }
 
 export interface ValidacaoResultado {
@@ -297,6 +300,7 @@ export async function validarRelatorioVidas(
         linha: r,
         nome: nomeVal,
         cpf: get("CPF").trim(),
+        cpf_status: statusCpfLocal(get("CPF")),
         data_nasc: dn instanceof Date
           ? `${String(dn.getUTCDate()).padStart(2, "0")}/${String(dn.getUTCMonth() + 1).padStart(2, "0")}/${dn.getUTCFullYear()}`
           : cellToString(dn).trim(),
