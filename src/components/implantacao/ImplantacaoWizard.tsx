@@ -1134,12 +1134,13 @@ function Step4Comissao({ data, update, readOnly }: any) {
 }
 
 // ============= STEP 5 =============
-function Step5Vidas({ data, update, readOnly, relAnexo }: any) {
+export function Step5Vidas({ data, update, readOnly, relAnexo }: any) {
   const [verificando, setVerificando] = useState(false);
   const [progresso, setProgresso] = useState(0);
   const validacao: ValidacaoResultado | null = data.relatorio_validacao || null;
 
   const handleVerificar = async () => {
+    if (readOnly || verificando || validandoCpf) return;
     if (!relAnexo) { toast.error("Anexe o Relatório de Vidas na Etapa 1."); return; }
     const nome = (relAnexo.nome_arquivo || "").toLowerCase();
     const ext = nome.split(".").pop() || "";
@@ -1167,6 +1168,7 @@ function Step5Vidas({ data, update, readOnly, relAnexo }: any) {
         vidas_titulares: result.titulares,
         vidas_dependentes: result.dependentes,
       });
+      await handleValidarCpfs(false, result);
       if (result.valido) toast.success(`Layout válido! ${result.total_vidas} vidas.`);
       else toast.error(`${result.erros} erro(s) encontrado(s). Corrija antes de avançar.`);
     } catch (e: any) {
@@ -1178,11 +1180,14 @@ function Step5Vidas({ data, update, readOnly, relAnexo }: any) {
   };
 
   const [validandoCpf, setValidandoCpf] = useState<{ feito: number; total: number } | null>(null);
-  const handleValidarCpfs = async (somenteFalhas = false) => {
-    if (!validacao?.beneficiarios) return;
-    const alvos = validacao.beneficiarios.filter((b) =>
+  const handleValidarCpfs = async (somenteFalhas = false, resultado = validacao) => {
+    if (readOnly || !resultado?.beneficiarios) return;
+    const alvos = resultado.beneficiarios.filter((b) =>
       somenteFalhas ? precisaNovaTentativa(b) : (b.cpf_status ?? statusCpfLocal(b.cpf)) === "valido_local");
-    if (alvos.length === 0) { toast.info("Nenhum CPF válido localmente para consultar."); return; }
+    if (alvos.length === 0) {
+      update({ relatorio_validacao: { ...resultado, cpf_resumo: resumoValidacaoCpf(resultado.beneficiarios) } });
+      return;
+    }
     const resultados = new Map<number, ResultadoOficialCpf>();
     setValidandoCpf({ feito: 0, total: alvos.length });
     // Fila controlada: um lote de 20 por vez, cedendo a vez à tela entre os lotes.
@@ -1201,8 +1206,8 @@ function Step5Vidas({ data, update, readOnly, relAnexo }: any) {
       setValidandoCpf({ feito: Math.min(i + 20, alvos.length), total: alvos.length });
       await new Promise((r) => setTimeout(r, 0));
     }
-    const beneficiarios = validacao.beneficiarios.map((b) => (resultados.has(b.linha) ? { ...b, cpf_oficial: resultados.get(b.linha) } : b));
-    update({ relatorio_validacao: { ...validacao, beneficiarios, cpf_resumo: resumoValidacaoCpf(beneficiarios) } });
+    const beneficiarios = resultado.beneficiarios.map((b) => (resultados.has(b.linha) ? { ...b, cpf_oficial: resultados.get(b.linha) } : b));
+    update({ relatorio_validacao: { ...resultado, beneficiarios, cpf_resumo: resumoValidacaoCpf(beneficiarios) } });
     setValidandoCpf(null);
     const indisp = [...resultados.values()].filter((r) => r.status === "indisponivel").length;
     if (indisp > 0) toast.warning(`${resultados.size - indisp} concluída(s), ${indisp} pendente(s). Isso não bloqueia a implantação.`);
@@ -1226,15 +1231,9 @@ function Step5Vidas({ data, update, readOnly, relAnexo }: any) {
             </div>
             <div className="flex items-center">
             {!readOnly && (
-              <Button onClick={handleVerificar} disabled={!relAnexo || verificando} className="gap-2">
+              <Button onClick={handleVerificar} disabled={!relAnexo || verificando || !!validandoCpf} className="gap-2">
                 {verificando ? <Loader2 className="h-4 w-4 animate-spin" /> : <ShieldCheck className="h-4 w-4" />}
                 Verificar Layout
-              </Button>
-            )}
-            {!readOnly && validacao?.beneficiarios && validacao.beneficiarios.length > 0 && (
-              <Button variant="outline" onClick={() => handleValidarCpfs(false)} disabled={verificando || !!validandoCpf} className="gap-2 ml-2">
-                {validandoCpf ? <Loader2 className="h-4 w-4 animate-spin" /> : <ShieldCheck className="h-4 w-4" />}
-                Validar CPFs
               </Button>
             )}
             </div>
@@ -1259,12 +1258,12 @@ function Step5Vidas({ data, update, readOnly, relAnexo }: any) {
               {falhasCpf > 0 && (
                 <>
                   <span className="text-muted-foreground">· {falhasCpf} pendente(s) por falha na consulta</span>
-                  {!readOnly && <Button size="sm" variant="outline" className="h-7" onClick={() => handleValidarCpfs(true)}>Tentar novamente {falhasCpf}</Button>}
+                  {!readOnly && <Button size="sm" variant="outline" className="h-7" disabled={verificando || !!validandoCpf} onClick={() => handleValidarCpfs(true)}>Tentar novamente {falhasCpf}</Button>}
                 </>
               )}
             </div>
           )}
-          {verificando && (
+          {verificando && !validandoCpf && (
             <div className="space-y-1">
               <Progress value={progresso} />
               <p className="text-xs text-muted-foreground">Processando linhas... {progresso.toFixed(0)}%</p>

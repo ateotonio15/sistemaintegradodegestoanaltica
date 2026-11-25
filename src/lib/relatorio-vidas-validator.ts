@@ -61,7 +61,7 @@ export interface BeneficiarioLido {
   titular_linha: number | null;
   /** Status de validação do CPF (camada local; consulta oficial futura). */
   cpf_status?: StatusCpf;
-  /** Resultado da consulta oficial (botão "Validar CPFs"). */
+  /** Resultado da consulta oficial durante a verificação do layout. */
   cpf_oficial?: ResultadoOficialCpf | null;
 }
 
