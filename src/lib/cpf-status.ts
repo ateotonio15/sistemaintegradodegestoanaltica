@@ -89,3 +89,51 @@ export function statusCpfFinal(b: { cpf: string; cpf_status?: StatusCpf; cpf_ofi
   if (local === "invalido" || local === "nao_analisado") return local;
   return b.cpf_oficial?.status ?? local;
 }
+
+export type CategoriaCpf = "validado" | "invalido" | "divergencia" | "situacao" | "nao_consultado";
+
+/** Agrupa o status final nas categorias usadas em filtros e resumos. */
+export function categoriaCpf(b: { cpf: string; cpf_status?: StatusCpf; cpf_oficial?: ResultadoOficialCpf | null }): CategoriaCpf {
+  const s = statusCpfFinal(b);
+  if (s === "validado_oficial") return "validado";
+  if (s === "invalido") return "invalido";
+  if (s === "divergencia" || s === "nao_localizado") return "divergencia";
+  if (s === "situacao_atencao") return "situacao";
+  return "nao_consultado";
+}
+
+/** Falha técnica/indisponível: pode ser tentada de novo; nunca é erro do beneficiário. */
+export function precisaNovaTentativa(b: { cpf: string; cpf_status?: StatusCpf; cpf_oficial?: ResultadoOficialCpf | null }): boolean {
+  return b.cpf_oficial?.status === "indisponivel" && statusCpfLocal(b.cpf) === "valido_local";
+}
+
+export interface ResumoValidacaoCpf {
+  total: number; validados: number; invalidos: number; divergencias: number; alertas: number; nao_consultados: number; conferido_em: string | null;
+}
+
+export function resumoValidacaoCpf(lista: { cpf: string; cpf_status?: StatusCpf; cpf_oficial?: ResultadoOficialCpf | null }[]): ResumoValidacaoCpf {
+  const r: ResumoValidacaoCpf = { total: lista.length, validados: 0, invalidos: 0, divergencias: 0, alertas: 0, nao_consultados: 0, conferido_em: null };
+  for (const b of lista) {
+    const c = categoriaCpf(b);
+    if (c === "validado") r.validados++;
+    else if (c === "invalido") r.invalidos++;
+    else if (c === "divergencia") r.divergencias++;
+    else if (c === "situacao") r.alertas++;
+    else r.nao_consultados++;
+    const t = b.cpf_oficial?.consultado_em;
+    if (t && (!r.conferido_em || t > r.conferido_em)) r.conferido_em = t;
+  }
+  return r;
+}
+
+/** Pendências vindas da consulta oficial, no mesmo formato da lista de pendências existente. */
+export function pendenciasCpfOficiais(lista: { linha: number; cpf: string; cpf_status?: StatusCpf; cpf_oficial?: ResultadoOficialCpf | null }[]) {
+  const out: { linha: number; coluna: string; motivo: string; severidade: "erro" | "alerta" }[] = [];
+  for (const b of lista) {
+    const s = statusCpfFinal(b);
+    if (s === "divergencia") out.push({ linha: b.linha, coluna: "CPF", motivo: "Divergência: CPF e Data de Nascimento não conferem", severidade: "alerta" });
+    else if (s === "nao_localizado") out.push({ linha: b.linha, coluna: "CPF", motivo: "Divergência: CPF não localizado na consulta oficial", severidade: "alerta" });
+    else if (s === "situacao_atencao") out.push({ linha: b.linha, coluna: "CPF", motivo: `Alerta: situação cadastral requer atenção${b.cpf_oficial?.situacao ? ` (${b.cpf_oficial.situacao})` : ""}`, severidade: "alerta" });
+  }
+  return out;
+}

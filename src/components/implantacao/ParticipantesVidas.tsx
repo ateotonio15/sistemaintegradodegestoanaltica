@@ -7,7 +7,8 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import type { ValidacaoResultado, BeneficiarioLido, PendenciaLinha } from "@/lib/relatorio-vidas-validator";
 import { cn } from "@/lib/utils";
-import { mascararCpf, statusCpfLocal, statusCpfFinal, resumoStatusCpf, STATUS_CPF_LABEL, type StatusCpf } from "@/lib/cpf-status";
+import { mascararCpf, statusCpfLocal, statusCpfFinal, resumoStatusCpf, categoriaCpf, STATUS_CPF_LABEL, type CategoriaCpf, type StatusCpf } from "@/lib/cpf-status";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 
 function CpfStatusBadge({ b }: { b: BeneficiarioLido }) {
@@ -51,6 +52,7 @@ const PARENTESCO: Record<string, string> = { FILHO: "Filho(a)", CONJUGE: "Cônju
 export function ParticipantesVidas({ validacao }: { validacao: ValidacaoResultado }) {
   const [busca, setBusca] = useState("");
   const [soErros, setSoErros] = useState(false);
+  const [filtroCpf, setFiltroCpf] = useState<"todos" | CategoriaCpf>("todos");
   const [aberto, setAberto] = useState<BeneficiarioLido | null>(null);
 
   const pendPorLinha = useMemo(() => {
@@ -81,17 +83,18 @@ export function ParticipantesVidas({ validacao }: { validacao: ValidacaoResultad
     const qd = q.replace(/\D/g, "");
     const match = (b: BeneficiarioLido) =>
       (!q || b.nome.toLowerCase().includes(q) || (qd && b.cpf.replace(/\D/g, "").includes(qd))) &&
-      (!soErros || pendPorLinha.has(b.linha));
+      (!soErros || pendPorLinha.has(b.linha)) &&
+      (filtroCpf === "todos" || categoriaCpf(b) === filtroCpf);
     return out
       .map((g) => {
         const titularOk = g.titular ? match(g.titular) : false;
         const deps = g.deps.filter(match);
-        if (titularOk) return { ...g, deps: soErros || q ? deps : g.deps };
+        if (titularOk) return { ...g, deps: soErros || q || filtroCpf !== "todos" ? deps : g.deps };
         if (deps.length) return { ...g, deps };
         return null;
       })
       .filter(Boolean) as { titular: BeneficiarioLido | null; deps: BeneficiarioLido[] }[];
-  }, [validacao.beneficiarios, busca, soErros, pendPorLinha]);
+  }, [validacao.beneficiarios, busca, soErros, filtroCpf, pendPorLinha]);
 
   if (!validacao.beneficiarios) {
     return (
@@ -153,6 +156,17 @@ export function ParticipantesVidas({ validacao }: { validacao: ValidacaoResultad
         </div>
         <div className="flex flex-wrap items-center gap-2">
           <Input placeholder="Buscar nome ou CPF" value={busca} onChange={(e) => setBusca(e.target.value)} className="h-8 w-52" />
+          <Select value={filtroCpf} onValueChange={(v) => setFiltroCpf(v as any)}>
+            <SelectTrigger className="h-8 w-44"><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="todos">Todos</SelectItem>
+              <SelectItem value="validado">Validados</SelectItem>
+              <SelectItem value="invalido">Inválidos</SelectItem>
+              <SelectItem value="divergencia">Divergência</SelectItem>
+              <SelectItem value="situacao">Situação cadastral</SelectItem>
+              <SelectItem value="nao_consultado">Não consultados</SelectItem>
+            </SelectContent>
+          </Select>
           <Button size="sm" variant={soErros ? "destructive" : "outline"} onClick={() => setSoErros((v) => !v)} disabled={comErro === 0}>
             Só com erros ({comErro})
           </Button>

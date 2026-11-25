@@ -23,7 +23,7 @@ import { cn } from "@/lib/utils";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { useAuth } from "@/hooks/useAuth";
 import { ParticipantesVidas } from "./ParticipantesVidas";
-import { statusCpfLocal, type ResultadoOficialCpf } from "@/lib/cpf-status";
+import { statusCpfLocal, precisaNovaTentativa, resumoValidacaoCpf, pendenciasCpfOficiais, type ResultadoOficialCpf } from "@/lib/cpf-status";
 import { validarRelatorioVidas, type ValidacaoResultado } from "@/lib/relatorio-vidas-validator";
 import { AnexoPreviewDialog } from "./AnexoPreviewDialog";
 
@@ -489,7 +489,7 @@ export function ImplantacaoWizard({ id, open, onClose, readOnly }: Props) {
             {step === 3 && <Step3Contrato data={data} update={update} readOnly={readOnly} isAdmin={isAdmin} />}
             {step === 4 && <Step4Comissao data={data} update={update} readOnly={readOnly} />}
             {step === 5 && <Step5Vidas data={data} update={update} readOnly={readOnly} relAnexo={ultimoRelVidas} />}
-            {step === 6 && <Step6Revisao data={data} anexos={anexos} />}
+            {step === 6 && <Step6Revisao data={data} anexos={anexos} onVerConferencia={() => setStep(5)} />}
           </div>
 
           {step !== 1 && (
@@ -1178,39 +1178,40 @@ function Step5Vidas({ data, update, readOnly, relAnexo }: any) {
   };
 
   const [validandoCpf, setValidandoCpf] = useState<{ feito: number; total: number } | null>(null);
-  const handleValidarCpfs = async () => {
+  const handleValidarCpfs = async (somenteFalhas = false) => {
     if (!validacao?.beneficiarios) return;
-    const alvos = validacao.beneficiarios.filter((b) => (b.cpf_status ?? statusCpfLocal(b.cpf)) === "valido_local");
+    const alvos = validacao.beneficiarios.filter((b) =>
+      somenteFalhas ? precisaNovaTentativa(b) : (b.cpf_status ?? statusCpfLocal(b.cpf)) === "valido_local");
     if (alvos.length === 0) { toast.info("Nenhum CPF válido localmente para consultar."); return; }
     const resultados = new Map<number, ResultadoOficialCpf>();
     setValidandoCpf({ feito: 0, total: alvos.length });
-    let falhaTecnica = 0;
+    // Fila controlada: um lote de 20 por vez, cedendo a vez à tela entre os lotes.
     for (let i = 0; i < alvos.length; i += 20) {
       const lote = alvos.slice(i, i + 20);
-      const { data: resp, error } = await supabase.functions.invoke("validar-cpf-oficial", {
-        body: { implantacao_id: data?.id ?? null, itens: lote.map((b) => ({ linha: b.linha, nome: b.nome, cpf: b.cpf, data_nasc: b.data_nasc || null })) },
-      });
       const agora = new Date().toISOString();
-      if (error || !resp?.resultados) {
-        falhaTecnica += lote.length;
-        for (const b of lote) resultados.set(b.linha, { status: "indisponivel", origem: "erro_tecnico", consultado_em: agora });
-      } else {
+      try {
+        const { data: resp, error } = await supabase.functions.invoke("validar-cpf-oficial", {
+          body: { implantacao_id: data?.id ?? null, itens: lote.map((b) => ({ linha: b.linha, nome: b.nome, cpf: b.cpf, data_nasc: b.data_nasc || null })) },
+        });
+        if (error || !resp?.resultados) throw error || new Error("sem resposta");
         for (const r of resp.resultados) if (r.status !== "ignorado") resultados.set(r.linha, { status: r.status, situacao: r.situacao, origem: r.origem, consultado_em: r.consultado_em });
+      } catch {
+        for (const b of lote) resultados.set(b.linha, { status: "indisponivel", origem: "erro_tecnico", consultado_em: agora });
       }
       setValidandoCpf({ feito: Math.min(i + 20, alvos.length), total: alvos.length });
+      await new Promise((r) => setTimeout(r, 0));
     }
-    update({
-      relatorio_validacao: {
-        ...validacao,
-        beneficiarios: validacao.beneficiarios.map((b) => (resultados.has(b.linha) ? { ...b, cpf_oficial: resultados.get(b.linha) } : b)),
-      },
-    });
+    const beneficiarios = validacao.beneficiarios.map((b) => (resultados.has(b.linha) ? { ...b, cpf_oficial: resultados.get(b.linha) } : b));
+    update({ relatorio_validacao: { ...validacao, beneficiarios, cpf_resumo: resumoValidacaoCpf(beneficiarios) } });
     setValidandoCpf(null);
     const indisp = [...resultados.values()].filter((r) => r.status === "indisponivel").length;
-    if (indisp > 0) toast.warning(`${indisp} consulta(s) indisponível(is). Isso não bloqueia a implantação.`);
+    if (indisp > 0) toast.warning(`${resultados.size - indisp} concluída(s), ${indisp} pendente(s). Isso não bloqueia a implantação.`);
     else toast.success("Validação de CPFs concluída.");
-    void falhaTecnica;
   };
+  const benef = validacao?.beneficiarios || [];
+  const resumoCpf = resumoValidacaoCpf(benef);
+  const falhasCpf = benef.filter(precisaNovaTentativa).length;
+  const pendenciasTodas = [...(validacao?.pendencias || []), ...pendenciasCpfOficiais(benef)].sort((x, y) => x.linha - y.linha);
 
   return (
     <div className="space-y-4">
@@ -1231,7 +1232,7 @@ function Step5Vidas({ data, update, readOnly, relAnexo }: any) {
               </Button>
             )}
             {!readOnly && validacao?.beneficiarios && validacao.beneficiarios.length > 0 && (
-              <Button variant="outline" onClick={handleValidarCpfs} disabled={verificando || !!validandoCpf} className="gap-2 ml-2">
+              <Button variant="outline" onClick={() => handleValidarCpfs(false)} disabled={verificando || !!validandoCpf} className="gap-2 ml-2">
                 {validandoCpf ? <Loader2 className="h-4 w-4 animate-spin" /> : <ShieldCheck className="h-4 w-4" />}
                 Validar CPFs
               </Button>
@@ -1244,6 +1245,23 @@ function Step5Vidas({ data, update, readOnly, relAnexo }: any) {
               <p className="text-xs text-muted-foreground">
                 Validando CPFs... {validandoCpf.feito} de {validandoCpf.total} · {Math.round((validandoCpf.feito / validandoCpf.total) * 100)}%
               </p>
+            </div>
+          )}
+          {benef.length > 0 && !validandoCpf && (
+            <div className="flex flex-wrap items-center gap-2 rounded-lg border bg-muted/20 px-3 py-2 text-xs">
+              <span className="font-semibold">Validação de CPF</span>
+              <span className="text-muted-foreground">{resumoCpf.total} CPFs analisados</span>
+              <Badge variant="outline" className="font-normal border-primary/40 text-primary">{resumoCpf.validados} Validado oficialmente</Badge>
+              <Badge variant="outline" className="font-normal border-destructive/50 text-destructive">{resumoCpf.invalidos} Inválidos</Badge>
+              <Badge variant="outline" className="font-normal border-amber-500/50 text-amber-600 dark:text-amber-400">{resumoCpf.divergencias} Divergência cadastral</Badge>
+              {resumoCpf.alertas > 0 && <Badge variant="outline" className="font-normal border-amber-500/50 text-amber-600 dark:text-amber-400">{resumoCpf.alertas} Situação cadastral</Badge>}
+              <Badge variant="outline" className="font-normal text-muted-foreground">{resumoCpf.nao_consultados} Não consultados</Badge>
+              {falhasCpf > 0 && (
+                <>
+                  <span className="text-muted-foreground">· {falhasCpf} pendente(s) por falha na consulta</span>
+                  {!readOnly && <Button size="sm" variant="outline" className="h-7" onClick={() => handleValidarCpfs(true)}>Tentar novamente {falhasCpf}</Button>}
+                </>
+              )}
             </div>
           )}
           {verificando && (
@@ -1312,13 +1330,13 @@ function Step5Vidas({ data, update, readOnly, relAnexo }: any) {
 
           <ParticipantesVidas validacao={validacao} />
 
-          {validacao.pendencias.length > 0 && (
+          {pendenciasTodas.length > 0 && (
             <Card>
               <CardContent className="p-4">
-                <h5 className="font-semibold mb-2 text-sm">Pendências por Linha ({validacao.pendencias.length}{validacao.pendencias.length === 500 ? "+" : ""})</h5>
+                <h5 className="font-semibold mb-2 text-sm">Pendências por Linha ({pendenciasTodas.length}{validacao.pendencias.length === 500 ? "+" : ""})</h5>
                 <ScrollArea className="h-48">
                   <div className="space-y-1">
-                    {validacao.pendencias.map((p, i) => (
+                    {pendenciasTodas.map((p, i) => (
                       <div key={i} className="text-xs flex items-center gap-2 py-0.5">
                         {p.severidade === "erro" ? (
                           <XCircle className="h-3 w-3 text-destructive flex-shrink-0" />
@@ -1374,7 +1392,7 @@ function KpiBox({ label, value, color }: { label: string; value: number; color: 
 }
 
 // ============= STEP 6 =============
-function Step6Revisao({ data, anexos }: any) {
+function Step6Revisao({ data, anexos, onVerConferencia }: any) {
   const Row = ({ k, v }: { k: string; v: any }) => (
     <div className="flex justify-between text-sm py-1 border-b last:border-0">
       <span className="text-muted-foreground">{k}</span>
@@ -1418,6 +1436,19 @@ function Step6Revisao({ data, anexos }: any) {
         <Row k="Titulares" v={data.vidas_titulares} />
         <Row k="Dependentes" v={data.vidas_dependentes} />
         <Row k="Layout Validado" v={data.relatorio_validacao?.valido ? "Sim" : "Não"} />
+        {data.relatorio_validacao?.beneficiarios?.length > 0 && (() => {
+          const r = resumoValidacaoCpf(data.relatorio_validacao.beneficiarios);
+          const pend = r.invalidos + r.divergencias + r.alertas;
+          return (
+            <div className="flex items-center justify-between text-sm py-1">
+              <span className="text-muted-foreground">Validação de CPF</span>
+              <span className="flex items-center gap-2">
+                <span>{r.validados}/{r.total} CPFs confirmados{pend > 0 ? ` · ${pend} com pendência` : ""}</span>
+                {onVerConferencia && <Button size="sm" variant="link" className="h-auto p-0" onClick={onVerConferencia}>Ver conferência</Button>}
+              </span>
+            </div>
+          );
+        })()}
         <Row k="Documentos" v={`${anexos.length} anexo(s)`} />
       </CardContent></Card>
     </div>

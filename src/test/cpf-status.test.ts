@@ -44,3 +44,22 @@ describe("status final com consulta oficial", () => {
     expect(statusCpfFinal({ cpf: "52998224725" })).toBe("valido_local");
   });
 });
+
+import { resumoValidacaoCpf, precisaNovaTentativa, categoriaCpf } from "@/lib/cpf-status";
+describe("resumo da validação de CPF", () => {
+  const ok = "52998224725";
+  const t = "2026-11-25T10:00:00Z";
+  it("conta categorias e falha técnica não vira erro", () => {
+    const lista = [
+      { cpf: ok, cpf_oficial: { status: "validado_oficial" as const, origem: "x", consultado_em: t } },
+      { cpf: "11111111111" },
+      { cpf: ok, cpf_oficial: { status: "divergencia" as const, origem: "x", consultado_em: t } },
+      { cpf: ok, cpf_oficial: { status: "indisponivel" as const, origem: "erro_tecnico", consultado_em: t } },
+    ];
+    const r = resumoValidacaoCpf(lista);
+    expect([r.validados, r.invalidos, r.divergencias, r.nao_consultados]).toEqual([1, 1, 1, 1]);
+    expect(precisaNovaTentativa(lista[3])).toBe(true);
+    expect(precisaNovaTentativa(lista[0])).toBe(false);
+    expect(categoriaCpf(lista[3])).toBe("nao_consultado");
+  });
+});
