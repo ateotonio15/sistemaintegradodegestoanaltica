@@ -7,33 +7,32 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import type { ValidacaoResultado, BeneficiarioLido, PendenciaLinha } from "@/lib/relatorio-vidas-validator";
 import { cn } from "@/lib/utils";
-import { mascararCpf, statusCpfLocal, statusCpfFinal, resumoStatusCpf, categoriaCpf, STATUS_CPF_LABEL, type CategoriaCpf, type StatusCpf } from "@/lib/cpf-status";
+import { mascararCpf, statusCpfLocal, statusCpfFinal, pendenciasCpfOficiais, categoriaCpf, STATUS_CPF_LABEL, type CategoriaCpf, type StatusCpf } from "@/lib/cpf-status";
+import { CONSULTA_OFICIAL_CONFIGURADA, filtrarParticipante, type FiltroParticipantes } from "./vidas-apresentacao";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 
-function CpfStatusBadge({ b }: { b: BeneficiarioLido }) {
-  const s: StatusCpf = statusCpfFinal(b);
+function CpfStatusBadge({ b, consultaConfigurada }: { b: BeneficiarioLido; consultaConfigurada: boolean }) {
+  const s: StatusCpf = consultaConfigurada ? statusCpfFinal(b) : statusCpfLocal(b.cpf);
+  if (s === "valido_local" || s === "validado_oficial") return null;
   const ruim = s === "invalido" || s === "divergencia" || s === "nao_localizado";
   const atencao = s === "situacao_atencao";
-  const ok = s === "valido_local" || s === "validado_oficial";
   const cls = ruim ? "border-destructive/50 text-destructive"
-    : atencao ? "border-orange-500/50 text-orange-600 dark:text-orange-400"
-    : ok ? "border-primary/40 text-primary" : "text-muted-foreground";
+    : atencao ? "border-warning/50 text-warning"
+    : "text-muted-foreground";
   const txt =
-    s === "validado_oficial" ? "✓ CPF validado"
-    : s === "valido_local" ? "CPF válido"
-    : s === "invalido" ? "CPF inválido"
+    s === "invalido" ? "CPF inválido"
     : s === "divergencia" ? "⚠ Divergência cadastral"
     : s === "nao_localizado" ? "⚠ CPF não localizado"
     : s === "situacao_atencao" ? "⚠ Situação cadastral"
-    : s === "indisponivel" ? "Consulta indisponível"
+    : s === "indisponivel" ? "Consulta com erro"
     : s === "sem_data_nasc" ? "Consulta não realizada"
     : STATUS_CPF_LABEL[s];
   const o = b.cpf_oficial;
   return (
     <Popover>
       <PopoverTrigger asChild>
-        <button type="button"><Badge variant="outline" className={cn("text-[10px] font-normal cursor-pointer", cls)}>{txt}</Badge></button>
+        <Button type="button" variant="ghost" size="sm" className="h-auto p-0"><Badge variant="outline" className={cn("text-[10px] font-normal cursor-pointer", cls)}>{txt}</Badge></Button>
       </PopoverTrigger>
       <PopoverContent className="w-72 text-xs space-y-1.5">
         <p className="font-semibold text-sm">Validação do CPF</p>
@@ -49,21 +48,21 @@ function CpfStatusBadge({ b }: { b: BeneficiarioLido }) {
 
 const PARENTESCO: Record<string, string> = { FILHO: "Filho(a)", CONJUGE: "Cônjuge", DEPENDENTE: "Outro" };
 
-export function ParticipantesVidas({ validacao }: { validacao: ValidacaoResultado }) {
+export function ParticipantesVidas({ validacao, consultaConfigurada = CONSULTA_OFICIAL_CONFIGURADA }: { validacao: ValidacaoResultado; consultaConfigurada?: boolean }) {
   const [busca, setBusca] = useState("");
-  const [soErros, setSoErros] = useState(false);
+  const [filtro, setFiltro] = useState<FiltroParticipantes>("todos");
   const [filtroCpf, setFiltroCpf] = useState<"todos" | CategoriaCpf>("todos");
   const [aberto, setAberto] = useState<BeneficiarioLido | null>(null);
 
   const pendPorLinha = useMemo(() => {
     const m = new Map<number, PendenciaLinha[]>();
-    for (const p of validacao.pendencias || []) {
+    for (const p of [...(validacao.pendencias || []), ...(consultaConfigurada ? pendenciasCpfOficiais(validacao.beneficiarios || []) : [])]) {
       const arr = m.get(p.linha) || [];
       arr.push(p);
       m.set(p.linha, arr);
     }
     return m;
-  }, [validacao.pendencias]);
+  }, [validacao.pendencias, validacao.beneficiarios, consultaConfigurada]);
 
   const grupos = useMemo(() => {
     const lista = validacao.beneficiarios || [];
@@ -74,7 +73,8 @@ export function ParticipantesVidas({ validacao }: { validacao: ValidacaoResultad
         idx.set(b.linha, out.length);
         out.push({ titular: b, deps: [] });
       } else if (b.titular_linha != null && idx.has(b.titular_linha)) {
-        out[idx.get(b.titular_linha)!].deps.push(b);
+        const index = idx.get(b.titular_linha);
+        if (index !== undefined) out[index].deps.push(b);
       } else {
         out.push({ titular: null, deps: [b] });
       }
@@ -83,18 +83,18 @@ export function ParticipantesVidas({ validacao }: { validacao: ValidacaoResultad
     const qd = q.replace(/\D/g, "");
     const match = (b: BeneficiarioLido) =>
       (!q || b.nome.toLowerCase().includes(q) || (qd && b.cpf.replace(/\D/g, "").includes(qd))) &&
-      (!soErros || pendPorLinha.has(b.linha)) &&
-      (filtroCpf === "todos" || categoriaCpf(b) === filtroCpf);
+      filtrarParticipante(b, filtro, validacao, consultaConfigurada) &&
+      (!consultaConfigurada || filtroCpf === "todos" || categoriaCpf(b) === filtroCpf);
     return out
       .map((g) => {
         const titularOk = g.titular ? match(g.titular) : false;
         const deps = g.deps.filter(match);
-        if (titularOk) return { ...g, deps: soErros || q || filtroCpf !== "todos" ? deps : g.deps };
-        if (deps.length) return { ...g, deps };
+        if (titularOk) return { ...g, deps };
+        if (deps.length) return { titular: null, deps };
         return null;
       })
       .filter(Boolean) as { titular: BeneficiarioLido | null; deps: BeneficiarioLido[] }[];
-  }, [validacao.beneficiarios, busca, soErros, filtroCpf, pendPorLinha]);
+  }, [validacao, busca, filtro, filtroCpf, consultaConfigurada]);
 
   if (!validacao.beneficiarios) {
     return (
@@ -104,9 +104,6 @@ export function ParticipantesVidas({ validacao }: { validacao: ValidacaoResultad
     );
   }
 
-  const rc = resumoStatusCpf(validacao.beneficiarios || []);
-  const comErro = (validacao.beneficiarios || []).filter((b) => pendPorLinha.has(b.linha)).length;
-
   const Linha = ({ b, dep }: { b: BeneficiarioLido; dep?: boolean }) => {
     const p = pendPorLinha.get(b.linha) || [];
     const erros = p.filter((x) => x.severidade === "erro").length;
@@ -114,14 +111,14 @@ export function ParticipantesVidas({ validacao }: { validacao: ValidacaoResultad
     return (
       <div
         className={cn(
-          "flex flex-wrap items-center justify-between gap-3 rounded-xl border bg-card p-3 shadow-sm border-l-4",
-          dep ? "ml-6 border-l-blue-500" : "border-l-primary",
-          erros > 0 && "border-destructive/50 border-l-destructive bg-destructive/5",
+          "flex flex-wrap items-center justify-between gap-3 border-b py-3 last:border-0",
+          dep && "ml-3 border-l-2 border-l-border pl-3 sm:ml-5",
+          erros > 0 && "border-destructive/50",
         )}
       >
-        <div className="min-w-0">
+        <div className="min-w-0 flex-1 basis-48">
           <div className="flex flex-wrap items-center gap-2">
-            <span className={cn("font-semibold uppercase truncate", dep ? "text-sm" : "text-[15px]")}>{b.nome}</span>
+            <span className="break-words text-sm font-semibold uppercase">{b.nome}</span>
             {dep ? (
               <>
                 <Badge variant="secondary" className="text-[10px]">Dependente</Badge>
@@ -131,9 +128,9 @@ export function ParticipantesVidas({ validacao }: { validacao: ValidacaoResultad
               <Badge className="text-[10px]">Titular</Badge>
             )}
             {erros > 0 && <Badge variant="destructive" className="text-[10px] gap-1"><XCircle className="h-3 w-3" />{erros} erro(s)</Badge>}
-            {alertas > 0 && <Badge variant="outline" className="text-[10px] gap-1 border-orange-500/50 text-orange-600 dark:text-orange-400"><AlertTriangle className="h-3 w-3" />{alertas} alerta(s)</Badge>}
+            {alertas > 0 && <Badge variant="outline" className="text-[10px] gap-1 border-warning/50 text-warning"><AlertTriangle className="h-3 w-3" />{alertas} alerta(s)</Badge>}
           </div>
-          <p className="text-xs text-muted-foreground mt-0.5 flex flex-wrap items-center gap-2">CPF: {mascararCpf(b.cpf)} · Linha {b.linha} <CpfStatusBadge b={b} /></p>
+          <p className="text-xs text-muted-foreground mt-1 flex flex-wrap items-center gap-2">CPF: {mascararCpf(b.cpf)} · Linha {b.linha} <CpfStatusBadge b={b} consultaConfigurada={consultaConfigurada} /></p>
         </div>
         <Button size="sm" variant="outline" className="gap-1.5" onClick={() => setAberto(b)}>
           <Eye className="h-4 w-4" /> Visualizar Mais
@@ -145,18 +142,26 @@ export function ParticipantesVidas({ validacao }: { validacao: ValidacaoResultad
   const pendAberto = aberto ? pendPorLinha.get(aberto.linha) || [] : [];
 
   return (
-    <div className="rounded-xl border bg-muted/20 p-4 space-y-3">
+    <section className="space-y-3" aria-label="Participantes">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div className="flex items-start gap-3">
           <div className="rounded-lg bg-primary/10 p-2"><Users className="h-5 w-5 text-primary" /></div>
           <div>
             <h4 className="font-semibold text-lg leading-tight">Participantes</h4>
-            <p className="text-xs text-muted-foreground">Titulares e seus dependentes lidos do Relatório de Vidas.</p>
           </div>
         </div>
         <div className="flex flex-wrap items-center gap-2">
-          <Input placeholder="Buscar nome ou CPF" value={busca} onChange={(e) => setBusca(e.target.value)} className="h-8 w-52" />
-          <Select value={filtroCpf} onValueChange={(v) => setFiltroCpf(v as any)}>
+          <Input aria-label="Buscar nome ou CPF" placeholder="Buscar nome ou CPF" value={busca} onChange={(e) => setBusca(e.target.value)} className="h-8 w-full sm:w-52" />
+          <Select value={filtro} onValueChange={(v) => setFiltro(v as FiltroParticipantes)}>
+            <SelectTrigger aria-label="Filtrar participantes" className="h-8 w-40"><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="todos">Todos</SelectItem>
+              <SelectItem value="titulares">Titulares</SelectItem>
+              <SelectItem value="dependentes">Dependentes</SelectItem>
+              <SelectItem value="pendencias">Com pendência</SelectItem>
+            </SelectContent>
+          </Select>
+          {consultaConfigurada && <Select value={filtroCpf} onValueChange={(v) => setFiltroCpf(v as "todos" | CategoriaCpf)}>
             <SelectTrigger className="h-8 w-44"><SelectValue /></SelectTrigger>
             <SelectContent>
               <SelectItem value="todos">Todos</SelectItem>
@@ -166,18 +171,8 @@ export function ParticipantesVidas({ validacao }: { validacao: ValidacaoResultad
               <SelectItem value="situacao">Situação cadastral</SelectItem>
               <SelectItem value="nao_consultado">Não consultados</SelectItem>
             </SelectContent>
-          </Select>
-          <Button size="sm" variant={soErros ? "destructive" : "outline"} onClick={() => setSoErros((v) => !v)} disabled={comErro === 0}>
-            Só com erros ({comErro})
-          </Button>
+          </Select>}
         </div>
-      </div>
-      <div className="flex flex-wrap items-center gap-x-4 gap-y-1 rounded-lg border bg-card px-3 py-2 text-xs">
-        <span className="font-semibold">Validação de CPF</span>
-        <span>Válidos localmente: <strong className="text-primary">{rc.validos}</strong></span>
-        <span>Inválidos: <strong className="text-destructive">{rc.invalidos}</strong></span>
-        <span>Aguardando consulta oficial: <strong>{rc.aguardando}</strong></span>
-        {rc.naoAnalisados > 0 && <span>Não analisados: <strong>{rc.naoAnalisados}</strong></span>}
       </div>
       <ScrollArea className="h-[420px] pr-3">
         <div className="space-y-2">
@@ -200,11 +195,18 @@ export function ParticipantesVidas({ validacao }: { validacao: ValidacaoResultad
           {aberto && (
             <div className="space-y-4 text-sm">
               <div className="grid grid-cols-2 gap-2">
-                <div><p className="text-xs text-muted-foreground">CPF</p><p>{mascararCpf(aberto.cpf)}</p><p className="text-xs text-muted-foreground">{STATUS_CPF_LABEL[statusCpfFinal(aberto)]}</p></div>
+                <div><p className="text-xs text-muted-foreground">CPF</p><p>{mascararCpf(aberto.cpf)}</p><p className="text-xs text-muted-foreground">{STATUS_CPF_LABEL[statusCpfLocal(aberto.cpf)]}</p></div>
                 <div><p className="text-xs text-muted-foreground">Data de nascimento</p><p>{aberto.data_nasc || "—"}</p></div>
                 <div><p className="text-xs text-muted-foreground">Sexo</p><p>{aberto.sexo || "—"}</p></div>
                 <div><p className="text-xs text-muted-foreground">Tipo</p><p>{aberto.tipo === "TITULAR" ? "Titular" : `Dependente · ${PARENTESCO[aberto.tipo]}`}</p></div>
               </div>
+              {aberto.cpf_oficial && <div className="space-y-1 border-t pt-3 text-xs">
+                <p className="font-semibold">Consulta oficial</p>
+                <p>{consultaConfigurada ? STATUS_CPF_LABEL[statusCpfFinal(aberto)] : "Consulta oficial não configurada"}</p>
+                {aberto.cpf_oficial.situacao && <p>Situação retornada: {aberto.cpf_oficial.situacao}</p>}
+                <p className="text-muted-foreground">Data/hora: {new Date(aberto.cpf_oficial.consultado_em).toLocaleString("pt-BR")}</p>
+                <p className="text-muted-foreground">Origem: {aberto.cpf_oficial.origem === "nao_configurado" ? "Serviço de consulta ainda não configurado" : aberto.cpf_oficial.origem}</p>
+              </div>}
               <div>
                 <p className="font-semibold mb-2">Erros e alertas</p>
                 {pendAberto.length === 0 ? (
@@ -215,7 +217,7 @@ export function ParticipantesVidas({ validacao }: { validacao: ValidacaoResultad
                       <li key={i} className="flex items-center gap-2 rounded-md border p-2">
                         {p.severidade === "erro"
                           ? <XCircle className="h-4 w-4 text-destructive shrink-0" />
-                          : <AlertTriangle className="h-4 w-4 text-orange-500 shrink-0" />}
+                          : <AlertTriangle className="h-4 w-4 text-warning shrink-0" />}
                         <span><strong>{p.coluna}</strong>: {p.motivo}</span>
                       </li>
                     ))}
@@ -226,6 +228,6 @@ export function ParticipantesVidas({ validacao }: { validacao: ValidacaoResultad
           )}
         </DialogContent>
       </Dialog>
-    </div>
+    </section>
   );
 }

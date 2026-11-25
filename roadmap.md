@@ -1,5 +1,8 @@
 # Roadmap — Primeiro pacote financeiro
 
+## Etapa 5 — organização visual
+- [x] Resumo e CPF priorizados, detalhes recolhidos, participantes simplificados e distribuição ao final; 18 testes aprovados e planilha real com 34 vidas/21 titulares/13 dependentes conferida, sem salvar alterações. Leitura, cálculos, validações e rodapé preservados.
+
 ## Produto & Valores
 - [x] Somente dois vínculos manuais definidos pela coluna; terceiro campo e selos removidos, qualquer produto ativo permitido em ambos no servidor. Dados antigos preservados.
 - [x] Doze testes aprovados, incluindo gravação isolada com valores 29100/40600 preservados; sessão real conferiu 42 planos em cada lista, Master Executivo 16 em Enfermaria e Plano Master Executivo 29 em Apartamento. Cancelado sem gravação operacional; busca da operadora mantida.

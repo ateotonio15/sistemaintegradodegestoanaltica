@@ -1,0 +1,2 @@
+- Keep Step 5 summaries, disclosure panels and participant filters in presentation-only helpers; preserve the Excel parser, totals, CPF processing and save flow so visual changes cannot change implantation rules.
+- Keep CONSULTA_OFICIAL_CONFIGURADA aligned with the server provider adapter; it controls presentation only, because unavailable results must not imply a beneficiary error before a provider exists.

@@ -23,6 +23,8 @@ import { cn } from "@/lib/utils";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { useAuth } from "@/hooks/useAuth";
 import { ParticipantesVidas } from "./ParticipantesVidas";
+import { ResumoLayoutVidas, ResumoCpfVidas, PendenciasLayoutVidas, DetalhesLayoutVidas } from "./ResumoLayoutVidas";
+import { CONSULTA_OFICIAL_CONFIGURADA } from "./vidas-apresentacao";
 import { statusCpfLocal, precisaNovaTentativa, resumoValidacaoCpf, pendenciasCpfOficiais, type ResultadoOficialCpf } from "@/lib/cpf-status";
 import { validarRelatorioVidas, type ValidacaoResultado } from "@/lib/relatorio-vidas-validator";
 import { AnexoPreviewDialog } from "./AnexoPreviewDialog";
@@ -1210,149 +1212,52 @@ export function Step5Vidas({ data, update, readOnly, relAnexo }: any) {
     update({ relatorio_validacao: { ...resultado, beneficiarios, cpf_resumo: resumoValidacaoCpf(beneficiarios) } });
     setValidandoCpf(null);
     const indisp = [...resultados.values()].filter((r) => r.status === "indisponivel").length;
+    if (!CONSULTA_OFICIAL_CONFIGURADA) return;
     if (indisp > 0) toast.warning(`${resultados.size - indisp} concluída(s), ${indisp} pendente(s). Isso não bloqueia a implantação.`);
     else toast.success("Validação de CPFs concluída.");
   };
   const benef = validacao?.beneficiarios || [];
-  const resumoCpf = resumoValidacaoCpf(benef);
   const falhasCpf = benef.filter(precisaNovaTentativa).length;
   const pendenciasTodas = [...(validacao?.pendencias || []), ...pendenciasCpfOficiais(benef)].sort((x, y) => x.linha - y.linha);
 
   return (
-    <div className="space-y-4">
-      <Card>
-        <CardContent className="p-4 space-y-3">
-          <div className="flex items-center justify-between">
-            <div>
-              <h4 className="font-semibold flex items-center gap-2"><ShieldCheck className="h-4 w-4" /> Verificação de Layout</h4>
-              <p className="text-xs text-muted-foreground">
-                {relAnexo ? `Arquivo: ${relAnexo.nome_arquivo}` : "Anexe o Relatório de Vidas na Etapa 1."}
-              </p>
-            </div>
-            <div className="flex items-center">
-            {!readOnly && (
-              <Button onClick={handleVerificar} disabled={!relAnexo || verificando || !!validandoCpf} className="gap-2">
-                {verificando ? <Loader2 className="h-4 w-4 animate-spin" /> : <ShieldCheck className="h-4 w-4" />}
-                Verificar Layout
-              </Button>
-            )}
-            </div>
+    <div className="space-y-5">
+      <section className="space-y-3 border-b pb-4" aria-label="Verificação de Layout">
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div className="min-w-0 flex-1 basis-48">
+            <h4 className="font-semibold flex items-center gap-2"><ShieldCheck className="h-4 w-4" /> Verificação de Layout</h4>
+            <p className="mt-1 break-words text-xs text-muted-foreground">
+              {relAnexo ? `Arquivo: ${relAnexo.nome_arquivo}` : "Anexe o Relatório de Vidas na Etapa 1."}
+            </p>
           </div>
-          {validandoCpf && (
-            <div className="space-y-1">
-              <Progress value={(validandoCpf.feito / validandoCpf.total) * 100} />
-              <p className="text-xs text-muted-foreground">
-                Validando CPFs... {validandoCpf.feito} de {validandoCpf.total} · {Math.round((validandoCpf.feito / validandoCpf.total) * 100)}%
-              </p>
-            </div>
-          )}
-          {benef.length > 0 && !validandoCpf && (
-            <div className="flex flex-wrap items-center gap-2 rounded-lg border bg-muted/20 px-3 py-2 text-xs">
-              <span className="font-semibold">Validação de CPF</span>
-              <span className="text-muted-foreground">{resumoCpf.total} CPFs analisados</span>
-              <Badge variant="outline" className="font-normal border-primary/40 text-primary">{resumoCpf.validados} Validado oficialmente</Badge>
-              <Badge variant="outline" className="font-normal border-destructive/50 text-destructive">{resumoCpf.invalidos} Inválidos</Badge>
-              <Badge variant="outline" className="font-normal border-amber-500/50 text-amber-600 dark:text-amber-400">{resumoCpf.divergencias} Divergência cadastral</Badge>
-              {resumoCpf.alertas > 0 && <Badge variant="outline" className="font-normal border-amber-500/50 text-amber-600 dark:text-amber-400">{resumoCpf.alertas} Situação cadastral</Badge>}
-              <Badge variant="outline" className="font-normal text-muted-foreground">{resumoCpf.nao_consultados} Não consultados</Badge>
-              {falhasCpf > 0 && (
-                <>
-                  <span className="text-muted-foreground">· {falhasCpf} pendente(s) por falha na consulta</span>
-                  {!readOnly && <Button size="sm" variant="outline" className="h-7" disabled={verificando || !!validandoCpf} onClick={() => handleValidarCpfs(true)}>Tentar novamente {falhasCpf}</Button>}
-                </>
-              )}
-            </div>
-          )}
-          {verificando && !validandoCpf && (
-            <div className="space-y-1">
-              <Progress value={progresso} />
-              <p className="text-xs text-muted-foreground">Processando linhas... {progresso.toFixed(0)}%</p>
-            </div>
-          )}
-        </CardContent>
-      </Card>
-
-      {validacao && (
-        <>
-          <div className="bg-yellow-500/10 border border-yellow-500/30 rounded-lg p-3 text-xs text-yellow-700 dark:text-yellow-400 space-y-1">
-            <div>Linhas sem <strong>TIPO OPERACAO = I</strong> foram ignoradas automaticamente.</div>
-            <div>Linhas sem <strong>GRAU PARENTESCO</strong> foram identificadas automaticamente como <strong>TITULAR</strong>.</div>
-          </div>
-          <div className="grid grid-cols-2 md:grid-cols-5 gap-2">
-            <KpiBox label="Linhas Lidas" value={validacao.linhas_lidas ?? validacao.total_linhas} color="text-muted-foreground" />
-            <KpiBox label="Válidas (I)" value={validacao.linhas_validas ?? validacao.total_linhas} color="text-primary" />
-            <KpiBox label="Ignoradas (vazias)" value={validacao.linhas_ignoradas_vazias ?? 0} color="text-muted-foreground" />
-            <KpiBox label="Ignoradas (outro tipo)" value={validacao.linhas_ignoradas_outro_tipo ?? 0} color="text-muted-foreground" />
-            <KpiBox label="Reaproveitadas" value={validacao.linhas_reaproveitadas ?? 0} color="text-green-500" />
-          </div>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
-            <KpiBox label="Titulares" value={validacao.titulares} color="text-blue-500" />
-            <KpiBox label="Dep. Filhos" value={validacao.filhos ?? 0} color="text-purple-500" />
-            <KpiBox label="Dep. Cônjuges" value={validacao.conjuges ?? 0} color="text-pink-500" />
-            <KpiBox label="Outros Dep." value={validacao.outros_dependentes ?? 0} color="text-muted-foreground" />
-          </div>
-          <div className="grid grid-cols-2 md:grid-cols-2 gap-2">
-            <KpiBox label="Erros" value={validacao.erros} color="text-destructive" />
-            <KpiBox label="Alertas" value={validacao.alertas} color="text-orange-500" />
-          </div>
-
-          {validacao.colunas_ausentes.length > 0 && (
-            <div className="bg-destructive/10 border border-destructive/30 rounded-lg p-3 text-sm">
-              <strong className="flex items-center gap-2"><XCircle className="h-4 w-4 text-destructive" /> Colunas obrigatórias ausentes:</strong>
-              <p className="mt-1">{validacao.colunas_ausentes.join(", ")}</p>
-            </div>
-          )}
-
-          <Card>
-            <CardContent className="p-4">
-              <h5 className="font-semibold mb-2 text-sm">Conferência por Coluna</h5>
-              <ScrollArea className="h-48">
-                <div className="space-y-1">
-                  {validacao.colunas.map((c) => (
-                    <div key={c.coluna} className="flex items-center justify-between text-xs py-1 border-b last:border-0">
-                      <span className="flex items-center gap-2">
-                        {c.severidade === "ok" && <CheckCircle2 className="h-3 w-3 text-green-500" />}
-                        {c.severidade === "alerta" && <AlertTriangle className="h-3 w-3 text-orange-500" />}
-                        {c.severidade === "erro" && <XCircle className="h-3 w-3 text-destructive" />}
-                        {c.coluna}
-                        {!c.presente && <Badge variant="destructive" className="text-[9px]">ausente</Badge>}
-                      </span>
-                      <span className="text-muted-foreground">
-                        {c.presente ? `${c.preenchidas} ok / ${c.vazias} vazias / ${c.invalidas} inválidas` : "—"}
-                      </span>
-                    </div>
-                  ))}
-                </div>
-              </ScrollArea>
-            </CardContent>
-          </Card>
-
-          <ParticipantesVidas validacao={validacao} />
-
-          {pendenciasTodas.length > 0 && (
-            <Card>
-              <CardContent className="p-4">
-                <h5 className="font-semibold mb-2 text-sm">Pendências por Linha ({pendenciasTodas.length}{validacao.pendencias.length === 500 ? "+" : ""})</h5>
-                <ScrollArea className="h-48">
-                  <div className="space-y-1">
-                    {pendenciasTodas.map((p, i) => (
-                      <div key={i} className="text-xs flex items-center gap-2 py-0.5">
-                        {p.severidade === "erro" ? (
-                          <XCircle className="h-3 w-3 text-destructive flex-shrink-0" />
-                        ) : (
-                          <AlertTriangle className="h-3 w-3 text-orange-500 flex-shrink-0" />
-                        )}
-                        <span>Linha {p.linha} — <strong>{p.coluna}</strong>: {p.motivo}</span>
-                      </div>
-                    ))}
-                  </div>
-                </ScrollArea>
-              </CardContent>
-            </Card>
-          )}
-        </>
-      )}
-
+          {!readOnly && <div className="flex flex-wrap gap-2">
+            <Button onClick={handleVerificar} disabled={!relAnexo || verificando || !!validandoCpf} className="gap-2">
+              {verificando ? <Loader2 className="h-4 w-4 animate-spin" /> : <ShieldCheck className="h-4 w-4" />}Verificar Layout
+            </Button>
+            {benef.length > 0 && <Button variant="outline" onClick={() => handleValidarCpfs(false)} disabled={verificando || !!validandoCpf} className="gap-2">
+              {validandoCpf ? <Loader2 className="h-4 w-4 animate-spin" /> : <ShieldCheck className="h-4 w-4" />}Validar CPFs
+            </Button>}
+          </div>}
+        </div>
+        {validandoCpf && <div className="space-y-1">
+          <Progress value={(validandoCpf.feito / validandoCpf.total) * 100} />
+          <p className="text-xs text-muted-foreground">Validando CPFs... {validandoCpf.feito} de {validandoCpf.total} · {Math.round((validandoCpf.feito / validandoCpf.total) * 100)}%</p>
+        </div>}
+        {verificando && !validandoCpf && <div className="space-y-1">
+          <Progress value={progresso} />
+          <p className="text-xs text-muted-foreground">Processando linhas... {progresso.toFixed(0)}%</p>
+        </div>}
+      </section>
+      {validacao && <>
+        <ResumoLayoutVidas key={`resumo-${validacao.verificado_em}`} validacao={validacao} />
+        {benef.length > 0 && <ResumoCpfVidas validacao={validacao} consultaConfigurada={CONSULTA_OFICIAL_CONFIGURADA}
+          tentativa={falhasCpf > 0 && !readOnly ? <Button size="sm" variant="outline" disabled={verificando || !!validandoCpf} onClick={() => handleValidarCpfs(true)}>Tentar novamente {falhasCpf}</Button> : null} />}
+        <PendenciasLayoutVidas key={`pendencias-${validacao.verificado_em}`} validacao={validacao} pendencias={pendenciasTodas} />
+        <ParticipantesVidas validacao={validacao} consultaConfigurada={CONSULTA_OFICIAL_CONFIGURADA} />
+        <DetalhesLayoutVidas key={`detalhes-${validacao.verificado_em}`} validacao={validacao} />
+      </>}
+      <section className="space-y-3 border-t pt-4" aria-label="Distribuição das Vidas">
+        <h4 className="text-sm font-semibold">Distribuição das Vidas</h4>
       <div className="space-y-2">
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
           <Field label="Vidas total" type="number" v={data.total_vidas} onChange={(v: string) => update({ total_vidas: v === "" ? null : Number(v) })} readOnly={readOnly} />
@@ -1377,15 +1282,7 @@ export function Step5Vidas({ data, update, readOnly, relAnexo }: any) {
           rows={3}
         />
       </div>
-    </div>
-  );
-}
-
-function KpiBox({ label, value, color }: { label: string; value: number; color: string }) {
-  return (
-    <div className="bg-muted/50 rounded-lg p-3 text-center">
-      <div className={cn("text-2xl font-bold", color)}>{value}</div>
-      <div className="text-xs text-muted-foreground">{label}</div>
+      </section>
     </div>
   );
 }
