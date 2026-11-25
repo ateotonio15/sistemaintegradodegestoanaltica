@@ -68,14 +68,19 @@ export default function PlantoesRelatorios() {
   );
 
   const buscar = async (de: string, ate: string) => {
-    let q = supabase
-      .from("plantoes_atendimentos")
-      .select("id, hora, cpf, assunto, resolvido, motivo, especialidade, plantao:plantoes!inner(data, empresa_id)")
-      .gte("plantao.data", de).lte("plantao.data", ate);
-    if (empresaId !== "all") q = q.eq("plantao.empresa_id", empresaId);
-    const { data, error } = await q;
-    if (error) throw error;
-    return (data ?? []) as any[];
+    const todos: any[] = [];
+    for (let ini = 0; ; ini += 1000) {
+      let q = supabase
+        .from("plantoes_atendimentos")
+        .select("id, hora, cpf, assunto, resolvido, motivo, especialidade, plantao:plantoes!inner(data, empresa_id)")
+        .gte("plantao.data", de).lte("plantao.data", ate);
+      if (empresaId !== "all") q = q.eq("plantao.empresa_id", empresaId);
+      const { data, error } = await q.order("id").range(ini, ini + 999);
+      if (error) throw error;
+      todos.push(...(data ?? []));
+      if (!data || data.length < 1000) break;
+    }
+    return todos;
   };
   const paraRel = (r: any): AtendRel => {
     const p = parseAssunto(r.assunto, r.resolvido);
@@ -91,10 +96,23 @@ export default function PlantoesRelatorios() {
       let aviso: string | null = null;
       const pend = atuais.filter((r) => !r.motivo).map((r) => r.id);
       if (pend.length) {
-        const { data, error } = await supabase.functions.invoke("classificar-motivo-atendimento", { body: { ids: pend } });
-        if (error || (data as any)?.error || (data as any)?.falhas) {
-          aviso = "A classificação automática não conseguiu analisar alguns atendimentos; eles aparecem como \"Outros\".";
-        }
+        let falhou = false, parar = false, feitos = 0;
+        const lotes: string[][] = [];
+        for (let i = 0; i < pend.length; i += 40) lotes.push(pend.slice(i, i + 40));
+        const tid = toast.loading(`Classificando ${pend.length} atendimento(s)...`);
+        const worker = async () => {
+          while (lotes.length && !parar) {
+            const ids = lotes.shift()!;
+            const { data, error } = await supabase.functions.invoke("classificar-motivo-atendimento", { body: { ids } });
+            if (error || (data as any)?.error) { falhou = true; parar = true; }
+            else if ((data as any)?.falhas) falhou = true;
+            feitos += ids.length;
+            toast.loading(`Classificando atendimentos... ${Math.min(feitos, pend.length)}/${pend.length}`, { id: tid });
+          }
+        };
+        await Promise.all([worker(), worker(), worker(), worker()]);
+        toast.dismiss(tid);
+        if (falhou) aviso = "A classificação automática não conseguiu analisar alguns atendimentos; eles aparecem como \"Outros\".";
         atuais = await buscar(from, to);
         qc.invalidateQueries({ queryKey: ["plantoes-rel"] });
       }

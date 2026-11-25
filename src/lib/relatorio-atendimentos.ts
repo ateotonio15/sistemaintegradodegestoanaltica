@@ -89,8 +89,8 @@ export function gerarDestaques(r: Relatorio, ant?: Relatorio | null): string[] {
   const out: string[] = [];
   if (!r.total) return out;
   out.push(`${f(r.pctResolvidos)}% dos atendimentos foram resolvidos (${r.resolvidos} de ${r.total}).`);
-  if (r.especialidades.length) {
-    const top = r.especialidades.slice(0, 2).map((e) => `${e.nome} (${e.qtd})`).join(" e ");
+  if (r.especialidades.some((e) => e.nome !== "Outras especialidades")) {
+    const top = r.especialidades.filter((e) => e.nome !== "Outras especialidades").slice(0, 2).map((e) => `${e.nome} (${e.qtd})`).join(" e ");
     out.push(`As especialidades mais procuradas foram ${top}, de ${r.totalConsultas} consultas.`);
   } else if (r.motivos[0]) out.push(`O motivo mais frequente foi "${r.motivos[0].nome}" (${r.motivos[0].qtd}).`);
   if (r.app) out.push(`${f(r.pctApp)}% dos atendimentos foram dúvidas sobre o app Samel (${r.app}).`);
