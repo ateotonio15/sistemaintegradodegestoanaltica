@@ -1,4 +1,4 @@
-import { statusCpfLocal, type StatusCpf } from "./cpf-status";
+import { statusCpfLocal, type StatusCpf, type ResultadoOficialCpf } from "./cpf-status";
 import ExcelJS from "exceljs";
 
 export const COLUNAS_OBRIGATORIAS = [
@@ -61,6 +61,8 @@ export interface BeneficiarioLido {
   titular_linha: number | null;
   /** Status de validação do CPF (camada local; consulta oficial futura). */
   cpf_status?: StatusCpf;
+  /** Resultado da consulta oficial (botão "Validar CPFs"). */
+  cpf_oficial?: ResultadoOficialCpf | null;
 }
 
 export interface ValidacaoResultado {

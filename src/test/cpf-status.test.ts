@@ -30,3 +30,17 @@ describe("status do CPF", () => {
     expect(r).toEqual({ validos: 1, invalidos: 1, aguardando: 1, naoAnalisados: 1 });
   });
 });
+
+import { statusCpfFinal } from "@/lib/cpf-status";
+describe("status final com consulta oficial", () => {
+  const oficial = (status: any) => ({ status, origem: "x", consultado_em: "2026-11-25T00:00:00Z" });
+  it("CPF inválido local continua inválido mesmo com resultado", () => {
+    expect(statusCpfFinal({ cpf: "11111111111", cpf_oficial: oficial("validado_oficial") })).toBe("invalido");
+  });
+  it("consulta indisponível não vira válido nem inválido", () => {
+    expect(statusCpfFinal({ cpf: "52998224725", cpf_oficial: oficial("indisponivel") })).toBe("indisponivel");
+  });
+  it("sem consulta fica válido localmente", () => {
+    expect(statusCpfFinal({ cpf: "52998224725" })).toBe("valido_local");
+  });
+});

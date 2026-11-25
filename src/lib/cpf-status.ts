@@ -8,6 +8,9 @@ export type StatusCpf =
   | "aguardando_oficial"
   | "validado_oficial"
   | "divergencia"
+  | "nao_localizado"
+  | "situacao_atencao"
+  | "sem_data_nasc"
   | "indisponivel";
 
 export const STATUS_CPF_LABEL: Record<StatusCpf, string> = {
@@ -17,6 +20,9 @@ export const STATUS_CPF_LABEL: Record<StatusCpf, string> = {
   aguardando_oficial: "Aguardando consulta oficial",
   validado_oficial: "Validado oficialmente",
   divergencia: "Divergência cadastral",
+  nao_localizado: "CPF não localizado",
+  situacao_atencao: "Situação cadastral com atenção",
+  sem_data_nasc: "Consulta oficial não realizada — Data de nascimento indisponível",
   indisponivel: "Consulta indisponível",
 };
 
@@ -56,7 +62,7 @@ export function mascararCpf(v: string | null | undefined): string {
   return `***.***.***-${d.slice(-2).padStart(2, "*")}`;
 }
 
-export function resumoStatusCpf(lista: { cpf_status?: StatusCpf; cpf: string }[]) {
+export function resumoStatusCpf(lista: { cpf_status?: StatusCpf; cpf: string; cpf_oficial?: unknown }[]) {
   let validos = 0, invalidos = 0, aguardando = 0, naoAnalisados = 0;
   for (const b of lista) {
     const s = b.cpf_status ?? statusCpfLocal(b.cpf);
@@ -64,8 +70,22 @@ export function resumoStatusCpf(lista: { cpf_status?: StatusCpf; cpf: string }[]
     else if (s === "nao_analisado") naoAnalisados++;
     else {
       validos++;
-      if (elegivelConsultaOficial(s)) aguardando++;
+      if (elegivelConsultaOficial(s) && !b.cpf_oficial) aguardando++;
     }
   }
   return { validos, invalidos, aguardando, naoAnalisados };
+}
+
+export interface ResultadoOficialCpf {
+  status: Exclude<StatusCpf, "nao_analisado" | "invalido" | "valido_local" | "aguardando_oficial">;
+  situacao?: string | null;
+  origem: string;
+  consultado_em: string;
+}
+
+/** Status final: resultado oficial (se houver) prevalece sobre o local; inválido local nunca é consultado. */
+export function statusCpfFinal(b: { cpf: string; cpf_status?: StatusCpf; cpf_oficial?: ResultadoOficialCpf | null }): StatusCpf {
+  const local = b.cpf_status ?? statusCpfLocal(b.cpf);
+  if (local === "invalido" || local === "nao_analisado") return local;
+  return b.cpf_oficial?.status ?? local;
 }

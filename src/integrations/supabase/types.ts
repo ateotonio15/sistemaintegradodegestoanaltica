@@ -1819,6 +1819,48 @@ export type Database = {
         }
         Relationships: []
       }
+      cpf_validacoes: {
+        Row: {
+          beneficiario: string | null
+          chave_consulta: string
+          consultado_em: string
+          cpf_mascarado: string
+          id: string
+          implantacao_id: string | null
+          linha: number | null
+          origem: string
+          situacao: string | null
+          status: string
+          usuario_id: string
+        }
+        Insert: {
+          beneficiario?: string | null
+          chave_consulta: string
+          consultado_em?: string
+          cpf_mascarado: string
+          id?: string
+          implantacao_id?: string | null
+          linha?: number | null
+          origem: string
+          situacao?: string | null
+          status: string
+          usuario_id: string
+        }
+        Update: {
+          beneficiario?: string | null
+          chave_consulta?: string
+          consultado_em?: string
+          cpf_mascarado?: string
+          id?: string
+          implantacao_id?: string | null
+          linha?: number | null
+          origem?: string
+          situacao?: string | null
+          status?: string
+          usuario_id?: string
+        }
+        Relationships: []
+      }
       cs_avaliacao_formularios: {
         Row: {
           created_at: string

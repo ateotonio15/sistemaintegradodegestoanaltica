@@ -7,16 +7,43 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import type { ValidacaoResultado, BeneficiarioLido, PendenciaLinha } from "@/lib/relatorio-vidas-validator";
 import { cn } from "@/lib/utils";
-import { mascararCpf, statusCpfLocal, resumoStatusCpf, STATUS_CPF_LABEL, type StatusCpf } from "@/lib/cpf-status";
+import { mascararCpf, statusCpfLocal, statusCpfFinal, resumoStatusCpf, STATUS_CPF_LABEL, type StatusCpf } from "@/lib/cpf-status";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 
 function CpfStatusBadge({ b }: { b: BeneficiarioLido }) {
-  const s: StatusCpf = b.cpf_status ?? statusCpfLocal(b.cpf);
-  const cls =
-    s === "invalido" || s === "divergencia" ? "border-destructive/50 text-destructive"
-    : s === "valido_local" || s === "validado_oficial" ? "border-primary/40 text-primary"
-    : "text-muted-foreground";
-  const txt = s === "valido_local" ? "CPF válido" : s === "invalido" ? "CPF inválido" : STATUS_CPF_LABEL[s];
-  return <Badge variant="outline" className={cn("text-[10px] font-normal", cls)} title={STATUS_CPF_LABEL[s]}>{txt}</Badge>;
+  const s: StatusCpf = statusCpfFinal(b);
+  const ruim = s === "invalido" || s === "divergencia" || s === "nao_localizado";
+  const atencao = s === "situacao_atencao";
+  const ok = s === "valido_local" || s === "validado_oficial";
+  const cls = ruim ? "border-destructive/50 text-destructive"
+    : atencao ? "border-orange-500/50 text-orange-600 dark:text-orange-400"
+    : ok ? "border-primary/40 text-primary" : "text-muted-foreground";
+  const txt =
+    s === "validado_oficial" ? "✓ CPF validado"
+    : s === "valido_local" ? "CPF válido"
+    : s === "invalido" ? "CPF inválido"
+    : s === "divergencia" ? "⚠ Divergência cadastral"
+    : s === "nao_localizado" ? "⚠ CPF não localizado"
+    : s === "situacao_atencao" ? "⚠ Situação cadastral"
+    : s === "indisponivel" ? "Consulta indisponível"
+    : s === "sem_data_nasc" ? "Consulta não realizada"
+    : STATUS_CPF_LABEL[s];
+  const o = b.cpf_oficial;
+  return (
+    <Popover>
+      <PopoverTrigger asChild>
+        <button type="button"><Badge variant="outline" className={cn("text-[10px] font-normal cursor-pointer", cls)}>{txt}</Badge></button>
+      </PopoverTrigger>
+      <PopoverContent className="w-72 text-xs space-y-1.5">
+        <p className="font-semibold text-sm">Validação do CPF</p>
+        <p><span className="text-muted-foreground">CPF:</span> {mascararCpf(b.cpf)}</p>
+        <p><span className="text-muted-foreground">Status:</span> {STATUS_CPF_LABEL[s]}</p>
+        {o?.situacao && <p><span className="text-muted-foreground">Situação retornada:</span> {o.situacao}</p>}
+        <p><span className="text-muted-foreground">Data/hora da consulta:</span> {o ? new Date(o.consultado_em).toLocaleString("pt-BR") : "—"}</p>
+        <p><span className="text-muted-foreground">Origem:</span> {o ? (o.origem === "nao_configurado" ? "Serviço de consulta ainda não configurado" : o.origem) : "Validação local (cálculo dos dígitos)"}</p>
+      </PopoverContent>
+    </Popover>
+  );
 }
 
 const PARENTESCO: Record<string, string> = { FILHO: "Filho(a)", CONJUGE: "Cônjuge", DEPENDENTE: "Outro" };
@@ -159,7 +186,7 @@ export function ParticipantesVidas({ validacao }: { validacao: ValidacaoResultad
           {aberto && (
             <div className="space-y-4 text-sm">
               <div className="grid grid-cols-2 gap-2">
-                <div><p className="text-xs text-muted-foreground">CPF</p><p>{mascararCpf(aberto.cpf)}</p><p className="text-xs text-muted-foreground">{STATUS_CPF_LABEL[aberto.cpf_status ?? statusCpfLocal(aberto.cpf)]}</p></div>
+                <div><p className="text-xs text-muted-foreground">CPF</p><p>{mascararCpf(aberto.cpf)}</p><p className="text-xs text-muted-foreground">{STATUS_CPF_LABEL[statusCpfFinal(aberto)]}</p></div>
                 <div><p className="text-xs text-muted-foreground">Data de nascimento</p><p>{aberto.data_nasc || "—"}</p></div>
                 <div><p className="text-xs text-muted-foreground">Sexo</p><p>{aberto.sexo || "—"}</p></div>
                 <div><p className="text-xs text-muted-foreground">Tipo</p><p>{aberto.tipo === "TITULAR" ? "Titular" : `Dependente · ${PARENTESCO[aberto.tipo]}`}</p></div>

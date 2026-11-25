@@ -771,6 +771,13 @@
       "when": 1795610195997,
       "tag": "0109_reajustes_leitura_quem_ve_empresa",
       "breakpoints": true
+    },
+    {
+      "idx": 110,
+      "version": "7",
+      "when": 1795613208414,
+      "tag": "0110_cpf_validacoes_oficiais",
+      "breakpoints": true
     }
   ]
 }

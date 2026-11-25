@@ -23,6 +23,7 @@ import { cn } from "@/lib/utils";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { useAuth } from "@/hooks/useAuth";
 import { ParticipantesVidas } from "./ParticipantesVidas";
+import { statusCpfLocal, type ResultadoOficialCpf } from "@/lib/cpf-status";
 import { validarRelatorioVidas, type ValidacaoResultado } from "@/lib/relatorio-vidas-validator";
 import { AnexoPreviewDialog } from "./AnexoPreviewDialog";
 
@@ -1176,6 +1177,41 @@ function Step5Vidas({ data, update, readOnly, relAnexo }: any) {
     }
   };
 
+  const [validandoCpf, setValidandoCpf] = useState<{ feito: number; total: number } | null>(null);
+  const handleValidarCpfs = async () => {
+    if (!validacao?.beneficiarios) return;
+    const alvos = validacao.beneficiarios.filter((b) => (b.cpf_status ?? statusCpfLocal(b.cpf)) === "valido_local");
+    if (alvos.length === 0) { toast.info("Nenhum CPF válido localmente para consultar."); return; }
+    const resultados = new Map<number, ResultadoOficialCpf>();
+    setValidandoCpf({ feito: 0, total: alvos.length });
+    let falhaTecnica = 0;
+    for (let i = 0; i < alvos.length; i += 20) {
+      const lote = alvos.slice(i, i + 20);
+      const { data: resp, error } = await supabase.functions.invoke("validar-cpf-oficial", {
+        body: { implantacao_id: data?.id ?? null, itens: lote.map((b) => ({ linha: b.linha, nome: b.nome, cpf: b.cpf, data_nasc: b.data_nasc || null })) },
+      });
+      const agora = new Date().toISOString();
+      if (error || !resp?.resultados) {
+        falhaTecnica += lote.length;
+        for (const b of lote) resultados.set(b.linha, { status: "indisponivel", origem: "erro_tecnico", consultado_em: agora });
+      } else {
+        for (const r of resp.resultados) if (r.status !== "ignorado") resultados.set(r.linha, { status: r.status, situacao: r.situacao, origem: r.origem, consultado_em: r.consultado_em });
+      }
+      setValidandoCpf({ feito: Math.min(i + 20, alvos.length), total: alvos.length });
+    }
+    update({
+      relatorio_validacao: {
+        ...validacao,
+        beneficiarios: validacao.beneficiarios.map((b) => (resultados.has(b.linha) ? { ...b, cpf_oficial: resultados.get(b.linha) } : b)),
+      },
+    });
+    setValidandoCpf(null);
+    const indisp = [...resultados.values()].filter((r) => r.status === "indisponivel").length;
+    if (indisp > 0) toast.warning(`${indisp} consulta(s) indisponível(is). Isso não bloqueia a implantação.`);
+    else toast.success("Validação de CPFs concluída.");
+    void falhaTecnica;
+  };
+
   return (
     <div className="space-y-4">
       <Card>
@@ -1187,13 +1223,29 @@ function Step5Vidas({ data, update, readOnly, relAnexo }: any) {
                 {relAnexo ? `Arquivo: ${relAnexo.nome_arquivo}` : "Anexe o Relatório de Vidas na Etapa 1."}
               </p>
             </div>
+            <div className="flex items-center">
             {!readOnly && (
               <Button onClick={handleVerificar} disabled={!relAnexo || verificando} className="gap-2">
                 {verificando ? <Loader2 className="h-4 w-4 animate-spin" /> : <ShieldCheck className="h-4 w-4" />}
                 Verificar Layout
               </Button>
             )}
+            {!readOnly && validacao?.beneficiarios && validacao.beneficiarios.length > 0 && (
+              <Button variant="outline" onClick={handleValidarCpfs} disabled={verificando || !!validandoCpf} className="gap-2 ml-2">
+                {validandoCpf ? <Loader2 className="h-4 w-4 animate-spin" /> : <ShieldCheck className="h-4 w-4" />}
+                Validar CPFs
+              </Button>
+            )}
+            </div>
           </div>
+          {validandoCpf && (
+            <div className="space-y-1">
+              <Progress value={(validandoCpf.feito / validandoCpf.total) * 100} />
+              <p className="text-xs text-muted-foreground">
+                Validando CPFs... {validandoCpf.feito} de {validandoCpf.total} · {Math.round((validandoCpf.feito / validandoCpf.total) * 100)}%
+              </p>
+            </div>
+          )}
           {verificando && (
             <div className="space-y-1">
               <Progress value={progresso} />
