@@ -74,8 +74,12 @@ export function agruparUber(viagens: ViagemUber[]) {
   }
   return [...grupos.values()];
 }
+/** Only full names (two or more words) count as registered responsáveis; short names are never offered or created. */
+export const responsaveisCadastrados = (nomes: (string | null | undefined)[]) =>
+  [...new Set(nomes.map(n => (n ?? "").trim().replace(/\s+/g, " ")).filter(n => n.split(" ").length >= 2))].sort((a, b) => a.localeCompare(b, "pt-BR"));
 export function casarResponsavel(nome: string, responsaveis: string[]) {
-  const encontrados = responsaveis.filter(r => normalizarUber(primeiroNomeUber(r)) === normalizarUber(primeiroNomeUber(nome)));
+  if (!normalizarUber(nome)) return "";
+  const encontrados = responsaveisCadastrados(responsaveis).filter(r => normalizarUber(primeiroNomeUber(r)) === normalizarUber(primeiroNomeUber(nome)));
   return encontrados.length === 1 ? encontrados[0] : "";
 }
 export function conferirUber(viagens: ViagemUber[], existentes: { uber_trip_id?: string | null; data: string; horario: string | null; valor: number }[], responsaveis: string[]): LinhaUber[] {

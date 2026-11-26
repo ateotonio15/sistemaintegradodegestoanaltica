@@ -56,3 +56,18 @@ describe("Uber Business — regras da importação", () => {
     const r = conferirUber([agruparUber(parsed().viagens)[0]], [], [])[0]; expect(pendenciasUber(r)).toEqual(["Colaborador"]); expect(pendenciasUber({ ...r, colaborador: "Passageiro cadastrado" })).toEqual([]);
   });
 });
+import { casarResponsavel as casarR } from "@/lib/uber-business-csv";
+describe("responsável na importação Uber", () => {
+  const lista = ["Jaina", "Jaina Oliveira", "Mayara Meireles", "Márcia Ribeiro", "Niccolli Victória"];
+  it("casa pelo primeiro nome com o nome completo", () => {
+    expect(casarR("Jaina", lista)).toBe("Jaina Oliveira");
+    expect(casarR("Marcia", lista)).toBe("Márcia Ribeiro");
+    expect(casarR("NICCOLLI", lista)).toBe("Niccolli Victória");
+  });
+  it("não escolhe quando há dois com o mesmo primeiro nome", () => {
+    expect(casarR("Márcia", [...lista, "Márcia Tereza"])).toBe("");
+  });
+  it("deixa vazio quando ninguém tem o primeiro nome", () => {
+    expect(casarR("Carla", lista)).toBe("");
+  });
+});

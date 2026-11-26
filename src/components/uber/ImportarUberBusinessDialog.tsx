@@ -14,7 +14,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { useUberPassageiros } from "@/hooks/useUberPassageiros";
 import { UBER_MOTIVOS } from "@/lib/uber-passageiros";
 import { UBER_FORMAS_PAGAMENTO } from "@/lib/uber-corrida-opcoes";
-import { agruparUber, conferirUber, lerUberCsv, pendenciasUber, type LinhaUber, type ViagemUber } from "@/lib/uber-business-csv";
+import { agruparUber, conferirUber, lerUberCsv, pendenciasUber, responsaveisCadastrados, type LinhaUber, type ViagemUber } from "@/lib/uber-business-csv";
 import { backupUber, lerTodasCorridasUber } from "@/lib/uber-business-service";
 import { SeletorImportacaoUber } from "./SeletorImportacaoUber";
 import { toast } from "sonner";
@@ -57,7 +57,7 @@ export function ImportarUberBusinessDialog({ open, onOpenChange }: { open: boole
       }
       const { data: perfis, error } = await supabase.rpc("uber_responsaveis_importacao");
       if (error) throw error;
-      const responsaveis = [...new Set([...corridas.map(c => c.responsavel), ...(perfis ?? []).map(p => p.nome)].filter((n): n is string => !!n))].sort();
+      const responsaveis = responsaveisCadastrados([...corridas.map(c => c.responsavel), ...(perfis ?? []).map(p => p.nome)]);
       return { corridas, empresas: [...new Set(empresas)].sort(), responsaveis };
     },
   });
@@ -179,7 +179,7 @@ export function ImportarUberBusinessDialog({ open, onOpenChange }: { open: boole
                   <TableCell><Checkbox aria-label={`Importar viagem ${r.uber_trip_id}`} disabled={r.jaExiste} checked={r.selecionada} onCheckedChange={v => patchRow(r.uber_trip_id, { selecionada: v === true })} /></TableCell>
                   <TableCell><Input type="date" className="min-w-36" aria-label={`Data ${r.uber_trip_id}`} value={r.data} disabled={r.jaExiste} onChange={e => patchRow(r.uber_trip_id, { data: e.target.value })} /></TableCell>
                   <TableCell><Input type="time" className="min-w-28" aria-label={`Horário ${r.uber_trip_id}`} value={r.horario} disabled={r.jaExiste} onChange={e => patchRow(r.uber_trip_id, { horario: e.target.value })} /></TableCell>
-                  <TableCell><SeletorImportacaoUber label="Responsável" value={r.responsavel} disabled={r.jaExiste} opcoes={opcoes(referencias.data?.responsaveis ?? [])} onChange={v => patchRow(r.uber_trip_id, { responsavel: v })} /></TableCell>
+                  <TableCell><SeletorImportacaoUber label="Responsável" obrigatorio value={r.responsavel} disabled={r.jaExiste} opcoes={opcoes(referencias.data?.responsaveis ?? [])} onChange={v => patchRow(r.uber_trip_id, { responsavel: v })} /></TableCell>
                   <TableCell><Input className="min-w-56" aria-label={`Origem ${r.uber_trip_id}`} value={r.origem} disabled={r.jaExiste} onChange={e => patchRow(r.uber_trip_id, { origem: e.target.value })} /></TableCell>
                   <TableCell><Input className="min-w-56" aria-label={`Destino ${r.uber_trip_id}`} value={r.destino} disabled={r.jaExiste} onChange={e => patchRow(r.uber_trip_id, { destino: e.target.value })} /></TableCell>
                   <TableCell><Input className="min-w-28" type="number" step="0.01" aria-label={`Valor ${r.uber_trip_id}`} value={r.valor} disabled={r.jaExiste} onChange={e => patchRow(r.uber_trip_id, { valor: Number(e.target.value) })} /></TableCell>
