@@ -71,3 +71,15 @@ describe("responsável na importação Uber", () => {
     expect(casarR("Carla", lista)).toBe("");
   });
 });
+
+import { RESPONSAVEIS_UBER, conferirUber as conf } from "@/lib/uber-business-csv";
+describe("lista fixa de responsáveis Uber", () => {
+  it("Márcia vai para Márcia Ribeiro mesmo existindo outra Márcia fora da lista", () => {
+    expect(casarR("Marcia", RESPONSAVEIS_UBER)).toBe("Márcia Ribeiro");
+    expect(casarR("Mayara")).toBe("Mayara Meireles");
+  });
+  it("Nome nunca vira colaborador", () => {
+    const [l] = conf([{ uber_trip_id: "t1", data: "2026-11-03", horario: "10:00", responsavel: "Jaina", setor_solicitante: "Rel", origem: "a", destino: "b", valor: 10, cancelada: false, envio: false, arquivos: [] } as never], [], RESPONSAVEIS_UBER);
+    expect(l.colaborador).toBe(""); expect(l.passageiro_id).toBeNull(); expect(l.responsavel).toBe("Jaina Oliveira");
+  });
+});

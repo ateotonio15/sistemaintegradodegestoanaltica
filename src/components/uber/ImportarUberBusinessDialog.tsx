@@ -14,7 +14,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { useUberPassageiros } from "@/hooks/useUberPassageiros";
 import { UBER_MOTIVOS } from "@/lib/uber-passageiros";
 import { UBER_FORMAS_PAGAMENTO } from "@/lib/uber-corrida-opcoes";
-import { agruparUber, conferirUber, lerUberCsv, pendenciasUber, responsaveisCadastrados, type LinhaUber, type ViagemUber } from "@/lib/uber-business-csv";
+import { agruparUber, conferirUber, lerUberCsv, pendenciasUber, RESPONSAVEIS_UBER, type LinhaUber, type ViagemUber } from "@/lib/uber-business-csv";
 import { backupUber, lerTodasCorridasUber } from "@/lib/uber-business-service";
 import { SeletorImportacaoUber } from "./SeletorImportacaoUber";
 import { toast } from "sonner";
@@ -57,7 +57,8 @@ export function ImportarUberBusinessDialog({ open, onOpenChange }: { open: boole
       }
       const { data: perfis, error } = await supabase.rpc("uber_responsaveis_importacao");
       if (error) throw error;
-      const responsaveis = responsaveisCadastrados([...corridas.map(c => c.responsavel), ...(perfis ?? []).map(p => p.nome)]);
+      void perfis;
+      const responsaveis = [...RESPONSAVEIS_UBER];
       return { corridas, empresas: [...new Set(empresas)].sort(), responsaveis };
     },
   });

@@ -74,10 +74,12 @@ export function agruparUber(viagens: ViagemUber[]) {
   }
   return [...grupos.values()];
 }
+/** Fixed list: the Uber "Nome" column is always the responsável (requester), never the collaborator. */
+export const RESPONSAVEIS_UBER = ["Jaina Oliveira", "Mayara Meireles", "Márcia Ribeiro", "Niccolli Victória"];
 /** Only full names (two or more words) count as registered responsáveis; short names are never offered or created. */
 export const responsaveisCadastrados = (nomes: (string | null | undefined)[]) =>
   [...new Set(nomes.map(n => (n ?? "").trim().replace(/\s+/g, " ")).filter(n => n.split(" ").length >= 2))].sort((a, b) => a.localeCompare(b, "pt-BR"));
-export function casarResponsavel(nome: string, responsaveis: string[]) {
+export function casarResponsavel(nome: string, responsaveis: string[] = RESPONSAVEIS_UBER) {
   if (!normalizarUber(nome)) return "";
   const encontrados = responsaveisCadastrados(responsaveis).filter(r => normalizarUber(primeiroNomeUber(r)) === normalizarUber(primeiroNomeUber(nome)));
   return encontrados.length === 1 ? encontrados[0] : "";
@@ -88,7 +90,7 @@ export function conferirUber(viagens: ViagemUber[], existentes: { uber_trip_id?:
   return viagens.map(v => {
     const jaExiste = ids.has(v.uber_trip_id);
     const possivelDuplicata = !jaExiste && chaves.has(`${v.data}|${v.horario}|${Math.round(v.valor * 100)}`);
-    return { ...v, responsavel: casarResponsavel(v.responsavel, responsaveis), jaExiste, possivelDuplicata,
+    return { ...v, responsavel: casarResponsavel(v.responsavel, responsaveis.filter(r => RESPONSAVEIS_UBER.includes(r)).length ? responsaveis.filter(r => RESPONSAVEIS_UBER.includes(r)) : RESPONSAVEIS_UBER), jaExiste, possivelDuplicata,
       selecionada: !jaExiste && !possivelDuplicata && !v.envio, colaborador: "", passageiro_id: null,
       motivo: v.envio ? "Envio de Material" : "", tipo: "", empresa: "", forma_pagamento: "" };
   });
