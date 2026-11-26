@@ -257,7 +257,7 @@ export function CorridaDialog({ open, onOpenChange, corrida }: Props) {
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>{corrida ? "Editar corrida" : "Nova corrida"}</DialogTitle>
+          <DialogTitle>{(form as any).id ? "Editar corrida" : "Nova corrida"}</DialogTitle>
         </DialogHeader>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <div>
@@ -478,11 +478,9 @@ export function CorridaDialog({ open, onOpenChange, corrida }: Props) {
         </div>
         <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)}>Cancelar</Button>
-          {!corrida && (
-            <Button variant="outline" onClick={salvarECriarVolta} disabled={upsert.isPending || !form.data || !form.colaborador}>
-              Salvar e criar volta
-            </Button>
-          )}
+          <Button variant="outline" onClick={salvarECriarVolta} disabled={upsert.isPending || !form.data || !form.colaborador}>
+            Salvar e criar volta
+          </Button>
           <Button onClick={save} disabled={upsert.isPending || !form.data || !form.colaborador}>
             {upsert.isPending ? "Salvando..." : "Salvar"}
           </Button>
