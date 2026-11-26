@@ -83,7 +83,7 @@ export function CenarioEnvioPainel({ movimentacaoId, sugerido, valor, onChange, 
     {!modoFechamento && <div className="space-y-1"><Label htmlFor="cenario-envio">Alterar cenário</Label>
       <Select disabled={disabled} value={valor.cenario} onValueChange={c => trocarCenario(c as CenarioEnvio)}>
         <SelectTrigger id="cenario-envio"><SelectValue /></SelectTrigger>
-        <SelectContent>{LISTA_CENARIOS.filter(c => c !== "financeiro" || valor.cenario === "financeiro").map(c => <SelectItem key={c} value={c}>{CENARIOS_ENVIO[c].rotulo}{c === sugerido ? " (sugerido)" : ""}</SelectItem>)}</SelectContent>
+        <SelectContent>{LISTA_CENARIOS.map(c => <SelectItem key={c} value={c}>{CENARIOS_ENVIO[c].rotulo}{c === sugerido ? " (sugerido)" : ""}</SelectItem>)}</SelectContent>
       </Select>
     </div>}
     {valor.cenario === "financeiro" && <div className="space-y-1"><Label htmlFor="cenario-justificativa">Justificativa do envio direto ao Financeiro *</Label>
