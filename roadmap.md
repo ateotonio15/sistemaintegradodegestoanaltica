@@ -216,3 +216,11 @@
 ## Padronização dos calendários
 - [x] Mesmo calendário mensal e programação do dia em Plantões, Palestras, Sinais Vitais, Preventivo, PSA e Ações de Coleta; consultas e regras preservadas.
 - [x] Sessão autenticada conferiu programação real nas seis telas, sem erros; programação abaixo em telas pequenas.
+
+## Barra de rolagem horizontal fixa — 26/11
+- [x] "Empresas": barra flutuante na base da janela enquanto a tabela longa está sendo lida, sem precisar descer até a última linha; some quando o cursor nativo já está alcançável. Conferido no navegador (890×626): barra visível, tabela movida pelo arraste da barra (0 → 958) e sem estouro lateral do cabeçalho.
+- [x] Mesma barra ligada em Plantões, Recebidos Central e Mailing de Brindes, reutilizando o componente que já existia em Demandas/Agenda Cirúrgica. Conferido no navegador com sessão: barra visível onde o cursor nativo estava fora da tela, invisível onde ele já alcançava, sem erros de console.
+
+## Cards da tela inicial — 26/11
+- [x] "Uber Corporativo" e "Produção de Guias" escondidos para o login izabelle.santos, mantendo os demais cards do perfil Executivo. Regra em `negarUsuarios` por seção (admin sempre vê). Páginas continuam acessíveis por endereço direto, conforme confirmado.
+- [x] 4 testes aprovados e conferido no navegador com conta de teste Executivo: com o login na lista, os dois cards somem e Demandas/Plantões permanecem; sem o login, os dois aparecem.
