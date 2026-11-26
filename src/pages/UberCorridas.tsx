@@ -64,7 +64,10 @@ export default function UberCorridas() {
     const limite = usarMes || usarRange || periodo === "all" ? null : new Date(today.getTime() - Number(periodo) * 86400000);
     const q = search.trim().toLowerCase();
     return corridas.filter((c) => {
-      if (status === "pendente" && c.status_importacao !== "pendente") return false;
+      const pend = c.status_importacao === "pendente";
+      if (status === "pendente" && !pend) return false;
+      if (status === "ativa" && (pend || c.cancelada)) return false;
+      if (status === "cancelada" && !c.cancelada) return false;
       if (empresa !== "all" && c.empresa !== empresa) return false;
       if (colaborador !== "all" && c.colaborador !== colaborador) return false;
       if (responsavel !== "all" && c.responsavel !== responsavel) return false;
@@ -91,8 +94,9 @@ export default function UberCorridas() {
     const validas = filtered.filter((c) => !c.cancelada);
     return {
       qtd: filtered.length,
-      ativas: validas.length,
+      ativas: validas.filter((c) => c.status_importacao !== "pendente").length,
       canceladas: filtered.length - validas.length,
+      pendentes: filtered.filter((c) => c.status_importacao === "pendente").length,
       valor: validas.reduce((s, c) => s + Number(c.valor || 0), 0),
       reembolso: validas.reduce((s, c) => s + Number(c.valor_reembolso ?? c.reembolso ?? 0), 0),
     };
@@ -150,9 +154,10 @@ export default function UberCorridas() {
       </div>
 
       {/* KPIs */}
-      <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+      <div className="grid grid-cols-2 md:grid-cols-6 gap-3">
         <Card className="p-4"><div className="text-xs text-muted-foreground">Total</div><div className="text-2xl font-bold">{totals.qtd}</div></Card>
         <Card className="p-4"><div className="text-xs text-muted-foreground">Ativas</div><div className="text-2xl font-bold text-emerald-600">{totals.ativas}</div></Card>
+        <Card className="p-4 border-amber-500/40"><div className="text-xs text-muted-foreground">Pendentes</div><div className="text-2xl font-bold text-amber-600">{totals.pendentes}</div></Card>
         <Card className="p-4"><div className="text-xs text-muted-foreground">Canceladas</div><div className="text-2xl font-bold text-rose-600">{totals.canceladas}</div></Card>
         <Card className="p-4"><div className="text-xs text-muted-foreground">Valor total</div><div className="text-xl font-semibold">{fmtMoney(totals.valor)}</div></Card>
         <Card className="p-4"><div className="text-xs text-muted-foreground">Reembolsos</div><div className="text-xl font-semibold">{fmtMoney(totals.reembolso)}</div></Card>
@@ -160,7 +165,8 @@ export default function UberCorridas() {
 
       {/* Filters */}
       <Card className="p-3 flex flex-wrap items-center gap-2">
-        <Select value={status} onValueChange={setStatus}><SelectTrigger className="w-[170px]"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="all">Todos os status</SelectItem><SelectItem value="pendente">Pendentes</SelectItem></SelectContent></Select>
+        <Select value={status} onValueChange={setStatus}><SelectTrigger className="w-[170px]"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="all">Todos os status</SelectItem><SelectItem value="pendente">Pendente</SelectItem><SelectItem value="ativa">Ativa</SelectItem><SelectItem value="cancelada">Cancelada</SelectItem></SelectContent></Select>
+        <Button variant="outline" size="sm" className="border-amber-500/50 text-amber-700 dark:text-amber-400" onClick={() => { setStatus("pendente"); setMes("all"); setDataInicio(""); setDataFim(""); setPeriodo("all"); setEmpresa("all"); setColaborador("all"); setResponsavel("all"); setSearch(""); }}>Ver pendentes</Button>
         <div className="relative flex-1 min-w-[200px]">
           <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
           <Input className="pl-8" placeholder="Buscar por colaborador, empresa, motivo..." value={search} onChange={(e) => setSearch(e.target.value)} />
@@ -247,7 +253,7 @@ export default function UberCorridas() {
                   <TableCell>{c.tipo ?? "—"}</TableCell>
                   <TableCell className="text-right font-semibold">{fmtMoney(Number(c.valor || 0))}</TableCell>
                   <TableCell>
-                    {c.status_importacao === "pendente" && <Badge variant="outline">Pendente</Badge>}
+                    {c.status_importacao === "pendente" && <Badge className="bg-amber-500/15 text-amber-700 dark:text-amber-400 border-amber-500/40">Pendente</Badge>}
                     {c.cancelada
                       ? <Badge variant="destructive">Cancelada</Badge>
                       : c.status_importacao !== "pendente" && <Badge className="bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border-emerald-500/30">Ativa</Badge>}

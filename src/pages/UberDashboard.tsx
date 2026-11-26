@@ -141,7 +141,7 @@ export default function UberDashboard() {
   const porMotivo = useMemo(() => {
     const map = new Map<string, { nome: string; qtd: number; valor: number }>();
     filtered.filter((c) => !c.cancelada).forEach((c) => {
-      const k = c.motivo || "Sem motivo";
+      const k = c.motivo || "Não informado";
       const cur = map.get(k) ?? { nome: k, qtd: 0, valor: 0 };
       cur.qtd += 1;
       cur.valor += liquido(c);
@@ -168,7 +168,7 @@ export default function UberDashboard() {
   const rankingColaboradores = useMemo(() => {
     const map = new Map<string, { nome: string; qtd: number; valor: number; reemb: number; bruto: number }>();
     filtered.filter((c) => !c.cancelada).forEach((c) => {
-      const nome = nomeUnificadoColaborador(c.colaborador);
+      const nome = nomeUnificadoColaborador(c.colaborador) || "Não informado";
       const cur = map.get(nome) ?? { nome, qtd: 0, valor: 0, reemb: 0, bruto: 0 };
       cur.qtd += 1;
       cur.valor += liquido(c);
@@ -184,8 +184,8 @@ export default function UberDashboard() {
 
   const rankingEmpresas = useMemo(() => {
     const map = new Map<string, { nome: string; qtd: number; valor: number }>();
-    filtered.filter((c) => !c.cancelada && c.empresa).forEach((c) => {
-      const k = c.empresa!;
+    filtered.filter((c) => !c.cancelada).forEach((c) => {
+      const k = c.empresa || "Não informado";
       const cur = map.get(k) ?? { nome: k, qtd: 0, valor: 0 };
       cur.qtd += 1;
       cur.valor += liquido(c);

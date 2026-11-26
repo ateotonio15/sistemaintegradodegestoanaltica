@@ -52,13 +52,20 @@ export function useUberCorridas() {
     queryKey: QK,
     enabled: !loading && !!user,
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("uber_corridas" as any)
-        .select("*")
-        .order("data", { ascending: false })
-        .order("horario", { ascending: false });
-      if (error) throw error;
-      return (data ?? []) as unknown as UberCorrida[];
+      // Page through every row: a single request is capped at 1000 rows.
+      const rows: UberCorrida[] = [];
+      for (let offset = 0; ; offset += 1000) {
+        const { data, error } = await supabase
+          .from("uber_corridas" as any)
+          .select("*")
+          .order("data", { ascending: false })
+          .order("horario", { ascending: false, nullsFirst: false })
+          .order("id")
+          .range(offset, offset + 999);
+        if (error) throw error;
+        rows.push(...((data ?? []) as unknown as UberCorrida[]));
+        if (!data || data.length < 1000) return rows;
+      }
     },
   });
 }
