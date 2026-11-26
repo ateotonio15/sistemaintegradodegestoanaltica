@@ -190,7 +190,7 @@ export function ImportarUberBusinessDialog({ open, onOpenChange }: { open: boole
                   <TableCell><SeletorImportacaoUber label="Empresa" value={r.empresa} disabled={r.jaExiste} opcoes={loteOpcoes.empresa} onChange={v => patchRow(r.uber_trip_id, { empresa: v })} /></TableCell>
                   <TableCell><SeletorImportacaoUber label="Forma de pagamento" value={r.forma_pagamento} disabled={r.jaExiste} opcoes={loteOpcoes.forma_pagamento} onChange={v => patchRow(r.uber_trip_id, { forma_pagamento: v })} /></TableCell>
                   <TableCell className="space-y-1 min-w-40">{r.envio && <Badge variant="secondary">Envio</Badge>}{r.cancelada && <Badge variant="destructive">Cancelada</Badge>}
-                    {r.jaExiste ? <Badge variant="secondary">Já importada</Badge> : <>{r.possivelDuplicata && <Badge variant="outline">Possível duplicata</Badge>}{pendenciasUber(r).length > 0 && <Badge variant="outline">Pendente · Colaborador</Badge>}</>}
+                    {r.jaExiste ? <Badge variant="secondary">Já importada</Badge> : <>{r.possivelDuplicata && <Badge variant="outline">Possível duplicata</Badge>}{pendenciasUber(r).length > 0 && <Badge variant="outline">Pendente · {pendenciasUber(r).join(", ")}</Badge>}</>}
                   </TableCell>
                 </TableRow>)}</TableBody>
               </Table>

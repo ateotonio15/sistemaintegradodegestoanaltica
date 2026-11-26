@@ -193,6 +193,7 @@ export function CorridaDialog({ open, onOpenChange, corrida }: Props) {
           valor_reembolso: null as any,
           reembolso: null as any,
           responsavel: meuNome,
+          forma_pagamento: "Cartão",
         }
       );
     }

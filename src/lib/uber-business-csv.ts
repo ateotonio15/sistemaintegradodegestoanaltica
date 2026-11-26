@@ -92,10 +92,15 @@ export function conferirUber(viagens: ViagemUber[], existentes: { uber_trip_id?:
     const possivelDuplicata = !jaExiste && chaves.has(`${v.data}|${v.horario}|${Math.round(v.valor * 100)}`);
     return { ...v, responsavel: casarResponsavel(v.responsavel, responsaveis.filter(r => RESPONSAVEIS_UBER.includes(r)).length ? responsaveis.filter(r => RESPONSAVEIS_UBER.includes(r)) : RESPONSAVEIS_UBER), jaExiste, possivelDuplicata,
       selecionada: !jaExiste && !possivelDuplicata && !v.envio, colaborador: "", passageiro_id: null,
-      motivo: v.envio ? "Envio de Material" : "", tipo: "", empresa: "", forma_pagamento: "" };
+      motivo: v.envio ? "Envio de Material" : "", tipo: "", empresa: "", forma_pagamento: "Cartão" };
   });
 }
+/** A ride stays pending while collaborator, company, reason or type is missing (payment defaults to Cartão). */
 export function pendenciasUber(v: Pick<LinhaUber, "colaborador" | "responsavel" | "motivo" | "tipo" | "empresa" | "forma_pagamento">) {
-  // The current ride form requires only a collaborator. Other fields remain optional.
-  return v.colaborador.trim() ? [] : ["Colaborador"];
+  const faltam: string[] = [];
+  if (!v.colaborador.trim()) faltam.push("Colaborador");
+  if (!v.empresa.trim()) faltam.push("Empresa");
+  if (!v.motivo.trim()) faltam.push("Motivo");
+  if (!v.tipo.trim()) faltam.push("Tipo");
+  return faltam;
 }

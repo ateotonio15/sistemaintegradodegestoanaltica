@@ -53,7 +53,7 @@ describe("Uber Business — regras da importação", () => {
     expect(casarResponsavel("JÁINA Departamento", ["Jaina Oliveira"])).toBe("Jaina Oliveira"); expect(casarResponsavel("Jaina", ["Jaina Oliveira", "Jaina Souza"])).toBe("");
   });
   it("mantém pendente sem colaborador; completar o campo obrigatório resolve", () => {
-    const r = conferirUber([agruparUber(parsed().viagens)[0]], [], [])[0]; expect(pendenciasUber(r)).toEqual(["Colaborador"]); expect(pendenciasUber({ ...r, colaborador: "Passageiro cadastrado" })).toEqual([]);
+    const r = conferirUber([agruparUber(parsed().viagens)[0]], [], [])[0]; expect(r.forma_pagamento).toBe("Cartão"); expect(pendenciasUber({ ...r, motivo: "" })).toEqual(["Colaborador", "Empresa", "Motivo", "Tipo"]); expect(pendenciasUber({ ...r, colaborador: "P", empresa: "E", motivo: "M", tipo: "Ida", forma_pagamento: "" })).toEqual([]);
   });
 });
 import { casarResponsavel as casarR } from "@/lib/uber-business-csv";
