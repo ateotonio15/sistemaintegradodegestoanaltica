@@ -96,7 +96,7 @@ export function RelatorioManualDialog({ movimentacaoId, empresaId = null, nome, 
       const bloqueio = validarEscolhaCenario({ sugerido: cenarioSugerido, escolhido: escolha.cenario, justificativa: escolha.justificativa, motivoAlteracao: escolha.motivoAlteracao });
       if (bloqueio) throw new Error(bloqueio);
       if (escolha.bloqueio) throw new Error(escolha.bloqueio);
-      return enviarRelatoriosPortal({ assuntoEditado: escolha.assuntoEditado, corpoEditado: escolha.corpoEditado, movimentacaoId, empresaId, onProgresso: setProgresso, contrato, destinatarios: emails, cc: emailsCopia, arquivos, cenario: escolha.cenario, justificativa: escolha.justificativa, motivoAlteracao: escolha.motivoAlteracao });
+      return enviarRelatoriosPortal({ assuntoEditado: escolha.assuntoEditado, corpoEditado: escolha.corpoEditado, movimentacaoId, empresaId, onProgresso: setProgresso, contrato, destinatarios: emails, cc: emailsCopia, arquivos, cenario: escolha.cenario, modeloId: escolha.modeloId, justificativa: escolha.justificativa, motivoAlteracao: escolha.motivoAlteracao });
     },
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: ["movimentacao-relatorios"] });

@@ -15,7 +15,7 @@ import { VARIAVEIS_MODELO } from "@/lib/email-modelos";
 import { CENARIOS_ENVIO, LISTA_CENARIOS, type CenarioEnvio } from "../../../supabase/functions/_shared/cenario-envio";
 import { montarVariaveis, renderizarModelo, corpoParaHtml, temVariavel } from "../../../supabase/functions/_shared/email-modelo-render";
 
-export interface EscolhaCenario { cenario: CenarioEnvio; justificativa: string; motivoAlteracao: string; assuntoEditado?: string; corpoEditado?: string; bloqueio?: string | null }
+export interface EscolhaCenario { cenario: CenarioEnvio; justificativa: string; motivoAlteracao: string; assuntoEditado?: string; corpoEditado?: string; modeloId?: string; bloqueio?: string | null }
 
 const hojeISO = () => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`; };
 const descricao = (k: string) => VARIAVEIS_MODELO.find(v => v.chave === k)?.descricao ?? k;
@@ -41,7 +41,7 @@ export function CenarioEnvioPainel({ movimentacaoId, sugerido, valor, onChange, 
     if (error) throw error; return data as any;
   } });
   const perfil = useQuery({ queryKey: ["perfil-nome", user?.id], enabled: !!user?.id, queryFn: async () => (await supabase.from("profiles").select("display_name").eq("user_id", user.id).maybeSingle()).data?.display_name ?? "" });
-  const modelo = modelos.data?.find(m => m.cenario === valor.cenario) ?? null;
+  const modelo = (valor.modeloId ? modelos.data?.find(m => m.id === valor.modeloId) : null) ?? modelos.data?.find(m => m.cenario === valor.cenario) ?? null;
   const emp = fonte.data?.empresas ?? {};
   const r = useMemo(() => {
     if (!modelo || !fonte.data) return null;
@@ -64,7 +64,7 @@ export function CenarioEnvioPainel({ movimentacaoId, sugerido, valor, onChange, 
     : !destinatarios.trim() ? "Destinatário não encontrado."
     : temVariavel(assunto) || temVariavel(corpo) ? "O e-mail ainda contém códigos de variável." : null;
   useEffect(() => { if (bloqueio !== (valor.bloqueio ?? null)) onChange({ ...valor, bloqueio }); }, [bloqueio]); // eslint-disable-line react-hooks/exhaustive-deps
-  const trocarCenario = (c: CenarioEnvio) => onChange({ ...valor, cenario: c, assuntoEditado: undefined, corpoEditado: undefined });
+  const trocarCenario = (c: CenarioEnvio) => onChange({ ...valor, cenario: c, modeloId: undefined, assuntoEditado: undefined, corpoEditado: undefined });
 
   return <div className="space-y-3 rounded-md border border-primary/30 bg-primary/5 p-3">
     <div className="flex flex-wrap items-center justify-between gap-2">
@@ -84,6 +84,12 @@ export function CenarioEnvioPainel({ movimentacaoId, sugerido, valor, onChange, 
       <Select disabled={disabled} value={valor.cenario} onValueChange={c => trocarCenario(c as CenarioEnvio)}>
         <SelectTrigger id="cenario-envio"><SelectValue /></SelectTrigger>
         <SelectContent>{LISTA_CENARIOS.map(c => <SelectItem key={c} value={c}>{CENARIOS_ENVIO[c].rotulo}{c === sugerido ? " (sugerido)" : ""}</SelectItem>)}</SelectContent>
+      </Select>
+    </div>}
+    {(modelos.data?.length ?? 0) > 0 && <div className="space-y-1"><Label htmlFor="modelo-envio">Modelo de e-mail</Label>
+      <Select disabled={disabled} value={modelo?.id ?? ""} onValueChange={id => onChange({ ...valor, modeloId: id, assuntoEditado: undefined, corpoEditado: undefined })}>
+        <SelectTrigger id="modelo-envio"><SelectValue placeholder="Escolha o modelo" /></SelectTrigger>
+        <SelectContent>{modelos.data!.map(m => <SelectItem key={m.id} value={m.id}>{m.nome} (v{m.versao}) — {CENARIOS_ENVIO[m.cenario as CenarioEnvio]?.rotulo ?? m.cenario}</SelectItem>)}</SelectContent>
       </Select>
     </div>}
     {valor.cenario === "financeiro" && <div className="space-y-1"><Label htmlFor="cenario-justificativa">Justificativa do envio direto ao Financeiro *</Label>

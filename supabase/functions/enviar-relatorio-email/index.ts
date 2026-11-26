@@ -25,6 +25,8 @@ const Body = z.object({
   cenario: z.enum(["dentro_periodo", "fora_periodo", "financeiro"]).optional(),
   justificativa: z.string().max(1000).optional(),
   motivo_alteracao: z.string().max(1000).optional(),
+  // Modelo ativo escolhido pelo usuário (qualquer cenário); ausente = modelo ativo do cenário.
+  modelo_id: z.string().uuid().optional(),
   // "Editar envio": vale só para este e-mail; o Modelo salvo não muda.
   assunto_editado: z.string().trim().min(3).max(300).optional(),
   corpo_editado: z.string().trim().min(10).max(20000).optional(),
@@ -150,8 +152,10 @@ Deno.serve(async (req) => {
     let modeloInfo: { id: string | null; nome: string; versao: number | null; editado: boolean } = { id: null, nome: CENARIOS_ENVIO[cenario].modelo, versao: null, editado: false };
     if (parsed.data.cenario) {
       // Modelo ATIVO do cenário (Configurações > Modelos de E-mail). Sem modelo, não envia.
-      const { data: modelo } = await admin.from("email_modelos").select("id, nome, versao, assunto, corpo")
-        .eq("cenario", cenario).eq("status", "ativo").order("atualizado_em", { ascending: false }).limit(1).maybeSingle();
+      const base = admin.from("email_modelos").select("id, nome, versao, assunto, corpo").eq("status", "ativo");
+      const { data: modelo } = parsed.data.modelo_id
+        ? await base.eq("id", parsed.data.modelo_id).maybeSingle()
+        : await base.eq("cenario", cenario).order("atualizado_em", { ascending: false }).limit(1).maybeSingle();
       if (!modelo) return json({ error: "Nenhum modelo de e-mail ativo foi encontrado para este cenário." }, 409);
       const dados = montarVariaveis({
         empresa: emp.nome, razaoSocial: emp.razao_social, contrato: codigo, mesReferencia: mov.mes_referencia, periodo: mov.periodo, corte,
