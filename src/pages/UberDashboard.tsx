@@ -511,19 +511,21 @@ export default function UberDashboard() {
                       <TableRow key={c.id} className={c.cancelada ? "opacity-60" : ""}>
                         <TableCell>{parseData(c.data).toLocaleDateString("pt-BR")}</TableCell>
                         <TableCell>{c.horario ?? "—"}</TableCell>
-                        <TableCell className="font-medium">{c.colaborador}</TableCell>
+                        <TableCell className="font-medium">{c.colaborador || "—"}</TableCell>
                         <TableCell className="max-w-[180px] truncate" title={c.empresa ?? ""}>{c.empresa ?? "—"}</TableCell>
                         <TableCell className="text-xs max-w-[220px] truncate" title={`${c.origem ?? ""} → ${c.destino ?? ""}`}>
                           {(c.origem ?? "—")} → {(c.destino ?? "—")}
                         </TableCell>
-                        <TableCell className="text-xs">{c.motivo ?? "—"}</TableCell>
-                        <TableCell className="text-xs">{c.tipo ?? "—"}</TableCell>
+                        <TableCell className="text-xs">{c.motivo || "—"}</TableCell>
+                        <TableCell className="text-xs">{c.tipo || "—"}</TableCell>
                         <TableCell className={`text-right tabular-nums font-semibold ${c.cancelada ? "line-through" : ""}`}>{fmtMoney(Number(c.valor || 0))}</TableCell>
                         <TableCell className="text-right tabular-nums text-muted-foreground">{reemb > 0 ? fmtMoney(reemb) : "—"}</TableCell>
-                        <TableCell className="text-xs">{c.forma_pagamento ?? "—"}</TableCell>
+                        <TableCell className="text-xs">{c.forma_pagamento || "—"}</TableCell>
                         <TableCell>
                           {c.cancelada
                             ? <Badge variant="secondary" className="bg-muted text-muted-foreground">Cancelada</Badge>
+                            : c.status_importacao === "pendente"
+                            ? <Badge className="bg-amber-500/15 text-amber-700 dark:text-amber-400 border-amber-500/40">Pendente</Badge>
                             : <Badge className="bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border-emerald-500/30">Ativa</Badge>}
                         </TableCell>
                       </TableRow>
