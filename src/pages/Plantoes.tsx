@@ -1,4 +1,5 @@
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
+import { BarraRolagemHorizontal } from "@/components/BarraRolagemHorizontal";
 import { Link } from "react-router-dom";
 import {
   BarChart3,
@@ -57,6 +58,7 @@ export default function Plantoes() {
     return d.toISOString().slice(0, 10);
   })();
   const [from, setFrom] = useState<string>(defaultFrom);
+  const caixaTabela = useRef<HTMLDivElement>(null);
   const [to, setTo] = useState<string>(today);
   const [busca, setBusca] = useState("");
   const [empresaFilter, setEmpresaFilter] = useState<string>("all");
@@ -459,7 +461,7 @@ export default function Plantoes() {
         </div>
       ) : (
         <Card>
-          <CardContent className="p-0 overflow-x-auto">
+          <CardContent ref={caixaTabela} className="p-0 overflow-x-auto">
             <Table>
               <TableHeader>
                 <TableRow>
@@ -494,6 +496,7 @@ export default function Plantoes() {
               </TableBody>
             </Table>
           </CardContent>
+          <BarraRolagemHorizontal alvo={caixaTabela} className="rounded-b-2xl" />
         </Card>
       )}
 

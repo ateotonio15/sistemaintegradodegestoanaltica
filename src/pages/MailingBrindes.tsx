@@ -1,4 +1,5 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { BarraRolagemHorizontal } from "@/components/BarraRolagemHorizontal";
 import { Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
@@ -52,6 +53,7 @@ export default function MailingBrindes() {
   const canEdit = isAdmin || isExecutivo || isComum || isExecutivoExterno;
 
   const [rows, setRows] = useState<MailingBrinde[]>([]);
+  const caixaTabela = useRef<HTMLDivElement>(null);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("todos");
@@ -250,7 +252,7 @@ export default function MailingBrindes() {
           </Select>
         </div>
 
-        <div className="overflow-x-auto">
+        <div ref={caixaTabela} className="overflow-x-auto">
           <Table>
             <TableHeader>
               <TableRow>
@@ -348,6 +350,7 @@ export default function MailingBrindes() {
             </TableBody>
           </Table>
         </div>
+        <BarraRolagemHorizontal alvo={caixaTabela} className="rounded-b-2xl" />
       </Card>
 
       <MailingBrindeDialog

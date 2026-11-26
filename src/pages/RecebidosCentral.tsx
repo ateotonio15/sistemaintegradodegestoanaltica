@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
+import { BarraRolagemHorizontal } from "@/components/BarraRolagemHorizontal";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -26,6 +27,7 @@ export default function RecebidosCentral() {
   const qc = useQueryClient();
   const { isAdmin } = useAuth();
   const [processando, setProcessando] = useState(false);
+  const caixaTabela = useRef<HTMLDivElement>(null);
   const { data: config } = useQuery({
     queryKey: ["nfse-central-config"],
     queryFn: async () => (await supabase.from("nfse_central_config").select("auto_anexar_reais").eq("id", 1).maybeSingle()).data,
@@ -72,7 +74,7 @@ export default function RecebidosCentral() {
         {isAdmin && <CredenciaisCentralCard />}
         <Card>
           <CardHeader><CardTitle className="text-base">Recebimentos ({itens.length})</CardTitle></CardHeader>
-          <CardContent className="overflow-x-auto">
+          <CardContent ref={caixaTabela} className="overflow-x-auto">
             {isLoading ? <p className="text-sm text-muted-foreground">Carregando…</p> : !itens.length ? (
               <p className="text-sm text-muted-foreground">Nenhum PDF recebido ainda.</p>
             ) : (
@@ -103,6 +105,7 @@ export default function RecebidosCentral() {
               </table>
             )}
           </CardContent>
+          <BarraRolagemHorizontal alvo={caixaTabela} className="rounded-b-2xl" />
         </Card>
       </div>
     </>

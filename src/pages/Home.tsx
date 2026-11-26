@@ -1,5 +1,6 @@
 import hospitalFoto from "@/assets/hospital_samel.jpg.asset.json";
 import { SigaMotionTrail } from "@/components/SigaMotionTrail";
+import { podeVerSecaoHome } from "@/lib/home-secoes";
 import { useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
@@ -62,13 +63,15 @@ type InteligenciaItem = {
 type InteligenciaSection = {
   /** Perfis que enxergam a seção (admin sempre vê). Ausente = todos. */
   allow?: string[];
+  /** Logins que não veem a seção, mesmo com o perfil liberado. */
+  negarUsuarios?: string[];
   title: string;
   description: string;
   icon: LucideIcon;
   items: InteligenciaItem[];
 };
 
-const INTELIGENCIA_SECTIONS: InteligenciaSection[] = [
+export const INTELIGENCIA_SECTIONS: InteligenciaSection[] = [
   {
     title: "Demandas",
     description: "Reclamações e demandas com SLA",
@@ -113,6 +116,7 @@ const INTELIGENCIA_SECTIONS: InteligenciaSection[] = [
   },
   {
     allow: ["executivo", "enfermeira"],
+    negarUsuarios: ["izabelle.santos"],
     title: "Uber Corporativo",
     description: "Corridas e centro de custo",
     icon: Car,
@@ -195,6 +199,7 @@ const INTELIGENCIA_SECTIONS: InteligenciaSection[] = [
     description: "Guias e pacientes do ambulatório por usuário",
     icon: ClipboardList,
     allow: ["diretora", "diretora_saude", "coordenadora", "executivo", "enfermeira", "tec_enfermagem"],
+    negarUsuarios: ["izabelle.santos"],
     items: [
       {
         slug: "producao-guias",
@@ -521,7 +526,7 @@ export default function Home() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("profiles")
-        .select("display_name")
+        .select("display_name, username")
         .eq("user_id", user!.id)
         .maybeSingle();
       if (error) throw error;
@@ -739,7 +744,7 @@ export default function Home() {
               return (
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
                   {INTELIGENCIA_SECTIONS.filter((section) => {
-                    if (section.allow && !isAdmin && !section.allow.includes(role as string)) return false;
+                    if (!podeVerSecaoHome(section, { isAdmin, role, username: profile?.username })) return false;
                     if (soSaude) return section.title === "Saúde nas Empresas";
                     if (!isExecutivoExterno) return true;
                     return ["Demandas", "Plantões", "Mailing de Brindes", "Agenda Cirúrgica"].includes(section.title);

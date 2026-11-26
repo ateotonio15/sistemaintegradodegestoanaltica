@@ -15,6 +15,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, Dialog
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { BarraRolagemHorizontal } from "@/components/BarraRolagemHorizontal";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
 import { Plus, Pencil, Trash2, Search, Upload, Building2, Ban, Wallet, FileSpreadsheet, FileText, Users, Calendar as CalendarIcon, Mail, Phone, User, Clock, MoreHorizontal, RefreshCw, ChevronDown } from "lucide-react";
@@ -218,6 +219,7 @@ export default function Empresas() {
   const [atualizarValoresOpen, setAtualizarValoresOpen] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const anexoInputRef = useRef<HTMLInputElement>(null);
+  const caixaTabela = useRef<HTMLDivElement>(null);
   const [importingAnexo, setImportingAnexo] = useState(false);
   const [loadingRevisao, setLoadingRevisao] = useState(false);
   const [gerandoMov, setGerandoMov] = useState(false);
@@ -1138,7 +1140,7 @@ export default function Empresas() {
             </p>
           </div>
           {(canEdit && !isEnfermeira) && (
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 flex-wrap justify-end">
               <input ref={fileInputRef} type="file" accept=".xlsx,.xls,.csv" className="hidden" onChange={handleImport} />
               {canFullEdit && (
                 <Button variant="outline" className="rounded-lg" onClick={handleGerarMovimentacoes} disabled={gerandoMov}>
@@ -2128,9 +2130,10 @@ export default function Empresas() {
           </CardContent>
         </Card>
 
+        <div className="relative">
         <Card className="rounded-2xl border-border/70 shadow-sm overflow-hidden">
           <CardContent className="p-0">
-            <div className="overflow-x-auto">
+            <div ref={caixaTabela} className="overflow-x-auto">
               <Table>
                 <TableHeader>
                   <TableRow className="bg-muted/40 hover:bg-muted/40 border-b border-border/70">
@@ -2344,6 +2347,8 @@ export default function Empresas() {
             </div>
           </CardContent>
         </Card>
+        <BarraRolagemHorizontal alvo={caixaTabela} className="rounded-b-2xl" />
+        </div>
 
 
 
