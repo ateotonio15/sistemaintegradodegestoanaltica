@@ -133,6 +133,8 @@ export default function Movimentacoes() {
   const [anexosMov, setAnexosMov] = useState<{ id: string; nome: string | null; mes: string | null; periodo: string | null } | null>(null);
   const [relatorioMov, setRelatorioMov] = useState<Movimentacao | null>(null);
   const [avisoSuspenso, setAvisoSuspenso] = useState(false);
+  // Contrato suspenso: pode abrir para anexar relatórios ao Financeiro; só e-mails ficam bloqueados.
+  const [editingSuspenso, setEditingSuspenso] = useState(false);
   const [relatorioStatusInicial, setRelatorioStatusInicial] = useState<string | undefined>(undefined);
   const [relatorioFechamento, setRelatorioFechamento] = useState(false);
   // Só o botão "Fechar sem ok da empresa" abre a janela de e-mail ao Financeiro.
@@ -597,12 +599,13 @@ export default function Movimentacoes() {
   const resetForm = () => {
     setForm(emptyForm);
     setEditingId(null);
+    setEditingSuspenso(false);
     setNovaObservacao("");
   };
 
 
   const openEdit = (m: Movimentacao & { empresas?: { responsavel_contrato: string | null } | null }) => {
-    if (contratoSuspenso(m)) { setAvisoSuspenso(true); return; }
+    setEditingSuspenso(contratoSuspenso(m));
     setEditingId(m.id);
     setNovaObservacao("");
 
@@ -1012,7 +1015,11 @@ export default function Movimentacoes() {
                     </div>
                     <div className="space-y-1.5">
                       <Label className="text-xs font-medium text-muted-foreground">Data Envio p/ Empresa</Label>
+                      {editingSuspenso ? (
+                        <Input value="Contrato suspenso" disabled className="h-9 rounded-lg text-destructive font-medium" />
+                      ) : (
                       <Input type="date" value={form.data_envio_empresa ?? ""} onChange={(e) => handleDataEnvioChange(e.target.value || null)} disabled={!canEditDates || formEhSecundarioGrupo} className="h-9 rounded-lg" />
+                      )}
                     </div>
                     <div className="space-y-1.5">
                       <Label className="text-xs font-medium text-muted-foreground">Data Envio Financeiro</Label>
@@ -1130,7 +1137,7 @@ export default function Movimentacoes() {
 
                   <div className="shrink-0 flex justify-end gap-2 border-t border-border/40 bg-muted/20 px-6 py-3.5">
                     <Button type="button" variant="outline" onClick={() => { setDialogOpen(false); resetForm(); }} className="rounded-lg">{canEditDates ? "Cancelar" : "Fechar"}</Button>
-                    {canEditDates && editingId && !form.data_retorno_empresa && !movimentacoes.find((m: any) => m.id === editingId)?.data_envio_financeiro && (
+                    {canEditDates && editingId && !editingSuspenso && !form.data_retorno_empresa && !movimentacoes.find((m: any) => m.id === editingId)?.data_envio_financeiro && (
                       <Button
                         type="button"
                         variant="outline"
@@ -1392,7 +1399,7 @@ export default function Movimentacoes() {
                             )}
                           </TableCell>
                           <TableCell className="text-muted-foreground">{respMovOf(m.empresas) || "—"}</TableCell>
-                          {true && <TableCell>{contratoSuspenso(m) ? <span className="text-muted-foreground text-sm" title="Não aplicável">—</span> : formatDateBR(m.data_envio_empresa)}</TableCell>}
+                          {true && <TableCell>{contratoSuspenso(m) ? <span className="text-destructive text-xs font-medium whitespace-nowrap">Contrato suspenso</span> : formatDateBR(m.data_envio_empresa)}</TableCell>}
                           <TableCell>{formatDateBR(m.data_envio_financeiro)}</TableCell>
                           <TableCell>
                             {contratoSuspenso(m) && encSuspensosMap.has(m.empresa_id ?? "") && !finInfo ? (
@@ -1448,7 +1455,7 @@ export default function Movimentacoes() {
                                   </Button>
                                 </DropdownMenuTrigger>
                                 <DropdownMenuContent align="end">
-                                  <DropdownMenuItem onClick={() => { if (contratoSuspenso(m)) { setAvisoSuspenso(true); return; } setRelatorioStatusInicial(undefined); setRelatorioFechamento(false); setRelatorioMov(m); }}>
+                                  <DropdownMenuItem onClick={() => { setRelatorioStatusInicial(undefined); setRelatorioFechamento(false); setRelatorioMov(m); }}>
                                     <Eye className="mr-2 h-4 w-4" /> Visualizar relatório
                                   </DropdownMenuItem>
                                   {papelGrupoRelatorio(m.empresa_id, grupoLinha) === "membro" ? (
