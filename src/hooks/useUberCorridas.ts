@@ -26,6 +26,10 @@ export interface UberCorrida {
   observacao: string | null;
   created_at: string;
   updated_at: string;
+  uber_trip_id?: string | null;
+  importacao_id?: string | null;
+  setor_solicitante?: string | null;
+  status_importacao?: "pendente" | "completa" | null;
 }
 
 const QK = ["uber_corridas"] as const;

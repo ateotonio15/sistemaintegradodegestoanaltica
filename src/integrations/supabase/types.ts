@@ -6746,14 +6746,18 @@ export type Database = {
           forma_pagamento: string | null
           horario: string | null
           id: string
+          importacao_id: string | null
           motivo: string | null
           observacao: string | null
           origem: string | null
           passageiro_id: string | null
           reembolso: number | null
           responsavel: string | null
+          setor_solicitante: string | null
+          status_importacao: string | null
           tem_reembolso: boolean
           tipo: string | null
+          uber_trip_id: string | null
           updated_at: string
           valor: number | null
           valor_reembolso: number
@@ -6770,14 +6774,18 @@ export type Database = {
           forma_pagamento?: string | null
           horario?: string | null
           id?: string
+          importacao_id?: string | null
           motivo?: string | null
           observacao?: string | null
           origem?: string | null
           passageiro_id?: string | null
           reembolso?: number | null
           responsavel?: string | null
+          setor_solicitante?: string | null
+          status_importacao?: string | null
           tem_reembolso?: boolean
           tipo?: string | null
+          uber_trip_id?: string | null
           updated_at?: string
           valor?: number | null
           valor_reembolso?: number
@@ -6794,19 +6802,31 @@ export type Database = {
           forma_pagamento?: string | null
           horario?: string | null
           id?: string
+          importacao_id?: string | null
           motivo?: string | null
           observacao?: string | null
           origem?: string | null
           passageiro_id?: string | null
           reembolso?: number | null
           responsavel?: string | null
+          setor_solicitante?: string | null
+          status_importacao?: string | null
           tem_reembolso?: boolean
           tipo?: string | null
+          uber_trip_id?: string | null
           updated_at?: string
           valor?: number | null
           valor_reembolso?: number
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "uber_corridas_importacao_fk"
+            columns: ["importacao_id"]
+            isOneToOne: false
+            referencedRelation: "uber_importacoes"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       uber_funcoes: {
         Row: {
@@ -6829,6 +6849,42 @@ export type Database = {
           id?: string
           nome?: string
           updated_at?: string
+        }
+        Relationships: []
+      }
+      uber_importacoes: {
+        Row: {
+          arquivos: Json
+          created_at: string
+          desfeita_em: string | null
+          id: string
+          ignoradas: number
+          importadas: number
+          removidas: number | null
+          usuario_id: string
+          usuario_nome: string
+        }
+        Insert: {
+          arquivos: Json
+          created_at?: string
+          desfeita_em?: string | null
+          id?: string
+          ignoradas?: number
+          importadas?: number
+          removidas?: number | null
+          usuario_id: string
+          usuario_nome: string
+        }
+        Update: {
+          arquivos?: Json
+          created_at?: string
+          desfeita_em?: string | null
+          id?: string
+          ignoradas?: number
+          importadas?: number
+          removidas?: number | null
+          usuario_id?: string
+          usuario_nome?: string
         }
         Relationships: []
       }
@@ -8042,6 +8098,17 @@ export type Database = {
       tem_movimentacao_pendente: {
         Args: { p_empresa_id: string }
         Returns: boolean
+      }
+      uber_confirmar_importacao: {
+        Args: { p_arquivos: Json; p_linhas: Json; p_lote: string }
+        Returns: Json
+      }
+      uber_desfazer_importacao: { Args: { p_lote: string }; Returns: number }
+      uber_responsaveis_importacao: {
+        Args: never
+        Returns: {
+          nome: string
+        }[]
       }
       user_pode_ver_empresa: { Args: { _empresa: string }; Returns: boolean }
       verify_lock_password: {

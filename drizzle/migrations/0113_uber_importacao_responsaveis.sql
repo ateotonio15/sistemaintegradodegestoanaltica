@@ -1,0 +1,3 @@
+CREATE FUNCTION public.uber_responsaveis_importacao() RETURNS TABLE(nome text) LANGUAGE sql STABLE SECURITY DEFINER SET search_path=public AS $$ SELECT DISTINCT coalesce(nullif(p.display_name,''),p.username) FROM public.profiles p JOIN public.user_roles r ON r.user_id=p.user_id WHERE auth.uid() IS NOT NULL AND (public.has_role(auth.uid(),'admin') OR public.has_role(auth.uid(),'executivo')) AND r.role IN ('admin','executivo','enfermeira') ORDER BY 1 $$;
+REVOKE ALL ON FUNCTION public.uber_responsaveis_importacao() FROM PUBLIC,anon;
+GRANT EXECUTE ON FUNCTION public.uber_responsaveis_importacao() TO authenticated;

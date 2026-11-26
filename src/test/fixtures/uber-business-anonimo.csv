@@ -1,0 +1,213 @@
+﻿Relatório fictício para teste
+Metadados
+Data da solicitação (local);Hora da solicitação (local);Nome;Endereço de partida;Endereço de destino;Valor da transação: BRL;ID da viagem/Uber Eats;Serviço;Tipo de cancelamento;Sobrenome;Tipo de transação;Coluna descartada
+11/03/2026;5:30AM;Jaina;"Origem fictícia; bloco 1";"Destino fictício
+Bloco 2";29.95;viagem-teste-1;Uber;--;Setor fictício;Fare;não persistir
+11/03/2026;6:42AM;Jaina;"Origem fictícia; bloco 1";"Destino fictício
+Bloco 2";84.93;viagem-teste-2;Uber;--;Setor fictício;Fare;não persistir
+11/03/2026;10:33AM;Jaina;"Origem fictícia; bloco 1";"Destino fictício
+Bloco 2";17.26;viagem-teste-3;Envios;--;Setor fictício;Fare;não persistir
+11/03/2026;3:54PM;Jaina;"Origem fictícia; bloco 1";"Destino fictício
+Bloco 2";59.94;viagem-teste-4;Uber;--;Setor fictício;Fare;não persistir
+11/03/2026;4:53PM;Jaina;"Origem fictícia; bloco 1";"Destino fictício
+Bloco 2";22.93;viagem-teste-5;Uber;--;Setor fictício;Fare;não persistir
+11/04/2026;5:26AM;Jaina;"Origem fictícia; bloco 1";"Destino fictício
+Bloco 2";17.96;viagem-teste-6;Uber;--;Setor fictício;Fare;não persistir
+11/04/2026;7:25AM;Jaina;"Origem fictícia; bloco 1";"Destino fictício
+Bloco 2";16.54;viagem-teste-7;Uber;--;Setor fictício;Fare;não persistir
+11/04/2026;8:03AM;Jaina;"Origem fictícia; bloco 1";"Destino fictício
+Bloco 2";20.95;viagem-teste-8;Uber;--;Setor fictício;Fare;não persistir
+11/04/2026;10:23AM;Jaina;"Origem fictícia; bloco 1";"Destino fictício
+Bloco 2";20.94;viagem-teste-9;Uber;--;Setor fictício;Fare;não persistir
+11/04/2026;1:30PM;Jaina;"Origem fictícia; bloco 1";"Destino fictício
+Bloco 2";19.94;viagem-teste-10;Uber;--;Setor fictício;Fare;não persistir
+11/04/2026;4:05PM;Jaina;"Origem fictícia; bloco 1";"Destino fictício
+Bloco 2";15.94;viagem-teste-11;Uber;--;Setor fictício;Fare;não persistir
+11/04/2026;4:47PM;Jaina;"Origem fictícia; bloco 1";"Destino fictício
+Bloco 2";23.94;viagem-teste-12;Uber;--;Setor fictício;Fare;não persistir
+11/05/2026;6:59AM;Jaina;"Origem fictícia; bloco 1";"Destino fictício
+Bloco 2";29.94;viagem-teste-13;Uber;--;Setor fictício;Fare;não persistir
+11/05/2026;7:50AM;Jaina;"Origem fictícia; bloco 1";"Destino fictício
+Bloco 2";37.63;viagem-teste-14;Uber;--;Setor fictício;Fare;não persistir
+11/05/2026;10:21AM;Jaina;"Origem fictícia; bloco 1";"Destino fictício
+Bloco 2";28.94;viagem-teste-15;Uber;--;Setor fictício;Fare;não persistir
+11/05/2026;1:25PM;Jaina;"Origem fictícia; bloco 1";"Destino fictício
+Bloco 2";35.97;viagem-teste-16;Uber;--;Setor fictício;Fare;não persistir
+11/05/2026;2:31PM;Jaina;"Origem fictícia; bloco 1";"Destino fictício
+Bloco 2";10.17;viagem-teste-17;Envios;--;Setor fictício;Fare;não persistir
+11/05/2026;4:02PM;Jaina;"Origem fictícia; bloco 1";"Destino fictício
+Bloco 2";19.94;viagem-teste-18;Uber;--;Setor fictício;Fare;não persistir
+11/06/2026;9:38AM;Jaina;"Origem fictícia; bloco 1";"Destino fictício
+Bloco 2";23.93;viagem-teste-19;Uber;--;Setor fictício;Fare;não persistir
+11/06/2026;10:18AM;Jaina;"Origem fictícia; bloco 1";"Destino fictício
+Bloco 2";22.24;viagem-teste-20;Uber;--;Setor fictício;Fare;não persistir
+11/06/2026;11:47AM;Jaina;"Origem fictícia; bloco 1";"Destino fictício
+Bloco 2";16.94;viagem-teste-21;Uber;--;Setor fictício;Fare;não persistir
+11/06/2026;1:13PM;Jaina;"Origem fictícia; bloco 1";"Destino fictício
+Bloco 2";4.00;viagem-teste-22;Uber;--;Setor fictício;Fare;não persistir
+11/06/2026;1:26PM;Jaina;"Origem fictícia; bloco 1";"Destino fictício
+Bloco 2";3.42;viagem-teste-23;Uber;--;Setor fictício;Fare;não persistir
+11/06/2026;1:35PM;Jaina;"Origem fictícia; bloco 1";"Destino fictício
+Bloco 2";3.64;viagem-teste-24;Uber;--;Setor fictício;Fare;não persistir
+11/06/2026;4:37PM;Jaina;"Origem fictícia; bloco 1";"Destino fictício
+Bloco 2";25.40;viagem-teste-25;Uber;--;Setor fictício;Fare;não persistir
+11/09/2026;7:09AM;Jaina;"Origem fictícia; bloco 1";"Destino fictício
+Bloco 2";30.95;viagem-teste-26;Uber;--;Setor fictício;Fare;não persistir
+11/09/2026;7:09AM;Jaina;"Origem fictícia; bloco 1";"Destino fictício
+Bloco 2";7.04;viagem-teste-26;Uber;--;Setor fictício;Fare;não persistir
+11/09/2026;9:17AM;Jaina;"Origem fictícia; bloco 1";"Destino fictício
+Bloco 2";30.50;viagem-teste-27;Uber;--;Setor fictício;Fare;não persistir
+11/09/2026;2:15PM;Jaina;"Origem fictícia; bloco 1";"Destino fictício
+Bloco 2";19.94;viagem-teste-28;Uber;--;Setor fictício;Fare;não persistir
+11/09/2026;3:21PM;Jaina;"Origem fictícia; bloco 1";"Destino fictício
+Bloco 2";22.96;viagem-teste-29;Uber;--;Setor fictício;Fare;não persistir
+11/09/2026;4:15PM;Jaina;"Origem fictícia; bloco 1";"Destino fictício
+Bloco 2";61.94;viagem-teste-30;Uber;--;Setor fictício;Fare;não persistir
+11/10/2026;6:17AM;Jaina;"Origem fictícia; bloco 1";"Destino fictício
+Bloco 2";50.95;viagem-teste-31;Uber;--;Setor fictício;Fare;não persistir
+11/10/2026;6:17AM;Jaina;"Origem fictícia; bloco 1";"Destino fictício
+Bloco 2";8.04;viagem-teste-31;Uber;--;Setor fictício;Fare;não persistir
+11/10/2026;6:17AM;Jaina;"Origem fictícia; bloco 1";"Destino fictício
+Bloco 2";8.08;viagem-teste-31;Uber;--;Setor fictício;Fare;não persistir
+11/10/2026;3:54PM;Jaina;"Origem fictícia; bloco 1";"Destino fictício
+Bloco 2";58.94;viagem-teste-32;Uber;--;Setor fictício;Fare;não persistir
+11/11/2026;8:57AM;Jaina;"Origem fictícia; bloco 1";"Destino fictício
+Bloco 2";22.93;viagem-teste-33;Uber;--;Setor fictício;Fare;não persistir
+11/11/2026;9:46AM;Jaina;"Origem fictícia; bloco 1";"Destino fictício
+Bloco 2";18.95;viagem-teste-34;Uber;--;Setor fictício;Fare;não persistir
+11/11/2026;10:24AM;Jaina;"Origem fictícia; bloco 1";"Destino fictício
+Bloco 2";27.03;viagem-teste-35;Uber;--;Setor fictício;Fare;não persistir
+11/11/2026;1:25PM;Jaina;"Origem fictícia; bloco 1";"Destino fictício
+Bloco 2";12.94;viagem-teste-36;Uber;--;Setor fictício;Fare;não persistir
+11/11/2026;3:57PM;Jaina;"Origem fictícia; bloco 1";"Destino fictício
+Bloco 2";25.96;viagem-teste-37;Uber;--;Setor fictício;Fare;não persistir
+11/11/2026;4:49PM;Jaina;"Origem fictícia; bloco 1";"Destino fictício
+Bloco 2";23.83;viagem-teste-38;Uber;--;Setor fictício;Fare;não persistir
+11/11/2026;6:02PM;Jaina;"Origem fictícia; bloco 1";"Destino fictício
+Bloco 2";22.94;viagem-teste-39;Uber;--;Setor fictício;Fare;não persistir
+11/11/2026;6:02PM;Jaina;"Origem fictícia; bloco 1";"Destino fictício
+Bloco 2";3.04;viagem-teste-39;Uber;--;Setor fictício;Fare;não persistir
+11/12/2026;6:21AM;Jaina;"Origem fictícia; bloco 1";"Destino fictício
+Bloco 2";38.14;viagem-teste-40;Uber;--;Setor fictício;Fare;não persistir
+11/12/2026;7:33AM;Jaina;"Origem fictícia; bloco 1";"Destino fictício
+Bloco 2";56.87;viagem-teste-41;Uber;--;Setor fictício;Fare;não persistir
+11/12/2026;8:52AM;Jaina;"Origem fictícia; bloco 1";"Destino fictício
+Bloco 2";19.93;viagem-teste-42;Uber;--;Setor fictício;Fare;não persistir
+11/12/2026;10:22AM;Jaina;"Origem fictícia; bloco 1";"Destino fictício
+Bloco 2";22.31;viagem-teste-43;Uber;--;Setor fictício;Fare;não persistir
+11/12/2026;12:07PM;Jaina;"Origem fictícia; bloco 1";"Destino fictício
+Bloco 2";36.32;viagem-teste-44;Uber;--;Setor fictício;Fare;não persistir
+11/12/2026;4:32PM;Jaina;"Origem fictícia; bloco 1";"Destino fictício
+Bloco 2";46.38;viagem-teste-45;Uber;--;Setor fictício;Fare;não persistir
+11/13/2026;6:34AM;Jaina;"Origem fictícia; bloco 1";"Destino fictício
+Bloco 2";4.03;viagem-teste-46;Uber;--;Setor fictício;Fare;não persistir
+11/13/2026;6:34AM;Jaina;"Origem fictícia; bloco 1";"Destino fictício
+Bloco 2";51.95;viagem-teste-46;Uber;--;Setor fictício;Fare;não persistir
+11/13/2026;7:28AM;Jaina;"Origem fictícia; bloco 1";"Destino fictício
+Bloco 2";29.05;viagem-teste-47;Uber;--;Setor fictício;Fare;não persistir
+11/13/2026;9:46AM;Jaina;"Origem fictícia; bloco 1";"Destino fictício
+Bloco 2";4.00;viagem-teste-48;Uber;--;Setor fictício;Fare;não persistir
+11/13/2026;9:56AM;Jaina;"Origem fictícia; bloco 1";"Destino fictício
+Bloco 2";23.94;viagem-teste-49;Uber;--;Setor fictício;Fare;não persistir
+11/13/2026;12:27PM;Jaina;"Origem fictícia; bloco 1";"Destino fictício
+Bloco 2";23.17;viagem-teste-50;Uber;--;Setor fictício;Fare;não persistir
+11/13/2026;1:48PM;Jaina;"Origem fictícia; bloco 1";"Destino fictício
+Bloco 2";41.94;viagem-teste-51;Uber;--;Setor fictício;Fare;não persistir
+11/13/2026;4:01PM;Jaina;"Origem fictícia; bloco 1";"Destino fictício
+Bloco 2";45.93;viagem-teste-52;Uber;--;Setor fictício;Fare;não persistir
+11/16/2026;6:20AM;Jaina;"Origem fictícia; bloco 1";"Destino fictício
+Bloco 2";17.20;viagem-teste-53;Uber;--;Setor fictício;Fare;não persistir
+11/16/2026;6:40AM;Jaina;"Origem fictícia; bloco 1";"Destino fictício
+Bloco 2";4.75;viagem-teste-54;Uber;--;Setor fictício;Fare;não persistir
+11/16/2026;7:13AM;Jaina;"Origem fictícia; bloco 1";"Destino fictício
+Bloco 2";4.42;viagem-teste-55;Uber;--;Setor fictício;Fare;não persistir
+11/16/2026;7:34AM;Jaina;"Origem fictícia; bloco 1";"Destino fictício
+Bloco 2";2.03;viagem-teste-56;Uber;--;Setor fictício;Fare;não persistir
+11/16/2026;7:34AM;Jaina;"Origem fictícia; bloco 1";"Destino fictício
+Bloco 2";8.96;viagem-teste-56;Uber;--;Setor fictício;Fare;não persistir
+11/16/2026;8:46AM;Jaina;"Origem fictícia; bloco 1";"Destino fictício
+Bloco 2";16.95;viagem-teste-57;Uber;--;Setor fictício;Fare;não persistir
+11/16/2026;12:14PM;Jaina;"Origem fictícia; bloco 1";"Destino fictício
+Bloco 2";36.98;viagem-teste-58;Uber;--;Setor fictício;Fare;não persistir
+11/16/2026;1:14PM;Jaina;"Origem fictícia; bloco 1";"Destino fictício
+Bloco 2";33.15;viagem-teste-59;Uber;--;Setor fictício;Fare;não persistir
+11/16/2026;4:01PM;Jaina;"Origem fictícia; bloco 1";"Destino fictício
+Bloco 2";18.93;viagem-teste-60;Uber;--;Setor fictício;Fare;não persistir
+11/16/2026;4:01PM;Jaina;"Origem fictícia; bloco 1";"Destino fictício
+Bloco 2";3.05;viagem-teste-60;Uber;--;Setor fictício;Fare;não persistir
+11/16/2026;4:53PM;Jaina;"Origem fictícia; bloco 1";"Destino fictício
+Bloco 2";36.60;viagem-teste-61;Uber;--;Setor fictício;Fare;não persistir
+11/16/2026;5:55PM;Jaina;"Origem fictícia; bloco 1";"Destino fictício
+Bloco 2";23.97;viagem-teste-62;Uber;--;Setor fictício;Fare;não persistir
+11/17/2026;6:07AM;Jaina;"Origem fictícia; bloco 1";"Destino fictício
+Bloco 2";30.75;viagem-teste-63;Uber;--;Setor fictício;Fare;não persistir
+11/17/2026;6:40AM;Jaina;"Origem fictícia; bloco 1";"Destino fictício
+Bloco 2";57.96;viagem-teste-64;Uber;--;Setor fictício;Fare;não persistir
+11/17/2026;12:08PM;Jaina;"Origem fictícia; bloco 1";"Destino fictício
+Bloco 2";27.98;viagem-teste-65;Uber;--;Setor fictício;Fare;não persistir
+11/17/2026;3:51PM;Jaina;"Origem fictícia; bloco 1";"Destino fictício
+Bloco 2";59.95;viagem-teste-66;Uber;--;Setor fictício;Fare;não persistir
+11/17/2026;5:01PM;Jaina;"Origem fictícia; bloco 1";"Destino fictício
+Bloco 2";40.94;viagem-teste-67;Uber;--;Setor fictício;Fare;não persistir
+11/18/2026;5:04AM;Jaina;"Origem fictícia; bloco 1";"Destino fictício
+Bloco 2";44.93;viagem-teste-68;Uber;--;Setor fictício;Fare;não persistir
+11/18/2026;12:23PM;Jaina;"Origem fictícia; bloco 1";"Destino fictício
+Bloco 2";28.24;viagem-teste-69;Uber;--;Setor fictício;Fare;não persistir
+11/18/2026;1:09PM;Jaina;"Origem fictícia; bloco 1";"Destino fictício
+Bloco 2";21.94;viagem-teste-70;Uber;--;Setor fictício;Fare;não persistir
+11/18/2026;4:50PM;Jaina;"Origem fictícia; bloco 1";"Destino fictício
+Bloco 2";3.04;viagem-teste-71;Uber;--;Setor fictício;Fare;não persistir
+11/18/2026;4:50PM;Jaina;"Origem fictícia; bloco 1";"Destino fictício
+Bloco 2";30.94;viagem-teste-71;Uber;--;Setor fictício;Fare;não persistir
+11/19/2026;7:16AM;Jaina;"Origem fictícia; bloco 1";"Destino fictício
+Bloco 2";21.95;viagem-teste-72;Uber;--;Setor fictício;Fare;não persistir
+11/19/2026;8:07AM;Jaina;"Origem fictícia; bloco 1";"Destino fictício
+Bloco 2";12.97;viagem-teste-73;Uber;--;Setor fictício;Fare;não persistir
+11/19/2026;8:22AM;Jaina;"Origem fictícia; bloco 1";"Destino fictício
+Bloco 2";17.95;viagem-teste-74;Uber;--;Setor fictício;Fare;não persistir
+11/19/2026;8:42AM;Jaina;"Origem fictícia; bloco 1";"Destino fictício
+Bloco 2";23.98;viagem-teste-75;Uber;--;Setor fictício;Fare;não persistir
+11/19/2026;11:14AM;Jaina;"Origem fictícia; bloco 1";"Destino fictício
+Bloco 2";23.95;viagem-teste-76;Uber;--;Setor fictício;Fare;não persistir
+11/19/2026;1:22PM;Jaina;"Origem fictícia; bloco 1";"Destino fictício
+Bloco 2";35.96;viagem-teste-77;Uber;--;Setor fictício;Fare;não persistir
+11/19/2026;3:42PM;Jaina;"Origem fictícia; bloco 1";"Destino fictício
+Bloco 2";3.42;viagem-teste-78;Uber;--;Setor fictício;Fare;não persistir
+11/19/2026;3:51PM;Jaina;"Origem fictícia; bloco 1";"Destino fictício
+Bloco 2";76.33;viagem-teste-79;Uber;--;Setor fictício;Fare;não persistir
+11/19/2026;5:45PM;Jaina;"Origem fictícia; bloco 1";"Destino fictício
+Bloco 2";17.20;viagem-teste-80;Uber;--;Setor fictício;Fare;não persistir
+11/19/2026;5:29PM;Jaina;"Origem fictícia; bloco 1";"Destino fictício
+Bloco 2";31.96;viagem-teste-81;Uber;--;Setor fictício;Fare;não persistir
+11/23/2026;6:59AM;Jaina;"Origem fictícia; bloco 1";"Destino fictício
+Bloco 2";16.98;viagem-teste-82;Uber;--;Setor fictício;Fare;não persistir
+11/23/2026;9:31AM;Jaina;"Origem fictícia; bloco 1";"Destino fictício
+Bloco 2";19.33;viagem-teste-83;Uber;--;Setor fictício;Fare;não persistir
+11/23/2026;11:06AM;Jaina;"Origem fictícia; bloco 1";"Destino fictício
+Bloco 2";19.94;viagem-teste-84;Uber;--;Setor fictício;Fare;não persistir
+11/23/2026;4:33PM;Jaina;"Origem fictícia; bloco 1";"Destino fictício
+Bloco 2";21.97;viagem-teste-85;Uber;--;Setor fictício;Fare;não persistir
+11/24/2026;1:21PM;Jaina;"Origem fictícia; bloco 1";"Destino fictício
+Bloco 2";21.94;viagem-teste-86;Uber;--;Setor fictício;Fare;não persistir
+11/24/2026;4:14PM;Jaina;"Origem fictícia; bloco 1";"Destino fictício
+Bloco 2";21.95;viagem-teste-87;Uber;--;Setor fictício;Fare;não persistir
+11/24/2026;4:45PM;Jaina;"Origem fictícia; bloco 1";"Destino fictício
+Bloco 2";4.07;viagem-teste-88;Uber;--;Setor fictício;Fare;não persistir
+11/24/2026;5:02PM;Jaina;"Origem fictícia; bloco 1";"Destino fictício
+Bloco 2";43.78;viagem-teste-89;Uber;--;Setor fictício;Fare;não persistir
+11/25/2026;3:01PM;Jaina;"Origem fictícia; bloco 1";"Destino fictício
+Bloco 2";23.53;viagem-teste-90;Uber;--;Setor fictício;Fare;não persistir
+11/25/2026;3:57PM;Jaina;"Origem fictícia; bloco 1";"Destino fictício
+Bloco 2";18.93;viagem-teste-91;Uber;--;Setor fictício;Fare;não persistir
+11/25/2026;4:53PM;Jaina;"Origem fictícia; bloco 1";"Destino fictício
+Bloco 2";24.96;viagem-teste-92;Uber;--;Setor fictício;Fare;não persistir
+11/26/2026;6:26AM;Jaina;"Origem fictícia; bloco 1";"Destino fictício
+Bloco 2";51.94;viagem-teste-93;Uber;--;Setor fictício;Fare;não persistir
+11/26/2026;8:10AM;Jaina;"Origem fictícia; bloco 1";"Destino fictício
+Bloco 2";18.96;viagem-teste-94;Uber;--;Setor fictício;Fare;não persistir
+11/26/2026;8:50AM;Jaina;"Origem fictícia; bloco 1";"Destino fictício
+Bloco 2";29.98;viagem-teste-95;Uber;--;Setor fictício;Fare;não persistir
+11/26/2026;10:32AM;Jaina;"Origem fictícia; bloco 1";"Destino fictício
+Bloco 2";20.95;viagem-teste-96;Uber;--;Setor fictício;Fare;não persistir
+11/26/2026;1:41PM;Jaina;"Origem fictícia; bloco 1";"Destino fictício
+Bloco 2";23.96;viagem-teste-97;Uber;--;Setor fictício;Fare;não persistir

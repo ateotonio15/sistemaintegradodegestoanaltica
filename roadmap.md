@@ -1,5 +1,11 @@
 # Roadmap — Primeiro pacote financeiro
 
+## Importação Uber Business — 26/11
+- [x] CSV múltiplo, conferência editável e seleção em lote sem tocar corridas existentes; Importar Excel preservado.
+- [x] Identificador único, pendências, histórico, backup completo e desfazer somente o lote; nomes de responsáveis consultados sem abrir os perfis.
+- [x] 29 testes aprovados; sessão real conferiu CSV, importação fictícia, duplicidade, edição da pendência e desfazer, desktop e celular. Lotes fictícios limpos.
+- [x] CSV recebido: conferidos 105 linhas / 97 viagens / 2 envios / R$ 2.716,80, de 03/11/2026 a 26/11/2026, sem gravação.
+
 ## Etapa 5 — organização visual
 - [x] Resumo e CPF priorizados, detalhes recolhidos, participantes simplificados e distribuição ao final; 18 testes aprovados e planilha real com 34 vidas/21 titulares/13 dependentes conferida, sem salvar alterações. Leitura, cálculos, validações e rodapé preservados.
 

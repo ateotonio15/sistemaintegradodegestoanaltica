@@ -12,6 +12,7 @@ import { Car, Plus, Upload, Download, Pencil, Trash2, BarChart3, Search } from "
 import { useUberCorridas, useDeleteCorrida, type UberCorrida } from "@/hooks/useUberCorridas";
 import { CorridaDialog } from "@/components/uber/CorridaDialog";
 import { ImportarCorridasDialog } from "@/components/uber/ImportarCorridasDialog";
+import { ImportarUberBusinessDialog } from "@/components/uber/ImportarUberBusinessDialog";
 import { useAuth } from "@/hooks/useAuth";
 
 const fmtMoney = (v: number) => v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
@@ -43,6 +44,8 @@ export default function UberCorridas() {
 
   const [dialogOpen, setDialogOpen] = useState(false);
   const [importOpen, setImportOpen] = useState(false);
+  const [uberImportOpen, setUberImportOpen] = useState(false);
+  const [status, setStatus] = useState("all");
   const [edit, setEdit] = useState<UberCorrida | null>(null);
   const [toDel, setToDel] = useState<UberCorrida | null>(null);
 
@@ -61,6 +64,7 @@ export default function UberCorridas() {
     const limite = usarMes || usarRange || periodo === "all" ? null : new Date(today.getTime() - Number(periodo) * 86400000);
     const q = search.trim().toLowerCase();
     return corridas.filter((c) => {
+      if (status === "pendente" && c.status_importacao !== "pendente") return false;
       if (empresa !== "all" && c.empresa !== empresa) return false;
       if (colaborador !== "all" && c.colaborador !== colaborador) return false;
       if (responsavel !== "all" && c.responsavel !== responsavel) return false;
@@ -80,7 +84,7 @@ export default function UberCorridas() {
       }
       return true;
     });
-  }, [corridas, empresa, colaborador, responsavel, mes, periodo, dataInicio, dataFim, search]);
+  }, [corridas, empresa, colaborador, responsavel, mes, periodo, dataInicio, dataFim, search, status]);
 
 
   const totals = useMemo(() => {
@@ -138,6 +142,7 @@ export default function UberCorridas() {
           {canManageCorridas && (
             <>
               {(isAdmin || isExecutivo) && <Button variant="outline" size="sm" onClick={() => setImportOpen(true)}><Upload className="h-4 w-4 mr-1" />Importar Excel</Button>}
+              {(isAdmin || isExecutivo) && <Button variant="outline" size="sm" onClick={() => setUberImportOpen(true)}><Upload className="h-4 w-4 mr-1" />Importar da Uber</Button>}
               <Button size="sm" onClick={() => { setEdit(null); setDialogOpen(true); }}><Plus className="h-4 w-4 mr-1" />Nova corrida</Button>
             </>
           )}
@@ -155,6 +160,7 @@ export default function UberCorridas() {
 
       {/* Filters */}
       <Card className="p-3 flex flex-wrap items-center gap-2">
+        <Select value={status} onValueChange={setStatus}><SelectTrigger className="w-[170px]"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="all">Todos os status</SelectItem><SelectItem value="pendente">Pendentes</SelectItem></SelectContent></Select>
         <div className="relative flex-1 min-w-[200px]">
           <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
           <Input className="pl-8" placeholder="Buscar por colaborador, empresa, motivo..." value={search} onChange={(e) => setSearch(e.target.value)} />
@@ -235,15 +241,16 @@ export default function UberCorridas() {
                 <TableRow key={c.id}>
                   <TableCell className="font-medium">{fmtDate(c.data)}</TableCell>
                   <TableCell>{c.horario ?? "—"}</TableCell>
-                  <TableCell>{c.colaborador}</TableCell>
+                  <TableCell>{c.colaborador || "—"}</TableCell>
                   <TableCell className="max-w-[200px] truncate" title={c.empresa ?? ""}>{c.empresa ?? "—"}</TableCell>
                   <TableCell>{c.motivo ?? "—"}</TableCell>
                   <TableCell>{c.tipo ?? "—"}</TableCell>
                   <TableCell className="text-right font-semibold">{fmtMoney(Number(c.valor || 0))}</TableCell>
                   <TableCell>
+                    {c.status_importacao === "pendente" && <Badge variant="outline">Pendente</Badge>}
                     {c.cancelada
                       ? <Badge variant="destructive">Cancelada</Badge>
-                      : <Badge className="bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border-emerald-500/30">Ativa</Badge>}
+                      : c.status_importacao !== "pendente" && <Badge className="bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border-emerald-500/30">Ativa</Badge>}
                   </TableCell>
                   {canManageCorridas && (
                     <TableCell className="text-right">
@@ -260,6 +267,7 @@ export default function UberCorridas() {
 
       <CorridaDialog open={dialogOpen} onOpenChange={setDialogOpen} corrida={edit} />
       <ImportarCorridasDialog open={importOpen} onOpenChange={setImportOpen} />
+      {(isAdmin || isExecutivo) && <ImportarUberBusinessDialog open={uberImportOpen} onOpenChange={setUberImportOpen} />}
       <AlertDialog open={!!toDel} onOpenChange={(o) => !o && setToDel(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>

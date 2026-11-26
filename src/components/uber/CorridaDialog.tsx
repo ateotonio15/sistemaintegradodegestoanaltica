@@ -18,6 +18,7 @@ import { useUberPassageiros } from "@/hooks/useUberPassageiros";
 import { useUberFuncoes } from "@/hooks/useUberFuncoes";
 import { UBER_MOTIVOS, origemSugeridaPeloPadrao, montarCorridaVolta, encontrarPassageiroPorNome } from "@/lib/uber-passageiros";
 import { toast } from "sonner";
+import { UBER_FORMAS_PAGAMENTO } from "@/lib/uber-corrida-opcoes";
 
 interface Props {
   open: boolean;
@@ -26,7 +27,6 @@ interface Props {
 }
 
 const TIPOS = ["Ida", "Volta", "Ida e Volta"];
-const FORMAS_PAGAMENTO = ["Pix", "Cartão", "Dinheiro"];
 const ENDERECO_SAMEL = "Samel - Av. Joaquim Nabuco, 1550 - Centro";
 
 const LS_KEY = "uber-enderecos-novos";
@@ -143,10 +143,11 @@ export function CorridaDialog({ open, onOpenChange, corrida }: Props) {
     queryKey: ["meu-perfil-nome-uber", user?.id],
     enabled: !!user?.id,
     queryFn: async () => {
+      if (!user) return "";
       const { data } = await supabase
         .from("profiles")
         .select("display_name")
-        .eq("user_id", user!.id)
+        .eq("user_id", user.id)
         .maybeSingle();
       return (data?.display_name || "") as string;
     },
@@ -412,13 +413,13 @@ export function CorridaDialog({ open, onOpenChange, corrida }: Props) {
             <Select value={form.forma_pagamento ?? ""} onValueChange={(v) => set("forma_pagamento", v)}>
               <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
               <SelectContent>
-                {FORMAS_PAGAMENTO.map((f) => <SelectItem key={f} value={f}>{f}</SelectItem>)}
+                {UBER_FORMAS_PAGAMENTO.map((f) => <SelectItem key={f} value={f}>{f}</SelectItem>)}
               </SelectContent>
             </Select>
           </div>
           <div>
             <Label>Responsável</Label>
-            <Input value={form.responsavel ?? meuNome} readOnly disabled />
+            <Input value={form.importacao_id ? form.responsavel ?? "" : form.responsavel ?? meuNome} readOnly={!form.importacao_id} disabled={!form.importacao_id} onChange={e => set("responsavel", e.target.value)} />
           </div>
           <div>
             <Label>Valor (R$)</Label>

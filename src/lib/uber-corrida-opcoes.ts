@@ -1,0 +1,1 @@
+export const UBER_FORMAS_PAGAMENTO = ["Pix", "Cartão", "Dinheiro"] as const;

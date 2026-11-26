@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useId } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
@@ -10,16 +10,17 @@ const QK = ["uber_passageiros"] as const;
 export function useUberPassageiros() {
   const { user, loading } = useAuth();
   const qc = useQueryClient();
+  const assinaturaId = useId();
 
   useEffect(() => {
     const ch = supabase
-      .channel("uber-passageiros-rt")
+      .channel(`uber-passageiros-rt-${assinaturaId}`)
       .on("postgres_changes", { event: "*", schema: "public", table: "uber_passageiros" }, () => {
         qc.invalidateQueries({ queryKey: QK });
       })
       .subscribe();
     return () => { supabase.removeChannel(ch); };
-  }, [qc]);
+  }, [qc, assinaturaId]);
 
   return useQuery({
     queryKey: QK,
