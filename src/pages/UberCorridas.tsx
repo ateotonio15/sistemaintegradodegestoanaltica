@@ -11,7 +11,6 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { Car, Plus, Upload, Download, Pencil, Trash2, BarChart3, Search } from "lucide-react";
 import { useUberCorridas, useDeleteCorrida, type UberCorrida } from "@/hooks/useUberCorridas";
 import { CorridaDialog } from "@/components/uber/CorridaDialog";
-import { ImportarCorridasDialog } from "@/components/uber/ImportarCorridasDialog";
 import { ImportarUberBusinessDialog } from "@/components/uber/ImportarUberBusinessDialog";
 import { useAuth } from "@/hooks/useAuth";
 
@@ -43,7 +42,6 @@ export default function UberCorridas() {
   const [dataFim, setDataFim] = useState<string>("");
 
   const [dialogOpen, setDialogOpen] = useState(false);
-  const [importOpen, setImportOpen] = useState(false);
   const [uberImportOpen, setUberImportOpen] = useState(false);
   const [status, setStatus] = useState("all");
   const [edit, setEdit] = useState<UberCorrida | null>(null);
@@ -64,7 +62,7 @@ export default function UberCorridas() {
     const limite = usarMes || usarRange || periodo === "all" ? null : new Date(today.getTime() - Number(periodo) * 86400000);
     const q = search.trim().toLowerCase();
     return corridas.filter((c) => {
-      const pend = c.status_importacao === "pendente";
+      const pend = !c.cancelada && c.status_importacao === "pendente";
       if (status === "pendente" && !pend) return false;
       if (status === "ativa" && (pend || c.cancelada)) return false;
       if (status === "cancelada" && !c.cancelada) return false;
@@ -96,7 +94,7 @@ export default function UberCorridas() {
       qtd: filtered.length,
       ativas: validas.filter((c) => c.status_importacao !== "pendente").length,
       canceladas: filtered.length - validas.length,
-      pendentes: filtered.filter((c) => c.status_importacao === "pendente").length,
+      pendentes: filtered.filter((c) => !c.cancelada && c.status_importacao === "pendente").length,
       valor: validas.reduce((s, c) => s + Number(c.valor || 0), 0),
       reembolso: validas.reduce((s, c) => s + Number(c.valor_reembolso ?? c.reembolso ?? 0), 0),
     };
@@ -111,6 +109,7 @@ export default function UberCorridas() {
       Destino: c.destino ?? "",
       Motivo: c.motivo ?? "",
       Tipo: c.tipo ?? "",
+      "Tipo de serviço (Uber)": c.servico_uber ?? "",
       Empresa: c.empresa ?? "",
       "Forma Pagamento": c.forma_pagamento ?? "",
       Responsável: c.responsavel ?? "",
@@ -145,7 +144,6 @@ export default function UberCorridas() {
           <Button variant="outline" size="sm" onClick={exportar}><Download className="h-4 w-4 mr-1" />Exportar</Button>
           {canManageCorridas && (
             <>
-              {(isAdmin || isExecutivo) && <Button variant="outline" size="sm" onClick={() => setImportOpen(true)}><Upload className="h-4 w-4 mr-1" />Importar Excel</Button>}
               {(isAdmin || isExecutivo) && <Button variant="outline" size="sm" onClick={() => setUberImportOpen(true)}><Upload className="h-4 w-4 mr-1" />Importar da Uber</Button>}
               <Button size="sm" onClick={() => { setEdit(null); setDialogOpen(true); }}><Plus className="h-4 w-4 mr-1" />Nova corrida</Button>
             </>
@@ -253,7 +251,7 @@ export default function UberCorridas() {
                   <TableCell>{c.tipo ?? "—"}</TableCell>
                   <TableCell className="text-right font-semibold">{fmtMoney(Number(c.valor || 0))}</TableCell>
                   <TableCell>
-                    {c.status_importacao === "pendente" && <Badge className="bg-amber-500/15 text-amber-700 dark:text-amber-400 border-amber-500/40">Pendente</Badge>}
+                    {!c.cancelada && c.status_importacao === "pendente" && <Badge className="bg-amber-500/15 text-amber-700 dark:text-amber-400 border-amber-500/40">Pendente</Badge>}
                     {c.cancelada
                       ? <Badge variant="destructive">Cancelada</Badge>
                       : c.status_importacao !== "pendente" && <Badge className="bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border-emerald-500/30">Ativa</Badge>}
@@ -272,7 +270,6 @@ export default function UberCorridas() {
       </Card>
 
       <CorridaDialog open={dialogOpen} onOpenChange={setDialogOpen} corrida={edit} />
-      <ImportarCorridasDialog open={importOpen} onOpenChange={setImportOpen} />
       {(isAdmin || isExecutivo) && <ImportarUberBusinessDialog open={uberImportOpen} onOpenChange={setUberImportOpen} />}
       <AlertDialog open={!!toDel} onOpenChange={(o) => !o && setToDel(null)}>
         <AlertDialogContent>

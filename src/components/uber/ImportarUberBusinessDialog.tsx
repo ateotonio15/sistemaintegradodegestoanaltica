@@ -21,7 +21,8 @@ import { toast } from "sonner";
 import type { Json } from "@/integrations/supabase/types";
 
 type Arquivo = { nome: string; viagens: number };
-type Historico = { id: string; usuario_nome: string; created_at: string; arquivos: { nome: string; importadas: number; ignoradas: number }[]; importadas: number; ignoradas: number; desfeita_em: string | null };
+type Historico = { id: string; usuario_nome: string; created_at: string; arquivos: { nome: string; importadas: number; ignoradas: number }[]; importadas: number; ignoradas: number; servicos_atualizados: number; desfeita_em: string | null };
+type Resultado = { importadas: number; ignoradas: number; servicos_atualizados: number };
 type LoteCampo = "empresa" | "motivo" | "tipo" | "forma_pagamento";
 const dinheiro = (v: number) => v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 const opcoes = (values: readonly string[]) => values.map(v => ({ value: v, label: v }));
@@ -40,7 +41,7 @@ export function ImportarUberBusinessDialog({ open, onOpenChange }: { open: boole
   const [aba, setAba] = useState("conferencia");
   const [pagina, setPagina] = useState(0);
   const [loteId, setLoteId] = useState("");
-  const [resultado, setResultado] = useState<{ importadas: number; ignoradas: number } | null>(null);
+  const [resultado, setResultado] = useState<Resultado | null>(null);
   const [desfazer, setDesfazer] = useState<Historico | null>(null);
   const [lote, setLote] = useState<Record<LoteCampo, string>>({ empresa: "", motivo: "", tipo: "", forma_pagamento: "" });
   const ciclo = useRef(0);
@@ -80,8 +81,10 @@ export function ImportarUberBusinessDialog({ open, onOpenChange }: { open: boole
   const ativos = passageiros.filter(p => p.ativo);
   const colaboradores = ativos.map(p => ({ value: p.id, label: `${p.nome} — ${p.setor}` }));
   const selecionadas = rows.filter(r => r.selecionada && !r.jaExiste);
+  const servicosSelecionados = rows.filter(r => r.selecionada && r.atualizarServico);
+  const totalSelecionadas = selecionadas.length + servicosSelecionados.length;
   const jaExistem = rows.filter(r => r.jaExiste).length;
-  const pendentes = selecionadas.filter(r => pendenciasUber(r).length > 0).length;
+  const pendentes = selecionadas.filter(r => !r.cancelada && pendenciasUber(r).length > 0).length;
   const patchRow = (id: string, patch: Partial<LinhaUber>) => setRows(atual => atual.map(r => r.uber_trip_id === id ? { ...r, ...patch } : r));
   const invalidaCaches = async () => {
     await Promise.all([qc.invalidateQueries({ queryKey: ["uber_corridas"] }), qc.invalidateQueries({ queryKey: ["uber-importacoes"] }), qc.invalidateQueries({ queryKey: ["uber-importacao-referencias"] }), qc.invalidateQueries({ queryKey: ["uber-enderecos-usados"] })]);
@@ -112,7 +115,7 @@ export function ImportarUberBusinessDialog({ open, onOpenChange }: { open: boole
     finally { if (versao === ciclo.current) setBusy(false); if (input.current) input.current.value = ""; }
   };
   const confirmar = async () => {
-    if (!selecionadas.length || !loteId || busy) return;
+    if (!totalSelecionadas || !loteId || busy) return;
     setBusy(true); setErro("");
     try {
       const atuais = await lerTodasCorridasUber();
@@ -122,12 +125,12 @@ export function ImportarUberBusinessDialog({ open, onOpenChange }: { open: boole
         setRows(atual => atual.map(r => ids.has(r.uber_trip_id) ? { ...r, possivelDuplicata: true, selecionada: false } : r));
         throw new Error("Novas possíveis duplicatas foram encontradas. Confira as linhas desmarcadas antes de confirmar novamente.");
       }
-      const payload = selecionadas.map(r => ({ uber_trip_id: r.uber_trip_id, data: r.data, horario: r.horario, colaborador: r.colaborador, passageiro_id: r.passageiro_id, origem: r.origem, destino: r.destino, motivo: r.envio ? "Envio de Material" : r.motivo, tipo: r.tipo, empresa: r.empresa, forma_pagamento: r.forma_pagamento, responsavel: r.responsavel, setor_solicitante: r.setor_solicitante, valor: r.valor, cancelada: r.cancelada, arquivos: r.arquivos }));
+      const payload = [...selecionadas, ...servicosSelecionados].map(r => ({ uber_trip_id: r.uber_trip_id, servico_uber: r.servico_uber, data: r.data, horario: r.horario, colaborador: r.colaborador, passageiro_id: r.passageiro_id, origem: r.origem, destino: r.destino, motivo: r.envio ? "Envio de Material" : r.motivo, tipo: r.tipo, empresa: r.empresa, forma_pagamento: r.forma_pagamento, responsavel: r.responsavel, setor_solicitante: r.setor_solicitante, valor: r.valor, cancelada: r.cancelada, arquivos: r.arquivos }));
       const { data, error } = await supabase.rpc("uber_confirmar_importacao", { p_lote: loteId, p_arquivos: arquivos as unknown as Json, p_linhas: payload as unknown as Json });
       if (error) throw error;
-      const result = data as unknown as { importadas: number; ignoradas: number };
+      const result = data as unknown as Resultado;
       if (!result) throw new Error("Não foi possível confirmar este lote.");
-      setResultado(result); setRows([]); toast.success(`${result.importadas} corridas importadas`); await invalidaCaches();
+      setResultado(result); setRows([]); toast.success(`${result.importadas} corridas importadas · ${result.servicos_atualizados} serviços preenchidos`); await invalidaCaches();
     } catch (e) { setErro(e instanceof Error ? e.message : (e as { message?: string }).message ?? "Erro ao importar."); }
     finally { setBusy(false); }
   };
@@ -158,10 +161,11 @@ export function ImportarUberBusinessDialog({ open, onOpenChange }: { open: boole
               {busy && <span role="status">Processando…</span>}
             </div>
             {(erro || referencias.isError || historico.isError) && <p role="alert" className="text-destructive">{erro || "Não foi possível carregar os dados para conferência. Feche e tente novamente."}</p>}
-            {resultado && <p role="status" className="font-medium">{resultado.importadas} importadas · {resultado.ignoradas} IDs já existentes ignorados. Consulte o histórico para ver as demais linhas ignoradas.</p>}
+            {resultado && <p role="status" className="font-medium">{resultado.importadas} importadas · {resultado.servicos_atualizados} serviços preenchidos · {resultado.ignoradas} IDs já existentes ignorados.</p>}
             {rows.length > 0 && <>
               <div className="flex flex-wrap gap-x-6 gap-y-2 border-y py-3 text-sm" role="status">
                 <span><strong>{linhasLidas}</strong> linhas lidas</span><span><strong>{rows.length}</strong> viagens</span><span><strong>{jaExistem}</strong> já existem</span><span><strong>{rows.length - jaExistem}</strong> novas</span>
+                <span><strong>{rows.filter(r => r.atualizarServico).length}</strong> serviços ausentes</span>
                 <span><strong>{rows.filter(r => r.envio).length}</strong> envios</span><span className="font-semibold">{dinheiro(rows.reduce((s, r) => s + Math.round(r.valor * 100), 0) / 100)}</span>
                 {payments > 0 && <span>{payments} linhas Payment ignoradas</span>}
               </div>
@@ -174,13 +178,14 @@ export function ImportarUberBusinessDialog({ open, onOpenChange }: { open: boole
                 <Button variant="secondary" disabled={!selecionadas.length || !Object.values(lote).some(Boolean)} onClick={() => setRows(atual => atual.map(r => r.selecionada && !r.jaExiste ? { ...r, ...Object.fromEntries(Object.entries(lote).filter(([, v]) => !!v)), motivo: r.envio ? "Envio de Material" : lote.motivo || r.motivo } : r))}>Aplicar às selecionadas</Button>
               </div>
               <Table>
-                <TableHeader><TableRow><TableHead><Checkbox aria-label="Selecionar todas as novas corridas" checked={rows.some(r => r.selecionada) && rows.filter(r => !r.jaExiste && !r.possivelDuplicata && !r.envio).every(r => r.selecionada)} onCheckedChange={v => setRows(atual => atual.map(r => ({ ...r, selecionada: v === true && !r.jaExiste && !r.possivelDuplicata && !r.envio })))} /></TableHead>
-                  {["Data", "Horário", "Responsável", "Origem", "Destino", "Valor", "Colaborador *", "Motivo", "Tipo", "Empresa", "Pagamento", "Situação"].map(h => <TableHead key={h}>{h}</TableHead>)}</TableRow></TableHeader>
+                <TableHeader><TableRow><TableHead><Checkbox aria-label="Selecionar novas corridas e serviços ausentes" checked={rows.some(r => r.selecionada) && rows.filter(r => r.atualizarServico || (!r.jaExiste && !r.possivelDuplicata && !r.envio)).every(r => r.selecionada)} onCheckedChange={v => setRows(atual => atual.map(r => ({ ...r, selecionada: v === true && (r.atualizarServico || (!r.jaExiste && !r.possivelDuplicata && !r.envio)) })))} /></TableHead>
+                  {["Data", "Horário", "Responsável", "Serviço", "Origem", "Destino", "Valor", "Colaborador *", "Motivo", "Tipo", "Empresa", "Pagamento", "Situação"].map(h => <TableHead key={h}>{h}</TableHead>)}</TableRow></TableHeader>
                 <TableBody>{rows.slice(pagina * 25, (pagina + 1) * 25).map(r => <TableRow key={r.uber_trip_id} className={r.jaExiste ? "opacity-60" : ""}>
-                  <TableCell><Checkbox aria-label={`Importar viagem ${r.uber_trip_id}`} disabled={r.jaExiste} checked={r.selecionada} onCheckedChange={v => patchRow(r.uber_trip_id, { selecionada: v === true })} /></TableCell>
+                  <TableCell><Checkbox aria-label={`Importar viagem ${r.uber_trip_id}`} disabled={r.jaExiste && !r.atualizarServico} checked={r.selecionada} onCheckedChange={v => patchRow(r.uber_trip_id, { selecionada: v === true })} /></TableCell>
                   <TableCell><Input type="date" className="min-w-36" aria-label={`Data ${r.uber_trip_id}`} value={r.data} disabled={r.jaExiste} onChange={e => patchRow(r.uber_trip_id, { data: e.target.value })} /></TableCell>
                   <TableCell><Input type="time" className="min-w-28" aria-label={`Horário ${r.uber_trip_id}`} value={r.horario} disabled={r.jaExiste} onChange={e => patchRow(r.uber_trip_id, { horario: e.target.value })} /></TableCell>
                   <TableCell><SeletorImportacaoUber label="Responsável" obrigatorio value={r.responsavel} disabled={r.jaExiste} opcoes={opcoes(referencias.data?.responsaveis ?? [])} onChange={v => patchRow(r.uber_trip_id, { responsavel: v })} /></TableCell>
+                  <TableCell className="min-w-36">{r.servico_uber || "—"}</TableCell>
                   <TableCell><Input className="min-w-56" aria-label={`Origem ${r.uber_trip_id}`} value={r.origem} disabled={r.jaExiste} onChange={e => patchRow(r.uber_trip_id, { origem: e.target.value })} /></TableCell>
                   <TableCell><Input className="min-w-56" aria-label={`Destino ${r.uber_trip_id}`} value={r.destino} disabled={r.jaExiste} onChange={e => patchRow(r.uber_trip_id, { destino: e.target.value })} /></TableCell>
                   <TableCell><Input className="min-w-28" type="number" step="0.01" aria-label={`Valor ${r.uber_trip_id}`} value={r.valor} disabled={r.jaExiste} onChange={e => patchRow(r.uber_trip_id, { valor: Number(e.target.value) })} /></TableCell>
@@ -190,7 +195,7 @@ export function ImportarUberBusinessDialog({ open, onOpenChange }: { open: boole
                   <TableCell><SeletorImportacaoUber label="Empresa" value={r.empresa} disabled={r.jaExiste} opcoes={loteOpcoes.empresa} onChange={v => patchRow(r.uber_trip_id, { empresa: v })} /></TableCell>
                   <TableCell><SeletorImportacaoUber label="Forma de pagamento" value={r.forma_pagamento} disabled={r.jaExiste} opcoes={loteOpcoes.forma_pagamento} onChange={v => patchRow(r.uber_trip_id, { forma_pagamento: v })} /></TableCell>
                   <TableCell className="space-y-1 min-w-40">{r.envio && <Badge variant="secondary">Envio</Badge>}{r.cancelada && <Badge variant="destructive">Cancelada</Badge>}
-                    {r.jaExiste ? <Badge variant="secondary">Já importada</Badge> : <>{r.possivelDuplicata && <Badge variant="outline">Possível duplicata</Badge>}{pendenciasUber(r).length > 0 && <Badge variant="outline">Pendente · {pendenciasUber(r).join(", ")}</Badge>}</>}
+                    {r.jaExiste ? <Badge variant="secondary">{r.atualizarServico ? "Preencher somente serviço" : "Já importada"}</Badge> : <>{r.possivelDuplicata && <Badge variant="outline">Possível duplicata</Badge>}{!r.cancelada && pendenciasUber(r).length > 0 && <Badge variant="outline">Pendente · {pendenciasUber(r).join(", ")}</Badge>}</>}
                   </TableCell>
                 </TableRow>)}</TableBody>
               </Table>
@@ -199,19 +204,19 @@ export function ImportarUberBusinessDialog({ open, onOpenChange }: { open: boole
           </TabsContent>
           <TabsContent value="historico" className="min-h-0 flex-1 overflow-auto">
             {historico.isLoading ? <p>Carregando…</p> : historico.isError ? <p role="alert" className="text-destructive">Não foi possível carregar o histórico.</p> : !historico.data?.length ? <p className="py-8 text-muted-foreground">Nenhuma importação registrada.</p> : <Table>
-              <TableHeader><TableRow>{["Data", "Usuário", "Arquivos", "Importadas", "Ignoradas", "Situação", ""].map((h, i) => <TableHead key={i}>{h}</TableHead>)}</TableRow></TableHeader>
+              <TableHeader><TableRow>{["Data", "Usuário", "Arquivos", "Importadas", "Serviços preenchidos", "Ignoradas", "Situação", ""].map((h, i) => <TableHead key={i}>{h}</TableHead>)}</TableRow></TableHeader>
               <TableBody>{historico.data.map(h => <TableRow key={h.id}><TableCell>{new Date(h.created_at).toLocaleString("pt-BR")}</TableCell><TableCell>{h.usuario_nome}</TableCell>
                 <TableCell>{h.arquivos.map((a, i) => <p key={i}>{a.nome} · {a.importadas} importadas / {a.ignoradas} ignoradas</p>)}</TableCell>
-                <TableCell>{h.importadas}</TableCell><TableCell>{h.ignoradas}</TableCell><TableCell>{h.desfeita_em ? "Desfeita" : "Concluída"}</TableCell>
+                <TableCell>{h.importadas}</TableCell><TableCell>{h.servicos_atualizados}</TableCell><TableCell>{h.ignoradas}</TableCell><TableCell>{h.desfeita_em ? "Desfeita" : "Concluída"}</TableCell>
                 <TableCell><Button variant="outline" size="sm" disabled={busy || !!h.desfeita_em} onClick={() => setDesfazer(h)}><Undo2 className="mr-2 h-4 w-4" />Desfazer importação</Button></TableCell>
               </TableRow>)}</TableBody>
             </Table>}
           </TabsContent>
         </Tabs>
         <DialogFooter className="border-t pt-3 flex-wrap gap-2">
-          {aba === "conferencia" && rows.length > 0 && <span className="mr-auto text-sm self-center">{selecionadas.length} selecionadas · {pendentes} pendentes</span>}
+          {aba === "conferencia" && rows.length > 0 && <span className="mr-auto text-sm self-center">{selecionadas.length} novas · {servicosSelecionados.length} serviços a preencher · {pendentes} pendentes</span>}
           <Button variant="outline" disabled={busy} onClick={() => onOpenChange(false)}>Fechar</Button>
-          {aba === "conferencia" && <Button disabled={busy || !selecionadas.length || selecionadas.some(r => !r.data || !r.horario || !Number.isFinite(r.valor))} onClick={() => void confirmar()}>Confirmar importação ({selecionadas.length})</Button>}
+          {aba === "conferencia" && <Button disabled={busy || !totalSelecionadas || selecionadas.some(r => !r.data || !r.horario || !Number.isFinite(r.valor))} onClick={() => void confirmar()}>Confirmar importação ({totalSelecionadas})</Button>}
         </DialogFooter>
       </DialogContent>
     </Dialog>

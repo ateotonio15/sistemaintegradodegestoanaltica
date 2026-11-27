@@ -203,6 +203,7 @@ export function CorridaDialog({ open, onOpenChange, corrida }: Props) {
 
   const validarPassageiroSelecionado = () => {
     const nomeMudou = !corrida || (form.colaborador ?? "").trim() !== (corrida.colaborador ?? "").trim();
+    if (corrida?.uber_trip_id && !form.colaborador?.trim()) return true;
     if (nomeMudou && !encontrarPassageiroPorNome(passageirosAtivos, form.colaborador)) {
       toast.error("Passageiro não encontrado. Cadastre-o em Passageiros Uber antes de salvar a corrida.");
       return false;
@@ -218,7 +219,7 @@ export function CorridaDialog({ open, onOpenChange, corrida }: Props) {
   });
 
   const save = async () => {
-    if (!form.data || !form.colaborador) return;
+    if (!form.data || (!form.colaborador && !corrida?.uber_trip_id)) return;
     if (!validarPassageiroSelecionado()) return;
     await upsert.mutateAsync(payloadCorrida());
     onOpenChange(false);
@@ -292,6 +293,7 @@ export function CorridaDialog({ open, onOpenChange, corrida }: Props) {
                       Passageiro não encontrado. Cadastre-o em Passageiros Uber.
                     </CommandEmpty>
                     <CommandGroup>
+                      {corrida?.uber_trip_id && <CommandItem value="__limpar_colaborador" onSelect={() => { setForm(p => ({ ...p, colaborador: "", passageiro_id: null })); setColabOpen(false); }}>Sem colaborador</CommandItem>}
                       {passageirosAtivos.map((p) => (
                         <CommandItem
                           key={p.id}
@@ -341,19 +343,21 @@ export function CorridaDialog({ open, onOpenChange, corrida }: Props) {
           </div>
           <div>
             <Label>Motivo</Label>
-            <Select value={form.motivo ?? ""} onValueChange={(v) => set("motivo", v)}>
+            <Select value={form.motivo ?? ""} onValueChange={(v) => set("motivo", v === "__vazio" ? "" : v)}>
               <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
               <SelectContent>
+                {corrida?.uber_trip_id && <SelectItem value="__vazio">Não informado</SelectItem>}
                 {UBER_MOTIVOS.map((m) => <SelectItem key={m} value={m}>{m}</SelectItem>)}
               </SelectContent>
             </Select>
           </div>
           <div>
             <Label>Tipo</Label>
-            <Select value={form.tipo ?? ""} onValueChange={(v) => set("tipo", v)}>
+            <Select value={form.tipo ?? ""} onValueChange={(v) => set("tipo", v === "__vazio" ? "" : v)}>
               <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
               <SelectContent>
                 {TIPOS.map((t) => <SelectItem key={t} value={t}>{t}</SelectItem>)}
+                {corrida?.uber_trip_id && <SelectItem value="__vazio">Não informado</SelectItem>}
               </SelectContent>
             </Select>
           </div>
@@ -377,6 +381,7 @@ export function CorridaDialog({ open, onOpenChange, corrida }: Props) {
                   <CommandList>
                     <CommandEmpty>Nenhuma empresa encontrada.</CommandEmpty>
                     <CommandGroup>
+                      {corrida?.uber_trip_id && <CommandItem value="__limpar_empresa" onSelect={() => { set("empresa", ""); setEmpresaOpen(false); }}>Sem empresa</CommandItem>}
                       {empresas.map((e) => (
                         <CommandItem
                           key={e.id}
@@ -411,10 +416,11 @@ export function CorridaDialog({ open, onOpenChange, corrida }: Props) {
           </div>
           <div>
             <Label>Forma de pagamento</Label>
-            <Select value={form.forma_pagamento ?? ""} onValueChange={(v) => set("forma_pagamento", v)}>
+            <Select value={form.forma_pagamento ?? ""} onValueChange={(v) => set("forma_pagamento", v === "__vazio" ? "" : v)}>
               <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
               <SelectContent>
                 {UBER_FORMAS_PAGAMENTO.map((f) => <SelectItem key={f} value={f}>{f}</SelectItem>)}
+                {corrida?.uber_trip_id && <SelectItem value="__vazio">Não informado</SelectItem>}
               </SelectContent>
             </Select>
           </div>
@@ -422,6 +428,7 @@ export function CorridaDialog({ open, onOpenChange, corrida }: Props) {
             <Label>Responsável</Label>
             <Input value={form.importacao_id ? form.responsavel ?? "" : form.responsavel ?? meuNome} readOnly={!form.importacao_id} disabled={!form.importacao_id} onChange={e => set("responsavel", e.target.value)} />
           </div>
+          {corrida?.servico_uber && <div className="sm:col-span-2"><Label htmlFor="servico-uber">Tipo de serviço (Uber)</Label><Input id="servico-uber" value={corrida.servico_uber} readOnly /></div>}
           <div>
             <Label>Valor (R$)</Label>
             <Input
@@ -483,7 +490,7 @@ export function CorridaDialog({ open, onOpenChange, corrida }: Props) {
           <Button variant="outline" onClick={salvarECriarVolta} disabled={upsert.isPending || !form.data || !form.colaborador}>
             Salvar e criar volta
           </Button>
-          <Button onClick={save} disabled={upsert.isPending || !form.data || !form.colaborador}>
+          <Button onClick={save} disabled={upsert.isPending || !form.data || (!form.colaborador && !corrida?.uber_trip_id)}>
             {upsert.isPending ? "Salvando..." : "Salvar"}
           </Button>
         </DialogFooter>

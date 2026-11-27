@@ -27,6 +27,7 @@ export interface UberCorrida {
   created_at: string;
   updated_at: string;
   uber_trip_id?: string | null;
+  servico_uber?: string | null;
   importacao_id?: string | null;
   setor_solicitante?: string | null;
   status_importacao?: "pendente" | "completa" | null;

@@ -1,4 +1,4 @@
 # Uber import architecture
-- Business CSV parsing is read-only and allowlisted; confirmation uses an atomic insert-only RPC with a unique trip ID so retries never overwrite rides.
+- Business CSV parsing is read-only and allowlisted; the atomic RPC inserts by unique trip ID and retries may only fill an empty service on an authorized imported ride, preserving all other fields.
 - Import undo is owner/admin authorized and deletes only rows bearing the immutable batch ID; historical manual and Excel rides remain untouched.
-- Payment options are shared with the existing ride form; imported pending rides use the same collaborator requirement as that form.
+- Payment options are shared with the ride form; the database derives imported status from collaborator/company/reason/direction/payment, preserving cancelled rides and service-only updates.

@@ -2,14 +2,15 @@ import Papa from "papaparse";
 
 export const normalizarUber = (s: string) => s.normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim().toLowerCase();
 export const primeiroNomeUber = (s: string) => s.trim().split(/\s+/)[0] ?? "";
+export const limparServicoUber = (s: string) => s.startsWith("Travel | ") ? s.slice("Travel | ".length) : s;
 const COLUNAS = ["Data da solicitação (local)", "Hora da solicitação (local)", "Nome", "Endereço de partida", "Endereço de destino", "Valor da transação: BRL", "ID da viagem/Uber Eats", "Serviço", "Tipo de cancelamento"];
 export interface ViagemUber {
   uber_trip_id: string; data: string; horario: string; responsavel: string;
   setor_solicitante: string; origem: string; destino: string; valor: number;
-  envio: boolean; cancelada: boolean; arquivos: string[];
+  envio: boolean; cancelada: boolean; arquivos: string[]; servico_uber: string;
 }
 export interface LinhaUber extends ViagemUber {
-  selecionada: boolean; jaExiste: boolean; possivelDuplicata: boolean;
+  selecionada: boolean; jaExiste: boolean; possivelDuplicata: boolean; atualizarServico: boolean;
   colaborador: string; passageiro_id: string | null; motivo: string; tipo: string;
   empresa: string; forma_pagamento: string;
 }
@@ -55,6 +56,7 @@ export function lerUberCsv(texto: string, arquivo: string) {
       viagens.push({ uber_trip_id: id, data: dataUber(get(COLUNAS[0])), horario: horaUber(get(COLUNAS[1])),
         responsavel: primeiroNomeUber(get("Nome")), setor_solicitante: get("Sobrenome"),
         origem: get("Endereço de partida"), destino: get("Endereço de destino"), valor: Number(raw),
+        servico_uber: limparServicoUber(cells[nomes.indexOf(normalizarUber("Serviço"))] ?? ""),
         envio: normalizarUber(get("Serviço")).includes("envios"),
         cancelada: !["", "--"].includes(get("Tipo de cancelamento")), arquivos: [arquivo] });
     } catch (e) { throw new Error(`${arquivo}, linha ${linha}: ${e instanceof Error ? e.message : "dados inválidos"}`); }
@@ -84,23 +86,26 @@ export function casarResponsavel(nome: string, responsaveis: string[] = RESPONSA
   const encontrados = responsaveisCadastrados(responsaveis).filter(r => normalizarUber(primeiroNomeUber(r)) === normalizarUber(primeiroNomeUber(nome)));
   return encontrados.length === 1 ? encontrados[0] : "";
 }
-export function conferirUber(viagens: ViagemUber[], existentes: { uber_trip_id?: string | null; data: string; horario: string | null; valor: number }[], responsaveis: string[]): LinhaUber[] {
+export function conferirUber(viagens: ViagemUber[], existentes: { uber_trip_id?: string | null; servico_uber?: string | null; data: string; horario: string | null; valor: number }[], responsaveis: string[]): LinhaUber[] {
   const ids = new Set(existentes.map(c => c.uber_trip_id).filter(Boolean));
+  const porId = new Map(existentes.map(c => [c.uber_trip_id, c]));
   const chaves = new Set(existentes.map(c => `${c.data}|${c.horario?.slice(0, 5)}|${Math.round(Number(c.valor) * 100)}`));
   return viagens.map(v => {
     const jaExiste = ids.has(v.uber_trip_id);
+    const atualizarServico = jaExiste && !porId.get(v.uber_trip_id)?.servico_uber?.trim() && !!v.servico_uber?.trim();
     const possivelDuplicata = !jaExiste && chaves.has(`${v.data}|${v.horario}|${Math.round(v.valor * 100)}`);
-    return { ...v, responsavel: casarResponsavel(v.responsavel, responsaveis.filter(r => RESPONSAVEIS_UBER.includes(r)).length ? responsaveis.filter(r => RESPONSAVEIS_UBER.includes(r)) : RESPONSAVEIS_UBER), jaExiste, possivelDuplicata,
-      selecionada: !jaExiste && !possivelDuplicata && !v.envio, colaborador: "", passageiro_id: null,
+    return { ...v, responsavel: casarResponsavel(v.responsavel, responsaveis.filter(r => RESPONSAVEIS_UBER.includes(r)).length ? responsaveis.filter(r => RESPONSAVEIS_UBER.includes(r)) : RESPONSAVEIS_UBER), jaExiste, possivelDuplicata, atualizarServico,
+      selecionada: atualizarServico || (!jaExiste && !possivelDuplicata && !v.envio), colaborador: "", passageiro_id: null,
       motivo: v.envio ? "Envio de Material" : "", tipo: "", empresa: "", forma_pagamento: "Cartão" };
   });
 }
-/** A ride stays pending while collaborator, company, reason or type is missing (payment defaults to Cartão). */
+/** Payment defaults to Cartão, but clearing it makes an imported ride pending again. */
 export function pendenciasUber(v: Pick<LinhaUber, "colaborador" | "responsavel" | "motivo" | "tipo" | "empresa" | "forma_pagamento">) {
   const faltam: string[] = [];
   if (!v.colaborador.trim()) faltam.push("Colaborador");
   if (!v.empresa.trim()) faltam.push("Empresa");
   if (!v.motivo.trim()) faltam.push("Motivo");
   if (!v.tipo.trim()) faltam.push("Tipo");
+  if (!v.forma_pagamento.trim()) faltam.push("Forma de pagamento");
   return faltam;
 }

@@ -6753,6 +6753,7 @@ export type Database = {
           passageiro_id: string | null
           reembolso: number | null
           responsavel: string | null
+          servico_uber: string | null
           setor_solicitante: string | null
           status_importacao: string | null
           tem_reembolso: boolean
@@ -6781,6 +6782,7 @@ export type Database = {
           passageiro_id?: string | null
           reembolso?: number | null
           responsavel?: string | null
+          servico_uber?: string | null
           setor_solicitante?: string | null
           status_importacao?: string | null
           tem_reembolso?: boolean
@@ -6809,6 +6811,7 @@ export type Database = {
           passageiro_id?: string | null
           reembolso?: number | null
           responsavel?: string | null
+          servico_uber?: string | null
           setor_solicitante?: string | null
           status_importacao?: string | null
           tem_reembolso?: boolean
@@ -6861,6 +6864,7 @@ export type Database = {
           ignoradas: number
           importadas: number
           removidas: number | null
+          servicos_atualizados: number
           usuario_id: string
           usuario_nome: string
         }
@@ -6872,6 +6876,7 @@ export type Database = {
           ignoradas?: number
           importadas?: number
           removidas?: number | null
+          servicos_atualizados?: number
           usuario_id: string
           usuario_nome: string
         }
@@ -6883,6 +6888,7 @@ export type Database = {
           ignoradas?: number
           importadas?: number
           removidas?: number | null
+          servicos_atualizados?: number
           usuario_id?: string
           usuario_nome?: string
         }

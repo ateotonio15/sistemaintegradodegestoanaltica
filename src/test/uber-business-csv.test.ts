@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { readFileSync } from "node:fs";
-import { agruparUber, casarResponsavel, conferirUber, dataUber, horaUber, lerUberCsv, pendenciasUber } from "@/lib/uber-business-csv";
+import { agruparUber, casarResponsavel, conferirUber, dataUber, horaUber, lerUberCsv, limparServicoUber, pendenciasUber } from "@/lib/uber-business-csv";
 
 const csv = readFileSync("src/test/fixtures/uber-business-anonimo.csv", "utf8");
 const parsed = () => lerUberCsv(csv, "teste.csv");
@@ -40,7 +40,7 @@ describe("Uber Business — regras da importação", () => {
     expect(agrupadas).toHaveLength(1); expect(agrupadas[0].origem).toBe(v.origem); expect(agrupadas[0].valor).toBe((Math.round(v.valor * 100) + 5) / 100); expect(agrupadas[0].cancelada).toBe(true);
   });
   it("não seleciona viagens já importadas e não altera corridas existentes", () => {
-    const v = agruparUber(parsed().viagens)[0]; const existentes = [{ uber_trip_id: v.uber_trip_id, data: v.data, horario: v.horario, valor: v.valor }]; const antes = JSON.stringify(existentes);
+    const v = agruparUber(parsed().viagens)[0]; const existentes = [{ uber_trip_id: v.uber_trip_id, servico_uber: v.servico_uber, data: v.data, horario: v.horario, valor: v.valor }]; const antes = JSON.stringify(existentes);
     const r = conferirUber([v], existentes, ["Jaina Oliveira"])[0]; expect(r.jaExiste).toBe(true); expect(r.selecionada).toBe(false); expect(JSON.stringify(existentes)).toBe(antes);
   });
   it("desmarca possível duplicata por data, hora e valor inclusive horário do banco com segundos", () => {
@@ -53,7 +53,23 @@ describe("Uber Business — regras da importação", () => {
     expect(casarResponsavel("JÁINA Departamento", ["Jaina Oliveira"])).toBe("Jaina Oliveira"); expect(casarResponsavel("Jaina", ["Jaina Oliveira", "Jaina Souza"])).toBe("");
   });
   it("mantém pendente sem colaborador; completar o campo obrigatório resolve", () => {
-    const r = conferirUber([agruparUber(parsed().viagens)[0]], [], [])[0]; expect(r.forma_pagamento).toBe("Cartão"); expect(pendenciasUber({ ...r, motivo: "" })).toEqual(["Colaborador", "Empresa", "Motivo", "Tipo"]); expect(pendenciasUber({ ...r, colaborador: "P", empresa: "E", motivo: "M", tipo: "Ida", forma_pagamento: "" })).toEqual([]);
+    const r = conferirUber([agruparUber(parsed().viagens)[0]], [], [])[0]; expect(r.forma_pagamento).toBe("Cartão"); expect(pendenciasUber({ ...r, motivo: "" })).toEqual(["Colaborador", "Empresa", "Motivo", "Tipo"]); expect(pendenciasUber({ ...r, colaborador: "P", empresa: "E", motivo: "M", tipo: "Ida", forma_pagamento: "" })).toEqual(["Forma de pagamento"]);
+  });
+  it("remove somente o prefixo Travel | e preserva outros textos", () => {
+    expect(limparServicoUber("Travel | UberX")).toBe("UberX");
+    expect(limparServicoUber("Travel | Moto Priority")).toBe("Moto Priority");
+    expect(limparServicoUber("Outro | Comfort ")).toBe("Outro | Comfort ");
+  });
+  it("recupera as contagens originais dos seis serviços sem deduzir pela direção", () => {
+    const original = lerUberCsv(readFileSync("src/test/fixtures/uber-servicos-anonimo.csv", "utf8"), "servicos.csv");
+    const contagens = agruparUber(original.viagens).reduce<Record<string, number>>((s,v) => { s[v.servico_uber]=(s[v.servico_uber]??0)+1; return s; }, {});
+    expect(contagens).toEqual({ UberX:68, Priority:18, "Moto Priority":4, Comfort:3, "Wait & Save":2, "Envios Moto":2 });
+  });
+  it("seleciona reenvio somente para preencher serviço ausente sem modificar a corrida existente", () => {
+    const v=agruparUber(parsed().viagens)[0]; const existente={...v, servico_uber:null}; const antes=JSON.stringify(existente);
+    const r=conferirUber([v],[existente],[])[0];
+    expect(r.jaExiste).toBe(true); expect(r.atualizarServico).toBe(true); expect(r.selecionada).toBe(true); expect(JSON.stringify(existente)).toBe(antes);
+    expect(conferirUber([v],[{...existente,servico_uber:"Comfort"}],[])[0].selecionada).toBe(false);
   });
 });
 import { casarResponsavel as casarR } from "@/lib/uber-business-csv";

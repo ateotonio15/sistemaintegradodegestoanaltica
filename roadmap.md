@@ -1,5 +1,10 @@
 # Roadmap — Primeiro pacote financeiro
 
+## Uber — serviços originais e status — 27/11
+- [x] Remover Importar Excel e seu diálogo exclusivo sem tocar dados.
+- [x] Recuperar Serviço do CSV original por ID, gravar campo opcional, exibir na conferência/edição/exportações e preencher somente serviços ausentes em reenvios.
+- [x] 97 serviços recuperados (68 UberX, 18 Priority, 4 Moto Priority, 3 Comfort, 2 Wait & Save, 2 Envios Moto); hash de todos os outros campos preservado, 1.947 corridas/R$ 58.753,60 e 97 importadas/R$ 2.716,80. Status passou de quatro para cinco campos, preservando canceladas; 44 testes aprovados e sessão real conferiu CSV, edição e exportação sem gravações de teste.
+
 ## Importação Uber Business — 26/11
 - [x] CSV múltiplo, conferência editável e seleção em lote sem tocar corridas existentes; Importar Excel preservado.
 - [x] Identificador único, pendências, histórico, backup completo e desfazer somente o lote; nomes de responsáveis consultados sem abrir os perfis.

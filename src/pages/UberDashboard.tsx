@@ -234,6 +234,7 @@ export default function UberDashboard() {
       Data: c.data, Horário: c.horario ?? "", Colaborador: c.colaborador,
       Empresa: c.empresa ?? "", Origem: c.origem ?? "", Destino: c.destino ?? "",
       Motivo: c.motivo ?? "", Tipo: c.tipo ?? "",
+      "Tipo de serviço (Uber)": c.servico_uber ?? "",
       "Valor (R$)": Number(c.valor || 0),
       "Reembolso (R$)": c.tem_reembolso ? Number(c.valor_reembolso ?? c.reembolso ?? 0) : 0,
       "Pagamento": c.forma_pagamento ?? "", "Responsável": c.responsavel ?? "",
