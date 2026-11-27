@@ -6942,6 +6942,39 @@ export type Database = {
         }
         Relationships: []
       }
+      uber_unificacao_log: {
+        Row: {
+          alterado_em: string
+          colaborador_anterior: string | null
+          colaborador_novo: string | null
+          corrida_id: string
+          id: string
+          motivo_anterior: string | null
+          observacao_anterior: string | null
+          passageiro_id_anterior: string | null
+        }
+        Insert: {
+          alterado_em?: string
+          colaborador_anterior?: string | null
+          colaborador_novo?: string | null
+          corrida_id: string
+          id?: string
+          motivo_anterior?: string | null
+          observacao_anterior?: string | null
+          passageiro_id_anterior?: string | null
+        }
+        Update: {
+          alterado_em?: string
+          colaborador_anterior?: string | null
+          colaborador_novo?: string | null
+          corrida_id?: string
+          id?: string
+          motivo_anterior?: string | null
+          observacao_anterior?: string | null
+          passageiro_id_anterior?: string | null
+        }
+        Relationships: []
+      }
       uea_dependente_historico: {
         Row: {
           created_at: string

@@ -806,6 +806,13 @@
       "when": 1795720475925,
       "tag": "0114_uber_pendente_campos_obrigatorios",
       "breakpoints": true
+    },
+    {
+      "idx": 115,
+      "version": "7",
+      "when": 1795780844017,
+      "tag": "0115_uber_unificacao_log",
+      "breakpoints": true
     }
   ]
 }
