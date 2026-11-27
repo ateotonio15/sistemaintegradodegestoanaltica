@@ -1,4 +1,4 @@
 # Uber import architecture
 - Business CSV parsing is read-only and allowlisted; the atomic RPC inserts by unique trip ID and retries may only fill an empty service on an authorized imported ride, preserving all other fields.
 - Import undo is owner/admin authorized and deletes only rows bearing the immutable batch ID; historical manual and Excel rides remain untouched.
-- Payment options are shared with the ride form; the database derives imported status from collaborator/company/reason/direction/payment, preserving cancelled rides and service-only updates.
+- Payment options are shared with the ride form; the database derives imported status from collaborator/company/reason/direction/payment, preserving cancelled rides and service-only updates.- Uber dashboard alerts are computed read-only in `src/lib/uber-alertas.ts` from a singleton admin-write `uber_alertas_config`; the dashboard's night window reuses that config, and holiday checks use only active `feriados` rows (`useFeriados` filters `ativo`).
