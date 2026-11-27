@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useSearchParams } from "react-router-dom";
 import * as XLSX from "xlsx";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -33,17 +33,18 @@ export default function UberCorridas() {
   const del = useDeleteCorrida();
 
   const [search, setSearch] = useState("");
+  const [qs] = useSearchParams();
   const [empresa, setEmpresa] = useState<string>("all");
   const [colaborador, setColaborador] = useState<string>("all");
   const [responsavel, setResponsavel] = useState<string>("all");
   const [mes, setMes] = useState<string>("all");
-  const [periodo, setPeriodo] = useState<string>("30");
-  const [dataInicio, setDataInicio] = useState<string>("");
-  const [dataFim, setDataFim] = useState<string>("");
+  const [periodo, setPeriodo] = useState<string>(qs.get("status") ? "all" : "30");
+  const [dataInicio, setDataInicio] = useState<string>(qs.get("de") ?? "");
+  const [dataFim, setDataFim] = useState<string>(qs.get("ate") ?? "");
 
   const [dialogOpen, setDialogOpen] = useState(false);
   const [uberImportOpen, setUberImportOpen] = useState(false);
-  const [status, setStatus] = useState("all");
+  const [status, setStatus] = useState(qs.get("status") ?? "all");
   const [edit, setEdit] = useState<UberCorrida | null>(null);
   const [toDel, setToDel] = useState<UberCorrida | null>(null);
 
