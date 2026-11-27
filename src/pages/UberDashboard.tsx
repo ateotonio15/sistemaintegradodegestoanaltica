@@ -12,17 +12,21 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import {
   ArrowLeft, Car, DollarSign, TrendingUp, Ban, Users, Plus, Download, Moon, Sun, Sunset, Sunrise,
-  Receipt, Building2, ArrowUpRight, ArrowDownRight, X, Star, MoonStar, Clock, Inbox,
+  Receipt, Building2, Route, AlertTriangle, ArrowUpRight, ArrowDownRight, X, Star, MoonStar, Clock, Inbox,
 } from "lucide-react";
 import { useUberCorridas, type UberCorrida } from "@/hooks/useUberCorridas";
 import { CorridaDialog } from "@/components/uber/CorridaDialog";
+import { AlertasSecao } from "@/components/uber/AlertasSecao";
+import { useUberAlertasConfig } from "@/hooks/useUberAlertasConfig";
+import { useFeriados } from "@/hooks/useFeriados";
+import { ALERTAS_PADRAO, calcularAlertas, ehNoturnoCfg, horaNoturna } from "@/lib/uber-alertas";
 import { useAuth } from "@/hooks/useAuth";
 import {
   ComposedChart, Bar, Line, XAxis, YAxis, CartesianGrid, Tooltip as RTooltip, ResponsiveContainer,
   PieChart, Pie, Cell, BarChart,
 } from "recharts";
 import {
-  DIAS_SEMANA, NAO_INFORMADO, PERIODOS, SEM_SERVICO, agrupar, colabDe, contaNoPainel, diaSemanaDe, ehNoturna,
+  DIAS_SEMANA, NAO_INFORMADO, PERIODOS, SEM_SERVICO, agrupar, colabDe, contaNoPainel, diaSemanaDe,
   horaDe, liquido, noPeriodo, passaFacetas, periodoAnterior, periodoDe, reembolsoDe, servicoDe, statusCorrida, totais,
   type FiltrosDash, type PeriodoKey,
 } from "@/lib/uber-dashboard";
@@ -70,6 +74,11 @@ export default function UberDashboard() {
   const [f, setF] = useState<FiltrosDash>({ de: presets[0].de, ate: presets[0].ate });
   const [incluirPend, setIncluirPend] = useState(false);
   const [novaOpen, setNovaOpen] = useState(false);
+  const [editCorrida, setEditCorrida] = useState<UberCorrida | null>(null);
+  const [rotaSel, setRotaSel] = useState<string | null>(null);
+  const { data: cfgData } = useUberAlertasConfig();
+  const cfg = cfgData ?? ALERTAS_PADRAO;
+  const { data: feriados = [] } = useFeriados();
 
   const setFacet = (k: Facet, v: any) => setF((p) => ({ ...p, [k]: v === "all" ? undefined : v }));
   const toggleFacet = (k: Facet, v: any) => setF((p) => ({ ...p, [k]: p[k] === v ? undefined : v }));
@@ -110,9 +119,19 @@ export default function UberDashboard() {
 
   const destaque = colabs.find((c) => !c.naoInformado) ?? null;
   const noturnas = useMemo(() => {
-    const rows = painel.filter((c) => ehNoturna(horaDe(c.horario)));
+    const rows = painel.filter((c) => ehNoturnoCfg(c.horario, cfg));
     return totais(rows);
-  }, [painel]);
+  }, [painel, cfg]);
+
+  const alertas = useMemo(() => {
+    const hist = corridas.filter((c) => !c.cancelada);
+    const per = hist.filter((c) => noPeriodo(c, f.de, f.ate) && (!f.empresa || (c.empresa || NAO_INFORMADO) === f.empresa) && (!f.colab || colabDe(c) === f.colab));
+    return calcularAlertas(hist, per, cfg, feriados.map((x) => ({ data: x.data, nome: x.nome })));
+  }, [corridas, f.de, f.ate, f.empresa, f.colab, cfg, feriados]);
+  const rotaTop = alertas.repetidas[0] ?? null;
+  const irAlertas = () => document.getElementById("alertas-uber")?.scrollIntoView({ behavior: "smooth" });
+  const fimNoturno = (() => { const [h, m] = cfg.noturno_fim.split(":").map(Number); const t = (h * 60 + (m || 0) + 1439) % 1440; return `${String(Math.floor(t / 60)).padStart(2, "0")}h${String(t % 60).padStart(2, "0")}`; })();
+  const iniNoturno = cfg.noturno_inicio.replace(":", "h");
 
   const comHora = useMemo(() => painel.filter((c) => horaDe(c.horario) !== null), [painel]);
   const semHora = painel.length - comHora.length;
@@ -135,8 +154,8 @@ export default function UberDashboard() {
 
   const porHora = useMemo(() => Array.from({ length: 24 }, (_, h) => {
     const rows = comHora.filter((c) => horaDe(c.horario) === h);
-    return { h, label: `${h}h`, qtd: rows.length, valor: rows.reduce((s, c) => s + liquido(c), 0), periodo: periodoDe(h)!, noturna: ehNoturna(h) };
-  }), [comHora]);
+    return { h, label: `${h}h`, qtd: rows.length, valor: rows.reduce((s, c) => s + liquido(c), 0), periodo: periodoDe(h)!, noturna: horaNoturna(h, cfg) };
+  }), [comHora, cfg]);
 
   const mensal = useMemo(() => {
     const base = new Date(hoje.getFullYear(), hoje.getMonth(), 1);
@@ -194,7 +213,9 @@ export default function UberDashboard() {
             <p className="text-xs text-muted-foreground tabular-nums">{f.de && brData(f.de)} a {f.ate && brData(f.ate)}</p>
           </div>
         </div>
-        <div className="flex gap-2">
+        <div className="flex gap-2 items-center">
+          {!isLoading && <button onClick={irAlertas} className="inline-flex items-center gap-1.5 rounded-full border border-amber-500/40 bg-amber-500/10 px-3 py-1 text-xs font-semibold text-amber-700 dark:text-amber-400 hover:bg-amber-500/20">
+            <AlertTriangle className="h-3.5 w-3.5" />{fmtNum(alertas.corridas.length)} corridas com alerta</button>}
           <Button variant="outline" size="sm" onClick={exportar}><Download className="h-4 w-4 mr-1" />Exportar</Button>
           <Button asChild variant="outline" size="sm"><Link to="/uber"><Users className="h-4 w-4 mr-1" />Corridas</Link></Button>
           {canManageCorridas && <Button size="sm" onClick={() => setNovaOpen(true)}><Plus className="h-4 w-4 mr-1" />Nova corrida</Button>}
@@ -263,7 +284,7 @@ export default function UberDashboard() {
 
           {/* Destaques */}
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">
-            <Card className="lg:col-span-6 p-5 rounded-2xl border-border/60 shadow-sm flex items-center gap-4">
+            <Card className="lg:col-span-4 p-5 rounded-2xl border-border/60 shadow-sm flex items-center gap-4">
               <div className="h-12 w-12 rounded-2xl bg-primary/10 text-primary flex items-center justify-center shrink-0"><Star className="h-6 w-6" /></div>
               {destaque ? (
                 <div className="min-w-0">
@@ -274,17 +295,30 @@ export default function UberDashboard() {
                 </div>
               ) : <Vazio texto="Nenhum colaborador identificado no período" />}
             </Card>
-            <Card className="lg:col-span-6 p-5 rounded-2xl border-border/60 shadow-sm flex items-center gap-4">
+            <Card className="lg:col-span-4 p-5 rounded-2xl border-border/60 shadow-sm flex items-center gap-4">
               <div className="h-12 w-12 rounded-2xl bg-primary/10 text-primary flex items-center justify-center shrink-0"><MoonStar className="h-6 w-6" /></div>
               {noturnas.qtd > 0 ? (
                 <div>
-                  <div className="text-[11px] uppercase tracking-wider text-muted-foreground font-semibold">Corridas noturnas · 19h00 às 04h59</div>
+                  <div className="text-[11px] uppercase tracking-wider text-muted-foreground font-semibold">Corridas noturnas · {iniNoturno} às {fimNoturno}</div>
                   <div className="text-sm tabular-nums"><b className="text-2xl">{fmtNum(noturnas.qtd)}</b> corridas
                     <span className="text-muted-foreground"> · {fmtMoney(noturnas.liq)} · {fmtPct(kpis.liq ? (noturnas.liq / kpis.liq) * 100 : 0)} do gasto</span></div>
                 </div>
               ) : <div className="text-sm text-muted-foreground">Nenhuma corrida noturna no período</div>}
             </Card>
+            <Card className="lg:col-span-4 p-5 rounded-2xl border-border/60 shadow-sm flex items-center gap-4">
+              <div className="h-12 w-12 rounded-2xl bg-amber-500/10 text-amber-600 dark:text-amber-400 flex items-center justify-center shrink-0"><Route className="h-6 w-6" /></div>
+              {rotaTop ? (
+                <div className="min-w-0">
+                  <div className="text-[11px] uppercase tracking-wider text-muted-foreground font-semibold">Rota recorrente</div>
+                  <div className="text-sm font-bold truncate" title={rotaTop.rotulo}>{rotaTop.rotulo}</div>
+                  <div className="text-sm tabular-nums"><b className="text-2xl">{fmtNum(rotaTop.qtd)}</b> vezes <span className="text-muted-foreground">· {fmtMoney(rotaTop.valor)}</span></div>
+                  <div className="text-[11px] text-muted-foreground">Avaliar transporte fixo ou outra alternativa · <button className="font-semibold text-primary hover:underline" onClick={() => { setRotaSel(rotaTop.chave); irAlertas(); }}>Ver alertas →</button></div>
+                </div>
+              ) : <div className="text-sm text-muted-foreground">Nenhuma rota recorrente</div>}
+            </Card>
           </div>
+
+          <AlertasSecao alertas={alertas.corridas} repetidas={alertas.repetidas} config={cfg} rotaSel={rotaSel} onRotaSel={setRotaSel} onAbrir={setEditCorrida} />
 
           {/* a + b */}
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">
@@ -297,7 +331,7 @@ export default function UberDashboard() {
                       <div className="grid gap-[2px]" style={{ gridTemplateColumns: "36px repeat(24, minmax(0,1fr)) 44px" }}>
                         <div />
                         {Array.from({ length: 24 }, (_, h) => (
-                          <div key={h} className={`text-[9px] text-center text-muted-foreground tabular-nums rounded-sm ${ehNoturna(h) ? "bg-muted" : ""}`}>{h}</div>
+                          <div key={h} className={`text-[9px] text-center text-muted-foreground tabular-nums rounded-sm ${horaNoturna(h, cfg) ? "bg-muted" : ""}`}>{h}</div>
                         ))}
                         <div className="text-[9px] text-right text-muted-foreground">Total</div>
                         {heat.g.map((row, d) => (
@@ -402,7 +436,7 @@ export default function UberDashboard() {
 
           {/* e + f */}
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">
-            <Bloco className="lg:col-span-7" titulo="Viagens por hora" sub="0h a 23h · tom escuro = noturno (19h–04h59) · clique para filtrar"
+            <Bloco className="lg:col-span-7" titulo="Viagens por hora" sub={`0h a 23h · tom escuro = noturno (${iniNoturno}–${fimNoturno}) · clique para filtrar`}
               nota={semHora > 0 ? `${fmtNum(semHora)} corridas sem horário não aparecem neste gráfico` : undefined}>
               <ResponsiveContainer width="100%" height={260}>
                 <BarChart data={porHora} margin={{ top: 8, right: 8, left: -16, bottom: 0 }} onClick={(e: any) => { const p = e?.activePayload?.[0]?.payload; if (p) toggleFacet("hora", p.h); }}>
@@ -475,6 +509,7 @@ export default function UberDashboard() {
       )}
 
       <CorridaDialog open={novaOpen} onOpenChange={setNovaOpen} corrida={null} />
+      <CorridaDialog open={!!editCorrida} onOpenChange={(o) => !o && setEditCorrida(null)} corrida={editCorrida} />
     </div>
     </TooltipProvider>
   );

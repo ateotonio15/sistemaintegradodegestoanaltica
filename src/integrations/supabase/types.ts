@@ -3205,7 +3205,9 @@ export type Database = {
       }
       feriados: {
         Row: {
+          abrangencia: string | null
           ano: number
+          ativo: boolean
           created_at: string
           data: string
           id: string
@@ -3214,7 +3216,9 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          abrangencia?: string | null
           ano: number
+          ativo?: boolean
           created_at?: string
           data: string
           id?: string
@@ -3223,7 +3227,9 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          abrangencia?: string | null
           ano?: number
+          ativo?: boolean
           created_at?: string
           data?: string
           id?: string
@@ -6732,6 +6738,57 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      uber_alertas_config: {
+        Row: {
+          custo_ativo: boolean
+          custo_limite: number
+          fds_ativo: boolean
+          id: boolean
+          noturno_ativo: boolean
+          noturno_fim: string
+          noturno_inicio: string
+          repetida_ativo: boolean
+          repetida_min: number
+          rota_preco_ativo: boolean
+          rota_preco_min: number
+          rota_preco_pct: number
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          custo_ativo?: boolean
+          custo_limite?: number
+          fds_ativo?: boolean
+          id?: boolean
+          noturno_ativo?: boolean
+          noturno_fim?: string
+          noturno_inicio?: string
+          repetida_ativo?: boolean
+          repetida_min?: number
+          rota_preco_ativo?: boolean
+          rota_preco_min?: number
+          rota_preco_pct?: number
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          custo_ativo?: boolean
+          custo_limite?: number
+          fds_ativo?: boolean
+          id?: boolean
+          noturno_ativo?: boolean
+          noturno_fim?: string
+          noturno_inicio?: string
+          repetida_ativo?: boolean
+          repetida_min?: number
+          rota_preco_ativo?: boolean
+          rota_preco_min?: number
+          rota_preco_pct?: number
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: []
       }
       uber_corridas: {
         Row: {
